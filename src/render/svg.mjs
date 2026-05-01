@@ -18,6 +18,17 @@ const FONT_FAMILY = "Helvetica, Arial, sans-serif";
  * @param {string} [opts.background]   Document background colour.
  * @returns {string} SVG markup.
  */
+/**
+ * Convert an Excalidraw JSON document to a stand-alone SVG string.
+ * Used by the build-time documentation pipeline
+ * ({@link ../../scripts/build-docs.mjs}).
+ *
+ * @param {object} doc           The Excalidraw JSON document.
+ * @param {object} [opts]
+ * @param {number} [opts.padding=16]    Whitespace around the bounds.
+ * @param {string} [opts.background]    Optional background fill colour.
+ * @returns {string}             A complete `<svg>...</svg>` document.
+ */
 export function excalidrawToSvg(doc, opts = {}) {
   const padding = opts.padding ?? 16;
   const elements = (doc.elements || []).filter((e) => !e.isDeleted);

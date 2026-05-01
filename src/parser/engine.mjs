@@ -42,6 +42,21 @@
 
 import { stripComment, ALWAYS_SKIP } from "./utils.mjs";
 
+/**
+ * Walk `lines` once and dispatch each line to a list of plugins.
+ *
+ * @param {object} args
+ * @param {string[]} args.lines    Raw PlantUML lines (already split).
+ * @param {Array<object>} args.plugins
+ *   Plugins in priority order. Each plugin must implement `tryStart`
+ *   (block plugins) or `tryLine` (line plugins) — see the module-level
+ *   doc block for the plugin contract.
+ * @param {object} args.ctx        Mutable context object. Plugins
+ *                                 attach state here; the engine never
+ *                                 reads it directly.
+ * @returns {object}               The same `ctx` object the caller
+ *                                 passed in (for chaining).
+ */
 export function runEngine({ lines, plugins, ctx }) {
   let block = null;
   for (const raw of lines) {

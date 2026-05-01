@@ -82,6 +82,19 @@ const SUBPLANE_OPTIONS = {
   "elk.spacing.nodeNode": "16",
 };
 
+/**
+ * Lay out a `Diagram` (or `SequenceDiagram`) in place: assigns
+ * absolute `x`/`y` coordinates and edge waypoints to every shape.
+ *
+ * Component / use-case / deployment diagrams are routed via ELK
+ * (`elkjs`, layered algorithm + orthogonal routing). Sequence
+ * diagrams use a deterministic tabular layout.
+ *
+ * @param {import("../model/diagram.mjs").Diagram
+ *        | import("../model/diagram.mjs").SequenceDiagram} diagram
+ *   The diagram to mutate.
+ * @returns {Promise<void>}
+ */
 export async function layoutDiagram(diagram) {
   // Sequence diagrams use a separate, deterministic tabular layout.
   if (diagram instanceof SequenceDiagram) {

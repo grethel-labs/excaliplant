@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build (docs + API)
+        run: npm run build
+      - name: Verify generated docs are committed
+        run: |
+          if ! git diff --quiet -- README.md docs/*.puml docs/*.excalidraw docs/*.svg; then
+            echo "::error::Generated docs are out of sync. Run 'npm run build:docs' locally and commit the result."
+            git --no-pager diff -- README.md docs/*.puml docs/*.excalidraw docs/*.svg
+            exit 1
+          fi

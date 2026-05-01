@@ -142,6 +142,19 @@ function line({ points, strokeColor, dashed = false, strokeWidth = 2 }) {
   };
 }
 
+/**
+ * Render a laid-out diagram to an Excalidraw JSON document.
+ *
+ * @param {import("../model/diagram.mjs").Diagram
+ *        | import("../model/diagram.mjs").SequenceDiagram} diagram
+ *   A diagram that has already been processed by
+ *   {@link import("../layout/elk_layout.mjs").layoutDiagram}.
+ * @param {object} [opts]
+ * @param {string} [opts.sourceLabel=""]    Used as `appState.name`.
+ * @param {boolean} [opts.debugCorridors=false]
+ *   If true, emit the routing corridors (debugging only).
+ * @returns {object}                        Excalidraw JSON.
+ */
 export function exportDiagram(diagram, { sourceLabel = "", debugCorridors = false } = {}) {
   idCounter = 0;
   if (diagram instanceof SequenceDiagram) {

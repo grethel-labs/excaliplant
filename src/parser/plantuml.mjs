@@ -80,6 +80,19 @@ export const DEFAULT_SEQUENCE_PLUGINS = [
   messagePlugin,
 ];
 
+/**
+ * Parse a PlantUML source string into the input-agnostic diagram model.
+ * The parser auto-detects sequence vs. component syntax via
+ * {@link looksLikeSequence}.
+ *
+ * @param {string} text  PlantUML source.
+ * @param {object} [opts]
+ * @param {{component?: any[], sequence?: any[]}} [opts.plugins]
+ *   Override the default plugin lists. Useful for adding support for
+ *   unsupported PlantUML constructs without forking the library.
+ * @returns {import("../model/diagram.mjs").Diagram
+ *          | import("../model/diagram.mjs").SequenceDiagram}
+ */
 export function parsePlantUml(text, opts = {}) {
   const componentPlugins = opts.plugins?.component ?? DEFAULT_COMPONENT_PLUGINS;
   const sequencePlugins = opts.plugins?.sequence ?? DEFAULT_SEQUENCE_PLUGINS;
