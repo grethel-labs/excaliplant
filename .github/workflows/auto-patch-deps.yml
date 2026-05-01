@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: auto-patch-deps
@@ -18,7 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.BOT_SSH_KEY }}
+          persist-credentials: true
       - uses: actions/setup-node@v6
         with:
           node-version: 20
@@ -65,12 +67,35 @@ jobs:
           npm install "$TARBALL"
           node -e "import('@grethel-labs/excaliplant').then(m => { if (typeof m.renderPlantUml !== 'function') { console.error('renderPlantUml missing'); process.exit(1); } console.log('smoke OK'); })"
 
-      - name: Commit + push
+      - name: Open / update auto-patch PR
         if: steps.patch.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          BRANCH="auto/patch-deps"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Always recreate the auto-patch branch from the current main
+          # so old, stale patch attempts get overwritten.
+          git checkout -B "$BRANCH"
           git add package.json package-lock.json
           MSG=$'deps: auto-patch dependencies\n\n${{ steps.patch.outputs.summary }}'
           git commit -m "$MSG"
-          git push origin main
+          git push --force-with-lease origin "$BRANCH"
+
+          # Open a PR if none exists yet, otherwise the force-push above
+          # has already updated the existing PR.
+          if ! gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "deps: auto-patch dependencies" \
+              --body "Automated patch-level dependency updates.
+
+          $(echo '${{ steps.patch.outputs.summary }}')"
+          fi
+
+          # Enable auto-merge so the PR merges itself once all required
+          # checks pass — no manual intervention needed for routine
+          # security/patch updates. Squash keeps main history linear.
+          gh pr merge "$BRANCH" --auto --squash || true

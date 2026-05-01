@@ -157,43 +157,10 @@ jobs:
           git commit --amend --no-edit
           git push --force-with-lease origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
-  # ---------------------------------------------------------------
-  # On push to main: regenerate docs and push a fix-up commit if needed.
-  # ---------------------------------------------------------------
-  main-docs-rebuild:
-    name: Rebuild docs on main
-    if: github.event_name == 'push'
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build:docs
-      - name: Commit + push if changed
-        run: |
-          if git diff --quiet -- README.md docs/ressources/generated/; then
-            echo "Docs already in sync."
-            exit 0
-          fi
-          # Avoid an infinite loop: skip if the head commit is itself a
-          # docs-rebuild commit (path-filter check).
-          last_msg=$(git log -1 --pretty=%s)
-          if [[ "$last_msg" == "docs: rebuild generated artefacts"* ]]; then
-            echo "Last commit was already a docs rebuild — skipping."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/ressources/generated/
-          git commit -m "docs: rebuild generated artefacts [skip ci]"
-          git push origin main
+  # main-docs-rebuild was removed: direct pushes to main are now blocked
+  # by the "main: PR-only" ruleset. Doc drift is prevented by the
+  # pr-docs-rebuild job that amends the regenerated README onto the PR
+  # head commit before merge.
 
   pack-smoke:
     name: Pack + smoke install (${{ matrix.os }})
