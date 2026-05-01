@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         node: ["18", "20", "22"]
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -25,6 +25,7 @@ jobs:
       - run: npm test
 
   audit:
+    name: npm audit (production)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +36,38 @@ jobs:
       - run: npm ci
       - run: npm audit --omit=dev --audit-level=high
 
+  audit-dev:
+    name: npm audit (dev, non-blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=moderate || true
+
+  security-tests:
+    name: Security tests (Node ${{ matrix.node }})
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["18", "20", "22"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Run security regression suite
+        run: node --test tests/security.test.mjs
+
   build:
+    name: Build (docs + API)
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -45,8 +77,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Build (docs + API)
-        run: npm run build
+      - run: npm run build
       - name: Verify generated docs are in sync (push to main only)
         if: github.event_name == 'push'
         run: |
@@ -62,8 +93,16 @@ jobs:
           path: docs/
 
   pack-smoke:
+    name: Pack + smoke install (${{ matrix.os }})
     needs: [test, build]
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -75,56 +114,18 @@ jobs:
       - name: npm pack
         id: pack
         run: |
-          npm pack --pack-destination /tmp
-          TARBALL=$(ls /tmp/grethel-labs-excaliplant-*.tgz | head -1)
-          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
-      - name: Smoke-install + edge-case suite in a clean project
+          mkdir -p tarball
+          npm pack --pack-destination "$PWD/tarball"
+          TARBALL=$(ls tarball/grethel-labs-excaliplant-*.tgz | head -1)
+          echo "tarball=$PWD/$TARBALL" >> "$GITHUB_OUTPUT"
+      - name: Smoke-install in clean project
         env:
           TARBALL: ${{ steps.pack.outputs.tarball }}
         run: |
-          mkdir -p /tmp/smoke && cd /tmp/smoke
+          mkdir smoke-test
+          cp scripts/smoke.mjs smoke-test/
+          cd smoke-test
           npm init -y >/dev/null
           npm pkg set type=module
           npm install "$TARBALL"
-          cat > smoke.mjs <<'EOF'
-          import { renderPlantUml, parsePlantUml, exportDiagram } from "@grethel-labs/excaliplant";
-
-          if (typeof renderPlantUml !== "function") throw new Error("renderPlantUml missing");
-          if (typeof parsePlantUml !== "function") throw new Error("parsePlantUml missing");
-          if (typeof exportDiagram !== "function") throw new Error("exportDiagram missing");
-
-          const cases = {
-            empty: "@startuml\n@enduml",
-            connection: "@startuml\nA --> B\n@enduml",
-            reverse: "@startuml\nA <-- B\n@enduml",
-            bidir: "@startuml\nA <--> B\n@enduml",
-            container: "@startuml\npackage P {\n  [a]\n  [b]\n}\n@enduml",
-            frame: "@startuml\nframe F {\n  [x]\n}\n@enduml",
-            note_block: "@startuml\nnote left of A\n  multi\n  line\nend note\nA --> B\n@enduml",
-            sequence_basic: "@startuml\nAlice -> Bob: hi\nBob -->> Alice: ok\n@enduml",
-            sequence_self: "@startuml\nAlice -> Alice: think\n@enduml",
-            usecase: "@startuml\n(login) --> (logout)\n@enduml",
-            direction_up: "@startuml\nA -up-> B\n@enduml",
-            direction_left: "@startuml\nA -left-> B\n@enduml",
-            class_block: "@startuml\nclass C {\n  +method()\n}\n@enduml",
-            comments: "@startuml\n' a comment\nskinparam monochrome true\nA --> B\n@enduml",
-          };
-
-          let failed = 0;
-          for (const [name, src] of Object.entries(cases)) {
-            try {
-              const doc = await renderPlantUml(src);
-              if (!doc || !Array.isArray(doc.elements)) throw new Error("invalid doc");
-              console.log(`  ${name}: OK (${doc.elements.length} elements)`);
-            } catch (e) {
-              console.error(`  ${name}: FAIL — ${e.message}`);
-              failed++;
-            }
-          }
-          if (failed > 0) {
-            console.error(`\n${failed} edge case(s) failed.`);
-            process.exit(1);
-          }
-          console.log("\nAll edge cases passed.");
-          EOF
           node smoke.mjs
