@@ -45,8 +45,8 @@ artefacts.
 npm install {{ pkg.name }}
 ```
 
-`@resvg/resvg-js` is an **optional** dependency, only required if you
-use the PNG export path.
+`@resvg/resvg-js` is pulled in as a runtime dependency so the SVG and
+PNG export paths work out of the box.
 
 ### Render PlantUML to an Excalidraw document
 
@@ -81,7 +81,7 @@ Lower-level entry points are also exported:
 | `exportDiagram(diagram)`        | Diagram → Excalidraw JSON                        |
 | `excalidrawToSvg(doc)`          | Excalidraw JSON → tightly-cropped SVG            |
 | `excalidrawJsonToCanvasSvg(…)`  | …same, letter-boxed onto a fixed-aspect canvas   |
-| `svgToPng(svg)`                 | Rasterise SVG to PNG (needs `@resvg/resvg-js`)   |
+| `svgToPng(svg)`                 | Rasterise SVG to PNG (`@resvg/resvg-js`)         |
 
 ### Run the tests
 
