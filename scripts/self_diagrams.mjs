@@ -1,0 +1,184 @@
+// Generate PlantUML sources that describe excaliplant itself.
+//
+// Used by:
+//   - tests/self_introspection.test.mjs   (regression test)
+//   - scripts/build-docs.mjs              (writes README diagrams)
+//
+// Three generators:
+//
+//   buildModuleDiagramSource()         → component diagram of src/
+//   buildSequenceDiagramSource()       → sequence of renderPlantUml(text)
+//   buildPluginDetailDiagramSource()   → each parser plugin as a box
+
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(HERE, "..");
+const SRC  = path.join(ROOT, "src");
+
+// ---------------------------------------------------------------------------
+// 1. Module / component diagram from src/ imports
+// ---------------------------------------------------------------------------
+
+export async function buildModuleDiagramSource() {
+  const files = await collectMjs(SRC);
+  // Group by top-level folder under src/ → planes; subfolders → subplanes.
+  /** @type {Record<string, Record<string, string[]>>} */
+  const tree = {};
+  for (const f of files) {
+    const rel = path.relative(SRC, f);              // e.g. parser/plugins/component/notes.mjs
+    const parts = rel.split(path.sep);
+    const plane = parts[0];                          // parser
+    const sub = parts.length > 2 ? parts.slice(1, -1).join("/") : "";
+    const leaf = parts[parts.length - 1].replace(/\.mjs$/, "");
+    tree[plane] ??= {};
+    tree[plane][sub] ??= [];
+    tree[plane][sub].push(leaf);
+  }
+
+  // Resolve imports between modules to draw edges.
+  const idOf = (rel) => slug(rel.replace(/\.mjs$/, ""));
+  const edges = [];
+  for (const f of files) {
+    const rel = path.relative(SRC, f);
+    const fromId = idOf(rel);
+    const text = await readFile(f, "utf8");
+    const importRe = /from\s+["']([^"']+)["']/g;
+    let m;
+    while ((m = importRe.exec(text)) !== null) {
+      const target = m[1];
+      if (!target.startsWith(".")) continue;       // skip external imports
+      const resolved = path.normalize(path.join(path.dirname(rel), target));
+      const targetRel = resolved.endsWith(".mjs") ? resolved : `${resolved}.mjs`;
+      const candidate = path.join(SRC, targetRel);
+      if (!files.includes(candidate)) continue;
+      const toId = idOf(targetRel);
+      if (fromId !== toId) edges.push([fromId, toId]);
+    }
+  }
+
+  const lines = ["@startuml", `title "excaliplant — module structure"`];
+  for (const [plane, subs] of Object.entries(tree)) {
+    lines.push(`package "${plane}" as ${slug(plane)} {`);
+    for (const [sub, leaves] of Object.entries(subs)) {
+      if (sub === "") {
+        for (const leaf of leaves) {
+          const id = idOf(path.join(plane, `${leaf}.mjs`));
+          lines.push(`  [${leaf}] as ${id}`);
+        }
+      } else {
+        const subId = slug(`${plane}_${sub}`);
+        lines.push(`  package "${sub}" as ${subId} {`);
+        for (const leaf of leaves) {
+          const id = idOf(path.join(plane, sub, `${leaf}.mjs`));
+          lines.push(`    [${leaf}] as ${id}`);
+        }
+        lines.push("  }");
+      }
+    }
+    lines.push("}");
+  }
+  // Deduplicate edges.
+  const seen = new Set();
+  for (const [a, b] of edges) {
+    const key = `${a}->${b}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    lines.push(`${a} --> ${b}`);
+  }
+  lines.push("@enduml");
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// 2. Sequence diagram for renderPlantUml(text)
+// ---------------------------------------------------------------------------
+
+export function buildSequenceDiagramSource() {
+  return [
+    "@startuml",
+    `title "renderPlantUml — call flow"`,
+    "actor       Caller",
+    "participant index    as idx",
+    "participant parser",
+    "participant engine",
+    "participant plugin",
+    "participant layout",
+    "participant renderer",
+    "",
+    "Caller -> idx       : renderPlantUml(text, opts)",
+    "idx    -> parser    : parsePlantUml(text)",
+    "parser -> engine    : runEngine({ lines, plugins, ctx })",
+    "engine -> plugin    : tryLine / tryStart per line",
+    "plugin --> engine   : consume + mutate ctx",
+    "engine --> parser   : Diagram | SequenceDiagram",
+    "parser --> idx      : model",
+    "idx    -> layout    : layoutDiagram(model)",
+    "layout --> idx      : positions + edge paths",
+    "idx    -> renderer  : exportDiagram(model)",
+    "renderer --> idx    : Excalidraw JSON",
+    "idx    --> Caller   : Excalidraw JSON",
+    "@enduml",
+  ].join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// 3. Plugin detail diagram
+// ---------------------------------------------------------------------------
+
+export async function buildPluginDetailDiagramSource() {
+  const {
+    DEFAULT_COMPONENT_PLUGINS, DEFAULT_SEQUENCE_PLUGINS,
+  } = await import("../src/parser/plantuml.mjs");
+
+  const lines = ["@startuml", `title "excaliplant — parser plugins"`];
+  const expected = [];
+
+  lines.push(`package "engine" as engine {`);
+  lines.push(`  [runEngine] as runEngine`);
+  lines.push(`}`);
+
+  lines.push(`package "component plugins" as comp {`);
+  for (const p of DEFAULT_COMPONENT_PLUGINS) {
+    const id = slug(p.name);
+    expected.push(p.name);
+    lines.push(`  [${p.name}] as ${id}`);
+    lines.push(`  runEngine --> ${id}`);
+  }
+  lines.push(`}`);
+
+  lines.push(`package "sequence plugins" as seq {`);
+  for (const p of DEFAULT_SEQUENCE_PLUGINS) {
+    const id = slug(p.name);
+    expected.push(p.name);
+    lines.push(`  [${p.name}] as ${id}`);
+    lines.push(`  runEngine --> ${id}`);
+  }
+  lines.push(`}`);
+  lines.push("@enduml");
+
+  return { puml: lines.join("\n"), expectedPlugins: expected };
+}
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+async function collectMjs(dir) {
+  const out = [];
+  const walk = async (d) => {
+    for (const ent of await readdir(d, { withFileTypes: true })) {
+      const p = path.join(d, ent.name);
+      if (ent.isDirectory()) await walk(p);
+      else if (ent.isFile() && p.endsWith(".mjs")) out.push(p);
+    }
+  };
+  await walk(dir);
+  return out;
+}
+
+function slug(s) {
+  return String(s).replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
