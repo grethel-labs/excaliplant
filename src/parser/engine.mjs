@@ -12,6 +12,7 @@
  * subsequent lines until they release.
  *
  * Plugin contract:
+ *
  * ```js
  * {
  *   name,
