@@ -1,0 +1,83 @@
+{# README template — DO NOT edit README.md directly.
+   This Nunjucks template is rendered to ../README.md by
+   docs/scripts/build-docs.mjs (npm run build:docs).
+   Variables provided to the template:
+     - pkg                : package.json contents
+     - diagrams           : array of { id, title, doc, image }
+     - moduleDocs         : array of { name, body } for non-diagram doc blocks
+     - imagesFormat       : "png" or "svg" (extension used in image links)
+#}
+# {{ pkg.name | replace("@grethel-labs/", "") }}
+
+{{ pkg.description }}
+
+**Version:** `{{ pkg.version }}`
+
+## Self-rendered diagrams
+
+The diagrams below are generated **by excaliplant itself** at build
+time (`npm run build:docs`) from PlantUML sources that describe this
+very repository. The doc snippets under each image are extracted
+from the source code via `@diagram` JSDoc tags.
+
+> ⚠️  Do not edit `README.md` directly. The file is generated from
+> [`docs/README.template.md.njk`](./docs/README.template.md.njk).
+> Edit the template and run `npm run build:docs`.
+
+{% for d in diagrams %}
+### {{ d.title }}
+
+![{{ d.title }}]({{ d.image }})
+
+_PlantUML source: [`{{ d.puml }}`]({{ d.puml }}) · SVG: [`{{ d.svg }}`]({{ d.svg }})_
+
+{{ d.doc }}
+
+{% endfor %}
+## Module documentation
+
+{% for m in moduleDocs %}
+#### {{ m.name }}
+
+{{ m.body }}
+
+{% endfor %}
+## Pipeline
+
+```
+PlantUML text
+     │ parsePlantUml()
+     ▼
+  Diagram (planes, subplanes, boxes, connections)
+     │ layoutDiagram()  (sizing → ELK layered + orthogonal routing → chamfer)
+     ▼
+  Diagram with absolute positions and edge paths
+     │ exportDiagram()
+     ▼
+  Excalidraw JSON
+```
+
+## API
+
+```js
+import { renderPlantUml } from "@grethel-labs/excaliplant";
+
+const excalidraw = await renderPlantUml(plantumlText, { sourceLabel: "demo" });
+```
+
+Lower-level entry points (`parsePlantUml`, `layoutDiagram`,
+`exportDiagram`) are also exported.
+
+## Tests
+
+```sh
+npm test
+```
+
+{{ pkg.name }} ships with {{ testCount }} tests across functional,
+edge-case, security (XSS / ReDoS / prototype-pollution), and
+self-introspection suites.
+
+## License
+
+{{ pkg.license }} © grethel-labs

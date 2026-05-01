@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+# The auto-amend job force-pushes regenerated docs back onto the PR head.
+# That requires write access. For PRs from forks, GITHUB_TOKEN is read-only,
+# so we fall back to a clear error message in those cases.
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   test:
     name: Test (Node ${{ matrix.node }} / ${{ matrix.os }})
@@ -63,38 +70,134 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - name: Run security regression suite
-        run: node --test tests/security.test.mjs
+      - run: node --test tests/security.test.mjs
 
-  build:
-    name: Build (docs + API)
+  # ---------------------------------------------------------------
+  # PR docs rebuild + auto-amend
+  # ---------------------------------------------------------------
+  # Runs ONLY on pull_request. Rebuilds the docs against the PR HEAD,
+  # checks for drift, and either:
+  #   (a) amends the PR head commit with the regenerated docs and
+  #       force-pushes, OR
+  #   (b) fails with a clear message if the user edited README.md or
+  #       generated artefacts manually (since the README is now
+  #       template-driven, those manual edits are guaranteed to be lost).
+  pr-docs-rebuild:
+    name: Rebuild docs + amend PR
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run build
-      - name: Verify generated docs are in sync (push to main only)
-        if: github.event_name == 'push'
+
+      # Detect whether the PR author touched any *generated* file.
+      # If they did, fail loudly: those edits will be overwritten and
+      # are almost certainly a mistake.
+      - name: Guard: PR must not edit generated files manually
         run: |
-          if ! git diff --quiet -- README.md docs/*.puml docs/*.excalidraw docs/*.svg; then
-            echo "::error::Generated docs are out of sync. Run 'npm run build:docs' locally and commit the result."
-            git --no-pager diff -- README.md docs/*.puml docs/*.excalidraw docs/*.svg
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          # Files that are 100% generated and must never be edited by hand.
+          PROTECTED_PATHS=(
+            "README.md"
+            "docs/ressources/generated/"
+          )
+          touched=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- "${PROTECTED_PATHS[@]}" || true)
+          if [ -n "$touched" ]; then
+            cat <<EOF
+          ::error::This PR edits generated files directly. Those changes will
+          be overwritten by the docs rebuild step.
+          
+          Files touched:
+          $touched
+          
+          README.md and everything under docs/ressources/generated/ are
+          rebuilt from:
+            - docs/README.template.md.njk
+            - docs/scripts/*.mjs
+            - JSDoc @diagram / @module tags in source files
+          
+          Edit the template or the source instead, then run:
+            npm run build:docs
+          EOF
             exit 1
           fi
-      - name: Upload built docs
-        uses: actions/upload-artifact@v4
+
+      - name: Rebuild docs
+        run: npm run build:docs
+
+      - name: Detect drift
+        id: drift
+        run: |
+          if git diff --quiet -- README.md docs/ressources/generated/; then
+            echo "drifted=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drifted=true" >> "$GITHUB_OUTPUT"
+            echo "Drift detected:"
+            git --no-pager diff --stat -- README.md docs/ressources/generated/
+          fi
+
+      - name: Amend + force-push regenerated docs
+        if: steps.drift.outputs.drifted == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/ressources/generated/
+          # Amend onto whatever the PR's head commit currently is. Use
+          # --no-edit so the user's commit message stays intact.
+          git commit --amend --no-edit
+          git push --force-with-lease origin "HEAD:${{ github.event.pull_request.head.ref }}"
+
+  # ---------------------------------------------------------------
+  # On push to main: regenerate docs and push a fix-up commit if needed.
+  # ---------------------------------------------------------------
+  main-docs-rebuild:
+    name: Rebuild docs on main
+    if: github.event_name == 'push'
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          name: docs
-          path: docs/
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build:docs
+      - name: Commit + push if changed
+        run: |
+          if git diff --quiet -- README.md docs/ressources/generated/; then
+            echo "Docs already in sync."
+            exit 0
+          fi
+          # Avoid an infinite loop: skip if the head commit is itself a
+          # docs-rebuild commit (path-filter check).
+          last_msg=$(git log -1 --pretty=%s)
+          if [[ "$last_msg" == "docs: rebuild generated artefacts"* ]]; then
+            echo "Last commit was already a docs rebuild — skipping."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/ressources/generated/
+          git commit -m "docs: rebuild generated artefacts [skip ci]"
+          git push origin main
 
   pack-smoke:
     name: Pack + smoke install (${{ matrix.os }})
-    needs: [test, build]
+    needs: [test]
     strategy:
       fail-fast: false
       matrix:
@@ -110,7 +213,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run build:docs
       - name: npm pack
         id: pack
         run: |

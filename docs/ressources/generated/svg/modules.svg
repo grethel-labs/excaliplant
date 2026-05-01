@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2111 1662" width="2111" height="1662" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900"><rect width="1200" height="900" fill="#ffffff"/><g transform="translate(28.429602888086606 -5.684341886080802e-14) scale(0.5415162454873647) translate(0 0)">
 <rect width="100%" height="100%" fill="#ffffff"/>
 <g transform="translate(-8 -8)">
 <defs>
@@ -116,4 +116,4 @@
 <polyline points="266,1489 571,1489 583,1501 583,1529 595,1541 1814,1541 1841,1541 1851,1531 1851,1453 1855,1449 1861,1449" fill="none" stroke="#692395" stroke-width="2"   marker-end="url(#m_arrow_end)"/>
 <polyline points="266,1508 276,1508 286,1518 286,1524 292,1530 316,1530" fill="none" stroke="#692395" stroke-width="2"   marker-end="url(#m_arrow_end)"/>
 <polyline points="536,1530 561,1530 573,1542 573,1548 579,1554 1764,1554 1764,1551 1814,1551 1851,1551 1861,1551" fill="none" stroke="#692395" stroke-width="2"   marker-end="url(#m_arrow_end)"/>
-</g></svg>
+</g></g></svg>

@@ -19,7 +19,7 @@
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "build:docs": "node scripts/build-docs.mjs",
+    "build:docs": "node docs/scripts/build-docs.mjs",
     "build:api": "typedoc",
     "build": "npm run build:docs && npm run build:api",
     "prepublishOnly": "npm test && npm run build"
@@ -48,6 +48,8 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "nunjucks": "^3.2.4",
     "typedoc": "^0.28.19"
   }
 }

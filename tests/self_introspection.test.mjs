@@ -14,7 +14,7 @@ import {
   buildModuleDiagramSource,
   buildSequenceDiagramSource,
   buildPluginDetailDiagramSource,
-} from "../scripts/self_diagrams.mjs";
+} from "../docs/scripts/self-diagrams.mjs";
 
 test("module-graph PlantUML for the project parses + renders", async () => {
   const puml = await buildModuleDiagramSource();

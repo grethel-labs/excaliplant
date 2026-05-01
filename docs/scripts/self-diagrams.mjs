@@ -15,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(HERE, "..");
+const ROOT = path.resolve(HERE, "..", "..");
 const SRC  = path.join(ROOT, "src");
 
 // ---------------------------------------------------------------------------
@@ -131,7 +131,7 @@ export function buildSequenceDiagramSource() {
 export async function buildPluginDetailDiagramSource() {
   const {
     DEFAULT_COMPONENT_PLUGINS, DEFAULT_SEQUENCE_PLUGINS,
-  } = await import("../src/parser/plantuml.mjs");
+  } = await import("../../src/parser/plantuml.mjs");
 
   const lines = ["@startuml", `title "excaliplant — parser plugins"`];
   const expected = [];
