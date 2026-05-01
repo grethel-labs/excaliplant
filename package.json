@@ -18,7 +18,7 @@
     "./model": "./src/model/diagram.mjs"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs",
     "build:docs": "node docs/scripts/build-docs.mjs",
     "build:api": "typedoc",
     "build": "npm run build:docs && npm run build:api",
