@@ -93,3 +93,8 @@ jobs:
 
           $(echo '${{ steps.patch.outputs.summary }}')"
           fi
+
+          # Enable auto-merge so the PR merges itself once all required
+          # checks pass — no manual intervention needed for routine
+          # security/patch updates. Squash keeps main history linear.
+          gh pr merge "$BRANCH" --auto --squash || true
