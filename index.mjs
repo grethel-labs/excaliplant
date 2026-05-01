@@ -53,6 +53,13 @@ import { exportDiagram } from "./src/render/excalidraw.mjs";
 export { parsePlantUml } from "./src/parser/plantuml.mjs";
 export { layoutDiagram } from "./src/layout/elk_layout.mjs";
 export { exportDiagram } from "./src/render/excalidraw.mjs";
+export { excalidrawToSvg } from "./src/render/svg.mjs";
+export {
+  excalidrawJsonToCanvasSvg,
+  DEFAULT_CANVAS_WIDTH,
+  DEFAULT_ASPECT_RATIO,
+} from "./src/render/canvas_svg.mjs";
+export { svgToPng } from "./src/render/png.mjs";
 export {
   Box, Connection, Diagram, Plane, Subplane,
   Participant, Message, SequenceDiagram, SequenceNote,
