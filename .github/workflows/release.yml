@@ -37,5 +37,6 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            docs/*.svg
-            docs/*.puml
+            docs/ressources/generated/svg/*.svg
+            docs/ressources/generated/png/*.png
+            docs/ressources/generated/puml/*.puml
