@@ -1,4 +1,13 @@
 node_modules/
 *.log
 .DS_Store
+
+# Generated documentation artefacts. Rebuilt by `npm run build:docs`
+# (the auto-patch / release pipeline regenerates them on every
+# version bump). The PNGs are kept in git because they are the
+# images embedded in README.md — without them GitHub's rendered
+# README would show broken thumbnails.
 docs/api/
+docs/ressources/generated/puml/
+docs/ressources/generated/svg/
+docs/ressources/generated/excalidraw/

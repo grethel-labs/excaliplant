@@ -13,20 +13,23 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import nunjucks from "nunjucks";
 
-import { renderPlantUml } from "../../index.mjs";
+import {
+  renderPlantUml,
+  excalidrawJsonToCanvasSvg,
+  svgToPng,
+} from "../../index.mjs";
 import { extractDocBlocks } from "./extract-docs.mjs";
 import {
   buildModuleDiagramSource,
   buildSequenceDiagramSource,
   buildPluginDetailDiagramSource,
 } from "./self-diagrams.mjs";
-import { excalidrawJsonToCanvasSvg } from "./export-svg.mjs";
-import { svgToPng } from "./export-png.mjs";
+import { buildFileTree } from "./file-tree.mjs";
 import {
   REPO_ROOT, SRC_DIR, ENTRY_FILE,
   PUML_DIR, EXCALIDRAW_DIR, SVG_DIR, PNG_DIR,
   TEMPLATE_FILE, README_FILE,
-  README_IMAGE_FORMAT, repoRel,
+  README_IMAGE_FORMAT, CANVAS_WIDTH, PNG_SCALE, repoRel,
 } from "./config.mjs";
 
 const ARTEFACTS = [
@@ -66,10 +69,10 @@ async function main() {
     const doc = await renderPlantUml(puml, { sourceLabel: a.id });
     await writeFile(excPath, JSON.stringify(doc, null, 2), "utf8");
 
-    const svg = excalidrawJsonToCanvasSvg(doc);
+    const svg = excalidrawJsonToCanvasSvg(doc, { width: CANVAS_WIDTH });
     await writeFile(svgPath, svg, "utf8");
 
-    const png = svgToPng(svg);
+    const png = await svgToPng(svg, { width: CANVAS_WIDTH * PNG_SCALE });
     await writeFile(pngPath, png);
 
     generated.push({
@@ -93,6 +96,7 @@ async function main() {
 
   const pkg = JSON.parse(await readFile(path.join(REPO_ROOT, "package.json"), "utf8"));
   const testCount = await countTests();
+  const fileTree = buildFileTree();
 
   const env = new nunjucks.Environment(null, {
     autoescape: false,
@@ -106,6 +110,7 @@ async function main() {
     moduleDocs,
     imagesFormat: README_IMAGE_FORMAT,
     testCount,
+    fileTree,
   });
 
   await writeFile(README_FILE, rendered, "utf8");
@@ -113,14 +118,16 @@ async function main() {
 }
 
 async function countTests() {
-  // Quick + dirty: grep `^test(` in tests/*.test.mjs without spawning node.
+  // Count `test("...")` and `it("...")` calls anywhere in the test
+  // files, not just at column 0 — tests inside `describe` blocks are
+  // indented so the previous `^test\(` pattern under-counted.
   const { readdir } = await import("node:fs/promises");
   const dir = path.join(REPO_ROOT, "tests");
   const files = (await readdir(dir)).filter((f) => f.endsWith(".test.mjs"));
   let n = 0;
   for (const f of files) {
     const text = await readFile(path.join(dir, f), "utf8");
-    n += (text.match(/^test\(/gm) || []).length;
+    n += (text.match(/(?:^|[\s.;{])(?:test|it)\s*\(/gm) || []).length;
   }
   return n;
 }

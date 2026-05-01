@@ -1,27 +1,108 @@
 
 # excaliplant
 
-PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.1** &nbsp;·&nbsp; 73 tests &nbsp;·&nbsp; MIT
 
-**Version:** `0.1.1`
+`@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
+parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
+emits a `.excalidraw` JSON document — opening cleanly in any
+Excalidraw front-end. Optional helpers convert the result to SVG or
+PNG so the same pipeline can also produce static documentation
+artefacts.
 
-## Self-rendered diagrams
+<table>
+  <tr>
 
-The diagrams below are generated **by excaliplant itself** at build
-time (`npm run build:docs`) from PlantUML sources that describe this
-very repository. The doc snippets under each image are extracted
-from the source code via `@diagram` JSDoc tags.
+    <td align="center" width="50%">
+      <a href="docs/ressources/generated/png/modules.png"><img src="docs/ressources/generated/png/modules.png" alt="Module structure" width="380"/></a><br/>
+      <sub><b>Module structure</b> — rendered by excaliplant itself</sub>
+    </td>
 
-> ⚠️  Do not edit `README.md` directly. The file is generated from
-> [`docs/README.template.md.njk`](./docs/README.template.md.njk).
-> Edit the template and run `npm run build:docs`.
+    <td align="center" width="50%">
+      <a href="docs/ressources/generated/png/sequence.png"><img src="docs/ressources/generated/png/sequence.png" alt="renderPlantUml flow" width="380"/></a><br/>
+      <sub><b>renderPlantUml flow</b> — rendered by excaliplant itself</sub>
+    </td>
+
+  </tr>
+</table>
+
+> ⚠️ This README is generated. Edit
+> [`docs/README.template.md.njk`](./docs/README.template.md.njk) and
+> run `npm run build:docs`.
+
+---
+
+## How to use
+
+### Install
+
+```sh
+npm install @grethel-labs/excaliplant
+```
+
+`@resvg/resvg-js` is an **optional** dependency, only required if you
+use the PNG export path.
+
+### Render PlantUML to an Excalidraw document
+
+```js
+import { renderPlantUml } from "@grethel-labs/excaliplant";
+
+const excalidraw = await renderPlantUml(plantumlText, { sourceLabel: "demo" });
+// → write `excalidraw` to disk as <name>.excalidraw, or hand it to an
+//   Excalidraw embed.
+```
+
+### Render to SVG / PNG (optional)
+
+```js
+import {
+  renderPlantUml,
+  excalidrawJsonToCanvasSvg,
+  svgToPng,
+} from "@grethel-labs/excaliplant";
+
+const doc = await renderPlantUml(plantumlText);
+const svg = excalidrawJsonToCanvasSvg(doc, { width: 1200 });
+const png = await svgToPng(svg, { width: 4800 });   // 4× SVG width
+```
+
+Lower-level entry points are also exported:
+
+| Export                          | Purpose                                          |
+| ------------------------------- | ------------------------------------------------ |
+| `parsePlantUml(text)`           | PlantUML → `Diagram` model                       |
+| `layoutDiagram(diagram)`        | Sizing + ELK layout + edge routing               |
+| `exportDiagram(diagram)`        | Diagram → Excalidraw JSON                        |
+| `excalidrawToSvg(doc)`          | Excalidraw JSON → tightly-cropped SVG            |
+| `excalidrawJsonToCanvasSvg(…)`  | …same, letter-boxed onto a fixed-aspect canvas   |
+| `svgToPng(svg)`                 | Rasterise SVG to PNG (needs `@resvg/resvg-js`)   |
+
+### Run the tests
+
+```sh
+npm test
+```
+
+Ships with **73 tests** across functional, edge-case,
+security (XSS / ReDoS / prototype-pollution), and self-introspection
+suites.
+
+---
+
+## Self-rendered architecture diagrams
+
+The diagrams below are produced **by excaliplant itself** at build
+time from PlantUML sources that describe this very repository. The
+text under each image is extracted from the source via `@diagram`
+JSDoc tags.
 
 
 ### Module structure
 
 ![Module structure](docs/ressources/generated/png/modules.png)
 
-_PlantUML source: [`docs/ressources/generated/puml/modules.puml`](docs/ressources/generated/puml/modules.puml) · SVG: [`docs/ressources/generated/svg/modules.svg`](docs/ressources/generated/svg/modules.svg)_
+_Sources: [PlantUML](docs/ressources/generated/puml/modules.puml) · [SVG](docs/ressources/generated/svg/modules.svg)_
 
 The module graph reflects how the source is laid out under
 [`src/`](./src/). Note in particular how the parser is split into a
@@ -33,7 +114,7 @@ each plugin handling one PlantUML construct.
 
 ![renderPlantUml flow](docs/ressources/generated/png/sequence.png)
 
-_PlantUML source: [`docs/ressources/generated/puml/sequence.puml`](docs/ressources/generated/puml/sequence.puml) · SVG: [`docs/ressources/generated/svg/sequence.svg`](docs/ressources/generated/svg/sequence.svg)_
+_Sources: [PlantUML](docs/ressources/generated/puml/sequence.puml) · [SVG](docs/ressources/generated/svg/sequence.svg)_
 
 The call graph for `renderPlantUml(text)` walks three subsystems:
 
@@ -53,7 +134,7 @@ The call graph for `renderPlantUml(text)` walks three subsystems:
 
 ![Parser plugins](docs/ressources/generated/png/plugins.png)
 
-_PlantUML source: [`docs/ressources/generated/puml/plugins.puml`](docs/ressources/generated/puml/plugins.puml) · SVG: [`docs/ressources/generated/svg/plugins.svg`](docs/ressources/generated/svg/plugins.svg)_
+_Sources: [PlantUML](docs/ressources/generated/puml/plugins.puml) · [SVG](docs/ressources/generated/svg/plugins.svg)_
 
 Each parser plugin is a tiny self-contained file that handles ONE
 PlantUML construct. The engine offers each input line to plugins
@@ -63,6 +144,84 @@ To add support for a new PlantUML keyword, drop a new file in
 `src/parser/plugins/` and append it to the default array in
 [`plantuml.mjs`](./src/parser/plantuml.mjs). No engine change required.
 
+
+
+## Pipeline
+
+```
+PlantUML text
+     │ parsePlantUml()
+     ▼
+  Diagram (planes, subplanes, boxes, connections)
+     │ layoutDiagram()  (sizing → ELK layered + orthogonal routing → chamfer)
+     ▼
+  Diagram with absolute positions and edge paths
+     │ exportDiagram()
+     ▼
+  Excalidraw JSON
+     │ excalidrawJsonToCanvasSvg()  (optional)
+     ▼
+  SVG  ── svgToPng() ──▶  PNG  (both optional, no headless browser)
+```
+
+## Repository layout
+
+```
+plantuml-to-excalidraw
+├── docs
+│   ├── ressources
+│   ├── scripts
+│   │   ├── build-docs.mjs
+│   │   ├── config.mjs
+│   │   ├── extract-docs.mjs
+│   │   ├── file-tree.mjs
+│   │   └── self-diagrams.mjs
+│   └── README.template.md.njk
+├── scripts
+│   ├── auto-patch-deps.mjs
+│   └── smoke.mjs
+├── src
+│   ├── layout
+│   │   ├── elk_layout.mjs
+│   │   ├── sequence_layout.mjs
+│   │   └── sizing.mjs
+│   ├── model
+│   │   └── diagram.mjs
+│   ├── parser
+│   │   ├── plugins
+│   │   │   ├── component
+│   │   │   └── sequence
+│   │   ├── component_context.mjs
+│   │   ├── engine.mjs
+│   │   ├── plantuml.mjs
+│   │   ├── sequence_context.mjs
+│   │   └── utils.mjs
+│   ├── render
+│   │   ├── canvas_svg.mjs
+│   │   ├── excalidraw.mjs
+│   │   ├── png.mjs
+│   │   ├── sequence_render.mjs
+│   │   └── svg.mjs
+│   └── style
+│       ├── colors.mjs
+│       └── text.mjs
+├── tests
+│   ├── edge_cases.test.mjs
+│   ├── functional_more.test.mjs
+│   ├── plantuml.test.mjs
+│   ├── security.test.mjs
+│   └── self_introspection.test.mjs
+├── LICENSE
+├── README.md
+├── index.mjs
+├── package.json
+├── tsconfig.json
+└── typedoc.json
+```
+
+Generated artefacts (`docs/ressources/generated/`, `docs/api/`) live
+in `.gitignore` — they are rebuilt by `npm run build:docs` and
+`npm run build:api`.
 
 ## Module documentation
 
@@ -124,41 +283,6 @@ that any Excalidraw front-end can open. The companion module
 JSON to SVG for the build-time documentation pipeline.
 
 
-## Pipeline
-
-```
-PlantUML text
-     │ parsePlantUml()
-     ▼
-  Diagram (planes, subplanes, boxes, connections)
-     │ layoutDiagram()  (sizing → ELK layered + orthogonal routing → chamfer)
-     ▼
-  Diagram with absolute positions and edge paths
-     │ exportDiagram()
-     ▼
-  Excalidraw JSON
-```
-
-## API
-
-```js
-import { renderPlantUml } from "@grethel-labs/excaliplant";
-
-const excalidraw = await renderPlantUml(plantumlText, { sourceLabel: "demo" });
-```
-
-Lower-level entry points (`parsePlantUml`, `layoutDiagram`,
-`exportDiagram`) are also exported.
-
-## Tests
-
-```sh
-npm test
-```
-
-@grethel-labs/excaliplant ships with 66 tests across functional,
-edge-case, security (XSS / ReDoS / prototype-pollution), and
-self-introspection suites.
 
 ## License
 

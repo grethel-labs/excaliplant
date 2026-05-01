@@ -32,6 +32,11 @@ export const ASPECT_RATIO = { w: 4, h: 3 };
 export const CANVAS_WIDTH = 1200;          // pixels
 export const CANVAS_HEIGHT = Math.round(CANVAS_WIDTH * ASPECT_RATIO.h / ASPECT_RATIO.w);
 
+// PNG resolution multiplier vs. the SVG canvas. 4× of the 1200-wide
+// canvas yields a 4800×3600 PNG so README screenshots stay sharp on
+// HiDPI displays even when scaled down by GitHub's image renderer.
+export const PNG_SCALE = 4;
+
 // PNG format that the README embeds.
 export const README_IMAGE_FORMAT = "png";
 

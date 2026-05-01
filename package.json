@@ -15,6 +15,9 @@
     "./parser/plantuml": "./src/parser/plantuml.mjs",
     "./layout": "./src/layout/elk_layout.mjs",
     "./render": "./src/render/excalidraw.mjs",
+    "./render/svg": "./src/render/svg.mjs",
+    "./render/canvas-svg": "./src/render/canvas_svg.mjs",
+    "./render/png": "./src/render/png.mjs",
     "./model": "./src/model/diagram.mjs"
   },
   "scripts": {
@@ -43,13 +46,16 @@
   "dependencies": {
     "elkjs": "^0.11.1"
   },
+  "optionalDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  },
   "engines": {
     "node": ">=18"
   },
   "license": "MIT",
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2",
     "nunjucks": "^3.2.4",
+    "tree-node-cli": "^1.6.0",
     "typedoc": "^0.28.19"
   }
 }

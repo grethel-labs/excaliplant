@@ -1,47 +1,118 @@
 {# README template — DO NOT edit README.md directly.
-   This Nunjucks template is rendered to ../README.md by
-   docs/scripts/build-docs.mjs (npm run build:docs).
+   Rendered to ../README.md by docs/scripts/build-docs.mjs.
+
    Variables provided to the template:
-     - pkg                : package.json contents
-     - diagrams           : array of { id, title, doc, image }
-     - moduleDocs         : array of { name, body } for non-diagram doc blocks
-     - imagesFormat       : "png" or "svg" (extension used in image links)
+     - pkg          : package.json contents
+     - diagrams     : array of { id, title, doc, image, puml, svg, png }
+     - moduleDocs   : array of { name, body } for non-diagram doc blocks
+     - imagesFormat : "png" or "svg"
+     - testCount    : number of test cases discovered
+     - fileTree     : ASCII file tree (string)
 #}
 # {{ pkg.name | replace("@grethel-labs/", "") }}
 
-{{ pkg.description }}
+> {{ pkg.description }} &nbsp;·&nbsp; **v{{ pkg.version }}** &nbsp;·&nbsp; {{ testCount }} tests &nbsp;·&nbsp; {{ pkg.license }}
 
-**Version:** `{{ pkg.version }}`
+`{{ pkg.name }}` takes PlantUML source, runs it through a plugin-based
+parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
+emits a `.excalidraw` JSON document — opening cleanly in any
+Excalidraw front-end. Optional helpers convert the result to SVG or
+PNG so the same pipeline can also produce static documentation
+artefacts.
 
-## Self-rendered diagrams
+<table>
+  <tr>
+{% for d in diagrams %}{% if loop.index0 < 2 %}
+    <td align="center" width="50%">
+      <a href="{{ d.image }}"><img src="{{ d.image }}" alt="{{ d.title }}" width="380"/></a><br/>
+      <sub><b>{{ d.title }}</b> — rendered by {{ pkg.name | replace("@grethel-labs/", "") }} itself</sub>
+    </td>
+{% endif %}{% endfor %}
+  </tr>
+</table>
 
-The diagrams below are generated **by excaliplant itself** at build
-time (`npm run build:docs`) from PlantUML sources that describe this
-very repository. The doc snippets under each image are extracted
-from the source code via `@diagram` JSDoc tags.
+> ⚠️ This README is generated. Edit
+> [`docs/README.template.md.njk`](./docs/README.template.md.njk) and
+> run `npm run build:docs`.
 
-> ⚠️  Do not edit `README.md` directly. The file is generated from
-> [`docs/README.template.md.njk`](./docs/README.template.md.njk).
-> Edit the template and run `npm run build:docs`.
+---
+
+## How to use
+
+### Install
+
+```sh
+npm install {{ pkg.name }}
+```
+
+`@resvg/resvg-js` is an **optional** dependency, only required if you
+use the PNG export path.
+
+### Render PlantUML to an Excalidraw document
+
+```js
+import { renderPlantUml } from "{{ pkg.name }}";
+
+const excalidraw = await renderPlantUml(plantumlText, { sourceLabel: "demo" });
+// → write `excalidraw` to disk as <name>.excalidraw, or hand it to an
+//   Excalidraw embed.
+```
+
+### Render to SVG / PNG (optional)
+
+```js
+import {
+  renderPlantUml,
+  excalidrawJsonToCanvasSvg,
+  svgToPng,
+} from "{{ pkg.name }}";
+
+const doc = await renderPlantUml(plantumlText);
+const svg = excalidrawJsonToCanvasSvg(doc, { width: 1200 });
+const png = await svgToPng(svg, { width: 4800 });   // 4× SVG width
+```
+
+Lower-level entry points are also exported:
+
+| Export                          | Purpose                                          |
+| ------------------------------- | ------------------------------------------------ |
+| `parsePlantUml(text)`           | PlantUML → `Diagram` model                       |
+| `layoutDiagram(diagram)`        | Sizing + ELK layout + edge routing               |
+| `exportDiagram(diagram)`        | Diagram → Excalidraw JSON                        |
+| `excalidrawToSvg(doc)`          | Excalidraw JSON → tightly-cropped SVG            |
+| `excalidrawJsonToCanvasSvg(…)`  | …same, letter-boxed onto a fixed-aspect canvas   |
+| `svgToPng(svg)`                 | Rasterise SVG to PNG (needs `@resvg/resvg-js`)   |
+
+### Run the tests
+
+```sh
+npm test
+```
+
+Ships with **{{ testCount }} tests** across functional, edge-case,
+security (XSS / ReDoS / prototype-pollution), and self-introspection
+suites.
+
+---
+
+## Self-rendered architecture diagrams
+
+The diagrams below are produced **by {{ pkg.name | replace("@grethel-labs/", "") }} itself** at build
+time from PlantUML sources that describe this very repository. The
+text under each image is extracted from the source via `@diagram`
+JSDoc tags.
 
 {% for d in diagrams %}
 ### {{ d.title }}
 
 ![{{ d.title }}]({{ d.image }})
 
-_PlantUML source: [`{{ d.puml }}`]({{ d.puml }}) · SVG: [`{{ d.svg }}`]({{ d.svg }})_
+_Sources: [PlantUML]({{ d.puml }}) · [SVG]({{ d.svg }})_
 
 {{ d.doc }}
 
 {% endfor %}
-## Module documentation
 
-{% for m in moduleDocs %}
-#### {{ m.name }}
-
-{{ m.body }}
-
-{% endfor %}
 ## Pipeline
 
 ```
@@ -55,28 +126,29 @@ PlantUML text
      │ exportDiagram()
      ▼
   Excalidraw JSON
+     │ excalidrawJsonToCanvasSvg()  (optional)
+     ▼
+  SVG  ── svgToPng() ──▶  PNG  (both optional, no headless browser)
 ```
 
-## API
+## Repository layout
 
-```js
-import { renderPlantUml } from "@grethel-labs/excaliplant";
-
-const excalidraw = await renderPlantUml(plantumlText, { sourceLabel: "demo" });
+```
+{{ fileTree }}
 ```
 
-Lower-level entry points (`parsePlantUml`, `layoutDiagram`,
-`exportDiagram`) are also exported.
+Generated artefacts (`docs/ressources/generated/`, `docs/api/`) live
+in `.gitignore` — they are rebuilt by `npm run build:docs` and
+`npm run build:api`.
 
-## Tests
+## Module documentation
 
-```sh
-npm test
-```
+{% for m in moduleDocs %}
+#### {{ m.name }}
 
-{{ pkg.name }} ships with {{ testCount }} tests across functional,
-edge-case, security (XSS / ReDoS / prototype-pollution), and
-self-introspection suites.
+{{ m.body }}
+
+{% endfor %}
 
 ## License
 
