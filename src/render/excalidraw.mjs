@@ -1,3 +1,15 @@
+/**
+ * @module render
+ *
+ * Emits Excalidraw JSON. Each model shape is dispatched to a
+ * dedicated `renderXxx()` function that produces one or more
+ * Excalidraw primitive elements (rectangle, ellipse, line, arrow,
+ * text). The output document is a stand-alone `.excalidraw` file
+ * that any Excalidraw front-end can open. The companion module
+ * [`src/render/svg.mjs`](./src/render/svg.mjs) converts the same
+ * JSON to SVG for the build-time documentation pipeline.
+ */
+
 // Excalidraw export.
 //
 // Emits plain rectangle / text / arrow elements. Arrows use roughness 0

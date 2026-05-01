@@ -1,3 +1,19 @@
+/**
+ * @module model
+ *
+ * Input-agnostic diagram model. Two top-level kinds:
+ *
+ * - **`Diagram`** — component / deployment / use-case style
+ *   (planes, subplanes, boxes, connections).
+ * - **`SequenceDiagram`** — lifelines + messages + notes.
+ *
+ * Layout and renderer dispatch on the model class. Anything that
+ * can be expressed as one of these two shapes flows through the
+ * pipeline; the parser is just one possible source. Callers can
+ * also build a `Diagram` programmatically and feed it to
+ * `renderDiagram()`.
+ */
+
 // Generic, input-agnostic diagram model.
 //
 // Two top-level model kinds are supported:

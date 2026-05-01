@@ -2,6 +2,24 @@
 //
 // The engine walks PlantUML lines and offers each line to a list of
 // plugins in declared order. Plugins decide whether to consume the line.
+
+/**
+ * @module parser/engine
+ *
+ * A ~50-line line-walker. The engine itself knows nothing about
+ * PlantUML syntax; that lives entirely in plugins. Block plugins
+ * (multi-line notes, class bodies) take exclusive ownership of
+ * subsequent lines until they release.
+ *
+ * Plugin contract:
+ * ```js
+ * {
+ *   name,
+ *   tryStart?(line, ctx): null | { onLine, tryEnd },
+ *   tryLine?(line, ctx): boolean,
+ * }
+ * ```
+ */
 //
 // Plugin contract:
 //

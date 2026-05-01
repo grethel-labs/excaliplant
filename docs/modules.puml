@@ -1,0 +1,78 @@
+@startuml
+title "excaliplant — module structure"
+package "layout" as layout {
+  [elk_layout] as layout_elk_layout
+  [sequence_layout] as layout_sequence_layout
+  [sizing] as layout_sizing
+}
+package "model" as model {
+  [diagram] as model_diagram
+}
+package "parser" as parser {
+  [component_context] as parser_component_context
+  [engine] as parser_engine
+  [plantuml] as parser_plantuml
+  [sequence_context] as parser_sequence_context
+  [utils] as parser_utils
+  package "plugins/component" as parser_plugins_component {
+    [connections] as parser_plugins_component_connections
+    [containers] as parser_plugins_component_containers
+    [notes] as parser_plugins_component_notes
+    [preamble] as parser_plugins_component_preamble
+    [shapes] as parser_plugins_component_shapes
+  }
+  package "plugins/sequence" as parser_plugins_sequence {
+    [messages] as parser_plugins_sequence_messages
+    [notes] as parser_plugins_sequence_notes
+    [participants] as parser_plugins_sequence_participants
+    [preamble] as parser_plugins_sequence_preamble
+  }
+}
+package "render" as render {
+  [excalidraw] as render_excalidraw
+  [sequence_render] as render_sequence_render
+  [svg] as render_svg
+}
+package "style" as style {
+  [colors] as style_colors
+  [text] as style_text
+}
+layout_elk_layout --> model_diagram
+layout_elk_layout --> layout_sizing
+layout_elk_layout --> layout_sequence_layout
+layout_sequence_layout --> style_text
+layout_sizing --> model_diagram
+layout_sizing --> style_text
+parser_component_context --> model_diagram
+parser_component_context --> style_colors
+parser_engine --> parser_utils
+parser_plantuml --> parser_engine
+parser_plantuml --> parser_utils
+parser_plantuml --> parser_component_context
+parser_plantuml --> parser_sequence_context
+parser_plantuml --> parser_plugins_component_preamble
+parser_plantuml --> parser_plugins_component_containers
+parser_plantuml --> parser_plugins_component_shapes
+parser_plantuml --> parser_plugins_component_connections
+parser_plantuml --> parser_plugins_component_notes
+parser_plantuml --> parser_plugins_sequence_preamble
+parser_plantuml --> parser_plugins_sequence_participants
+parser_plantuml --> parser_plugins_sequence_messages
+parser_plantuml --> parser_plugins_sequence_notes
+parser_plugins_component_connections --> parser_utils
+parser_plugins_component_containers --> parser_utils
+parser_plugins_component_notes --> parser_utils
+parser_plugins_component_preamble --> parser_utils
+parser_plugins_component_shapes --> parser_utils
+parser_plugins_sequence_messages --> parser_utils
+parser_plugins_sequence_notes --> parser_utils
+parser_plugins_sequence_participants --> parser_utils
+parser_plugins_sequence_preamble --> parser_utils
+parser_sequence_context --> model_diagram
+render_excalidraw --> model_diagram
+render_excalidraw --> style_text
+render_excalidraw --> layout_sizing
+render_excalidraw --> style_colors
+render_excalidraw --> render_sequence_render
+render_sequence_render --> style_text
+@enduml

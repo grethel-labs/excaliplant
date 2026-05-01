@@ -1,3 +1,18 @@
+/**
+ * @module layout
+ *
+ * Layout chooses positions for every shape and routes every edge.
+ * Component / use-case / deployment diagrams flow through ELK
+ * (`elkjs`) using the `layered` algorithm with orthogonal edge
+ * routing. After ELK returns we chamfer 90° corners so the result
+ * matches Excalidraw's diagonal-corner aesthetic.
+ *
+ * Sequence diagrams skip ELK entirely — their layout is strictly
+ * tabular (lifelines on the X axis, time on the Y axis), so a
+ * deterministic ~90-line algorithm produces better, more compact
+ * results than a force-directed solver could.
+ */
+
 // ELK-based layout & routing.
 //
 // Replaces the old multi-step pipeline (legacy/layout/step{1..7}*.mjs).

@@ -17,6 +17,18 @@
 // `Message`, …) are unchanged — plugins manipulate them through the
 // context helpers in `component_context.mjs` / `sequence_context.mjs`.
 
+/**
+ * @diagram plugins
+ *
+ * Each parser plugin is a tiny self-contained file that handles ONE
+ * PlantUML construct. The engine offers each input line to plugins
+ * in registration order; the first plugin that returns `true` wins.
+ *
+ * To add support for a new PlantUML keyword, drop a new file in
+ * `src/parser/plugins/` and append it to the default array in
+ * [`plantuml.mjs`](./src/parser/plantuml.mjs). No engine change required.
+ */
+
 import { runEngine } from "./engine.mjs";
 import { explodeBraces, stripComment } from "./utils.mjs";
 import { createComponentContext } from "./component_context.mjs";

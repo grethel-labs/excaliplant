@@ -18,7 +18,10 @@
     "./model": "./src/model/diagram.mjs"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "build:docs": "node scripts/build-docs.mjs",
+    "build": "npm run build:docs",
+    "prepublishOnly": "npm test && npm run build"
   },
   "repository": {
     "type": "git",
