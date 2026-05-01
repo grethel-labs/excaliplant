@@ -1,0 +1,77 @@
+name: Auto patch dependencies (4h)
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-patch-deps
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply patch-level updates
+        id: patch
+        run: |
+          OUT=$(node scripts/auto-patch-deps.mjs)
+          echo "$OUT"
+          if echo "$OUT" | grep -q "^No patch-level updates"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            SUMMARY=$(echo "$OUT" | awk '/^---SUMMARY---$/{flag=1;next}flag')
+            {
+              echo "summary<<EOF"
+              echo "$SUMMARY"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Audit (always run, fail on high+)
+        if: steps.patch.outputs.changed == 'true'
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run full test pipeline
+        if: steps.patch.outputs.changed == 'true'
+        run: npm test
+
+      - name: Build (docs + API)
+        if: steps.patch.outputs.changed == 'true'
+        run: npm run build
+
+      - name: Pack + smoke-install
+        if: steps.patch.outputs.changed == 'true'
+        run: |
+          npm pack --pack-destination /tmp
+          TARBALL=$(ls /tmp/grethel-labs-excaliplant-*.tgz | head -1)
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          npm init -y >/dev/null
+          npm install "$TARBALL"
+          node -e "import('@grethel-labs/excaliplant').then(m => { if (typeof m.renderPlantUml !== 'function') { console.error('renderPlantUml missing'); process.exit(1); } console.log('smoke OK'); })"
+
+      - name: Commit + push
+        if: steps.patch.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "deps: auto-patch dependencies
+
+${{ steps.patch.outputs.summary }}"
+          git push origin main

@@ -15,17 +15,19 @@ updates:
       prefix: "deps"
       prefix-development: "deps-dev"
       include: scope
+    # Patches are handled continuously by the 4h auto-patch cron.
+    # Dependabot only opens MRs for minor / major bumps so a human
+    # can review them.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
     groups:
-      production-minor-patch:
+      production-minor:
         dependency-type: production
-        update-types:
-          - minor
-          - patch
-      development-minor-patch:
+        update-types: ["minor"]
+      development-minor:
         dependency-type: development
-        update-types:
-          - minor
-          - patch
+        update-types: ["minor"]
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -41,7 +43,5 @@ updates:
       prefix: "ci"
       include: scope
     groups:
-      actions-minor-patch:
-        update-types:
-          - minor
-          - patch
+      actions-minor-major:
+        update-types: ["minor", "major"]

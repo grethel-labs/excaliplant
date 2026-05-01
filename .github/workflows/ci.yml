@@ -8,6 +8,23 @@ on:
 
 jobs:
   test:
+    name: Test (Node ${{ matrix.node }} / ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["18", "20", "22"]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,13 +33,98 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+
+  build:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
       - name: Build (docs + API)
         run: npm run build
-      - name: Verify generated docs are committed
+      - name: Verify generated docs are in sync (push to main only)
+        if: github.event_name == 'push'
         run: |
           if ! git diff --quiet -- README.md docs/*.puml docs/*.excalidraw docs/*.svg; then
             echo "::error::Generated docs are out of sync. Run 'npm run build:docs' locally and commit the result."
             git --no-pager diff -- README.md docs/*.puml docs/*.excalidraw docs/*.svg
             exit 1
           fi
+      - name: Upload built docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs/
+
+  pack-smoke:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build:docs
+      - name: npm pack
+        id: pack
+        run: |
+          npm pack --pack-destination /tmp
+          TARBALL=$(ls /tmp/grethel-labs-excaliplant-*.tgz | head -1)
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+      - name: Smoke-install + edge-case suite in a clean project
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          npm init -y >/dev/null
+          npm pkg set type=module
+          npm install "$TARBALL"
+          cat > smoke.mjs <<'EOF'
+          import { renderPlantUml, parsePlantUml, exportDiagram } from "@grethel-labs/excaliplant";
+
+          if (typeof renderPlantUml !== "function") throw new Error("renderPlantUml missing");
+          if (typeof parsePlantUml !== "function") throw new Error("parsePlantUml missing");
+          if (typeof exportDiagram !== "function") throw new Error("exportDiagram missing");
+
+          const cases = {
+            empty: "@startuml\n@enduml",
+            connection: "@startuml\nA --> B\n@enduml",
+            reverse: "@startuml\nA <-- B\n@enduml",
+            bidir: "@startuml\nA <--> B\n@enduml",
+            container: "@startuml\npackage P {\n  [a]\n  [b]\n}\n@enduml",
+            frame: "@startuml\nframe F {\n  [x]\n}\n@enduml",
+            note_block: "@startuml\nnote left of A\n  multi\n  line\nend note\nA --> B\n@enduml",
+            sequence_basic: "@startuml\nAlice -> Bob: hi\nBob -->> Alice: ok\n@enduml",
+            sequence_self: "@startuml\nAlice -> Alice: think\n@enduml",
+            usecase: "@startuml\n(login) --> (logout)\n@enduml",
+            direction_up: "@startuml\nA -up-> B\n@enduml",
+            direction_left: "@startuml\nA -left-> B\n@enduml",
+            class_block: "@startuml\nclass C {\n  +method()\n}\n@enduml",
+            comments: "@startuml\n' a comment\nskinparam monochrome true\nA --> B\n@enduml",
+          };
+
+          let failed = 0;
+          for (const [name, src] of Object.entries(cases)) {
+            try {
+              const doc = await renderPlantUml(src);
+              if (!doc || !Array.isArray(doc.elements)) throw new Error("invalid doc");
+              console.log(`  ${name}: OK (${doc.elements.length} elements)`);
+            } catch (e) {
+              console.error(`  ${name}: FAIL — ${e.message}`);
+              failed++;
+            }
+          }
+          if (failed > 0) {
+            console.error(`\n${failed} edge case(s) failed.`);
+            process.exit(1);
+          }
+          console.log("\nAll edge cases passed.");
+          EOF
+          node smoke.mjs
