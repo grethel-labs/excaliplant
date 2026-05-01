@@ -1,7 +1,7 @@
 
 # excaliplant
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.2** &nbsp;·&nbsp; 73 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.3** &nbsp;·&nbsp; 73 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -51,6 +51,21 @@ const excalidraw = await renderPlantUml(plantumlText, { sourceLabel: "demo" });
 ```
 
 ### Render to SVG / PNG
+
+The result of `renderPlantUml(...)` is a thenable — you can `await` it
+to get the Excalidraw JSON, or chain `.toSvg()` / `.toPng()` on it to
+get the rasterised diagram in a single line. Both outputs keep the
+hand-drawn Excalidraw look (strokes are produced via `roughjs`, the
+same library Excalidraw uses internally).
+
+```js
+import { renderPlantUml } from "@grethel-labs/excaliplant";
+
+const svg = await renderPlantUml(plantumlText).toSvg();
+const png = await renderPlantUml(plantumlText).toPng({ width: 4800 });
+```
+
+The lower-level helpers are still exported if you need them:
 
 ```js
 import {

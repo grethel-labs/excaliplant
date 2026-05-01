@@ -49,6 +49,9 @@
 import { parsePlantUml } from "./src/parser/plantuml.mjs";
 import { layoutDiagram } from "./src/layout/elk_layout.mjs";
 import { exportDiagram } from "./src/render/excalidraw.mjs";
+import { excalidrawToSvg } from "./src/render/svg.mjs";
+import { excalidrawJsonToCanvasSvg } from "./src/render/canvas_svg.mjs";
+import { svgToPng } from "./src/render/png.mjs";
 
 export { parsePlantUml } from "./src/parser/plantuml.mjs";
 export { layoutDiagram } from "./src/layout/elk_layout.mjs";
@@ -67,30 +70,97 @@ export {
 } from "./src/model/diagram.mjs";
 
 /**
+ * Chainable result returned by `renderPlantUml` / `renderDiagram`.
+ *
+ * Awaiting the result yields the Excalidraw JSON document, so existing
+ * callers (`const doc = await renderPlantUml(text)`) keep working.
+ *
+ * On top of that, the result exposes `.toSvg()` and `.toPng()` so a
+ * caller can write:
+ *
+ * ```js
+ * const r = renderPlantUml(text);
+ * const svg = await r.toSvg();
+ * const png = await r.toPng({ width: 4800 });
+ * ```
+ *
+ * Both helpers lazily await the underlying document — so calling
+ * `toSvg()` / `toPng()` directly on the unawaited result works too.
+ */
+export class RenderResult {
+  /** @param {Promise<object>} docPromise */
+  constructor(docPromise) {
+    this._doc = docPromise;
+  }
+
+  /** Thenable: `await result` yields the Excalidraw JSON document. */
+  then(onFulfilled, onRejected) {
+    return this._doc.then(onFulfilled, onRejected);
+  }
+
+  /**
+   * Letter-boxed sketchy SVG.
+   *
+   * @param {object} [opts] Forwarded to `excalidrawJsonToCanvasSvg`,
+   *   plus `{ canvas: false }` to skip the letter-boxing and get the
+   *   tightly-cropped SVG instead.
+   * @returns {Promise<string>}
+   */
+  async toSvg(opts = {}) {
+    const doc = await this._doc;
+    if (opts.canvas === false) return excalidrawToSvg(doc, opts);
+    return excalidrawJsonToCanvasSvg(doc, opts);
+  }
+
+  /**
+   * Sketchy PNG. Renders the SVG (which already carries the
+   * Excalidraw-style wobble via roughjs) and rasterises with resvg.
+   *
+   * @param {object} [opts] Forwarded to `svgToPng` and the SVG step.
+   * @returns {Promise<Buffer>}
+   */
+  async toPng(opts = {}) {
+    const svg = await this.toSvg(opts);
+    return svgToPng(svg, opts);
+  }
+}
+
+/**
  * Render a PlantUML source string to an Excalidraw JSON document.
+ *
+ * The return value is a thenable {@link RenderResult}: `await` it for
+ * the Excalidraw JSON, or call `.toSvg()` / `.toPng()` on it to get
+ * the rasterised diagram in one chained call.
  *
  * @param {string} plantuml  PlantUML text (see src/parser/plantuml.mjs
  *                           for the supported subset).
  * @param {object} [opts]
  * @param {string} [opts.sourceLabel]  Forwarded to the renderer's
  *                                     appState.name.
- * @returns {Promise<object>}          Excalidraw JSON.
+ * @returns {RenderResult}             Thenable wrapping the Excalidraw
+ *                                     JSON document.
  */
-export async function renderPlantUml(plantuml, opts = {}) {
-  const diagram = parsePlantUml(plantuml);
-  await layoutDiagram(diagram);
-  return exportDiagram(diagram, {
-    sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
-  });
+export function renderPlantUml(plantuml, opts = {}) {
+  return new RenderResult((async () => {
+    const diagram = parsePlantUml(plantuml);
+    await layoutDiagram(diagram);
+    return exportDiagram(diagram, {
+      sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
+    });
+  })());
 }
 
 /**
  * Render an already-built Diagram model. Useful for callers that want
  * to bypass the PlantUML parser and feed shapes programmatically.
+ *
+ * @returns {RenderResult}
  */
-export async function renderDiagram(diagram, opts = {}) {
-  await layoutDiagram(diagram);
-  return exportDiagram(diagram, {
-    sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
-  });
+export function renderDiagram(diagram, opts = {}) {
+  return new RenderResult((async () => {
+    await layoutDiagram(diagram);
+    return exportDiagram(diagram, {
+      sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
+    });
+  })());
 }
