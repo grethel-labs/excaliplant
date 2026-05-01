@@ -1,7 +1,7 @@
 
 # excaliplant
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.1** &nbsp;·&nbsp; 73 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.2** &nbsp;·&nbsp; 73 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -12,17 +12,14 @@ artefacts.
 
 <table>
   <tr>
-
     <td align="center" width="50%">
       <a href="docs/ressources/generated/png/modules.png"><img src="docs/ressources/generated/png/modules.png" alt="Module structure" width="380"/></a><br/>
       <sub><b>Module structure</b> — rendered by excaliplant itself</sub>
     </td>
-
     <td align="center" width="50%">
       <a href="docs/ressources/generated/png/sequence.png"><img src="docs/ressources/generated/png/sequence.png" alt="renderPlantUml flow" width="380"/></a><br/>
       <sub><b>renderPlantUml flow</b> — rendered by excaliplant itself</sub>
     </td>
-
   </tr>
 </table>
 
@@ -53,7 +50,7 @@ const excalidraw = await renderPlantUml(plantumlText, { sourceLabel: "demo" });
 //   Excalidraw embed.
 ```
 
-### Render to SVG / PNG (optional)
+### Render to SVG / PNG
 
 ```js
 import {
@@ -64,7 +61,7 @@ import {
 
 const doc = await renderPlantUml(plantumlText);
 const svg = excalidrawJsonToCanvasSvg(doc, { width: 1200 });
-const png = await svgToPng(svg, { width: 4800 });   // 4× SVG width
+const png = svgToPng(svg, { width: 4800 });   // 4× SVG width
 ```
 
 Lower-level entry points are also exported:
@@ -97,7 +94,6 @@ time from PlantUML sources that describe this very repository. The
 text under each image is extracted from the source via `@diagram`
 JSDoc tags.
 
-
 ### Module structure
 
 ![Module structure](docs/ressources/generated/png/modules.png)
@@ -108,7 +104,6 @@ The module graph reflects how the source is laid out under
 [`src/`](./src/). Note in particular how the parser is split into a
 single tiny `engine` plus a stack of plugins under `parser/plugins/`,
 each plugin handling one PlantUML construct.
-
 
 ### renderPlantUml flow
 
@@ -129,7 +124,6 @@ The call graph for `renderPlantUml(text)` walks three subsystems:
    [`src/render/svg.mjs`](./src/render/svg.mjs) — used by the
    documentation pipeline.
 
-
 ### Parser plugins
 
 ![Parser plugins](docs/ressources/generated/png/plugins.png)
@@ -144,11 +138,9 @@ To add support for a new PlantUML keyword, drop a new file in
 `src/parser/plugins/` and append it to the default array in
 [`plantuml.mjs`](./src/parser/plantuml.mjs). No engine change required.
 
-
-
 ## Pipeline
 
-```
+```text
 PlantUML text
      │ parsePlantUml()
      ▼
@@ -166,7 +158,7 @@ PlantUML text
 
 ## Repository layout
 
-```
+```text
 plantuml-to-excalidraw
 ├── docs
 │   ├── ressources
@@ -225,8 +217,7 @@ in `.gitignore` — they are rebuilt by `npm run build:docs` and
 
 ## Module documentation
 
-
-#### layout
+### layout
 
 Layout chooses positions for every shape and routes every edge.
 Component / use-case / deployment diagrams flow through ELK
@@ -239,8 +230,7 @@ tabular (lifelines on the X axis, time on the Y axis), so a
 deterministic ~90-line algorithm produces better, more compact
 results than a force-directed solver could.
 
-
-#### model
+### model
 
 Input-agnostic diagram model. Two top-level kinds:
 
@@ -254,8 +244,7 @@ pipeline; the parser is just one possible source. Callers can
 also build a `Diagram` programmatically and feed it to
 `renderDiagram()`.
 
-
-#### parser/engine
+### parser/engine
 
 A ~50-line line-walker. The engine itself knows nothing about
 PlantUML syntax; that lives entirely in plugins. Block plugins
@@ -263,6 +252,7 @@ PlantUML syntax; that lives entirely in plugins. Block plugins
 subsequent lines until they release.
 
 Plugin contract:
+
 ```js
 {
   name,
@@ -271,8 +261,7 @@ Plugin contract:
 }
 ```
 
-
-#### render
+### render
 
 Emits Excalidraw JSON. Each model shape is dispatched to a
 dedicated `renderXxx()` function that produces one or more
@@ -281,8 +270,6 @@ text). The output document is a stand-alone `.excalidraw` file
 that any Excalidraw front-end can open. The companion module
 [`src/render/svg.mjs`](./src/render/svg.mjs) converts the same
 JSON to SVG for the build-time documentation pipeline.
-
-
 
 ## License
 

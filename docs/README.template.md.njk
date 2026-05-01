@@ -22,12 +22,14 @@ artefacts.
 
 <table>
   <tr>
-{% for d in diagrams %}{% if loop.index0 < 2 %}
+{%- for d in diagrams -%}
+{%- if loop.index0 < 2 %}
     <td align="center" width="50%">
       <a href="{{ d.image }}"><img src="{{ d.image }}" alt="{{ d.title }}" width="380"/></a><br/>
       <sub><b>{{ d.title }}</b> — rendered by {{ pkg.name | replace("@grethel-labs/", "") }} itself</sub>
     </td>
-{% endif %}{% endfor %}
+{%- endif -%}
+{%- endfor %}
   </tr>
 </table>
 
@@ -58,7 +60,7 @@ const excalidraw = await renderPlantUml(plantumlText, { sourceLabel: "demo" });
 //   Excalidraw embed.
 ```
 
-### Render to SVG / PNG (optional)
+### Render to SVG / PNG
 
 ```js
 import {
@@ -69,7 +71,7 @@ import {
 
 const doc = await renderPlantUml(plantumlText);
 const svg = excalidrawJsonToCanvasSvg(doc, { width: 1200 });
-const png = await svgToPng(svg, { width: 4800 });   // 4× SVG width
+const png = svgToPng(svg, { width: 4800 });   // 4× SVG width
 ```
 
 Lower-level entry points are also exported:
@@ -101,7 +103,6 @@ The diagrams below are produced **by {{ pkg.name | replace("@grethel-labs/", "")
 time from PlantUML sources that describe this very repository. The
 text under each image is extracted from the source via `@diagram`
 JSDoc tags.
-
 {% for d in diagrams %}
 ### {{ d.title }}
 
@@ -109,13 +110,11 @@ JSDoc tags.
 
 _Sources: [PlantUML]({{ d.puml }}) · [SVG]({{ d.svg }})_
 
-{{ d.doc }}
-
+{{ d.doc | trim }}
 {% endfor %}
-
 ## Pipeline
 
-```
+```text
 PlantUML text
      │ parsePlantUml()
      ▼
@@ -133,7 +132,7 @@ PlantUML text
 
 ## Repository layout
 
-```
+```text
 {{ fileTree }}
 ```
 
@@ -142,14 +141,11 @@ in `.gitignore` — they are rebuilt by `npm run build:docs` and
 `npm run build:api`.
 
 ## Module documentation
-
 {% for m in moduleDocs %}
-#### {{ m.name }}
+### {{ m.name }}
 
-{{ m.body }}
-
+{{ m.body | trim }}
 {% endfor %}
-
 ## License
 
 {{ pkg.license }} © grethel-labs
