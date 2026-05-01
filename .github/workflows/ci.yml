@@ -102,7 +102,7 @@ jobs:
       # Detect whether the PR author touched any *generated* file.
       # If they did, fail loudly: those edits will be overwritten and
       # are almost certainly a mistake.
-      - name: Guard: PR must not edit generated files manually
+      - name: "Guard: PR must not edit generated files manually"
         run: |
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
