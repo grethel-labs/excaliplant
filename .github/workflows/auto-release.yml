@@ -1,0 +1,56 @@
+name: Auto patch release on dependency update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    # Skip if the push itself is the bump commit, to avoid loops.
+    if: |
+      !contains(github.event.head_commit.message, 'chore(release):') &&
+      (
+        github.event.head_commit.author.name == 'dependabot[bot]' ||
+        startsWith(github.event.head_commit.message, 'deps') ||
+        startsWith(github.event.head_commit.message, 'ci(deps')
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          NEW_VERSION=$(npm version patch --no-git-tag-version)
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild docs with new version
+        run: npm run build:docs
+
+      - name: Commit, tag, push
+        run: |
+          git add package.json package-lock.json README.md docs/
+          git commit -m "chore(release): ${{ steps.bump.outputs.version }} [skip ci]"
+          git tag "${{ steps.bump.outputs.version }}"
+          git push origin main
+          git push origin "${{ steps.bump.outputs.version }}"
