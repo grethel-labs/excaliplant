@@ -44,10 +44,8 @@
     "access": "public"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "elkjs": "^0.11.1"
-  },
-  "optionalDependencies": {
-    "@resvg/resvg-js": "^2.6.2"
   },
   "engines": {
     "node": ">=18"
