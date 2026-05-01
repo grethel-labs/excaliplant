@@ -41,7 +41,7 @@
     "access": "public"
   },
   "dependencies": {
-    "elkjs": "^0.9.3"
+    "elkjs": "^0.11.1"
   },
   "engines": {
     "node": ">=18"
