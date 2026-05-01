@@ -67,19 +67,32 @@ jobs:
           npm install "$TARBALL"
           node -e "import('@grethel-labs/excaliplant').then(m => { if (typeof m.renderPlantUml !== 'function') { console.error('renderPlantUml missing'); process.exit(1); } console.log('smoke OK'); })"
 
+      - name: Bump patch version
+        if: steps.patch.outputs.changed == 'true'
+        id: bump
+        run: |
+          NEW_VERSION=$(npm version patch --no-git-tag-version)
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Bumped to ${NEW_VERSION}"
+
+      - name: Rebuild docs with new version
+        if: steps.patch.outputs.changed == 'true'
+        run: npm run build:docs
+
       - name: Open / update auto-patch PR
         if: steps.patch.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH="auto/patch-deps"
+          NEW_VERSION="${{ steps.bump.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Always recreate the auto-patch branch from the current main
           # so old, stale patch attempts get overwritten.
           git checkout -B "$BRANCH"
-          git add package.json package-lock.json
-          MSG=$'deps: auto-patch dependencies\n\n${{ steps.patch.outputs.summary }}'
+          git add package.json package-lock.json README.md docs/ressources/generated/
+          MSG=$'deps: auto-patch dependencies + release '"${NEW_VERSION}"$'\n\n${{ steps.patch.outputs.summary }}'
           git commit -m "$MSG"
           git push --force-with-lease origin "$BRANCH"
 
@@ -89,8 +102,8 @@ jobs:
             gh pr create \
               --base main \
               --head "$BRANCH" \
-              --title "deps: auto-patch dependencies" \
-              --body "Automated patch-level dependency updates.
+              --title "deps: auto-patch dependencies + release ${NEW_VERSION}" \
+              --body "Automated patch-level dependency updates and release ${NEW_VERSION}.
 
           $(echo '${{ steps.patch.outputs.summary }}')"
           fi
