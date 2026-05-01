@@ -1,56 +1,64 @@
-name: Auto patch release on dependency update
+name: Auto release tag on version bump
+
+# Whenever package.json version changes on main, create + push the
+# matching v<version> tag. The tag push triggers release.yml which
+# publishes to npm and creates the GitHub release.
+#
+# Why a separate workflow:
+#   - Direct pushes to main are blocked by the "main: PR-only" ruleset,
+#     so version bumps already arrive as merged PRs (auto-patch-deps
+#     bumps the version inside the PR before merging).
+#   - This workflow only creates a tag — tag creation is allowed by
+#     the rulesets (only deletion / non-fast-forward are blocked on
+#     v* tags).
+#   - The tag is pushed via the SSH deploy key so the downstream
+#     release.yml workflow actually fires (GITHUB_TOKEN-pushed tags
+#     do not trigger workflows).
 
 on:
   push:
     branches: [main]
     paths:
       - "package.json"
-      - "package-lock.json"
 
 permissions:
   contents: write
 
+concurrency:
+  group: auto-release-tag
+  cancel-in-progress: false
+
 jobs:
-  bump:
-    # Skip if the push itself is the bump commit, to avoid loops.
-    if: |
-      !contains(github.event.head_commit.message, 'chore(release):') &&
-      (
-        github.event.head_commit.author.name == 'dependabot[bot]' ||
-        startsWith(github.event.head_commit.message, 'deps') ||
-        startsWith(github.event.head_commit.message, 'ci(deps')
-      )
+  tag:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
+          ssh-key: ${{ secrets.BOT_SSH_KEY }}
+          persist-credentials: true
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm test
 
-      - name: Configure git
+      - name: Read version
+        id: ver
+        run: |
+          V="v$(node -p "require('./package.json').version")"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Version: $V"
+
+      - name: Skip if tag already exists
+        id: check
+        run: |
+          if git rev-parse "refs/tags/${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag ${{ steps.ver.outputs.version }} already exists; nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create + push tag
+        if: steps.check.outputs.exists == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Bump patch version
-        id: bump
-        run: |
-          NEW_VERSION=$(npm version patch --no-git-tag-version)
-          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Rebuild docs with new version
-        run: npm run build:docs
-
-      - name: Commit, tag, push
-        run: |
-          git add package.json package-lock.json README.md docs/
-          git commit -m "chore(release): ${{ steps.bump.outputs.version }} [skip ci]"
-          git tag "${{ steps.bump.outputs.version }}"
-          git push origin main
-          git push origin "${{ steps.bump.outputs.version }}"
+          git tag -a "${{ steps.ver.outputs.version }}" -m "Release ${{ steps.ver.outputs.version }}"
+          git push origin "${{ steps.ver.outputs.version }}"
