@@ -1,0 +1,90 @@
+// Sequence-diagram layout.
+//
+// Lifelines along x, time along y. No ELK needed — the structure is
+// strictly tabular, so we lay it out with simple counters.
+//
+// Coordinate convention: head boxes sit at the top with their centre
+// at participant.x; lifelines run vertically downward. Messages get a
+// y position assigned in declaration order.
+
+import { FONT, measureLine } from "../style/text.mjs";
+
+const HEAD_PAD_X = 18;
+const HEAD_PAD_Y = 10;
+const HEAD_MIN_W = 110;
+const HEAD_HEIGHT = 50;
+const ACTOR_HEAD_HEIGHT = 80;       // taller for stickman
+const PARTICIPANT_GAP = 60;
+const TOP_MARGIN = 60;
+const SIDE_MARGIN = 40;
+const MESSAGE_FIRST_Y = 50;          // distance from lifeline top to first arrow
+const MESSAGE_GAP = 50;
+const SELF_HEIGHT = 36;
+const NOTE_PAD = 8;
+const NOTE_GAP = 14;
+const BOTTOM_MARGIN = 60;
+
+export function layoutSequenceDiagram(diagram) {
+  // 1. Size each participant head from its title.
+  for (const p of diagram.participants) {
+    const titleLines = String(p.title || "").split("\n");
+    const w = Math.max(HEAD_MIN_W,
+      Math.max(...titleLines.map((l) => measureLine(l, FONT.sizeTitle).width)) + HEAD_PAD_X * 2);
+    p.headWidth = Math.ceil(w);
+    p.headHeight = p.shape === "actor" ? ACTOR_HEAD_HEIGHT : HEAD_HEIGHT;
+  }
+
+  // 2. Lay out participants horizontally, centred on x.
+  let cursor = SIDE_MARGIN;
+  for (const p of diagram.participants) {
+    p.x = cursor + p.headWidth / 2;
+    p.headY = TOP_MARGIN;
+    cursor += p.headWidth + PARTICIPANT_GAP;
+  }
+  const totalWidth = cursor - PARTICIPANT_GAP + SIDE_MARGIN;
+
+  const lifelineTop = TOP_MARGIN + Math.max(...diagram.participants.map((p) => p.headHeight), 0);
+  for (const p of diagram.participants) p.lifelineTop = lifelineTop;
+
+  // 3. Walk messages and notes in their declaration order, assigning y.
+  // We interleave them by relying on the parser's declaration order. The
+  // model only has separate lists, so we just place messages first, then
+  // notes near the most recent message (good-enough heuristic).
+  let y = lifelineTop + MESSAGE_FIRST_Y;
+  for (const m of diagram.messages) {
+    m.y = y;
+    y += m.isSelf ? SELF_HEIGHT + MESSAGE_GAP : MESSAGE_GAP;
+  }
+
+  // Notes: place them between messages along the same y-axis, spaced
+  // after the last message. This is a pragmatic placement; a future
+  // pass could weave them into the message timeline based on parser
+  // index.
+  for (const n of diagram.notes) {
+    const lines = n.text.split("\n");
+    n.width = Math.max(120,
+      Math.max(...lines.map((l) => measureLine(l, FONT.sizeDescription).width)) + NOTE_PAD * 2);
+    n.height = lines.length * FONT.sizeDescription * FONT.lineHeight + NOTE_PAD * 2;
+    if (n.side === "over" && n.target2) {
+      const x1 = Math.min(n.target.x, n.target2.x);
+      const x2 = Math.max(n.target.x, n.target2.x);
+      n.x = (x1 + x2) / 2 - n.width / 2;
+    } else if (n.side === "left") {
+      n.x = n.target.x - n.target.headWidth / 2 - n.width - NOTE_GAP;
+    } else if (n.side === "right") {
+      n.x = n.target.x + n.target.headWidth / 2 + NOTE_GAP;
+    } else { // over single
+      n.x = n.target.x - n.width / 2;
+    }
+    n.y = y;
+    y += n.height + NOTE_GAP;
+  }
+
+  const lifelineBottom = y + BOTTOM_MARGIN;
+  for (const p of diagram.participants) p.lifelineBottom = lifelineBottom;
+
+  diagram.width = Math.max(totalWidth, 400);
+  diagram.height = lifelineBottom + BOTTOM_MARGIN;
+
+  return diagram;
+}

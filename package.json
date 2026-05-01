@@ -1,0 +1,46 @@
+{
+  "name": "@grethel-labs/excaliplant",
+  "version": "0.1.0",
+  "description": "PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.",
+  "type": "module",
+  "main": "index.mjs",
+  "files": [
+    "index.mjs",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./index.mjs",
+    "./parser/plantuml": "./src/parser/plantuml.mjs",
+    "./layout": "./src/layout/elk_layout.mjs",
+    "./render": "./src/render/excalidraw.mjs",
+    "./model": "./src/model/diagram.mjs"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grethel-labs/excaliplant.git"
+  },
+  "homepage": "https://github.com/grethel-labs/excaliplant",
+  "bugs": "https://github.com/grethel-labs/excaliplant/issues",
+  "keywords": [
+    "plantuml",
+    "excalidraw",
+    "diagram",
+    "elk",
+    "renderer"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "elkjs": "^0.9.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
