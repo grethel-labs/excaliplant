@@ -1,0 +1,20 @@
+Excalifont
+==========
+
+The Excalifont woff2 font file in this directory is bundled into
+@grethel-labs/excaliplant so SVG and PNG exports render text in the
+same hand-drawn typeface that Excalidraw uses on screen.
+
+Origin: https://github.com/excalidraw/excalidraw (packages/excalidraw/fonts/Excalifont)
+License: SIL Open Font License, Version 1.1 (OFL-1.1)
+         https://scripts.sil.org/OFL
+
+Copyright (c) 2024 by Excalidraw. All rights reserved.
+Excalifont is a trademark of Excalidraw.
+
+Manufacturer/designer:
+  - Your Own Font Foundry (Virgil)
+  - Ján Filípek / DizajnDesign (Excalifont, modifications)
+
+The font is redistributed under the OFL-1.1; see the upstream LICENSE
+for the full text. This bundling is permitted by §2 of the OFL.

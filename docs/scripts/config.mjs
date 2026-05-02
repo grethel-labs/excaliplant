@@ -37,8 +37,10 @@ export const CANVAS_HEIGHT = Math.round(CANVAS_WIDTH * ASPECT_RATIO.h / ASPECT_R
 // HiDPI displays even when scaled down by GitHub's image renderer.
 export const PNG_SCALE = 4;
 
-// PNG format that the README embeds.
-export const README_IMAGE_FORMAT = "png";
+// Image format that the README embeds. Now that SVGs ship the
+// Excalifont typeface inline and roughjs strokes, GitHub renders them
+// crisply and at full hand-drawn fidelity, so we prefer SVG.
+export const README_IMAGE_FORMAT = "svg";
 
 // Paths used in README links must be repo-relative.
 export function repoRel(absPath) {
