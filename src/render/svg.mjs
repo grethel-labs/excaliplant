@@ -12,7 +12,12 @@
 
 import rough from "roughjs";
 
-const FONT_FAMILY = "Helvetica, Arial, sans-serif";
+import {
+  EXCALIFONT_FONT_FACE,
+  EXCALIFONT_FONT_STACK,
+} from "../style/font.mjs";
+
+const FONT_FAMILY = EXCALIFONT_FONT_STACK;
 const ROUGHNESS = 1;            // Excalidraw's default roughness.
 const BOWING = 1;
 const FILL_WEIGHT = 0;          // 0 → roughjs picks a sensible default.
@@ -39,7 +44,11 @@ export function excalidrawToSvg(doc, opts = {}) {
 
   const bg = opts.background ?? doc.appState?.viewBackgroundColor ?? "#ffffff";
   const out = [];
-  out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family="${FONT_FAMILY}">`);
+  out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family='${FONT_FAMILY}'>`);
+  // Inline Excalifont so the SVG carries the same hand-drawn typeface
+  // Excalidraw uses on screen, even when GitHub or any other host
+  // serves the file as a sandboxed `<img>` (no external font fetches).
+  out.push(`<defs><style type="text/css"><![CDATA[${EXCALIFONT_FONT_FACE}]]></style></defs>`);
   out.push(`<rect width="100%" height="100%" fill="${escapeAttr(bg)}"/>`);
   out.push(`<g transform="translate(${tx} ${ty})">`);
   out.push(arrowheadDefs());

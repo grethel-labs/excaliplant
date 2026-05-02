@@ -6,6 +6,8 @@
 
 import { Resvg } from "@resvg/resvg-js";
 
+import { EXCALIFONT_FONT_PATH } from "../style/font.mjs";
+
 const DEFAULT_PNG_WIDTH = 4800;          // 4× the default 1200 SVG canvas.
 
 /**
@@ -22,7 +24,15 @@ export function svgToPng(svgText, opts = {}) {
   const resvg = new Resvg(svgText, {
     fitTo: { mode: "width", value: width },
     background: opts.background ?? "#ffffff",
-    font: { loadSystemFonts: true },
+    // resvg ignores @font-face / data-URL fonts in the SVG, so we
+    // have to point it at the bundled Excalifont woff2 explicitly —
+    // otherwise PNG text would fall back to a system font and lose
+    // the Excalidraw-style handwriting.
+    font: {
+      loadSystemFonts: true,
+      fontFiles: [EXCALIFONT_FONT_PATH],
+      defaultFontFamily: "Excalifont",
+    },
   });
   return resvg.render().asPng();
 }

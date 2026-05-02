@@ -1,7 +1,7 @@
 
 # excaliplant
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.3** &nbsp;·&nbsp; 73 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.4** &nbsp;·&nbsp; 73 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -13,11 +13,11 @@ artefacts.
 <table>
   <tr>
     <td align="center" width="50%">
-      <a href="docs/ressources/generated/png/modules.png"><img src="docs/ressources/generated/png/modules.png" alt="Module structure" width="380"/></a><br/>
+      <a href="docs/ressources/generated/svg/modules.svg"><img src="docs/ressources/generated/svg/modules.svg" alt="Module structure" width="380"/></a><br/>
       <sub><b>Module structure</b> — rendered by excaliplant itself</sub>
     </td>
     <td align="center" width="50%">
-      <a href="docs/ressources/generated/png/sequence.png"><img src="docs/ressources/generated/png/sequence.png" alt="renderPlantUml flow" width="380"/></a><br/>
+      <a href="docs/ressources/generated/svg/sequence.svg"><img src="docs/ressources/generated/svg/sequence.svg" alt="renderPlantUml flow" width="380"/></a><br/>
       <sub><b>renderPlantUml flow</b> — rendered by excaliplant itself</sub>
     </td>
   </tr>
@@ -111,7 +111,7 @@ JSDoc tags.
 
 ### Module structure
 
-![Module structure](docs/ressources/generated/png/modules.png)
+![Module structure](docs/ressources/generated/svg/modules.svg)
 
 _Sources: [PlantUML](docs/ressources/generated/puml/modules.puml) · [SVG](docs/ressources/generated/svg/modules.svg)_
 
@@ -122,7 +122,7 @@ each plugin handling one PlantUML construct.
 
 ### renderPlantUml flow
 
-![renderPlantUml flow](docs/ressources/generated/png/sequence.png)
+![renderPlantUml flow](docs/ressources/generated/svg/sequence.svg)
 
 _Sources: [PlantUML](docs/ressources/generated/puml/sequence.puml) · [SVG](docs/ressources/generated/svg/sequence.svg)_
 
@@ -141,7 +141,7 @@ The call graph for `renderPlantUml(text)` walks three subsystems:
 
 ### Parser plugins
 
-![Parser plugins](docs/ressources/generated/png/plugins.png)
+![Parser plugins](docs/ressources/generated/svg/plugins.svg)
 
 _Sources: [PlantUML](docs/ressources/generated/puml/plugins.puml) · [SVG](docs/ressources/generated/svg/plugins.svg)_
 
@@ -175,6 +175,10 @@ PlantUML text
 
 ```text
 plantuml-to-excalidraw
+├── assets
+│   └── fonts
+│       ├── Excalifont-Regular.woff2
+│       └── LICENSE.txt
 ├── docs
 │   ├── ressources
 │   ├── scripts
@@ -211,6 +215,7 @@ plantuml-to-excalidraw
 │   │   └── svg.mjs
 │   └── style
 │       ├── colors.mjs
+│       ├── font.mjs
 │       └── text.mjs
 ├── tests
 │   ├── edge_cases.test.mjs
