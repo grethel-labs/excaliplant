@@ -3,17 +3,46 @@
 // Keeping these here lets each plugin file stay tiny and self-contained;
 // adding a new plugin never forces a change to the engine.
 
+/**
+ * Matches a PlantUML stereotype like `<<service>>`. Capturing group 1
+ * yields the unwrapped tag.
+ * @public
+ */
 export const STEREOTYPE = /<<\s*([^>]+?)\s*>>/;
+
+/**
+ * Matches a top-level `title …` line. Capturing group 1 yields the
+ * raw title text (still possibly quoted).
+ * @public
+ */
 export const TITLE_LINE = /^title\s+(.+)$/;
 
-// Lines we always silently skip. Plugins can extend this via the engine's
-// `skip` array if needed.
+/**
+ * Lines we always silently skip. Plugins can extend this via the
+ * engine's `skip` array if needed.
+ * @public
+ */
 export const ALWAYS_SKIP = [
-  /^@startuml/, /^@enduml/, /^skinparam/, /^!/,
-  /^hide\s/, /^show\s/, /^scale\s/,
-  /^autonumber\b/, /^activate\s/, /^deactivate\s/,
+  /^@startuml/,
+  /^@enduml/,
+  /^skinparam/,
+  /^!/,
+  /^hide\s/,
+  /^show\s/,
+  /^scale\s/,
+  /^autonumber\b/,
+  /^activate\s/,
+  /^deactivate\s/,
 ];
 
+/**
+ * Strip a trailing PlantUML line comment (`'…`), preserving any `'`
+ * that appears inside a string literal.
+ *
+ * @param {string} line Raw input line, possibly containing a `'…` comment.
+ * @returns {string} The line with the comment removed (empty string if the entire line is a comment).
+ * @public
+ */
 export function stripComment(line) {
   // PlantUML: ' starts a line comment except inside a string.
   const idx = line.indexOf("'");
@@ -22,31 +51,66 @@ export function stripComment(line) {
   return line;
 }
 
+/**
+ * Remove a single matching pair of surrounding double quotes.
+ *
+ * @param {string} s String that may be wrapped in `"…"`.
+ * @returns {string} The unwrapped string, or `s` unchanged if not quoted.
+ * @public
+ */
 export function stripQuotes(s) {
   if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1);
   return s;
 }
 
+/**
+ * Convert any string to an identifier-safe slug (`[a-z0-9_]+`).
+ *
+ * @param {string} s Free-form text to sluggify.
+ * @returns {string} Lower-case, underscore-separated identifier.
+ * @public
+ */
 export function slug(s) {
-  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return String(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
-// Replace literal "\n" sequences with real newlines.
+/**
+ * Replace the literal escape sequence `\n` in a label with a real
+ * newline. Tolerates `null` / `undefined`.
+ *
+ * @param {string|null|undefined} s Raw label as it appears in the PlantUML source.
+ * @returns {string} Label with `\n` expanded to real line breaks.
+ * @public
+ */
 export function unescapeLabel(s) {
   return String(s ?? "").replace(/\\n/g, "\n");
 }
 
-// Normalise inline `{ … }` so that `frame "F" as f { [a] [b] }` parses
-// cleanly. We split each line on `{` and `}` boundaries OUTSIDE quoted
-// strings, then re-attach lone `{` to the preceding header line.
+/**
+ * Normalise inline `{ … }` so that `frame "F" as f { [a] [b] }` parses
+ * cleanly. Splits each line on `{` and `}` boundaries OUTSIDE quoted
+ * strings, then re-attaches a lone `{` to the preceding header line.
+ *
+ * @param {string[]} lines Raw, already line-split PlantUML source.
+ * @returns {string[]} New array with every brace on its own (or attached to its header) line.
+ * @public
+ */
 export function explodeBraces(lines) {
+  /** @type {string[]} */
   const out = [];
   for (const raw of lines) {
     let buf = "";
     let inStr = false;
     for (let i = 0; i < raw.length; i++) {
       const c = raw[i];
-      if (c === '"') { inStr = !inStr; buf += c; continue; }
+      if (c === '"') {
+        inStr = !inStr;
+        buf += c;
+        continue;
+      }
       if (!inStr && (c === "{" || c === "}")) {
         if (buf.trim()) out.push(buf);
         out.push(c);
@@ -57,10 +121,12 @@ export function explodeBraces(lines) {
     }
     if (buf.trim() || (!buf && raw === "")) out.push(buf);
   }
+  /** @type {string[]} */
   const stitched = [];
   for (const ln of out) {
     if (ln === "{" && stitched.length) {
       const prevIdx = stitched.length - 1;
+      /** @type {string} */
       const prev = stitched[prevIdx];
       if (prev && !prev.endsWith("{") && prev.trim() && prev.trim() !== "}") {
         stitched[prevIdx] = `${prev.trimEnd()} {`;
@@ -72,27 +138,62 @@ export function explodeBraces(lines) {
   return stitched;
 }
 
-// Map a shape keyword to the canonical model shape name.
+/**
+ * Map a PlantUML shape keyword to the canonical model shape name.
+ * Unknown keywords fall back to `"rectangle"`.
+ *
+ * @param {string} kw PlantUML shape keyword (e.g. `component`, `actor`).
+ * @returns {string} One of the canonical model shapes — always defined.
+ * @public
+ */
 export function normaliseShape(kw) {
   switch (kw) {
-    case "component": return "component";
-    case "actor":     return "actor";
-    case "usecase":   return "usecase";
-    case "database":  return "database";
-    case "node":      return "node";
-    case "cloud":     return "cloud";
-    case "interface": return "interface";
-    case "entity":    return "entity";
-    case "class":     return "class";
-    case "rectangle": return "rectangle";
-    case "boundary":  return "interface";
-    case "control":   return "interface";
-    default:          return "rectangle";
+    case "component":
+      return "component";
+    case "actor":
+      return "actor";
+    case "usecase":
+      return "usecase";
+    case "database":
+      return "database";
+    case "node":
+      return "node";
+    case "cloud":
+      return "cloud";
+    case "interface":
+      return "interface";
+    case "entity":
+      return "entity";
+    case "class":
+      return "class";
+    case "rectangle":
+      return "rectangle";
+    case "boundary":
+      return "interface";
+    case "control":
+      return "interface";
+    default:
+      return "rectangle";
   }
 }
 
-// Decode a PlantUML connection operator into structural fields.
-// Returns null if the op is not a recognised arrow.
+/**
+ * Decode a PlantUML connection operator (e.g. `-->`, `<|--`, `o--`)
+ * into its structural fields: kind, dashed-ness, reversed direction
+ * and start/end arrowhead. Returns `null` if the operator is not
+ * recognised.
+ *
+ * @param {string} op Raw arrow operator as it appears between two endpoints.
+ * @returns {{
+ *   kind: "default"|"dependency"|"inheritance"|"realization"|"composition"|"aggregation",
+ *   dashed: boolean,
+ *   reversed: boolean,
+ *   startArrowhead: string|null,
+ *   endArrowhead:   string|null,
+ *   directionHint:  string|null,
+ * } | null} Structural breakdown of the operator, or `null` when unrecognised.
+ * @public
+ */
 export function classifyArrow(op) {
   let directionHint = null;
   const dirMatch = op.match(/-(up|down|left|right)-/i);
@@ -144,7 +245,7 @@ export function classifyArrow(op) {
     dashed,
     reversed,
     startArrowhead: bidir ? "arrow" : null,
-    endArrowhead: (endsWithRight || bidir) ? "arrow" : (reversed ? null : "arrow"),
+    endArrowhead: endsWithRight || bidir ? "arrow" : reversed ? null : "arrow",
     directionHint,
   };
 }

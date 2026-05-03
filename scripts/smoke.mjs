@@ -16,15 +16,19 @@ const cases = {
   container: "@startuml\npackage P {\n  [a]\n  [b]\n}\n@enduml",
   frame: "@startuml\nframe F {\n  [x]\n}\n@enduml",
   note_block: "@startuml\n[a]\n[b]\nnote left of a\n  multi\n  line\nend note\na --> b\n@enduml",
-  sequence_basic: "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob: hi\nBob -->> Alice: ok\n@enduml",
+  sequence_basic:
+    "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob: hi\nBob -->> Alice: ok\n@enduml",
   usecase: "@startuml\n(login)\n(logout)\n(login) --> (logout)\n@enduml",
   direction_up: "@startuml\n[a]\n[b]\na -up-> b\n@enduml",
   direction_left: "@startuml\n[a]\n[b]\na -left-> b\n@enduml",
   comments: "@startuml\n' a comment\nskinparam monochrome true\n[a]\n[b]\na --> b\n@enduml",
   big_label: "@startuml\n[a]\n[b]\na --> b : a long label with spaces and: punctuation\n@enduml",
   unicode: "@startuml\n[\u00fcber]\n[\u00f6mega]\n\u00fcber --> \u00f6mega\n@enduml",
-  large: "@startuml\n" + Array.from({ length: 50 }, (_, i) => `[n${i}]`).join("\n") +
-    "\n" + Array.from({ length: 49 }, (_, i) => `n${i} --> n${i + 1}`).join("\n") +
+  large:
+    "@startuml\n" +
+    Array.from({ length: 50 }, (_, i) => `[n${i}]`).join("\n") +
+    "\n" +
+    Array.from({ length: 49 }, (_, i) => `n${i} --> n${i + 1}`).join("\n") +
     "\n@enduml",
 };
 

@@ -1,0 +1,14 @@
+node_modules/
+*.log
+.DS_Store
+
+# Generated docs / artefacts (rebuilt by `npm run build`).
+docs/api/
+docs/ressources/generated/
+README.md
+
+# Vendored fonts / binary assets.
+assets/
+
+# Lockfile.
+package-lock.json

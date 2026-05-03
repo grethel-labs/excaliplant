@@ -29,8 +29,8 @@ export const README_FILE = path.join(REPO_ROOT, "README.md");
 // the README does not jump as the diagrams update. Width drives the
 // PNG resolution; the SVG just gets a viewBox of the same proportion.
 export const ASPECT_RATIO = { w: 4, h: 3 };
-export const CANVAS_WIDTH = 1200;          // pixels
-export const CANVAS_HEIGHT = Math.round(CANVAS_WIDTH * ASPECT_RATIO.h / ASPECT_RATIO.w);
+export const CANVAS_WIDTH = 1200; // pixels
+export const CANVAS_HEIGHT = Math.round((CANVAS_WIDTH * ASPECT_RATIO.h) / ASPECT_RATIO.w);
 
 // PNG resolution multiplier vs. the SVG canvas. 4× of the 1200-wide
 // canvas yields a 4800×3600 PNG so README screenshots stay sharp on

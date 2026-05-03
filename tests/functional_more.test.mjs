@@ -6,10 +6,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  parsePlantUml, renderPlantUml,
-  Diagram, SequenceDiagram,
-} from "../index.mjs";
+import { parsePlantUml, renderPlantUml, Diagram, SequenceDiagram } from "../index.mjs";
 import { excalidrawToSvg } from "../src/render/svg.mjs";
 
 // ---------------------------------------------------------------------------

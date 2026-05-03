@@ -11,6 +11,11 @@ import { unescapeLabel } from "../../utils.mjs";
 
 const SEQ_MESSAGE = /^(\S+)\s+((?:<-+>?|-+>>?|<<?-+|<-+|--)+)\s+(\S+)(?:\s*:\s*(.*))?$/;
 
+/**
+ * Sequence-diagram message: `A op B [: label]`. Operator flavours:
+ * `->` sync, `-->` reply (dashed), `->>` async, `<-` reverse, `<-->` bidir.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const messagePlugin = {
   name: "sequence.message",
   tryLine(line, ctx) {
@@ -25,10 +30,11 @@ export const messagePlugin = {
     const asyncOpen = op.includes(">>") || op.includes("<<");
     const [src, dst] = reversed ? [to, from] : [from, to];
     ctx.addMessage({
-      from: src, to: dst,
+      from: src,
+      to: dst,
       label: unescapeLabel(label?.trim() || ""),
       dashed,
-      kind: src === dst ? "self" : (dashed ? "reply" : (asyncOpen ? "async" : "sync")),
+      kind: src === dst ? "self" : dashed ? "reply" : asyncOpen ? "async" : "sync",
       startArrowhead: bidir ? (asyncOpen ? "arrow" : "triangle") : null,
       endArrowhead: asyncOpen ? "arrow" : "triangle",
     });

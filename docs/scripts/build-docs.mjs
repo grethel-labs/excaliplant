@@ -10,14 +10,11 @@
 // Then render docs/README.template.md.njk → README.md.
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import nunjucks from "nunjucks";
 
-import {
-  renderPlantUml,
-  excalidrawJsonToCanvasSvg,
-  svgToPng,
-} from "../../index.mjs";
+import { renderPlantUml, excalidrawJsonToCanvasSvg, svgToPng } from "../../index.mjs";
 import { extractDocBlocks } from "./extract-docs.mjs";
 import {
   buildModuleDiagramSource,
@@ -26,10 +23,19 @@ import {
 } from "./self-diagrams.mjs";
 import { buildFileTree } from "./file-tree.mjs";
 import {
-  REPO_ROOT, SRC_DIR, ENTRY_FILE,
-  PUML_DIR, EXCALIDRAW_DIR, SVG_DIR, PNG_DIR,
-  TEMPLATE_FILE, README_FILE,
-  README_IMAGE_FORMAT, CANVAS_WIDTH, PNG_SCALE, repoRel,
+  REPO_ROOT,
+  SRC_DIR,
+  ENTRY_FILE,
+  PUML_DIR,
+  EXCALIDRAW_DIR,
+  SVG_DIR,
+  PNG_DIR,
+  TEMPLATE_FILE,
+  README_FILE,
+  README_IMAGE_FORMAT,
+  CANVAS_WIDTH,
+  PNG_SCALE,
+  repoRel,
 } from "./config.mjs";
 
 const ARTEFACTS = [
@@ -51,8 +57,9 @@ const ARTEFACTS = [
 ];
 
 async function main() {
-  await Promise.all([PUML_DIR, EXCALIDRAW_DIR, SVG_DIR, PNG_DIR]
-    .map((d) => mkdir(d, { recursive: true })));
+  await Promise.all(
+    [PUML_DIR, EXCALIDRAW_DIR, SVG_DIR, PNG_DIR].map((d) => mkdir(d, { recursive: true })),
+  );
 
   const docBlocks = await extractDocBlocks([SRC_DIR, ENTRY_FILE]);
 
@@ -114,7 +121,52 @@ async function main() {
   });
 
   await writeFile(README_FILE, rendered, "utf8");
-  console.log(`  wrote README.md (${generated.length} diagrams, ${moduleDocs.length} module blocks, ${testCount} tests)`);
+  console.log(
+    `  wrote README.md (${generated.length} diagrams, ${moduleDocs.length} module blocks, ${testCount} tests)`,
+  );
+
+  // Write a build manifest so CI can distinguish a legitimate local
+  // `npm run build:docs` (manifest hashes match the files on disk)
+  // from a manual edit to a generated file (hashes diverge). The CI
+  // guard reads this manifest instead of refusing every change.
+  await writeBuildManifest(generated);
+}
+
+/**
+ * Hash a file with SHA-256 and return the lowercase hex digest.
+ * @param {string} absPath Absolute path to read.
+ * @returns {Promise<string>} Hex digest.
+ */
+async function sha256(absPath) {
+  const buf = await readFile(absPath);
+  return createHash("sha256").update(buf).digest("hex");
+}
+
+/**
+ * Persist the list of generated files together with their content
+ * hashes. The CI guard verifies these hashes against the working tree
+ * to detect manual edits to README.md / generated artefacts.
+ * @param {Array<{svg:string,png:string,puml:string}>} generated
+ *        Records returned by the build loop (paths are repo-relative).
+ * @returns {Promise<void>}
+ */
+async function writeBuildManifest(generated) {
+  /** @type {Record<string, string>} */
+  const files = {};
+  // Hash only the artefacts that are actually committed to the repo:
+  // README.md and the SVG / PNG outputs embedded in it. The .puml and
+  // .excalidraw sources are gitignored (regenerated on every build),
+  // so including them in the manifest would break the CI guard on a
+  // fresh checkout.
+  files["README.md"] = await sha256(README_FILE);
+  for (const a of generated) {
+    for (const rel of [a.svg, a.png]) {
+      files[rel] = await sha256(path.join(REPO_ROOT, rel));
+    }
+  }
+  const manifestPath = path.join(REPO_ROOT, "docs", ".build-manifest.json");
+  await writeFile(manifestPath, JSON.stringify({ version: 1, files }, null, 2) + "\n", "utf8");
+  console.log(`  wrote docs/.build-manifest.json (${Object.keys(files).length} entries)`);
 }
 
 async function countTests() {

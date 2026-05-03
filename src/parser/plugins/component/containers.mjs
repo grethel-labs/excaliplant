@@ -5,11 +5,16 @@ import { slug } from "../../utils.mjs";
 
 const CONTAINER_KEYWORDS = ["package", "frame", "folder", "node", "rectangle"];
 const CONTAINER_OPEN_QUOTED = new RegExp(
-  `^(${CONTAINER_KEYWORDS.join("|")})\\s+"([^"]+)"(?:\\s+as\\s+(\\S+))?\\s*\\{`);
-const CONTAINER_OPEN_BARE = new RegExp(
-  `^(${CONTAINER_KEYWORDS.join("|")})\\s+(\\S+)\\s*\\{`);
+  `^(${CONTAINER_KEYWORDS.join("|")})\\s+"([^"]+)"(?:\\s+as\\s+(\\S+))?\\s*\\{`,
+);
+const CONTAINER_OPEN_BARE = new RegExp(`^(${CONTAINER_KEYWORDS.join("|")})\\s+(\\S+)\\s*\\{`);
 const TOGETHER_OPEN = /^together\s*\{/;
 
+/**
+ * Container keywords (`package`, `frame`, …) plus `together`. Always
+ * opens a brace; the matching `}` is consumed by `closeBracePlugin`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const containerPlugin = {
   name: "component.container",
   tryLine(line, ctx) {

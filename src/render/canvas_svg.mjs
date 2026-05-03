@@ -11,6 +11,8 @@
 import { excalidrawToSvg } from "./svg.mjs";
 
 export const DEFAULT_CANVAS_WIDTH = 1200;
+export const MIN_CANVAS_WIDTH = 16;
+export const MAX_CANVAS_WIDTH = 16000;
 export const DEFAULT_ASPECT_RATIO = { w: 4, h: 3 };
 
 /**
@@ -27,7 +29,11 @@ export const DEFAULT_ASPECT_RATIO = { w: 4, h: 3 };
  */
 export function excalidrawJsonToCanvasSvg(doc, opts = {}) {
   const aspect = opts.aspect ?? DEFAULT_ASPECT_RATIO;
-  const width = opts.width ?? DEFAULT_CANVAS_WIDTH;
+  const requested = opts.width ?? DEFAULT_CANVAS_WIDTH;
+  if (!Number.isFinite(requested) || !Number.isInteger(requested) || requested <= 0) {
+    throw new RangeError(`canvas width must be a positive integer (got ${requested})`);
+  }
+  const width = Math.min(MAX_CANVAS_WIDTH, Math.max(MIN_CANVAS_WIDTH, requested));
   const height = Math.round((width * aspect.h) / aspect.w);
   const background = opts.background ?? "#ffffff";
   const padding = opts.padding ?? 16;
@@ -45,26 +51,41 @@ export function excalidrawJsonToCanvasSvg(doc, opts = {}) {
   const innerBody = inner.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 
   return [
-    `<svg xmlns="http://www.w3.org/2000/svg" `
-      + `width="${width}" height="${height}" `
-      + `viewBox="0 0 ${width} ${height}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" ` +
+      `width="${width}" height="${height}" ` +
+      `viewBox="0 0 ${width} ${height}">`,
     `<rect width="${width}" height="${height}" fill="${background}"/>`,
-    `<g transform="translate(${offsetX} ${offsetY}) scale(${scale}) `
-      + `translate(${-innerVb.x} ${-innerVb.y})">`,
+    `<g transform="translate(${offsetX} ${offsetY}) scale(${scale}) ` +
+      `translate(${-innerVb.x} ${-innerVb.y})">`,
     innerBody,
     `</g>`,
     `</svg>`,
   ].join("");
 }
 
+/**
+ * Extract the `viewBox` from an SVG document.
+ * @param {string} svgText SVG markup as a string.
+ * @returns {{x:number,y:number,w:number,h:number}|null} Parsed viewBox, or `null` when the document has none.
+ */
 function parseViewBox(svgText) {
   const m = svgText.match(/viewBox="([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)"/);
   if (!m) return null;
   return { x: +m[1], y: +m[2], w: +m[3], h: +m[4] };
 }
 
+/**
+ * Build an empty SVG canvas filled with `bg`.
+ * @param {number} w  Canvas width in pixels.
+ * @param {number} h  Canvas height in pixels.
+ * @param {string} bg HEX colour for the canvas background.
+ * @returns {string}  Self-contained SVG markup.
+ * @internal
+ */
 function blankCanvas(w, h, bg) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" `
-    + `viewBox="0 0 ${w} ${h}">`
-    + `<rect width="${w}" height="${h}" fill="${bg}"/></svg>`;
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ` +
+    `viewBox="0 0 ${w} ${h}">` +
+    `<rect width="${w}" height="${h}" fill="${bg}"/></svg>`
+  );
 }

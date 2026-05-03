@@ -12,15 +12,32 @@ import { STEREOTYPE, slug, unescapeLabel, normaliseShape } from "../../utils.mjs
 const BOX_BRACKET = /^\[([^\]]+)\](?:\s*<<\s*[^>]+\s*>>)?(?:\s+as\s+(\S+))?(?:\s*:\s*(.+))?$/;
 const USECASE_PARENS = /^\(([^)]+)\)(?:\s+as\s+(\S+))?(?:\s*:\s*(.+))?$/;
 
-const SHAPE_KEYWORDS = ["component", "actor", "usecase", "database", "node",
-  "cloud", "interface", "entity", "class", "rectangle", "boundary", "control"];
+const SHAPE_KEYWORDS = [
+  "component",
+  "actor",
+  "usecase",
+  "database",
+  "node",
+  "cloud",
+  "interface",
+  "entity",
+  "class",
+  "rectangle",
+  "boundary",
+  "control",
+];
 const SHAPE_LINE = new RegExp(
   `^(${SHAPE_KEYWORDS.join("|")})\\s+(?:"([^"]+)"|(\\S+))` +
-  `(?:\\s*<<\\s*[^>]+\\s*>>)?` +
-  `(?:\\s+as\\s+(\\S+))?` +
-  `(?:\\s*:\\s*(.+))?` +
-  `(\\s*\\{)?$`);
+    `(?:\\s*<<\\s*[^>]+\\s*>>)?` +
+    `(?:\\s+as\\s+(\\S+))?` +
+    `(?:\\s*:\\s*(.+))?` +
+    `(\\s*\\{)?$`,
+);
 
+/**
+ * Bracket shorthand: `[Label] [as alias] [: description]`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const bracketBoxPlugin = {
   name: "component.bracketBox",
   tryLine(line, ctx) {
@@ -39,6 +56,10 @@ export const bracketBoxPlugin = {
   },
 };
 
+/**
+ * Use-case parens shorthand: `(Label) [as alias]`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const usecaseParensPlugin = {
   name: "component.usecaseParens",
   tryLine(line, ctx) {
@@ -55,6 +76,11 @@ export const usecaseParensPlugin = {
   },
 };
 
+/**
+ * Keyword-prefixed shape (`component`, `actor`, `database`, …) plus
+ * the special-cased `class X { … }` member block.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const shapeKeywordPlugin = {
   name: "component.shapeKeyword",
   tryStart(line, ctx) {
@@ -73,9 +99,12 @@ export const shapeKeywordPlugin = {
         stereotype: stereo,
         members: [],
       });
+      /** @type {string[]} */
       const collected = [];
       return {
-        onLine(memberLine) { collected.push(memberLine); },
+        onLine(memberLine) {
+          collected.push(memberLine);
+        },
         tryEnd(memberLine) {
           if (memberLine !== "}") return false;
           box.members = collected;

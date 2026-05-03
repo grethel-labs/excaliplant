@@ -108,7 +108,8 @@ jobs:
           $(echo '${{ steps.patch.outputs.summary }}')"
           fi
 
-          # Enable auto-merge so the PR merges itself once all required
-          # checks pass — no manual intervention needed for routine
-          # security/patch updates. Squash keeps main history linear.
-          gh pr merge "$BRANCH" --auto --squash || true
+          # Auto-merge intentionally disabled: a malicious patch-level
+          # release that passes `npm audit` and `npm test` would otherwise
+          # land on main without human review. Patch PRs require an
+          # explicit reviewer approval before merging.
+          # gh pr merge "$BRANCH" --auto --squash

@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest a new PlantUML construct, renderer feature, or API.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What are you trying to accomplish? What is missing today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: API sketch, syntax sample, or rendered mock.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

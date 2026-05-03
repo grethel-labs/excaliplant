@@ -1,7 +1,13 @@
 
 # excaliplant
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.4** &nbsp;·&nbsp; 73 tests &nbsp;·&nbsp; MIT
+[![npm](https://img.shields.io/npm/v/@grethel-labs/excaliplant.svg?label=latest)](https://www.npmjs.com/package/@grethel-labs/excaliplant)
+[![downloads](https://img.shields.io/npm/dm/@grethel-labs/excaliplant.svg)](https://www.npmjs.com/package/@grethel-labs/excaliplant)
+[![ci](https://github.com/grethel-labs/excaliplant/actions/workflows/ci.yml/badge.svg)](https://github.com/grethel-labs/excaliplant/actions/workflows/ci.yml)
+[![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
+
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.1.4** &nbsp;·&nbsp; 78 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -96,7 +102,7 @@ Lower-level entry points are also exported:
 npm test
 ```
 
-Ships with **73 tests** across functional, edge-case,
+Ships with **78 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -174,15 +180,18 @@ PlantUML text
 ## Repository layout
 
 ```text
-plantuml-to-excalidraw
+excaliplant
 ├── assets
 │   └── fonts
 │       ├── Excalifont-Regular.woff2
 │       └── LICENSE.txt
+├── bin
+│   └── excaliplant.mjs
 ├── docs
 │   ├── ressources
 │   ├── scripts
 │   │   ├── build-docs.mjs
+│   │   ├── check-build-manifest.mjs
 │   │   ├── config.mjs
 │   │   ├── extract-docs.mjs
 │   │   ├── file-tree.mjs
@@ -190,6 +199,8 @@ plantuml-to-excalidraw
 │   └── README.template.md.njk
 ├── scripts
 │   ├── auto-patch-deps.mjs
+│   ├── prepublish-guard.mjs
+│   ├── setup-merge-drivers.mjs
 │   └── smoke.mjs
 ├── src
 │   ├── layout
@@ -211,6 +222,8 @@ plantuml-to-excalidraw
 │   │   ├── canvas_svg.mjs
 │   │   ├── excalidraw.mjs
 │   │   ├── png.mjs
+│   │   ├── rng.mjs
+│   │   ├── schema.mjs
 │   │   ├── sequence_render.mjs
 │   │   └── svg.mjs
 │   └── style
@@ -225,6 +238,8 @@ plantuml-to-excalidraw
 │   └── self_introspection.test.mjs
 ├── LICENSE
 ├── README.md
+├── SECURITY.md
+├── THIRD_PARTY_NOTICES.md
 ├── index.mjs
 ├── package.json
 ├── tsconfig.json
@@ -271,16 +286,6 @@ PlantUML syntax; that lives entirely in plugins. Block plugins
 (multi-line notes, class bodies) take exclusive ownership of
 subsequent lines until they release.
 
-Plugin contract:
-
-```js
-{
-  name,
-  tryStart?(line, ctx): null | { onLine, tryEnd },
-  tryLine?(line, ctx): boolean,
-}
-```
-
 ### render
 
 Emits Excalidraw JSON. Each model shape is dispatched to a
@@ -288,8 +293,8 @@ dedicated `renderXxx()` function that produces one or more
 Excalidraw primitive elements (rectangle, ellipse, line, arrow,
 text). The output document is a stand-alone `.excalidraw` file
 that any Excalidraw front-end can open. The companion module
-[`src/render/svg.mjs`](./src/render/svg.mjs) converts the same
-JSON to SVG for the build-time documentation pipeline.
+`src/render/svg.mjs` converts the same JSON to SVG for the
+build-time documentation pipeline.
 
 ## License
 

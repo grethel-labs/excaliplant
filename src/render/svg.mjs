@@ -12,22 +12,19 @@
 
 import rough from "roughjs";
 
-import {
-  EXCALIFONT_FONT_FACE,
-  EXCALIFONT_FONT_STACK,
-} from "../style/font.mjs";
+import { getExcalifontFontFace, EXCALIFONT_FONT_STACK } from "../style/font.mjs";
 
 const FONT_FAMILY = EXCALIFONT_FONT_STACK;
-const ROUGHNESS = 1;            // Excalidraw's default roughness.
+const ROUGHNESS = 1; // Excalidraw's default roughness.
 const BOWING = 1;
-const FILL_WEIGHT = 0;          // 0 → roughjs picks a sensible default.
+const FILL_WEIGHT = 0; // 0 → roughjs picks a sensible default.
 
 const generator = rough.generator();
 
 /**
  * Convert an Excalidraw JSON document to a stand-alone SVG string.
  *
- * @param {object} doc           The Excalidraw JSON document.
+ * @param {any} doc           The Excalidraw JSON document.
  * @param {object} [opts]
  * @param {number} [opts.padding=16]    Whitespace around the bounds.
  * @param {string} [opts.background]    Optional background fill colour.
@@ -35,7 +32,7 @@ const generator = rough.generator();
  */
 export function excalidrawToSvg(doc, opts = {}) {
   const padding = opts.padding ?? 16;
-  const elements = (doc.elements || []).filter((e) => !e.isDeleted);
+  const elements = (doc.elements || []).filter((/** @type {any} */ e) => !e.isDeleted);
   const bounds = computeBounds(elements);
   const w = Math.max(1, bounds.maxX - bounds.minX) + padding * 2;
   const h = Math.max(1, bounds.maxY - bounds.minY) + padding * 2;
@@ -44,11 +41,13 @@ export function excalidrawToSvg(doc, opts = {}) {
 
   const bg = opts.background ?? doc.appState?.viewBackgroundColor ?? "#ffffff";
   const out = [];
-  out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family='${FONT_FAMILY}'>`);
+  out.push(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family='${FONT_FAMILY}'>`,
+  );
   // Inline Excalifont so the SVG carries the same hand-drawn typeface
   // Excalidraw uses on screen, even when GitHub or any other host
   // serves the file as a sandboxed `<img>` (no external font fetches).
-  out.push(`<defs><style type="text/css"><![CDATA[${EXCALIFONT_FONT_FACE}]]></style></defs>`);
+  out.push(`<defs><style type="text/css"><![CDATA[${getExcalifontFontFace()}]]></style></defs>`);
   out.push(`<rect width="100%" height="100%" fill="${escapeAttr(bg)}"/>`);
   out.push(`<g transform="translate(${tx} ${ty})">`);
   out.push(arrowheadDefs());
@@ -62,9 +61,18 @@ export function excalidrawToSvg(doc, opts = {}) {
   return out.join("\n");
 }
 
+/** @internal */
+/**
+ * Compute the axis-aligned bounding box that covers every element.
+ * @param {any[]} elements Excalidraw element list.
+ * @returns {{minX:number,minY:number,maxX:number,maxY:number}} Bounding rectangle in absolute coords.
+ */
 function computeBounds(elements) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  const include = (x, y) => {
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  const include = (/** @type {number} */ x, /** @type {number} */ y) => {
     if (x < minX) minX = x;
     if (y < minY) minY = y;
     if (x > maxX) maxX = x;
@@ -78,18 +86,35 @@ function computeBounds(elements) {
       include(e.x + (e.width || 0), e.y + (e.height || 0));
     }
   }
-  if (!Number.isFinite(minX)) { minX = 0; minY = 0; maxX = 1; maxY = 1; }
+  if (!Number.isFinite(minX)) {
+    minX = 0;
+    minY = 0;
+    maxX = 1;
+    maxY = 1;
+  }
   return { minX, minY, maxX, maxY };
 }
 
+/** @internal */
+/**
+ * Render one Excalidraw element as an SVG fragment.
+ * @param {any} el Excalidraw element.
+ * @returns {string} SVG markup for the element (empty string when unsupported).
+ */
 function renderOne(el) {
   switch (el.type) {
-    case "rectangle": return roughRect(el);
-    case "ellipse":   return roughEllipse(el);
-    case "line":      return roughPolyline(el, false);
-    case "arrow":     return roughPolyline(el, true);
-    case "text":      return svgText(el);
-    default:          return null;
+    case "rectangle":
+      return roughRect(el);
+    case "ellipse":
+      return roughEllipse(el);
+    case "line":
+      return roughPolyline(el, false);
+    case "arrow":
+      return roughPolyline(el, true);
+    case "text":
+      return svgText(el);
+    default:
+      return "";
   }
 }
 
@@ -99,6 +124,12 @@ function renderOne(el) {
 // the same JSON document yields the same wobble. Excalidraw assigns
 // `seed` to every element; if it's missing we fall back to a hash of
 // the element's id so output is still deterministic per-document.
+/** @internal */
+/**
+ * Stable seed derived from the element id so re-renders are deterministic.
+ * @param {any} el Excalidraw element.
+ * @returns {number} Non-negative 31-bit seed.
+ */
 function seedFor(el) {
   if (typeof el.seed === "number") return el.seed % 2_147_483_647;
   if (el.id) {
@@ -109,6 +140,12 @@ function seedFor(el) {
   return 1;
 }
 
+/** @internal */
+/**
+ * Build the options object passed to roughjs for one element.
+ * @param {any} el Excalidraw element.
+ * @returns {any} roughjs options.
+ */
 function roughOpts(el) {
   return {
     seed: seedFor(el),
@@ -116,19 +153,33 @@ function roughOpts(el) {
     bowing: BOWING,
     stroke: el.strokeColor || "#000",
     strokeWidth: el.strokeWidth || 1.5,
-    fill: undefined,
+    fill: /** @type {string|undefined} */ (undefined),
     fillStyle: "solid",
     fillWeight: FILL_WEIGHT,
     disableMultiStroke: false,
   };
 }
 
+/** @internal */
+/**
+ * Translate Excalidraw `strokeStyle` to an SVG `stroke-dasharray` value.
+ * Returns an empty string for solid strokes so the caller can interpolate
+ * directly without a null-check.
+ * @param {any} el Excalidraw element.
+ * @returns {string} `stroke-dasharray` value, or `""` for solid strokes.
+ */
 function dasharray(el) {
   if (el.strokeStyle === "dashed") return "8 4";
   if (el.strokeStyle === "dotted") return "1.5 6";
-  return null;
+  return "";
 }
 
+/**
+ * Convert a roughjs drawable to SVG markup, preserving fill/stroke/dash.
+ * @param {any} drawable roughjs drawable produced by the generator.
+ * @param {any} el       Originating Excalidraw element (provides colours).
+ * @returns {string} SVG markup.
+ */
 function drawableToSvg(drawable, el) {
   // roughjs returns one or more `OpSet`s. We render path-typed sets
   // as <path> elements. fillSketch/fillPath sets get the fill colour;
@@ -143,43 +194,51 @@ function drawableToSvg(drawable, el) {
     const d = generator.opsToPath(set);
     if (!d) continue;
     if (set.type === "fillPath" || set.type === "fillSketch") {
-      const fill = el.backgroundColor && el.backgroundColor !== "transparent"
-        ? el.backgroundColor : null;
+      const fill =
+        el.backgroundColor && el.backgroundColor !== "transparent" ? el.backgroundColor : null;
       if (!fill) continue;
-      out.push(
-        `<path d="${d}" fill="${escapeAttr(fill)}" stroke="none"/>`,
-      );
+      out.push(`<path d="${d}" fill="${escapeAttr(fill)}" stroke="none"/>`);
     } else if (set.type === "path") {
       out.push(
-        `<path d="${d}" fill="none" stroke="${escapeAttr(stroke)}" `
-        + `stroke-width="${strokeWidth}" stroke-linecap="round" `
-        + `stroke-linejoin="round"${dashAttr}/>`,
+        `<path d="${d}" fill="none" stroke="${escapeAttr(stroke)}" ` +
+          `stroke-width="${strokeWidth}" stroke-linecap="round" ` +
+          `stroke-linejoin="round"${dashAttr}/>`,
       );
     }
   }
   return out.join("");
 }
 
+/**
+ * Render a rectangle using roughjs (sketchy stroke).
+ * @param {any} el Rectangle element.
+ * @returns {string} SVG markup.
+ */
 function roughRect(el) {
   const fill = colorOrNone(el.backgroundColor);
   // Solid fill underneath. roughjs' fill modes look noisy on small
   // shapes, and Excalidraw's own export uses solid fills + sketchy
   // outlines, so we mirror that.
-  const fillSvg = fill !== "none"
-    ? `<path d="${rectPath(el)}" fill="${escapeAttr(fill)}" stroke="none"/>`
-    : "";
-  const drawable = generator.rectangle(
-    el.x, el.y, el.width, el.height, roughOpts(el),
-  );
+  const fillSvg =
+    fill !== "none" ? `<path d="${rectPath(el)}" fill="${escapeAttr(fill)}" stroke="none"/>` : "";
+  const drawable = generator.rectangle(el.x, el.y, el.width, el.height, roughOpts(el));
   return fillSvg + drawableToSvg(drawable, el);
 }
 
+/**
+ * Build an SVG `path` `d` attribute for a (rounded) rectangle.
+ * @param {any} el Rectangle element.
+ * @returns {string} `d` value (no `<path>` wrapper).
+ */
 function rectPath(el) {
   const r = el.roundness ? Math.min(8, el.width / 4, el.height / 4) : 0;
   if (!r) {
     return `M${el.x},${el.y} h${el.width} v${el.height} h${-el.width} z`;
   }
-  const x = el.x, y = el.y, w = el.width, h = el.height;
+  const x = el.x,
+    y = el.y,
+    w = el.width,
+    h = el.height;
   return [
     `M${x + r},${y}`,
     `h${w - 2 * r}`,
@@ -194,20 +253,35 @@ function rectPath(el) {
   ].join(" ");
 }
 
+/**
+ * Render an ellipse using roughjs.
+ * @param {any} el Ellipse element.
+ * @returns {string} SVG markup.
+ */
 function roughEllipse(el) {
   const cx = el.x + el.width / 2;
   const cy = el.y + el.height / 2;
   const fill = colorOrNone(el.backgroundColor);
-  const fillSvg = fill !== "none"
-    ? `<ellipse cx="${cx}" cy="${cy}" rx="${el.width / 2}" `
-      + `ry="${el.height / 2}" fill="${escapeAttr(fill)}" stroke="none"/>`
-    : "";
+  const fillSvg =
+    fill !== "none"
+      ? `<ellipse cx="${cx}" cy="${cy}" rx="${el.width / 2}" ` +
+        `ry="${el.height / 2}" fill="${escapeAttr(fill)}" stroke="none"/>`
+      : "";
   const drawable = generator.ellipse(cx, cy, el.width, el.height, roughOpts(el));
   return fillSvg + drawableToSvg(drawable, el);
 }
 
+/**
+ * Render a polyline (with optional arrowhead) using roughjs.
+ * @param {any} el Line / arrow element.
+ * @param {boolean} withArrow When `true`, attach an arrowhead at the end.
+ * @returns {string} SVG markup.
+ */
 function roughPolyline(el, withArrow) {
-  const pts = (el.points || []).map(([dx, dy]) => [el.x + dx, el.y + dy]);
+  const pts = (el.points || []).map((/** @type {[number,number]} */ [dx, dy]) => [
+    el.x + dx,
+    el.y + dy,
+  ]);
   if (pts.length < 2) return "";
   const drawable = generator.linearPath(pts, roughOpts(el));
   let body = drawableToSvg(drawable, el);
@@ -216,16 +290,21 @@ function roughPolyline(el, withArrow) {
   // a thin invisible <polyline> so the marker ends up at the geometric
   // endpoint (not a wobble-jittered endpoint of the rough path).
   if (withArrow && (el.startArrowhead || el.endArrowhead)) {
-    const polyPts = pts.map(([x, y]) => `${x},${y}`).join(" ");
+    const polyPts = pts.map((/** @type {[number,number]} */ [x, y]) => `${x},${y}`).join(" ");
     const startMarker = el.startArrowhead
-      ? ` marker-start="url(#m_${el.startArrowhead}_start)"` : "";
-    const endMarker = el.endArrowhead
-      ? ` marker-end="url(#m_${el.endArrowhead}_end)"` : "";
+      ? ` marker-start="url(#m_${el.startArrowhead}_start)"`
+      : "";
+    const endMarker = el.endArrowhead ? ` marker-end="url(#m_${el.endArrowhead}_end)"` : "";
     body += `<polyline points="${polyPts}" fill="none" stroke="${escapeAttr(el.strokeColor || "#000")}" stroke-width="0" stroke-opacity="0"${startMarker}${endMarker}/>`;
   }
   return body;
 }
 
+/**
+ * Render a text element as an SVG `<text>` block (with line wrapping).
+ * @param {any} el Text element.
+ * @returns {string} SVG markup.
+ */
 function svgText(el) {
   const fill = el.strokeColor || "#000";
   const fs = el.fontSize || 16;
@@ -237,9 +316,9 @@ function svgText(el) {
   if (align === "center") xRef = el.x + (el.width || 0) / 2;
   else if (align === "right") xRef = el.x + (el.width || 0);
   const yTop = el.y + fs;
-  const tspans = lines.map((l, i) =>
-    `<tspan x="${xRef}" dy="${i === 0 ? 0 : lineHeight}">${escapeText(l)}</tspan>`,
-  ).join("");
+  const tspans = lines
+    .map((l, i) => `<tspan x="${xRef}" dy="${i === 0 ? 0 : lineHeight}">${escapeText(l)}</tspan>`)
+    .join("");
   return `<text x="${xRef}" y="${yTop}" fill="${escapeAttr(fill)}" font-size="${fs}" text-anchor="${anchor}">${tspans}</text>`;
 }
 
@@ -262,14 +341,31 @@ function arrowheadDefs() {
 
 // ── misc ──────────────────────────────────────────────────────────────────
 
+/**
+ * Map an Excalidraw colour to an SVG fill/stroke (or `"none"`).
+ * @param {string|null|undefined} c Excalidraw colour value.
+ * @returns {string} SVG colour string.
+ */
 function colorOrNone(c) {
   if (!c || c === "transparent") return "none";
   return c;
 }
 
+/** @internal */
+/**
+ * Escape a string for safe interpolation into an SVG attribute value.
+ * @param {string} s Raw string.
+ * @returns {string} Escaped string.
+ */
 function escapeAttr(s) {
   return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
+/** @internal */
+/**
+ * Escape a string for safe interpolation into SVG text content.
+ * @param {string} s Raw string.
+ * @returns {string} Escaped string.
+ */
 function escapeText(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

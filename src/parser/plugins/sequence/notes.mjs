@@ -11,8 +11,18 @@ const SEQ_NOTE_OVER = /^note\s+over\s+(\S+)(?:\s*,\s*(\S+))?\s*:\s*(.+)$/;
 const SEQ_NOTE_BLOCK_OPEN_SIDE = /^note\s+(left|right)(?:\s+of\s+(\S+))?\s*$/;
 const SEQ_NOTE_BLOCK_OPEN_OVER = /^note\s+over\s+(\S+)(?:\s*,\s*(\S+))?\s*$/;
 
+/**
+ * Resolve the lifeline that a `note left/right` should attach to when no
+ * explicit target is given: the most recently declared participant.
+ * @param {Record<string, any>} ctx Sequence parser context (carries `diagram`).
+ * @returns {import("../../../model/diagram.mjs").Participant|undefined} The latest lifeline, or `undefined` when the diagram is empty.
+ */
 const lastParticipant = (ctx) => ctx.diagram.participants[ctx.diagram.participants.length - 1];
 
+/**
+ * Single-line side note: `note left|right [of <id>] : text`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const noteSidePlugin = {
   name: "sequence.noteSide",
   tryLine(line, ctx) {
@@ -26,6 +36,10 @@ export const noteSidePlugin = {
   },
 };
 
+/**
+ * Single-line `note over A[, B] : text`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const noteOverPlugin = {
   name: "sequence.noteOver",
   tryLine(line, ctx) {
@@ -42,6 +56,10 @@ export const noteOverPlugin = {
   },
 };
 
+/**
+ * Multi-line side-note block, terminated by `end note`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const noteSideBlockPlugin = {
   name: "sequence.noteSideBlock",
   tryStart(line, ctx) {
@@ -50,9 +68,12 @@ export const noteSideBlockPlugin = {
     const side = m[1];
     const targetId = m[2];
     const target = targetId ? ctx.ensureParticipant(targetId) : lastParticipant(ctx);
+    /** @type {string[]} */
     const lines = [];
     return {
-      onLine(l) { lines.push(l); },
+      onLine(l) {
+        lines.push(l);
+      },
       tryEnd(l, ctx2) {
         if (!/^end\s*note$/i.test(l)) return false;
         if (target) {
@@ -64,6 +85,10 @@ export const noteSideBlockPlugin = {
   },
 };
 
+/**
+ * Multi-line `note over` block, terminated by `end note`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const noteOverBlockPlugin = {
   name: "sequence.noteOverBlock",
   tryStart(line, ctx) {
@@ -71,9 +96,12 @@ export const noteOverBlockPlugin = {
     if (!m) return null;
     const a = ctx.ensureParticipant(m[1]);
     const b = m[2] ? ctx.ensureParticipant(m[2]) : null;
+    /** @type {string[]} */
     const lines = [];
     return {
-      onLine(l) { lines.push(l); },
+      onLine(l) {
+        lines.push(l);
+      },
       tryEnd(l, ctx2) {
         if (!/^end\s*note$/i.test(l)) return false;
         ctx2.addNote({ text: lines.join("\n"), side: "over", target: a, target2: b });

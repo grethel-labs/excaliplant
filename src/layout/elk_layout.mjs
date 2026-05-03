@@ -98,7 +98,8 @@ const SUBPLANE_OPTIONS = {
 export async function layoutDiagram(diagram) {
   // Sequence diagrams use a separate, deterministic tabular layout.
   if (diagram instanceof SequenceDiagram) {
-    return layoutSequenceDiagram(diagram);
+    layoutSequenceDiagram(diagram);
+    return;
   }
 
   // Step 1: text-based box sizing.
@@ -115,28 +116,36 @@ export async function layoutDiagram(diagram) {
 
   // Step 5: chamfer 90° corners where it doesn't introduce conflicts.
   chamferAllCorners(diagram);
-  return diagram;
 }
 
+/** @typedef {{x:number,y:number}} Pt */
+
+/**
+ * Build the ELK input graph from a {@link Diagram}.
+ * @param {import("../model/diagram.mjs").Diagram} diagram Diagram whose planes/subplanes/boxes/connections seed the graph.
+ * @returns {any} Root ELK node ready to be passed to `elk.layout`.
+ */
 function buildElkGraph(diagram) {
+  /** @type {any} */
   const root = {
     id: "__root",
     layoutOptions: ROOT_OPTIONS,
-    children: [],
-    edges: [],
+    children: /** @type {any[]} */ ([]),
+    edges: /** @type {any[]} */ ([]),
   };
 
-  const nodeById = new Map();          // box.id / plane.id / subplane.id -> elk node ref
-  const containerOfBox = new Map();    // box.id -> elk node that holds the box
-  const planeOfBox = new Map();        // box.id -> plane elk node
-  const subplaneOfBox = new Map();     // box.id -> subplane elk node (or null)
+  const nodeById = new Map(); // box.id / plane.id / subplane.id -> elk node ref
+  const containerOfBox = new Map(); // box.id -> elk node that holds the box
+  const planeOfBox = new Map(); // box.id -> plane elk node
+  const subplaneOfBox = new Map(); // box.id -> subplane elk node (or null)
 
   for (const plane of diagram.planes) {
+    /** @type {any} */
     const planeNode = {
       id: `plane:${plane.id}`,
       layoutOptions: { ...PLANE_OPTIONS },
-      children: [],
-      edges: [],
+      children: /** @type {any[]} */ ([]),
+      edges: /** @type {any[]} */ ([]),
       labels: [{ text: plane.title || plane.id }],
     };
     root.children.push(planeNode);
@@ -144,11 +153,12 @@ function buildElkGraph(diagram) {
 
     for (const child of plane.children) {
       if (child instanceof Subplane) {
+        /** @type {any} */
         const subNode = {
           id: `sub:${child.id}`,
           layoutOptions: { ...SUBPLANE_OPTIONS },
-          children: [],
-          edges: [],
+          children: /** @type {any[]} */ ([]),
+          edges: /** @type {any[]} */ ([]),
           labels: [{ text: child.title || child.id }],
         };
         planeNode.children.push(subNode);
@@ -184,7 +194,7 @@ function buildElkGraph(diagram) {
     if (fromSub && fromSub === toSub) host = fromSub;
     else if (fromPlane === toPlane) host = fromPlane;
     else host = root;
-    host.edges.push({
+    /** @type {any} */ (host).edges.push({
       id: conn.id,
       sources: [`box:${conn.from.id}`],
       targets: [`box:${conn.to.id}`],
@@ -194,6 +204,11 @@ function buildElkGraph(diagram) {
   return root;
 }
 
+/**
+ * Convert a {@link Box} to its ELK node representation.
+ * @param {import("../model/diagram.mjs").Box} box The model box (must already have width/height).
+ * @returns {any} ELK node descriptor.
+ */
 function boxToElkNode(box) {
   return {
     id: `box:${box.id}`,
@@ -206,11 +221,24 @@ function boxToElkNode(box) {
   };
 }
 
+/**
+ * Copy positions from the laid-out ELK tree back onto the model.
+ * @param {import("../model/diagram.mjs").Diagram} diagram Diagram whose elements are mutated in place.
+ * @param {any} root ELK result root (with `.x/.y/.width/.height`, `.children`, `.edges`).
+ * @returns {void}
+ */
 function applyElkResult(diagram, root) {
   // ELK gives positions relative to each parent. We need absolute
   // coordinates for the Diagram model, so we walk the tree.
   const absolute = new Map(); // node.id -> { x, y, width, height }
 
+  /**
+   * Recursively accumulate absolute positions of every ELK node.
+   * @param {any} node Current ELK node.
+   * @param {number} ox Parent x offset.
+   * @param {number} oy Parent y offset.
+   * @returns {void}
+   */
   function walk(node, ox, oy) {
     const ax = ox + (node.x || 0);
     const ay = oy + (node.y || 0);
@@ -244,6 +272,13 @@ function applyElkResult(diagram, root) {
   // start/end and bend points in the parent's local coordinate system.
   // Collect all edges by id from the tree.
   const edgesById = new Map();
+  /**
+   * Recursively gather every edge with its parent's absolute offset.
+   * @param {any} node Current ELK node.
+   * @param {number} ox Parent x offset.
+   * @param {number} oy Parent y offset.
+   * @returns {void}
+   */
   function collectEdges(node, ox, oy) {
     const ax = ox + (node.x || 0);
     const ay = oy + (node.y || 0);
@@ -262,6 +297,7 @@ function applyElkResult(diagram, root) {
     }
     const { edge, ox, oy } = entry;
     const sections = edge.sections || [];
+    /** @type {Pt[]} */
     const path = [];
     for (let i = 0; i < sections.length; i++) {
       const s = sections[i];
@@ -280,6 +316,12 @@ function applyElkResult(diagram, root) {
 // ELK can return slightly offset stub segments (e.g. y=197.5 → y=198)
 // when a port lies on a fractional boundary. Snap each segment to be
 // strictly horizontal / vertical so Excalidraw renders crisp arrows.
+/**
+ * Snap each polyline segment to be strictly horizontal or vertical to
+ * mask sub-pixel ELK rounding artefacts.
+ * @param {Pt[]} points Routed polyline.
+ * @returns {Pt[]} A new polyline with integer-aligned, axis-locked segments.
+ */
 function snapOrthogonal(points) {
   if (points.length < 2) return points;
   const out = [{ x: Math.round(points[0].x), y: Math.round(points[0].y) }];
@@ -290,15 +332,22 @@ function snapOrthogonal(points) {
     y = Math.round(y);
     const dx = Math.abs(x - prev.x);
     const dy = Math.abs(y - prev.y);
-    if (dx >= dy) y = prev.y; // dominant horizontal
-    else x = prev.x;          // dominant vertical
+    if (dx >= dy)
+      y = prev.y; // dominant horizontal
+    else x = prev.x; // dominant vertical
     if (x === prev.x && y === prev.y) continue;
     out.push({ x, y });
   }
   return out;
 }
 
+/**
+ * Drop consecutive duplicate points (within 0.5 px tolerance).
+ * @param {Pt[]} points Polyline that may contain duplicates.
+ * @returns {Pt[]} Cleaned-up polyline.
+ */
 function dedupe(points) {
+  /** @type {Pt[]} */
   const out = [];
   for (const p of points) {
     const last = out[out.length - 1];
@@ -309,6 +358,11 @@ function dedupe(points) {
   return out;
 }
 
+/**
+ * Determine which side of each endpoint box a connection enters/exits.
+ * @param {import("../model/diagram.mjs").Connection} conn Connection with a populated `path`.
+ * @returns {[string|null, string|null]} `[fromSide, toSide]` — each `top|right|bottom|left` or `null`.
+ */
 function inferSides(conn) {
   const path = conn.path;
   if (!path || path.length < 2) return [null, null];
@@ -321,6 +375,14 @@ function inferSides(conn) {
   return [fromSide, toSide];
 }
 
+/**
+ * Decide which side of `box` an endpoint lies on, preferring the
+ * direction implied by `neighbour`.
+ * @param {import("../model/diagram.mjs").Box} box The box being entered/left.
+ * @param {Pt} endpoint Point on (or near) the box boundary.
+ * @param {Pt} neighbour Adjacent polyline point (used as a direction hint).
+ * @returns {string|null} `top|right|bottom|left`, or `null` when no side fits.
+ */
 function sideOf(box, endpoint, neighbour) {
   // Decide which side of the box this endpoint is on. Prefer the
   // direction toward the neighbour point: if neighbour is to the right
@@ -365,10 +427,17 @@ function sideOf(box, endpoint, neighbour) {
 // candidate that satisfies all conditions.
 
 const CHAMFER_SIZES = [12, 10, 8, 6, 4];
-const DIAG_SAFETY = 2;        // min distance to other diagonals
-const BOX_PAD = 1;            // shrink box rect when checking interior
+const DIAG_SAFETY = 2; // min distance to other diagonals
+const BOX_PAD = 1; // shrink box rect when checking interior
 
+/**
+ * Replace 90° corners with 45° chamfers wherever it doesn't conflict
+ * with boxes, other connections or already-accepted chamfers.
+ * @param {import("../model/diagram.mjs").Diagram} diagram Diagram whose connection paths are mutated in place.
+ * @returns {void}
+ */
 function chamferAllCorners(diagram) {
+  /** @type {{a:Pt,b:Pt}[]} */
   const accepted = []; // [{a, b}]
   const boxes = diagram.allBoxes();
 
@@ -377,6 +446,7 @@ function chamferAllCorners(diagram) {
   // being chamfered (which are about to be shortened anyway).
   const segsByConn = new Map();
   for (const conn of diagram.connections) {
+    /** @type {{a:Pt,b:Pt}[]} */
     const segs = [];
     for (let i = 0; i < (conn.path?.length ?? 0) - 1; i++) {
       segs.push({ a: conn.path[i], b: conn.path[i + 1] });
@@ -428,12 +498,31 @@ function chamferAllCorners(diagram) {
   }
 }
 
+/**
+ * Compute a point at distance `dist` from `from` along the line toward `toward`.
+ * @param {Pt} from   Anchor point (where distance is measured from).
+ * @param {Pt} toward Direction reference point.
+ * @param {number} dist Distance in pixels.
+ * @returns {Pt} The interpolated point.
+ */
 function pointAtDist(from, toward, dist) {
   const len = Math.hypot(toward.x - from.x, toward.y - from.y);
   const t = dist / len;
   return { x: from.x + (toward.x - from.x) * t, y: from.y + (toward.y - from.y) * t };
 }
 
+/**
+ * Test whether the candidate chamfer diagonal `a–b` would conflict
+ * with any box, other connection segment or accepted chamfer.
+ * @param {Pt} a   Start of the candidate diagonal.
+ * @param {Pt} b   End of the candidate diagonal.
+ * @param {import("../model/diagram.mjs").Connection} conn Connection that owns the corner.
+ * @param {number} segIndex Index of the incoming segment within `conn`'s segment list.
+ * @param {Map<string,{a:Pt,b:Pt}[]>} segsByConn Pre-computed segments per connection.
+ * @param {{a:Pt,b:Pt}[]} accepted Already-accepted chamfer diagonals.
+ * @param {import("../model/diagram.mjs").Box[]} boxes All boxes in the diagram (for box-interior tests).
+ * @returns {boolean} `true` when the chamfer must be rejected.
+ */
 function chamferConflicts(a, b, conn, segIndex, segsByConn, accepted, boxes) {
   // 3. Box interior: check both endpoints + a few sample points along
   //    the diagonal. Endpoints lie on existing orthogonal segments that
@@ -459,6 +548,13 @@ function chamferConflicts(a, b, conn, segIndex, segsByConn, accepted, boxes) {
   return false;
 }
 
+/**
+ * Test whether segment `a–b` enters the interior of `box`.
+ * @param {Pt} a Segment start.
+ * @param {Pt} b Segment end.
+ * @param {import("../model/diagram.mjs").Box} box Box whose interior is checked.
+ * @returns {boolean} `true` when the segment crosses or lies inside the box.
+ */
 function segmentEntersBox(a, b, box) {
   const x0 = box.x + BOX_PAD;
   const y0 = box.y + BOX_PAD;
@@ -469,8 +565,10 @@ function segmentEntersBox(a, b, box) {
   if (b.x > x0 && b.x < x1 && b.y > y0 && b.y < y1) return true;
   // Test against the four box edges.
   const corners = [
-    { x: x0, y: y0 }, { x: x1, y: y0 },
-    { x: x1, y: y1 }, { x: x0, y: y1 },
+    { x: x0, y: y0 },
+    { x: x1, y: y0 },
+    { x: x1, y: y1 },
+    { x: x0, y: y1 },
   ];
   for (let i = 0; i < 4; i++) {
     if (properIntersect(a, b, corners[i], corners[(i + 1) % 4])) return true;
@@ -478,6 +576,14 @@ function segmentEntersBox(a, b, box) {
   return false;
 }
 
+/**
+ * Strict (non-collinear) intersection of two segments.
+ * @param {Pt} p1 Start of segment A.
+ * @param {Pt} p2 End of segment A.
+ * @param {Pt} p3 Start of segment B.
+ * @param {Pt} p4 End of segment B.
+ * @returns {boolean} `true` when the segments cross strictly inside both.
+ */
 function properIntersect(p1, p2, p3, p4) {
   const d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
   if (Math.abs(d) < 1e-9) return false;
@@ -488,6 +594,15 @@ function properIntersect(p1, p2, p3, p4) {
 }
 
 // True iff the two segments come within `tol` of each other anywhere.
+/**
+ * Test whether two segments come within `tol` pixels of each other.
+ * @param {Pt} a1 Segment A start.
+ * @param {Pt} a2 Segment A end.
+ * @param {Pt} b1 Segment B start.
+ * @param {Pt} b2 Segment B end.
+ * @param {number} tol Tolerance in pixels.
+ * @returns {boolean} `true` when the segments overlap or are within `tol`.
+ */
 function segmentsClose(a1, a2, b1, b2, tol) {
   // Crossing → distance 0.
   const d = (a2.x - a1.x) * (b2.y - b1.y) - (a2.y - a1.y) * (b2.x - b1.x);
@@ -506,6 +621,13 @@ function segmentsClose(a1, a2, b1, b2, tol) {
   return Math.min(...dists) < tol;
 }
 
+/**
+ * Distance from point `p` to segment `a–b`.
+ * @param {Pt} p Probe point.
+ * @param {Pt} a Segment start.
+ * @param {Pt} b Segment end.
+ * @returns {number} Euclidean distance in pixels.
+ */
 function pointSegDist(p, a, b) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;

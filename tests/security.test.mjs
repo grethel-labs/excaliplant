@@ -133,10 +133,12 @@ for (const payload of XSS_PAYLOADS) {
 
     // Dangerous content must not appear unescaped.
     assert.equal(/<script[\s>]/i.test(svg), false, "raw <script> in SVG");
-    assert.equal(/\son\w+\s*=\s*["']?(?:alert|javascript)/i.test(svg), false,
-      "executable event handler in SVG");
-    assert.equal(/href\s*=\s*["']?javascript:/i.test(svg), false,
-      "javascript: URL in href");
+    assert.equal(
+      /\son\w+\s*=\s*["']?(?:alert|javascript)/i.test(svg),
+      false,
+      "executable event handler in SVG",
+    );
+    assert.equal(/href\s*=\s*["']?javascript:/i.test(svg), false, "javascript: URL in href");
   });
 }
 
@@ -240,4 +242,84 @@ end note
   // `fs.readFileSync` would block. Just calling parsePlantUml is enough.
   const d = parsePlantUml(src);
   assert.ok(d, "parser must complete on path-like inputs");
+});
+
+// ---------------------------------------------------------------------------
+// Renderer hardening: render-width bounds
+// ---------------------------------------------------------------------------
+
+test("security: svgToPng rejects non-integer / non-positive widths", async () => {
+  const { svgToPng } = await import("../src/render/png.mjs");
+  const tinySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>`;
+  for (const bad of [0, -1, 1.5, NaN, Infinity, "1000"]) {
+    assert.throws(
+      () => svgToPng(tinySvg, { width: bad }),
+      /width must be a positive integer/,
+      `expected throw for width=${bad}`,
+    );
+  }
+});
+
+test("security: svgToPng clamps absurd widths to MAX_PNG_WIDTH", async () => {
+  // We don't actually rasterise here (would be slow); we just confirm
+  // the bounds-check path doesn't throw for huge values that are still
+  // integer-positive — they get clamped instead of blowing up resvg.
+  const { svgToPng } = await import("../src/render/png.mjs");
+  const tinySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>`;
+  // 100_000 is far above the 16_000 ceiling — must still succeed.
+  const buf = svgToPng(tinySvg, { width: 100_000 });
+  assert.ok(Buffer.isBuffer(buf) && buf.length > 0);
+});
+
+test("security: canvas SVG rejects non-integer widths", async () => {
+  const { excalidrawJsonToCanvasSvg } = await import("../src/render/canvas_svg.mjs");
+  const doc = await renderPlantUml(`@startuml
+[a] --> [b]
+@enduml`);
+  for (const bad of [0, -1, 1.5, NaN]) {
+    assert.throws(
+      () => excalidrawJsonToCanvasSvg(doc, { width: bad }),
+      /width must be a positive integer/,
+    );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// CLI hardening: stdin size cap
+// ---------------------------------------------------------------------------
+
+test("security: CLI rejects oversized stdin (--max-input-bytes)", async () => {
+  const { spawn } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const cliPath = fileURLToPath(new URL("../bin/excaliplant.mjs", import.meta.url));
+  const child = spawn(process.execPath, [cliPath, "--max-input-bytes", "64"], {
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let stderr = "";
+  child.stderr.on("data", (c) => {
+    stderr += c;
+  });
+  // Send more than 64 bytes.
+  child.stdin.write("x".repeat(2048));
+  child.stdin.end();
+  const code = await new Promise((resolve) => child.on("close", resolve));
+  assert.equal(code, 1, "CLI should exit 1 on oversized input");
+  assert.match(stderr, /exceeded 64 bytes/);
+});
+
+test("security: CLI rejects out-of-range --width", async () => {
+  const { spawn } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const cliPath = fileURLToPath(new URL("../bin/excaliplant.mjs", import.meta.url));
+  const child = spawn(process.execPath, [cliPath, "--width", "1000000"], {
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let stderr = "";
+  child.stderr.on("data", (c) => {
+    stderr += c;
+  });
+  child.stdin.end();
+  const code = await new Promise((resolve) => child.on("close", resolve));
+  assert.equal(code, 2, "CLI should exit 2 on bad CLI args");
+  assert.match(stderr, /--width out of range/);
 });

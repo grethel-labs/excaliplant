@@ -2,8 +2,13 @@
 
 import { slug, unescapeLabel } from "../../utils.mjs";
 
-const SEQ_PARTICIPANT = /^(participant|actor|boundary|control|collections|queue|database|entity)\s+(?:"([^"]+)"|(\S+))(?:\s+as\s+(\S+))?(?:\s*<<\s*([^>]+?)\s*>>)?$/;
+const SEQ_PARTICIPANT =
+  /^(participant|actor|boundary|control|collections|queue|database|entity)\s+(?:"([^"]+)"|(\S+))(?:\s+as\s+(\S+))?(?:\s*<<\s*([^>]+?)\s*>>)?$/;
 
+/**
+ * Sequence-diagram participant declaration.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const participantPlugin = {
   name: "sequence.participant",
   tryLine(line, ctx) {

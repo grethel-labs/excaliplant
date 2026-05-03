@@ -11,6 +11,12 @@
 #}
 # {{ pkg.name | replace("@grethel-labs/", "") }}
 
+[![npm](https://img.shields.io/npm/v/{{ pkg.name }}.svg?label=latest)](https://www.npmjs.com/package/{{ pkg.name }})
+[![downloads](https://img.shields.io/npm/dm/{{ pkg.name }}.svg)](https://www.npmjs.com/package/{{ pkg.name }})
+[![ci](https://github.com/grethel-labs/excaliplant/actions/workflows/ci.yml/badge.svg)](https://github.com/grethel-labs/excaliplant/actions/workflows/ci.yml)
+[![node](https://img.shields.io/node/v/{{ pkg.name }}.svg)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/{{ pkg.name }}.svg)](./LICENSE)
+
 > {{ pkg.description }} &nbsp;·&nbsp; **v{{ pkg.version }}** &nbsp;·&nbsp; {{ testCount }} tests &nbsp;·&nbsp; {{ pkg.license }}
 
 `{{ pkg.name }}` takes PlantUML source, runs it through a plugin-based

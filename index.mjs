@@ -63,9 +63,18 @@ export {
   DEFAULT_ASPECT_RATIO,
 } from "./src/render/canvas_svg.mjs";
 export { svgToPng } from "./src/render/png.mjs";
+export { EXCALIDRAW_SCHEMA, ROUNDNESS } from "./src/render/schema.mjs";
+export { createSeededRng, stableHash32 } from "./src/render/rng.mjs";
 export {
-  Box, Connection, Diagram, Plane, Subplane,
-  Participant, Message, SequenceDiagram, SequenceNote,
+  Box,
+  Connection,
+  Diagram,
+  Plane,
+  Subplane,
+  Participant,
+  Message,
+  SequenceDiagram,
+  SequenceNote,
   SHAPES,
 } from "./src/model/diagram.mjs";
 
@@ -86,6 +95,8 @@ export {
  *
  * Both helpers lazily await the underlying document — so calling
  * `toSvg()` / `toPng()` directly on the unawaited result works too.
+ *
+ * @public
  */
 export class RenderResult {
   /** @param {Promise<object>} docPromise */
@@ -93,7 +104,14 @@ export class RenderResult {
     this._doc = docPromise;
   }
 
-  /** Thenable: `await result` yields the Excalidraw JSON document. */
+  /**
+   * Thenable: `await result` yields the Excalidraw JSON document.
+   * @template T
+   * @template R
+   * @param {(value: object) => T | Promise<T>} [onFulfilled]
+   * @param {(reason: any) => R | Promise<R>} [onRejected]
+   * @returns {Promise<T | R>}
+   */
   then(onFulfilled, onRejected) {
     return this._doc.then(onFulfilled, onRejected);
   }
@@ -108,7 +126,7 @@ export class RenderResult {
    */
   async toSvg(opts = {}) {
     const doc = await this._doc;
-    if (opts.canvas === false) return excalidrawToSvg(doc, opts);
+    if (/** @type {any} */ (opts).canvas === false) return excalidrawToSvg(doc, opts);
     return excalidrawJsonToCanvasSvg(doc, opts);
   }
 
@@ -137,30 +155,42 @@ export class RenderResult {
  * @param {object} [opts]
  * @param {string} [opts.sourceLabel]  Forwarded to the renderer's
  *                                     appState.name.
+ * @param {() => number} [opts.rng]    Optional deterministic RNG.
  * @returns {RenderResult}             Thenable wrapping the Excalidraw
  *                                     JSON document.
  */
 export function renderPlantUml(plantuml, opts = {}) {
-  return new RenderResult((async () => {
-    const diagram = parsePlantUml(plantuml);
-    await layoutDiagram(diagram);
-    return exportDiagram(diagram, {
-      sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
-    });
-  })());
+  return new RenderResult(
+    (async () => {
+      const diagram = parsePlantUml(plantuml);
+      await layoutDiagram(diagram);
+      return exportDiagram(diagram, {
+        sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
+        rng: opts.rng,
+      });
+    })(),
+  );
 }
 
 /**
  * Render an already-built Diagram model. Useful for callers that want
  * to bypass the PlantUML parser and feed shapes programmatically.
  *
+ * @param {import("./src/model/diagram.mjs").Diagram
+ *        | import("./src/model/diagram.mjs").SequenceDiagram} diagram
+ * @param {object} [opts]
+ * @param {string} [opts.sourceLabel]
+ * @param {() => number} [opts.rng]
  * @returns {RenderResult}
  */
 export function renderDiagram(diagram, opts = {}) {
-  return new RenderResult((async () => {
-    await layoutDiagram(diagram);
-    return exportDiagram(diagram, {
-      sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
-    });
-  })());
+  return new RenderResult(
+    (async () => {
+      await layoutDiagram(diagram);
+      return exportDiagram(diagram, {
+        sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
+        rng: opts.rng,
+      });
+    })(),
+  );
 }

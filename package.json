@@ -4,29 +4,46 @@
   "description": "PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.",
   "type": "module",
   "main": "index.mjs",
+  "bin": {
+    "excaliplant": "bin/excaliplant.mjs"
+  },
   "files": [
     "index.mjs",
+    "bin/",
     "src/",
     "assets/fonts/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "SECURITY.md",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "exports": {
     ".": "./index.mjs",
     "./parser/plantuml": "./src/parser/plantuml.mjs",
+    "./parser/engine": "./src/parser/engine.mjs",
     "./layout": "./src/layout/elk_layout.mjs",
     "./render": "./src/render/excalidraw.mjs",
+    "./render/excalidraw": "./src/render/excalidraw.mjs",
     "./render/svg": "./src/render/svg.mjs",
     "./render/canvas-svg": "./src/render/canvas_svg.mjs",
     "./render/png": "./src/render/png.mjs",
+    "./render/schema": "./src/render/schema.mjs",
+    "./render/rng": "./src/render/rng.mjs",
     "./model": "./src/model/diagram.mjs"
   },
   "scripts": {
     "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs",
+    "typecheck": "tsc -p tsconfig.json",
     "build:docs": "node docs/scripts/build-docs.mjs",
     "build:api": "typedoc",
     "build": "npm run build:docs && npm run build:api",
-    "prepublishOnly": "npm test && npm run build"
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky && node scripts/setup-merge-drivers.mjs",
+    "prepublishOnly": "node scripts/prepublish-guard.mjs && npm test && npm run build"
+  },
+  "lint-staged": {
+    "*.{mjs,js,cjs,ts,json,yml,yaml,md}": "prettier --write"
   },
   "repository": {
     "type": "git",
@@ -39,10 +56,15 @@
     "excalidraw",
     "diagram",
     "elk",
-    "renderer"
+    "renderer",
+    "svg",
+    "png",
+    "uml",
+    "sequence-diagram"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
@@ -54,8 +76,13 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^25.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "nunjucks": "^3.2.4",
+    "prettier": "^3.8.3",
     "tree-node-cli": "^1.6.0",
-    "typedoc": "^0.28.19"
+    "typedoc": "^0.28.19",
+    "typescript": "^5.6.0"
   }
 }
