@@ -1,0 +1,110 @@
+name: PR release version
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: pr-release-version-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  bump:
+    name: Apply release version label
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          ssh-key: ${{ secrets.BOT_SSH_KEY }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Select release bump from PR labels
+        id: bump
+        env:
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const labels = JSON.parse(process.env.PR_LABELS || "[]");
+          const labelToBump = new Map([
+            ["release:major", "major"],
+            ["release:minor", "minor"],
+            ["release:patch", "patch"],
+          ]);
+          const selected = labels
+            .map((label) => [label, labelToBump.get(label)])
+            .filter(([, bump]) => bump);
+
+          if (selected.length !== 1) {
+            console.error(
+              `::error::PRs into main must have exactly one release label: release:major, release:minor, or release:patch. Found: ${
+                selected.map(([label]) => label).join(", ") || "none"
+              }`,
+            );
+            process.exit(1);
+          }
+
+          console.log(`type=${selected[0][1]}`);
+          console.error(`Release bump: ${selected[0][1]} (${selected[0][0]})`);
+          NODE
+
+      - run: npm ci
+
+      - name: Read base version
+        id: base
+        run: |
+          git fetch origin "${{ github.event.pull_request.base.ref }}"
+          BASE_VERSION=$(git show "origin/${{ github.event.pull_request.base.ref }}:package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+          echo "version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Base version: $BASE_VERSION"
+
+      - name: Apply release version
+        id: version
+        run: |
+          VERSION=$(node scripts/bump-release-version.mjs --base-version "${{ steps.base.outputs.version }}" --bump "${{ steps.bump.outputs.type }}")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Target version: $VERSION"
+
+      - name: Rebuild docs for target version
+        run: npm run build:docs
+
+      - name: Detect version drift
+        id: drift
+        run: |
+          if git diff --quiet -- package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/; then
+            echo "drifted=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drifted=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
+          fi
+
+      - name: Amend + force-push release version
+        if: steps.drift.outputs.drifted == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
+          git commit --amend --no-edit
+          git push --force-with-lease origin "HEAD:${{ github.event.pull_request.head.ref }}"
+
+  fork-pr:
+    name: Release label required for fork PRs
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain limitation
+        run: |
+          echo "::error::Fork PRs cannot be auto-amended because release automation needs the repository bot SSH key. Add exactly one release label and update package.json/package-lock.json manually."
+          exit 1

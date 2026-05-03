@@ -1,13 +1,14 @@
 name: Auto release tag on version bump
 
-# Whenever package.json version changes on main, create + push the
-# matching v<version> tag. The tag push triggers release.yml which
-# publishes to npm and creates the GitHub release.
+# Whenever package.json version changes on main, create + push the exact
+# immutable v<version> tag. The tag push triggers release.yml which publishes
+# the package, marks that GitHub release as latest, and publishes both
+# versioned and latest API docs.
 #
 # Why a separate workflow:
 #   - Direct pushes to main are blocked by the "main: PR-only" ruleset,
-#     so version bumps already arrive as merged PRs (auto-patch-deps
-#     bumps the version inside the PR before merging).
+#     so version bumps already arrive as merged PRs. pr-release-version.yml
+#     derives the next package version from exactly one release:* PR label.
 #   - This workflow only creates a tag — tag creation is allowed by
 #     the rulesets (only deletion / non-fast-forward are blocked on
 #     v* tags).
