@@ -13,11 +13,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import nunjucks from "nunjucks";
 
-import {
-  renderPlantUml,
-  excalidrawJsonToCanvasSvg,
-  svgToPng,
-} from "../../index.mjs";
+import { renderPlantUml, excalidrawJsonToCanvasSvg, svgToPng } from "../../index.mjs";
 import { extractDocBlocks } from "./extract-docs.mjs";
 import {
   buildModuleDiagramSource,
@@ -26,10 +22,19 @@ import {
 } from "./self-diagrams.mjs";
 import { buildFileTree } from "./file-tree.mjs";
 import {
-  REPO_ROOT, SRC_DIR, ENTRY_FILE,
-  PUML_DIR, EXCALIDRAW_DIR, SVG_DIR, PNG_DIR,
-  TEMPLATE_FILE, README_FILE,
-  README_IMAGE_FORMAT, CANVAS_WIDTH, PNG_SCALE, repoRel,
+  REPO_ROOT,
+  SRC_DIR,
+  ENTRY_FILE,
+  PUML_DIR,
+  EXCALIDRAW_DIR,
+  SVG_DIR,
+  PNG_DIR,
+  TEMPLATE_FILE,
+  README_FILE,
+  README_IMAGE_FORMAT,
+  CANVAS_WIDTH,
+  PNG_SCALE,
+  repoRel,
 } from "./config.mjs";
 
 const ARTEFACTS = [
@@ -51,8 +56,9 @@ const ARTEFACTS = [
 ];
 
 async function main() {
-  await Promise.all([PUML_DIR, EXCALIDRAW_DIR, SVG_DIR, PNG_DIR]
-    .map((d) => mkdir(d, { recursive: true })));
+  await Promise.all(
+    [PUML_DIR, EXCALIDRAW_DIR, SVG_DIR, PNG_DIR].map((d) => mkdir(d, { recursive: true })),
+  );
 
   const docBlocks = await extractDocBlocks([SRC_DIR, ENTRY_FILE]);
 
@@ -114,7 +120,9 @@ async function main() {
   });
 
   await writeFile(README_FILE, rendered, "utf8");
-  console.log(`  wrote README.md (${generated.length} diagrams, ${moduleDocs.length} module blocks, ${testCount} tests)`);
+  console.log(
+    `  wrote README.md (${generated.length} diagrams, ${moduleDocs.length} module blocks, ${testCount} tests)`,
+  );
 }
 
 async function countTests() {

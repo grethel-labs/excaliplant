@@ -7,12 +7,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  parsePlantUml, renderPlantUml,
-  Diagram, SequenceDiagram, Box, Connection,
+  parsePlantUml,
+  renderPlantUml,
+  Diagram,
+  SequenceDiagram,
+  Box,
+  Connection,
 } from "../index.mjs";
-import {
-  DEFAULT_COMPONENT_PLUGINS,
-} from "../src/parser/plantuml.mjs";
+import { DEFAULT_COMPONENT_PLUGINS } from "../src/parser/plantuml.mjs";
 
 // ---------------------------------------------------------------------------
 // Empty / minimal inputs
@@ -174,16 +176,17 @@ test("custom plugins can be injected via opts.plugins.component", () => {
       const m = line.match(/^gauge\s+"([^"]+)"\s+as\s+(\S+)$/);
       if (!m) return false;
       ctx.addBox({
-        id: m[2], title: m[1], shape: "rectangle",
+        id: m[2],
+        title: m[1],
+        shape: "rectangle",
         stereotype: "gauge",
       });
       return true;
     },
   };
-  const d = parsePlantUml(
-    `@startuml\ngauge "CPU" as cpu\n@enduml`,
-    { plugins: { component: [gaugePlugin, ...DEFAULT_COMPONENT_PLUGINS] } },
-  );
+  const d = parsePlantUml(`@startuml\ngauge "CPU" as cpu\n@enduml`, {
+    plugins: { component: [gaugePlugin, ...DEFAULT_COMPONENT_PLUGINS] },
+  });
   const cpu = d.boxById("cpu");
   assert.ok(cpu);
   assert.equal(cpu.stereotype, "gauge");
@@ -234,7 +237,9 @@ test("renderDiagram works with a hand-built model (no PlantUML)", async () => {
   const d = new Diagram();
   const { Plane } = await import("../src/model/diagram.mjs");
   const { planeColor } = await import("../src/style/colors.mjs");
-  const plane = d.addPlane(new Plane({ id: "p", title: "P", color: planeColor("p"), kind: "package" }));
+  const plane = d.addPlane(
+    new Plane({ id: "p", title: "P", color: planeColor("p"), kind: "package" }),
+  );
   const a = plane.addBox(new Box({ id: "a", title: "A" }));
   const b = plane.addBox(new Box({ id: "b", title: "B" }));
   d.addConnection(new Connection({ id: "a->b", from: a, to: b, label: "" }));

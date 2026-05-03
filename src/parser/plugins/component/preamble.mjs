@@ -5,6 +5,10 @@
 
 import { TITLE_LINE, stripQuotes } from "../../utils.mjs";
 
+/**
+ * `title …` line.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const titlePlugin = {
   name: "component.title",
   tryLine(line, ctx) {
@@ -15,6 +19,10 @@ export const titlePlugin = {
   },
 };
 
+/**
+ * Closing `}` for any open container.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const closeBracePlugin = {
   name: "component.close",
   tryLine(line, ctx) {

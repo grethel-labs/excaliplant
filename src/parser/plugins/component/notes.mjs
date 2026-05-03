@@ -10,17 +10,17 @@ const NOTE_OF = /^note\s+(left|right|top|bottom)\s+of\s+(\S+)\s*:\s*(.+)$/;
 const NOTE_FREE = /^note\s+"([^"]+)"\s+as\s+(\S+)$/;
 const NOTE_BLOCK_OPEN = /^note\s+(left|right|top|bottom)\s+of\s+(\S+)\s*$/;
 
-let _counter = 0;
-const nextId = () => `note_${_counter++}`;
-export function _resetNoteCounter() { _counter = 0; }
-
+/**
+ * Single-line note: `note <side> of <id> : text`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const noteOfPlugin = {
   name: "component.noteOf",
   tryLine(line, ctx) {
     const m = line.match(NOTE_OF);
     if (!m) return false;
     ctx.queueNote({
-      id: nextId(),
+      id: ctx.nextNoteId(),
       side: m[1],
       targetId: m[2],
       text: unescapeLabel(m[3].trim()),
@@ -29,19 +29,30 @@ export const noteOfPlugin = {
   },
 };
 
+/**
+ * Free-floating note declared as a stand-alone box: `note "text" as Nx`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const noteFreePlugin = {
   name: "component.noteFree",
   tryLine(line, ctx) {
     const m = line.match(NOTE_FREE);
     if (!m) return false;
     ctx.addBox({
-      id: m[2], title: unescapeLabel(m[1]), description: "",
-      shape: "note", stereotype: "",
+      id: m[2],
+      title: unescapeLabel(m[1]),
+      description: "",
+      shape: "note",
+      stereotype: "",
     });
     return true;
   },
 };
 
+/**
+ * Multi-line note block, terminated by `end note`.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const noteBlockPlugin = {
   name: "component.noteBlock",
   tryStart(line) {
@@ -49,13 +60,18 @@ export const noteBlockPlugin = {
     if (!m) return null;
     const side = m[1];
     const targetId = m[2];
+    /** @type {string[]} */
     const lines = [];
     return {
-      onLine(l) { lines.push(l); },
+      onLine(l) {
+        lines.push(l);
+      },
       tryEnd(l, ctx) {
         if (!/^end\s*note$/i.test(l)) return false;
         ctx.queueNote({
-          id: nextId(), side, targetId,
+          id: ctx.nextNoteId(),
+          side,
+          targetId,
           text: lines.join("\\n"),
         });
         return true;

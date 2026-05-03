@@ -36,7 +36,7 @@ export async function extractDocBlocks(roots) {
   const { stat } = await import("node:fs/promises");
   for (const r of list) {
     const s = await stat(r);
-    if (s.isDirectory()) files.push(...await collectFiles(r));
+    if (s.isDirectory()) files.push(...(await collectFiles(r)));
     else files.push(r);
   }
   for (const file of files) {
@@ -61,7 +61,10 @@ function parseTag(body) {
 }
 
 function stripStars(raw) {
-  return raw.split("\n").map((l) => l.replace(/^\s*\*\s?/, "")).join("\n");
+  return raw
+    .split("\n")
+    .map((l) => l.replace(/^\s*\*\s?/, ""))
+    .join("\n");
 }
 
 async function collectFiles(dir) {

@@ -1,5 +1,9 @@
 import { TITLE_LINE, stripQuotes } from "../../utils.mjs";
 
+/**
+ * `title …` line for sequence diagrams.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const titlePlugin = {
   name: "sequence.title",
   tryLine(line, ctx) {

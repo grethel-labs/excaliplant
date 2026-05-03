@@ -35,25 +35,36 @@ import { createComponentContext } from "./component_context.mjs";
 import { createSequenceContext } from "./sequence_context.mjs";
 
 // Component plugin registry.
-import { titlePlugin as componentTitlePlugin, closeBracePlugin } from "./plugins/component/preamble.mjs";
+import {
+  titlePlugin as componentTitlePlugin,
+  closeBracePlugin,
+} from "./plugins/component/preamble.mjs";
 import { containerPlugin } from "./plugins/component/containers.mjs";
 import {
-  bracketBoxPlugin, usecaseParensPlugin, shapeKeywordPlugin,
+  bracketBoxPlugin,
+  usecaseParensPlugin,
+  shapeKeywordPlugin,
 } from "./plugins/component/shapes.mjs";
 import { connectionPlugin } from "./plugins/component/connections.mjs";
-import {
-  noteOfPlugin, noteFreePlugin, noteBlockPlugin, _resetNoteCounter,
-} from "./plugins/component/notes.mjs";
+import { noteOfPlugin, noteFreePlugin, noteBlockPlugin } from "./plugins/component/notes.mjs";
 
 // Sequence plugin registry.
 import { titlePlugin as sequenceTitlePlugin } from "./plugins/sequence/preamble.mjs";
 import { participantPlugin } from "./plugins/sequence/participants.mjs";
 import { messagePlugin } from "./plugins/sequence/messages.mjs";
 import {
-  noteSidePlugin, noteOverPlugin,
-  noteSideBlockPlugin, noteOverBlockPlugin,
+  noteSidePlugin,
+  noteOverPlugin,
+  noteSideBlockPlugin,
+  noteOverBlockPlugin,
 } from "./plugins/sequence/notes.mjs";
 
+/**
+ * Default plugin pipeline for component-style diagrams. Order matters:
+ * note / class blocks are tried before the bare-container regex; the
+ * greedy connection plugin runs last.
+ * @public
+ */
 export const DEFAULT_COMPONENT_PLUGINS = [
   componentTitlePlugin,
   closeBracePlugin,
@@ -63,13 +74,17 @@ export const DEFAULT_COMPONENT_PLUGINS = [
   noteBlockPlugin,
   noteOfPlugin,
   noteFreePlugin,
-  shapeKeywordPlugin,        // owns the class-block start
+  shapeKeywordPlugin, // owns the class-block start
   containerPlugin,
   bracketBoxPlugin,
   usecaseParensPlugin,
-  connectionPlugin,          // last: the regex is greedy
+  connectionPlugin, // last: the regex is greedy
 ];
 
+/**
+ * Default plugin pipeline for sequence diagrams.
+ * @public
+ */
 export const DEFAULT_SEQUENCE_PLUGINS = [
   sequenceTitlePlugin,
   participantPlugin,
@@ -82,8 +97,8 @@ export const DEFAULT_SEQUENCE_PLUGINS = [
 
 /**
  * Parse a PlantUML source string into the input-agnostic diagram model.
- * The parser auto-detects sequence vs. component syntax via
- * {@link looksLikeSequence}.
+ * The parser auto-detects sequence vs. component syntax via the
+ * internal `looksLikeSequence` heuristic.
  *
  * @param {string} text  PlantUML source.
  * @param {object} [opts]
@@ -92,30 +107,40 @@ export const DEFAULT_SEQUENCE_PLUGINS = [
  *   unsupported PlantUML constructs without forking the library.
  * @returns {import("../model/diagram.mjs").Diagram
  *          | import("../model/diagram.mjs").SequenceDiagram}
+ * @public
  */
 export function parsePlantUml(text, opts = {}) {
   const componentPlugins = opts.plugins?.component ?? DEFAULT_COMPONENT_PLUGINS;
   const sequencePlugins = opts.plugins?.sequence ?? DEFAULT_SEQUENCE_PLUGINS;
 
   if (looksLikeSequence(text)) {
-    return runEngine({
-      lines: text.split(/\r?\n/),
-      plugins: sequencePlugins,
-      ctx: createSequenceContext(),
-    });
+    return /** @type {import("../model/diagram.mjs").SequenceDiagram} */ (
+      runEngine({
+        lines: text.split(/\r?\n/),
+        plugins: sequencePlugins,
+        ctx: createSequenceContext(),
+      })
+    );
   }
 
-  _resetNoteCounter();
-  return runEngine({
-    lines: explodeBraces(text.split(/\r?\n/)),
-    plugins: componentPlugins,
-    ctx: createComponentContext(),
-  });
+  return /** @type {import("../model/diagram.mjs").Diagram} */ (
+    runEngine({
+      lines: explodeBraces(text.split(/\r?\n/)),
+      plugins: componentPlugins,
+      ctx: createComponentContext(),
+    })
+  );
 }
 
 // Sequence-only keywords trigger the sequence pipeline. `actor` and
 // bare `A --> B` arrows alone are not enough — component diagrams use
 // them too.
+/**
+ * Quick heuristic: decide whether `text` should be parsed as a sequence
+ * diagram or as a component-style diagram.
+ * @param {string} text Raw PlantUML source.
+ * @returns {boolean} `true` when the source contains tokens unique to sequence diagrams.
+ */
 function looksLikeSequence(text) {
   for (const raw of text.split(/\r?\n/)) {
     const line = stripComment(raw).trim();

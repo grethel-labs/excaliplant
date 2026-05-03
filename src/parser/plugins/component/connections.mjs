@@ -6,8 +6,15 @@
 
 import { classifyArrow, unescapeLabel } from "../../utils.mjs";
 
-const CONNECTION_LINE = /^(\S+)\s+([-.*o<|>]+(?:up|down|left|right|UP|DOWN|LEFT|RIGHT)?[-.*o<|>]*)\s+(\S+)(?:\s*:\s*(.+))?$/;
+const CONNECTION_LINE =
+  /^(\S+)\s+([-.*o<|>]+(?:up|down|left|right|UP|DOWN|LEFT|RIGHT)?[-.*o<|>]*)\s+(\S+)(?:\s*:\s*(.+))?$/;
 
+/**
+ * Generic component-style connection: `A op B [: label]`. All arrow
+ * flavours are decoded by `classifyArrow()` — extend that to support
+ * a new operator.
+ * @type {import("../../engine.mjs").Plugin}
+ */
 export const connectionPlugin = {
   name: "component.connection",
   tryLine(line, ctx) {
@@ -17,7 +24,8 @@ export const connectionPlugin = {
     const arrow = classifyArrow(op);
     if (!arrow) return false;
     ctx.queueConnection({
-      fromId, toId,
+      fromId,
+      toId,
       label: unescapeLabel(label?.trim() || ""),
       ...arrow,
     });

@@ -13,23 +13,34 @@ const HEAD_PAD_X = 18;
 const HEAD_PAD_Y = 10;
 const HEAD_MIN_W = 110;
 const HEAD_HEIGHT = 50;
-const ACTOR_HEAD_HEIGHT = 80;       // taller for stickman
+const ACTOR_HEAD_HEIGHT = 80; // taller for stickman
 const PARTICIPANT_GAP = 60;
 const TOP_MARGIN = 60;
 const SIDE_MARGIN = 40;
-const MESSAGE_FIRST_Y = 50;          // distance from lifeline top to first arrow
+const MESSAGE_FIRST_Y = 50; // distance from lifeline top to first arrow
 const MESSAGE_GAP = 50;
 const SELF_HEIGHT = 36;
 const NOTE_PAD = 8;
 const NOTE_GAP = 14;
 const BOTTOM_MARGIN = 60;
 
+/**
+ * Lay out a SequenceDiagram (see `src/model/diagram.mjs`) on a
+ * tabular grid: lifelines along x, time along y. Mutates the model
+ * in-place — every participant, message and note receives final
+ * `x`/`y` coordinates.
+ *
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @public
+ */
 export function layoutSequenceDiagram(diagram) {
   // 1. Size each participant head from its title.
   for (const p of diagram.participants) {
     const titleLines = String(p.title || "").split("\n");
-    const w = Math.max(HEAD_MIN_W,
-      Math.max(...titleLines.map((l) => measureLine(l, FONT.sizeTitle).width)) + HEAD_PAD_X * 2);
+    const w = Math.max(
+      HEAD_MIN_W,
+      Math.max(...titleLines.map((l) => measureLine(l, FONT.sizeTitle).width)) + HEAD_PAD_X * 2,
+    );
     p.headWidth = Math.ceil(w);
     p.headHeight = p.shape === "actor" ? ACTOR_HEAD_HEIGHT : HEAD_HEIGHT;
   }
@@ -62,8 +73,10 @@ export function layoutSequenceDiagram(diagram) {
   // index.
   for (const n of diagram.notes) {
     const lines = n.text.split("\n");
-    n.width = Math.max(120,
-      Math.max(...lines.map((l) => measureLine(l, FONT.sizeDescription).width)) + NOTE_PAD * 2);
+    n.width = Math.max(
+      120,
+      Math.max(...lines.map((l) => measureLine(l, FONT.sizeDescription).width)) + NOTE_PAD * 2,
+    );
     n.height = lines.length * FONT.sizeDescription * FONT.lineHeight + NOTE_PAD * 2;
     if (n.side === "over" && n.target2) {
       const x1 = Math.min(n.target.x, n.target2.x);
@@ -73,7 +86,8 @@ export function layoutSequenceDiagram(diagram) {
       n.x = n.target.x - n.target.headWidth / 2 - n.width - NOTE_GAP;
     } else if (n.side === "right") {
       n.x = n.target.x + n.target.headWidth / 2 + NOTE_GAP;
-    } else { // over single
+    } else {
+      // over single
       n.x = n.target.x - n.width / 2;
     }
     n.y = y;

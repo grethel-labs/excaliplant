@@ -139,16 +139,18 @@ test("rich diagram renders to Excalidraw with mixed primitives", async () => {
   assert.equal(doc.type, "excalidraw");
   const types = new Set(doc.elements.map((e) => e.type));
   assert.ok(types.has("rectangle"));
-  assert.ok(types.has("ellipse"));   // usecase / database / cloud / interface / actor head
-  assert.ok(types.has("line"));      // actor body, class separator, note fold
+  assert.ok(types.has("ellipse")); // usecase / database / cloud / interface / actor head
+  assert.ok(types.has("line")); // actor body, class separator, note fold
   assert.ok(types.has("arrow"));
   assert.ok(types.has("text"));
   // Different end-arrowheads should appear (triangle for inheritance,
   // diamond for composition).
-  const arrowHeads = new Set(doc.elements
-    .filter((e) => e.type === "arrow")
-    .flatMap((e) => [e.startArrowhead, e.endArrowhead])
-    .filter(Boolean));
+  const arrowHeads = new Set(
+    doc.elements
+      .filter((e) => e.type === "arrow")
+      .flatMap((e) => [e.startArrowhead, e.endArrowhead])
+      .filter(Boolean),
+  );
   assert.ok(arrowHeads.has("triangle_outline"));
   assert.ok(arrowHeads.has("diamond"));
   assert.ok(arrowHeads.has("diamond_outline"));
@@ -232,4 +234,3 @@ test("sequence diagram renders to Excalidraw without ELK", async () => {
   // 7 messages → 7 arrows.
   assert.equal(arrows.length, 7);
 });
-

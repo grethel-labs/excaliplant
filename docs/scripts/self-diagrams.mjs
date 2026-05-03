@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..");
-const SRC  = path.join(ROOT, "src");
+const SRC = path.join(ROOT, "src");
 
 // ---------------------------------------------------------------------------
 // 1. Module / component diagram from src/ imports
@@ -28,9 +28,9 @@ export async function buildModuleDiagramSource() {
   /** @type {Record<string, Record<string, string[]>>} */
   const tree = {};
   for (const f of files) {
-    const rel = path.relative(SRC, f);              // e.g. parser/plugins/component/notes.mjs
+    const rel = path.relative(SRC, f); // e.g. parser/plugins/component/notes.mjs
     const parts = rel.split(path.sep);
-    const plane = parts[0];                          // parser
+    const plane = parts[0]; // parser
     const sub = parts.length > 2 ? parts.slice(1, -1).join("/") : "";
     const leaf = parts[parts.length - 1].replace(/\.mjs$/, "");
     tree[plane] ??= {};
@@ -49,7 +49,7 @@ export async function buildModuleDiagramSource() {
     let m;
     while ((m = importRe.exec(text)) !== null) {
       const target = m[1];
-      if (!target.startsWith(".")) continue;       // skip external imports
+      if (!target.startsWith(".")) continue; // skip external imports
       const resolved = path.normalize(path.join(path.dirname(rel), target));
       const targetRel = resolved.endsWith(".mjs") ? resolved : `${resolved}.mjs`;
       const candidate = path.join(SRC, targetRel);
@@ -129,9 +129,8 @@ export function buildSequenceDiagramSource() {
 // ---------------------------------------------------------------------------
 
 export async function buildPluginDetailDiagramSource() {
-  const {
-    DEFAULT_COMPONENT_PLUGINS, DEFAULT_SEQUENCE_PLUGINS,
-  } = await import("../../src/parser/plantuml.mjs");
+  const { DEFAULT_COMPONENT_PLUGINS, DEFAULT_SEQUENCE_PLUGINS } =
+    await import("../../src/parser/plantuml.mjs");
 
   const lines = ["@startuml", `title "excaliplant — parser plugins"`];
   const expected = [];
@@ -180,5 +179,7 @@ async function collectMjs(dir) {
 }
 
 function slug(s) {
-  return String(s).replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return String(s)
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }

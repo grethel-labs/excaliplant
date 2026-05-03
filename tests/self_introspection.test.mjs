@@ -7,9 +7,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  parsePlantUml, renderPlantUml, SequenceDiagram,
-} from "../index.mjs";
+import { parsePlantUml, renderPlantUml, SequenceDiagram } from "../index.mjs";
 import {
   buildModuleDiagramSource,
   buildSequenceDiagramSource,

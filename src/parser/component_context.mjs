@@ -6,6 +6,27 @@
 import { Box, Connection, Diagram, Plane, Subplane } from "../model/diagram.mjs";
 import { planeColor, subplaneColor } from "../style/colors.mjs";
 
+/**
+ * Construct the mutable parsing context that component plugins share
+ * during a single `parsePlantUml` invocation. The returned object
+ * exposes high-level helpers (`addBox`, `openContainer`, …) so that
+ * plugins never touch the model classes directly.
+ *
+ * @returns {{
+ *   readonly result: import("../model/diagram.mjs").Diagram,
+ *   diagram:         import("../model/diagram.mjs").Diagram,
+ *   boxes:           Map<string, import("../model/diagram.mjs").Box>,
+ *   setTitle(t: string): void,
+ *   openContainer(spec: { id: string, title: string, kind: string }): void,
+ *   closeContainer(): void,
+ *   addBox(spec: object): import("../model/diagram.mjs").Box,
+ *   queueConnection(spec: object): void,
+ *   queueNote(spec: object): void,
+ *   nextNoteId(): string,
+ *   finalize(): void,
+ * }}
+ * @public
+ */
 export function createComponentContext() {
   const diagram = new Diagram();
   /** @type {Array<{kind:'plane'|'subplane', plane?:Plane, subplane?:Subplane, id:string}>} */
@@ -13,9 +34,14 @@ export function createComponentContext() {
   const planes = new Map();
   const subplanes = new Map();
   const boxes = new Map();
+  /** @type {any[]} */
   const pendingConnections = [];
+  /** @type {any[]} */
   const pendingNotes = [];
+  /** @type {Plane | null} */
   let floatingPlane = null;
+
+  let noteCounter = 0;
 
   const ensureFloatingPlane = () => {
     if (floatingPlane) return floatingPlane;
@@ -38,13 +64,25 @@ export function createComponentContext() {
   };
 
   const ctx = {
-    get result() { return diagram; },
+    get result() {
+      return diagram;
+    },
     diagram,
     boxes,
 
-    setTitle(t) { diagram.title = t; },
+    /**
+     * Set the diagram's title (from a top-level `title` line).
+     * @param {string} t Raw title text.
+     */
+    setTitle(/** @type {string} */ t) {
+      diagram.title = t;
+    },
 
-    openContainer({ id, title, kind }) {
+    /**
+     * Begin a new container (plane or subplane depending on nesting).
+     * @param {{id:string,title:string,kind:string}} spec Container metadata.
+     */
+    openContainer(/** @type {{id:string,title:string,kind:string}} */ { id, title, kind }) {
       if (stack.length === 0) {
         const plane = new Plane({ id, title, color: planeColor(id), kind });
         diagram.addPlane(plane);
@@ -60,9 +98,27 @@ export function createComponentContext() {
       }
     },
 
-    closeContainer() { stack.pop(); },
+    /** Close the most recently opened container, restoring the previous nesting level. */
+    closeContainer() {
+      stack.pop();
+    },
 
-    addBox({ id, title, description = "", shape = "rectangle", stereotype = "", members = [] }) {
+    /**
+     * Add a box to the current container (or to a synthesised floating
+     * plane if no container is open).
+     * @param {{id:string,title:string,description?:string,shape?:string,stereotype?:string,members?:string[]}} spec Box specification.
+     * @returns {Box} The newly-created (or pre-existing) box.
+     */
+    addBox(
+      /** @type {{id:string,title:string,description?:string,shape?:string,stereotype?:string,members?:string[]}} */ {
+        id,
+        title,
+        description = "",
+        shape = "rectangle",
+        stereotype = "",
+        members = [],
+      },
+    ) {
       if (boxes.has(id)) return boxes.get(id);
       const box = new Box({ id, title, description, shape, stereotype, members });
       boxes.set(id, box);
@@ -76,8 +132,25 @@ export function createComponentContext() {
       return box;
     },
 
-    queueConnection(spec) { pendingConnections.push(spec); },
-    queueNote(spec) { pendingNotes.push(spec); },
+    /**
+     * Defer a connection until {@link finalize} runs (so endpoint boxes
+     * can be referenced before they are declared).
+     * @param {any} spec Plugin-specific connection record.
+     */
+    queueConnection(/** @type {any} */ spec) {
+      pendingConnections.push(spec);
+    },
+    /**
+     * Defer a `note on link` declaration until {@link finalize} runs.
+     * @param {any} spec Plugin-specific note record.
+     */
+    queueNote(/** @type {any} */ spec) {
+      pendingNotes.push(spec);
+    },
+    /** @returns {string} Fresh unique note id. */
+    nextNoteId() {
+      return `note_${noteCounter++}`;
+    },
 
     finalize() {
       // Resolve connections.
@@ -89,23 +162,28 @@ export function createComponentContext() {
         const [startAh, endAh] = c.reversed
           ? [c.endArrowhead, c.startArrowhead]
           : [c.startArrowhead, c.endArrowhead];
-        diagram.addConnection(new Connection({
-          id: `${c.fromId}->${c.toId}#${diagram.connections.length}`,
-          from, to,
-          label: c.label,
-          kind: c.kind,
-          dashed: c.dashed,
-          startArrowhead: startAh,
-          endArrowhead: endAh,
-          directionHint: c.directionHint,
-        }));
+        diagram.addConnection(
+          new Connection({
+            id: `${c.fromId}->${c.toId}#${diagram.connections.length}`,
+            from,
+            to,
+            label: c.label,
+            kind: c.kind,
+            dashed: c.dashed,
+            startArrowhead: startAh,
+            endArrowhead: endAh,
+            directionHint: c.directionHint,
+          }),
+        );
       }
       // Resolve notes.
       for (const n of pendingNotes) {
         const target = boxes.get(n.targetId);
         if (!target) continue;
         const noteBox = new Box({
-          id: n.id, title: "note", description: n.text,
+          id: n.id,
+          title: "note",
+          description: n.text,
           shape: "note",
         });
         boxes.set(n.id, noteBox);
@@ -113,15 +191,18 @@ export function createComponentContext() {
         if (container instanceof Plane) container.addBox(noteBox);
         else if (container instanceof Subplane) container.addBox(noteBox);
         else continue;
-        diagram.addConnection(new Connection({
-          id: `${n.id}~${target.id}#${diagram.connections.length}`,
-          from: noteBox, to: target,
-          label: "",
-          kind: "note",
-          dashed: true,
-          startArrowhead: null,
-          endArrowhead: null,
-        }));
+        diagram.addConnection(
+          new Connection({
+            id: `${n.id}~${target.id}#${diagram.connections.length}`,
+            from: noteBox,
+            to: target,
+            label: "",
+            kind: "note",
+            dashed: true,
+            startArrowhead: null,
+            endArrowhead: null,
+          }),
+        );
       }
     },
   };
