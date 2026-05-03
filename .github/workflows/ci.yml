@@ -31,6 +31,18 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  typecheck:
+    name: Type check (tsc --checkJs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
   audit:
     name: npm audit (production)
     runs-on: ubuntu-latest
@@ -116,16 +128,16 @@ jobs:
             cat <<EOF
           ::error::This PR edits generated files directly. Those changes will
           be overwritten by the docs rebuild step.
-          
+
           Files touched:
           $touched
-          
+
           README.md and everything under docs/ressources/generated/ are
           rebuilt from:
             - docs/README.template.md.njk
             - docs/scripts/*.mjs
             - JSDoc @diagram / @module tags in source files
-          
+
           Edit the template or the source instead, then run:
             npm run build:docs
           EOF
