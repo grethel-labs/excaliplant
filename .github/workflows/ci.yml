@@ -111,38 +111,14 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Detect whether the PR author touched any *generated* file.
-      # If they did, fail loudly: those edits will be overwritten and
-      # are almost certainly a mistake.
-      - name: "Guard: PR must not edit generated files manually"
-        run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          # Files that are 100% generated and must never be edited by hand.
-          PROTECTED_PATHS=(
-            "README.md"
-            "docs/ressources/generated/"
-          )
-          touched=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- "${PROTECTED_PATHS[@]}" || true)
-          if [ -n "$touched" ]; then
-            cat <<EOF
-          ::error::This PR edits generated files directly. Those changes will
-          be overwritten by the docs rebuild step.
-
-          Files touched:
-          $touched
-
-          README.md and everything under docs/ressources/generated/ are
-          rebuilt from:
-            - docs/README.template.md.njk
-            - docs/scripts/*.mjs
-            - JSDoc @diagram / @module tags in source files
-
-          Edit the template or the source instead, then run:
-            npm run build:docs
-          EOF
-            exit 1
-          fi
+      # Verify that any committed README.md / generated artefact is the
+      # bit-exact output of `npm run build:docs`. The build writes
+      # docs/.build-manifest.json with SHA-256 hashes of every generated
+      # file; a manual edit (or a forgotten rebuild) makes the hashes
+      # diverge and trips this check. Locally rebuilt docs are accepted
+      # because the build updates the manifest and the file together.
+      - name: "Guard: generated files must match build manifest"
+        run: node docs/scripts/check-build-manifest.mjs
 
       - name: Rebuild docs
         run: npm run build:docs
