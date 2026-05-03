@@ -1,0 +1,3 @@
+# Order matters: most specific patterns last so they win.
+
+* @grethel-labs/maintainers
