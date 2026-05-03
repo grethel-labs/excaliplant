@@ -15,7 +15,7 @@ import { REPO_ROOT } from "./config.mjs";
  *                   code block by the template.
  */
 export function buildFileTree() {
-  return tree(REPO_ROOT, {
+  const lines = tree(REPO_ROOT, {
     allFiles: false,
     dirsFirst: true,
     // Skip noise: build artefacts, deps, IDE state, generated docs,
@@ -29,5 +29,12 @@ export function buildFileTree() {
       /package-lock\.json/,
     ],
     maxDepth: 4,
-  }).trim();
+  })
+    .trim()
+    .split("\n");
+
+  // tree-node-cli derives the first line from the local checkout folder.
+  // Keep the generated README stable across developer machines and CI.
+  lines[0] = "excaliplant";
+  return lines.join("\n");
 }

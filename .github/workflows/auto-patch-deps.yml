@@ -91,7 +91,7 @@ jobs:
           # Always recreate the auto-patch branch from the current main
           # so old, stale patch attempts get overwritten.
           git checkout -B "$BRANCH"
-          git add package.json package-lock.json README.md docs/ressources/generated/png/
+          git add package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
           MSG=$'deps: auto-patch dependencies + release '"${NEW_VERSION}"$'\n\n${{ steps.patch.outputs.summary }}'
           git commit -m "$MSG"
           git push --force-with-lease origin "$BRANCH"

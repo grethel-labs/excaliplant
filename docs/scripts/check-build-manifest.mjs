@@ -22,8 +22,8 @@
 // Exit code is always 0; mismatches are reported as ::warning:: only.
 // Generated artefacts are auto-rebuilt by the `pr-docs-rebuild` job, and
 // merge conflicts on them are resolved automatically via .gitattributes
-// (`merge=ours` keeps the generated version on whichever side is being
-// merged in). Failing CI here would block PRs without adding signal.
+// (`merge=keep-generated` keeps the generated version already present on
+// the current branch). Failing CI here would block PRs without adding signal.
 
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";

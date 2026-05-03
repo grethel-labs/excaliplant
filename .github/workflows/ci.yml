@@ -7,8 +7,10 @@ on:
     branches: [main]
 
 # The auto-amend job force-pushes regenerated docs back onto the PR head.
-# That requires write access. For PRs from forks, GITHUB_TOKEN is read-only,
-# so we fall back to a clear error message in those cases.
+# It uses the repository bot SSH key instead of GITHUB_TOKEN so the amended
+# commit triggers a fresh CI run. GITHUB_TOKEN-authored pushes are ignored by
+# GitHub Actions recursion protection, which leaves required checks attached
+# to the previous commit.
 permissions:
   contents: write
   pull-requests: write
@@ -87,13 +89,9 @@ jobs:
   # ---------------------------------------------------------------
   # PR docs rebuild + auto-amend
   # ---------------------------------------------------------------
-  # Runs ONLY on pull_request. Rebuilds the docs against the PR HEAD,
-  # checks for drift, and either:
-  #   (a) amends the PR head commit with the regenerated docs and
-  #       force-pushes, OR
-  #   (b) fails with a clear message if the user edited README.md or
-  #       generated artefacts manually (since the README is now
-  #       template-driven, those manual edits are guaranteed to be lost).
+  # Runs ONLY on same-repository pull requests. Rebuilds the docs against
+  # the PR HEAD, emits a warning if the committed manifest is stale, and
+  # amends regenerated docs back onto the PR branch when needed.
   pr-docs-rebuild:
     name: Rebuild docs + amend PR
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -104,7 +102,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.BOT_SSH_KEY }}
+          persist-credentials: true
       - uses: actions/setup-node@v6
         with:
           node-version: 20
@@ -112,11 +111,9 @@ jobs:
       - run: npm ci
 
       # Verify that any committed README.md / generated artefact is the
-      # bit-exact output of `npm run build:docs`. The build writes
-      # docs/.build-manifest.json with SHA-256 hashes of every generated
-      # file; a manual edit (or a forgotten rebuild) makes the hashes
-      # diverge and trips this check. Locally rebuilt docs are accepted
-      # because the build updates the manifest and the file together.
+      # bit-exact output of `npm run build:docs`. The guard is warn-only:
+      # the rebuild step below will amend the generated version back onto
+      # the PR branch if anything drifted.
       - name: "Guard: generated files must match build manifest"
         run: node docs/scripts/check-build-manifest.mjs
 
@@ -126,12 +123,12 @@ jobs:
       - name: Detect drift
         id: drift
         run: |
-          if git diff --quiet -- README.md docs/ressources/generated/; then
+          if git diff --quiet -- README.md docs/.build-manifest.json docs/ressources/generated/; then
             echo "drifted=false" >> "$GITHUB_OUTPUT"
           else
             echo "drifted=true" >> "$GITHUB_OUTPUT"
             echo "Drift detected:"
-            git --no-pager diff --stat -- README.md docs/ressources/generated/
+            git --no-pager diff --stat -- README.md docs/.build-manifest.json docs/ressources/generated/
           fi
 
       - name: Amend + force-push regenerated docs
@@ -139,9 +136,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/ressources/generated/
+          git add README.md docs/.build-manifest.json docs/ressources/generated/
           # Amend onto whatever the PR's head commit currently is. Use
-          # --no-edit so the user's commit message stays intact.
+          # --no-edit so the user's commit message stays intact. Because
+          # checkout authenticated via BOT_SSH_KEY, this push starts a new
+          # CI run for the amended head commit.
           git commit --amend --no-edit
           git push --force-with-lease origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
