@@ -39,7 +39,7 @@
     "build": "npm run build:docs && npm run build:api",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky",
+    "prepare": "husky && node scripts/setup-merge-drivers.mjs",
     "prepublishOnly": "node scripts/prepublish-guard.mjs && npm test && npm run build"
   },
   "lint-staged": {

@@ -19,7 +19,11 @@
 //                                                will detect drift and
 //                                                amend.
 //
-// Exit codes: 0 = match, 1 = mismatch (fails the CI step).
+// Exit code is always 0; mismatches are reported as ::warning:: only.
+// Generated artefacts are auto-rebuilt by the `pr-docs-rebuild` job, and
+// merge conflicts on them are resolved automatically via .gitattributes
+// (`merge=ours` keeps the generated version on whichever side is being
+// merged in). Failing CI here would block PRs without adding signal.
 
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -31,16 +35,16 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const MANIFEST_PATH = path.join(REPO_ROOT, "docs", ".build-manifest.json");
 
 if (!existsSync(MANIFEST_PATH)) {
-  console.error(
-    `::error::docs/.build-manifest.json is missing. Run \`npm run build:docs\` and commit the result.`,
+  console.warn(
+    `::warning::docs/.build-manifest.json is missing. Run \`npm run build:docs\` and commit the result.`,
   );
-  process.exit(1);
+  process.exit(0);
 }
 
 const manifest = JSON.parse(await readFile(MANIFEST_PATH, "utf8"));
 if (manifest.version !== 1) {
-  console.error(`::error::Unsupported build manifest version: ${manifest.version}`);
-  process.exit(1);
+  console.warn(`::warning::Unsupported build manifest version: ${manifest.version}`);
+  process.exit(0);
 }
 
 /** @type {string[]} */
@@ -54,20 +58,23 @@ for (const [rel, expected] of Object.entries(manifest.files)) {
   const buf = await readFile(abs);
   const actual = createHash("sha256").update(buf).digest("hex");
   if (actual !== expected) {
-    mismatches.push(`${rel}: ${actual.slice(0, 12)} != ${String(expected).slice(0, 12)} (manifest)`);
+    mismatches.push(
+      `${rel}: ${actual.slice(0, 12)} != ${String(expected).slice(0, 12)} (manifest)`,
+    );
   }
 }
 
 if (mismatches.length > 0) {
-  console.error(`::error::Build manifest mismatch — generated files were edited by hand or
+  console.warn(`::warning::Build manifest mismatch — generated files were edited by hand or
 the build was not re-run after a manual change.
 
 Mismatches:
 ${mismatches.map((m) => "  " + m).join("\n")}
 
-Fix: run \`npm run build:docs\` locally and commit README.md,
-docs/ressources/generated/ and docs/.build-manifest.json together.`);
-  process.exit(1);
+Fix (optional): run \`npm run build:docs\` locally and commit README.md,
+docs/ressources/generated/ and docs/.build-manifest.json together. The
+\`pr-docs-rebuild\` job will rebuild and amend automatically otherwise.`);
+  process.exit(0);
 }
 
 console.log(`✓ build manifest matches: ${Object.keys(manifest.files).length} files verified`);

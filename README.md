@@ -200,6 +200,7 @@ excaliplant
 ├── scripts
 │   ├── auto-patch-deps.mjs
 │   ├── prepublish-guard.mjs
+│   ├── setup-merge-drivers.mjs
 │   └── smoke.mjs
 ├── src
 │   ├── layout
