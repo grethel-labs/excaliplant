@@ -38,6 +38,8 @@ jobs:
           npm pkg set type=module
           npm install "$PWD/../$TARBALL"
           node smoke.mjs
+          cd ..
+          rm -rf smoke-test tarball
       - name: Verify package.json version matches tag
         run: |
           PKG_VERSION="v$(node -p "require('./package.json').version")"
