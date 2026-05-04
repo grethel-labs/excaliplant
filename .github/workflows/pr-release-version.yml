@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
 
 concurrency:
   group: pr-release-version-${{ github.event.pull_request.number }}
@@ -19,6 +19,134 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve release bump from live labels and branch naming
+        id: bump
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node <<'NODE'
+          const { execFileSync } = require("node:child_process");
+          const { appendFileSync } = require("node:fs");
+
+          const prNumber = process.env.PR_NUMBER || "";
+          const branchName = process.env.PR_HEAD_REF || "";
+          const repo = process.env.PR_REPO || "";
+          const releaseLabels = ["release:major", "release:minor", "release:patch"];
+          const branchTokenPatterns = new Map([
+            ["major", /(^|[^a-zA-Z])major([^a-zA-Z]|$)/i],
+            ["minor", /(^|[^a-zA-Z])minor([^a-zA-Z]|$)/i],
+            ["patch", /(^|[^a-zA-Z])patch([^a-zA-Z]|$)/i],
+          ]);
+          const labelToBump = new Map([
+            ["release:major", "major"],
+            ["release:minor", "minor"],
+            ["release:patch", "patch"],
+          ]);
+
+          if (!process.env.PR_NUMBER) {
+            console.error("::error::Missing PR_NUMBER environment variable.");
+            process.exit(1);
+          }
+
+          if (!process.env.PR_HEAD_REF) {
+            console.error("::error::Missing PR_HEAD_REF environment variable.");
+            process.exit(1);
+          }
+          if (!process.env.PR_REPO) {
+            console.error("::error::Missing PR_REPO environment variable.");
+            process.exit(1);
+          }
+          if (!process.env.GITHUB_OUTPUT) {
+            console.error("::error::Missing GITHUB_OUTPUT environment variable.");
+            process.exit(1);
+          }
+
+          if (!/^\d+$/.test(prNumber)) {
+            console.error(`::error::Invalid PR number: ${JSON.stringify(prNumber)}`);
+            process.exit(1);
+          }
+
+          function readLiveLabels() {
+            const output = execFileSync(
+              "gh",
+              ["pr", "view", prNumber, "-R", repo, "--json", "labels", "--jq", "[.labels[].name]"],
+              { encoding: "utf8" },
+            );
+            return JSON.parse(output);
+          }
+
+          function inferReleaseLabelsFromBranch(branch) {
+            const hasToken = (token) => branchTokenPatterns.get(token)?.test(branch) ?? false;
+            const inferred = [];
+            if (hasToken("major")) inferred.push("release:major");
+            if (hasToken("minor")) inferred.push("release:minor");
+            if (hasToken("patch")) inferred.push("release:patch");
+            return inferred;
+          }
+
+          let labels = readLiveLabels();
+          let selected = labels.filter((label) => releaseLabels.includes(label));
+
+          if (selected.length === 0) {
+            const inferred = inferReleaseLabelsFromBranch(branchName);
+            let selectedReleaseLabel = "release:patch";
+
+            if (inferred.length === 1) {
+              selectedReleaseLabel = inferred[0];
+              console.error(
+                `Auto-labeling PR #${prNumber} from branch "${branchName}" with ${selectedReleaseLabel}.`,
+              );
+            } else if (inferred.length > 1) {
+              console.error(
+                `::error::Branch "${branchName}" matches multiple release kinds (${inferred.join(
+                  ", ",
+                )}). Keep only one of MAJOR/MINOR/PATCH in the branch name or manually add exactly one release label in the GitHub UI.`,
+              );
+              process.exit(1);
+            } else {
+              console.error(
+                `No MAJOR/MINOR/PATCH token in branch "${branchName}". Auto-labeling with release:patch.`,
+              );
+            }
+
+            if (!releaseLabels.includes(selectedReleaseLabel)) {
+              console.error(
+                `::error::Unexpected release label candidate: ${selectedReleaseLabel}`,
+              );
+              process.exit(1);
+            }
+
+            execFileSync(
+              "gh",
+              ["pr", "edit", prNumber, "-R", repo, "--add-label", selectedReleaseLabel],
+              { stdio: "inherit" },
+            );
+            labels = readLiveLabels();
+            selected = labels.filter((label) => releaseLabels.includes(label));
+          }
+
+          if (selected.length !== 1) {
+            console.error(
+              `::error::PRs into main must have exactly one release label: release:major, release:minor, or release:patch. Found: ${
+                selected.join(", ") || "none"
+              }`,
+            );
+            process.exit(1);
+          }
+
+          const selectedLabel = selected[0];
+          try {
+            appendFileSync(process.env.GITHUB_OUTPUT, `type=${labelToBump.get(selectedLabel)}\n`);
+          } catch (error) {
+            console.error(`::error::Failed to write workflow output: ${error.message}`);
+            process.exit(1);
+          }
+          console.error(`Release bump: ${labelToBump.get(selectedLabel)} (${selectedLabel})`);
+          NODE
+
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -30,54 +158,6 @@ jobs:
         with:
           node-version: 20
           cache: npm
-
-      - name: Detect PR author and auto-label Dependabot PRs
-        id: author
-        env:
-          PR_USER: ${{ github.event.pull_request.user.login }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          IS_DEPENDABOT="false"
-          if [ "$PR_USER" = "dependabot[bot]" ]; then
-            IS_DEPENDABOT="true"
-            # Check if release:patch label is missing
-            LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
-            if ! echo "$LABELS" | grep -q "release:patch"; then
-              echo "Adding release:patch label to Dependabot PR"
-              gh pr edit "$PR_NUMBER" --add-label "release:patch"
-            fi
-          fi
-          echo "is_dependabot=$IS_DEPENDABOT" >> "$GITHUB_OUTPUT"
-
-      - name: Select release bump from PR labels
-        id: bump
-        env:
-          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
-        run: |
-          node <<'NODE' >> "$GITHUB_OUTPUT"
-          const labels = JSON.parse(process.env.PR_LABELS || "[]");
-          const labelToBump = new Map([
-            ["release:major", "major"],
-            ["release:minor", "minor"],
-            ["release:patch", "patch"],
-          ]);
-          const selected = labels
-            .map((label) => [label, labelToBump.get(label)])
-            .filter(([, bump]) => bump);
-
-          if (selected.length !== 1) {
-            console.error(
-              `::error::PRs into main must have exactly one release label: release:major, release:minor, or release:patch. Found: ${
-                selected.map(([label]) => label).join(", ") || "none"
-              }`,
-            );
-            process.exit(1);
-          }
-
-          console.log(`type=${selected[0][1]}`);
-          console.error(`Release bump: ${selected[0][1]} (${selected[0][0]})`);
-          NODE
 
       - run: npm ci
 

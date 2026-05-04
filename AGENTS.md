@@ -187,6 +187,10 @@ available.
 - Check `package.json` `files` when adding package-relevant assets.
 - PRs into `main` need exactly one release label: `release:major`,
   `release:minor`, or `release:patch`.
+- For PRs targeting `main`, branch names should include exactly one release
+  token (`MAJOR`, `MINOR`, or `PATCH`, case-insensitive). CI maps that token to
+  the matching release label when none is set, and falls back to
+  `release:patch` if no token is present.
 - CI runs tests on Node 18/20/22 across Ubuntu, macOS, and Windows.
 
 ## Feature Checklist
