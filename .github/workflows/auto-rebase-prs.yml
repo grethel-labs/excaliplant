@@ -1,0 +1,87 @@
+name: Auto-rebase open PRs after merge
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-rebase-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  rebase-open-prs:
+    name: Rebase and update open PRs
+    runs-on: ubuntu-latest
+    if: github.event.head_commit.committer.name != 'github-actions[bot]' || contains(github.event.head_commit.message, 'Auto-rebase')
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          ssh-key: ${{ secrets.BOT_SSH_KEY }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Find and rebase open PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Get all open PRs that are behind main
+          gh pr list --state open --json number,headRefName,mergeStateStatus,baseRefOid --jq '.[] | select(.mergeStateStatus == "BLOCKED" or .mergeStateStatus == "BEHIND") | {number:.number, branch:.headRefName, baseOid:.baseRefOid}' | while read -r pr_info; do
+            PR_NUM=$(echo "$pr_info" | jq -r '.number')
+            PR_BRANCH=$(echo "$pr_info" | jq -r '.branch')
+            
+            echo "Checking PR #$PR_NUM ($PR_BRANCH)..."
+            
+            # Check if rebase is needed
+            git fetch origin "$PR_BRANCH"
+            
+            # Get the current base version from main
+            MAIN_VERSION=$(git show origin/main:package.json | jq -r '.version')
+            
+            # Get the PR's current version
+            PR_VERSION=$(git show "origin/$PR_BRANCH:package.json" | jq -r '.version' 2>/dev/null || echo "unknown")
+            
+            echo "Main version: $MAIN_VERSION, PR version: $PR_VERSION"
+            
+            # Attempt rebase
+            git checkout -B "rebase-temp-$PR_BRANCH" "origin/$PR_BRANCH"
+            
+            if git rebase origin/main; then
+              echo "Rebase succeeded for PR #$PR_NUM"
+              
+              # Check if version needs adjustment (conflict with another merged PR)
+              if [ "$PR_VERSION" = "$MAIN_VERSION" ]; then
+                echo "Version conflict detected, bumping version..."
+                npm version patch --no-git-tag-version
+                npm run build:docs
+                git add package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
+                git commit -m "chore: bump version after rebase [skip ci]" || true
+              fi
+              
+              # Force push the rebased branch
+              git push --force-with-lease origin "HEAD:$PR_BRANCH"
+              echo "Rebased and pushed PR #$PR_NUM"
+            else
+              echo "Rebase failed for PR #$PR_NUM, manual intervention needed"
+              git rebase --abort || true
+              
+              # Comment on PR about the conflict
+              gh pr comment "$PR_NUM" --body "⚠️ **Auto-rebase failed**\n\nThis PR has conflicts with main that couldn't be automatically resolved. Please rebase manually:\n\n\`\`\`bash\ngit fetch origin\ngit rebase origin/main\n# Resolve conflicts, then:\ngit push --force-with-lease\n\`\`\`"
+            fi
+            
+            # Clean up
+            git checkout main || true
+            git branch -D "rebase-temp-$PR_BRANCH" 2>/dev/null || true
+          done
