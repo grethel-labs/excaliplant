@@ -73,6 +73,16 @@ jobs:
             if git rebase origin/main; then
               echo "Rebase succeeded for PR #$PR_NUM"
 
+              # Check if version needs adjustment (conflict with another merged PR
+              # where the prefer-higher-version merge driver collapsed both sides
+              # to the same value).
+              if [ "$PR_VERSION" = "$MAIN_VERSION" ]; then
+                echo "Version conflict detected, bumping version..."
+                node scripts/bump-release-version.mjs --base-version "$MAIN_VERSION" --bump patch
+                git add package.json package-lock.json
+                git commit -m "chore: bump version after rebase [skip ci]" || true
+              fi
+
               # Regenerate docs so README / SVGs / PNGs / build manifest
               # match the rebased package.json version (the
               # `keep-generated` driver only kept *one* side; the next
