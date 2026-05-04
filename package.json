@@ -1,6 +1,6 @@
 {
   "name": "@grethel-labs/excaliplant",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.",
   "type": "module",
   "main": "index.mjs",
@@ -82,7 +82,7 @@
     "lint-staged": "^16.4.0",
     "nunjucks": "^3.2.4",
     "prettier": "^3.8.3",
-    "tree-node-cli": "^1.6.0",
+    "tree-node-cli": "^3.0.0",
     "typedoc": "^0.28.19",
     "typescript": "^6.0.3"
   }
