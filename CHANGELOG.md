@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-patch dependencies workflow now adds `release:patch` label to created/updated PRs.
 - PR release version workflow detects Dependabot PRs and automatically adds
   `release:patch` label if missing.
+- Type-checking now narrows the component-context container stack via a proper
+  discriminated union, fixing strict null/undefined errors surfaced by
+  TypeScript 6.x.
+- `declareParticipant` resolves the cached lookup once so its return type is a
+  non-nullable `Participant`, satisfying stricter type checking.
+- Docs file-tree script imports `tree-node-cli` namespace-style and picks the
+  named export (v3+) or default (v1.x) at runtime, so the docs build works
+  across both major versions.
 
 ### Added
 
