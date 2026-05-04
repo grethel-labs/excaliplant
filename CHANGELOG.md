@@ -4,6 +4,41 @@ All notable changes to `@grethel-labs/excaliplant` are documented in this
 file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.3.7] - 2026-05-04
+
+### Added
+
+- Class-diagram support for tplant-style PlantUML sources. The parser now
+  understands `class | abstract class | interface | enum` blocks with
+  generic type parameters (`Container<T extends Base>`), `extends`, and
+  `implements` clauses, so headers like
+  `class Child extends Parent` or `abstract class Foo implements Bar`
+  produce inheritance / realisation edges automatically.
+- Connection multiplicity labels: `A "1" o-- "0..*" B : contains` is now
+  parsed and exposed as `Connection.fromMul` / `Connection.toMul`.
+- New `enum` shape rendered as a UML class compartment with the
+  `«enumeration»` stereotype; `interface` boxes carrying members render
+  as compartment boxes with the `«interface»` stereotype.
+- Member modifier tags (`{abstract}`, `{static}`, `{field}`, `{method}`)
+  survive `explodeBraces` and stay attached to the surrounding member
+  line.
+- Class-diagram inheritance / realisation edges (`extends`,
+  `implements`) auto-vivify undeclared parents as stub class boxes,
+  matching PlantUML's implicit-declaration behaviour. Generic
+  component-style connections (`A --> B`) and bracket / paren / quoted
+  shorthand references (`[A]`, `(B)`, `"C"`) continue to drop silently
+  when undeclared, preserving existing component-diagram semantics.
+- New `prefer-higher-version` git merge driver auto-resolves conflicts
+  on `package.json` / `package-lock.json` whose only disagreement is a
+  `"version": "x.y.z"` line by keeping the higher semver. Real
+  (non-version) conflicts are still surfaced for human review. Driver
+  is registered by `npm install` (via the `prepare` lifecycle hook) and
+  applied through `.gitattributes`. The auto-rebase workflow now runs
+  `npm ci` before rebasing so the driver is configured on the runner,
+  and regenerates docs after a successful rebase.
+
 ## [0.3.1] - 2026-05-04
 
 ### Fixed

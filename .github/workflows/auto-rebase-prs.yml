@@ -30,6 +30,15 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install deps (registers git merge drivers)
+        # `npm ci` runs the `prepare` lifecycle hook, which executes
+        # `scripts/setup-merge-drivers.mjs` and configures both the
+        # `keep-generated` and `prefer-higher-version` drivers used by
+        # the rebase below. Without this step git would surface
+        # conflicts on `package.json` / `package-lock.json` / generated
+        # docs that the drivers know how to resolve automatically.
+        run: npm ci
+
       - name: Find and rebase open PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -55,21 +64,36 @@ jobs:
             
             echo "Main version: $MAIN_VERSION, PR version: $PR_VERSION"
             
-            # Attempt rebase
+            # Attempt rebase. Merge drivers (`prefer-higher-version`,
+            # `keep-generated`) are honoured by the recursive strategy
+            # and will silently resolve version-only and generated-file
+            # conflicts.
             git checkout -B "rebase-temp-$PR_BRANCH" "origin/$PR_BRANCH"
             
             if git rebase origin/main; then
               echo "Rebase succeeded for PR #$PR_NUM"
-              
-              # Check if version needs adjustment (conflict with another merged PR)
+
+              # Check if version needs adjustment (conflict with another merged PR
+              # where the prefer-higher-version merge driver collapsed both sides
+              # to the same value).
               if [ "$PR_VERSION" = "$MAIN_VERSION" ]; then
                 echo "Version conflict detected, bumping version..."
                 node scripts/bump-release-version.mjs --base-version "$MAIN_VERSION" --bump patch
-                npm run build:docs
-                git add package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
+                git add package.json package-lock.json
                 git commit -m "chore: bump version after rebase [skip ci]" || true
               fi
-              
+
+              # Regenerate docs so README / SVGs / PNGs / build manifest
+              # match the rebased package.json version (the
+              # `keep-generated` driver only kept *one* side; the next
+              # build replaces them with the canonical output).
+              if npm run build:docs; then
+                if ! git diff --quiet -- README.md docs/.build-manifest.json docs/ressources/generated/; then
+                  git add README.md docs/.build-manifest.json docs/ressources/generated/
+                  git commit -m "chore(docs): regenerate after auto-rebase [skip ci]" || true
+                fi
+              fi
+
               # Force push the rebased branch
               git push --force-with-lease origin "HEAD:$PR_BRANCH"
               echo "Rebased and pushed PR #$PR_NUM"

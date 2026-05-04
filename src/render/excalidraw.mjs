@@ -656,12 +656,20 @@ function renderBox(box, parentColor, elements) {
     case "cloud":
       return renderCloud(box, color, elements);
     case "interface":
+      // An interface declaration with member content is part of a UML
+      // class diagram, so render it as a two-compartment class box
+      // rather than the standalone "lollipop" interface symbol.
+      if ((box.members && box.members.length) || box.stereotype) {
+        return renderClass(box, color, elements);
+      }
       return renderInterface(box, color, elements);
     case "entity":
       return renderEntity(box, color, elements);
     case "node":
       return renderNodeShape(box, color, elements);
     case "class":
+      return renderClass(box, color, elements);
+    case "enum":
       return renderClass(box, color, elements);
     case "note":
       return renderNote(box, elements);
@@ -1090,16 +1098,36 @@ function renderClass(box, color, elements) {
       backgroundColor: color.fill,
     }),
   );
-  const titleLines = String(box.title || "").split("\n").length;
+  // Prefer the wrapped title cached by the sizing pass so long names
+  // (notably class-diagram generics like `Container<T extends Base>`)
+  // do not overflow the box width. Falls back to the raw title for
+  // callers that bypass sizing.
+  const titleValue = box._wrappedTitle ?? String(box.title || "");
+  const titleLines = titleValue.split("\n").length;
   const titleH = FONT.sizeTitle * FONT.lineHeight * titleLines;
-  const ty = box.y + SIZING.boxPaddingY;
+  let ty = box.y + SIZING.boxPaddingY;
+  if (box.stereotype) {
+    elements.push(
+      text({
+        x: box.x + SIZING.boxPaddingX,
+        y: ty - 4,
+        width: box.width - SIZING.boxPaddingX * 2,
+        height: FONT.sizeDescription * FONT.lineHeight,
+        value: `«${box.stereotype}»`,
+        fontSize: FONT.sizeDescription,
+        color: color.stroke,
+        align: "center",
+      }),
+    );
+    ty += FONT.sizeDescription * FONT.lineHeight;
+  }
   elements.push(
     text({
-      x: box.x,
+      x: box.x + SIZING.boxPaddingX,
       y: ty,
-      width: box.width,
+      width: box.width - SIZING.boxPaddingX * 2,
       height: titleH,
-      value: box.title,
+      value: titleValue,
       fontSize: FONT.sizeTitle,
       color: color.stroke,
       align: "center",

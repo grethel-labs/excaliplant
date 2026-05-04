@@ -156,15 +156,39 @@ export function createComponentContext() {
     },
 
     finalize() {
+      // Auto-vivify endpoints for connections that explicitly opted in
+      // (currently: class-diagram inheritance/realisation edges queued
+      // by `classBlockPlugin` for headers like
+      // `class Child extends Parent`, where the parent is implicitly
+      // declared). Generic component-style connections (`A --> B`) do
+      // *not* opt in, so the long-standing behaviour of dropping edges
+      // to undeclared boxes is preserved. Bracket/paren/quoted shorthand
+      // references (`[A]`, `(B)`, `"C"`) also never auto-vivify.
+      const ensureEndpoint = (
+        /** @type {string} */ id,
+        /** @type {boolean} */ shorthand,
+        /** @type {boolean} */ allowVivify,
+      ) => {
+        const existing = boxes.get(id);
+        if (existing) return existing;
+        if (shorthand || !allowVivify) return null;
+        const box = new Box({ id, title: id, shape: "class" });
+        boxes.set(id, box);
+        ensureFloatingPlane().addBox(box);
+        return box;
+      };
       // Resolve connections.
       for (const c of pendingConnections) {
-        const fromBox = boxes.get(c.fromId);
-        const toBox = boxes.get(c.toId);
+        const fromBox = ensureEndpoint(c.fromId, !!c.fromShorthand, !!c.allowVivify);
+        const toBox = ensureEndpoint(c.toId, !!c.toShorthand, !!c.allowVivify);
         if (!fromBox || !toBox || fromBox === toBox) continue;
         const [from, to] = c.reversed ? [toBox, fromBox] : [fromBox, toBox];
         const [startAh, endAh] = c.reversed
           ? [c.endArrowhead, c.startArrowhead]
           : [c.startArrowhead, c.endArrowhead];
+        const [fromMul, toMul] = c.reversed
+          ? [c.toMul || "", c.fromMul || ""]
+          : [c.fromMul || "", c.toMul || ""];
         diagram.addConnection(
           new Connection({
             id: `${c.fromId}->${c.toId}#${diagram.connections.length}`,
@@ -176,6 +200,8 @@ export function createComponentContext() {
             startArrowhead: startAh,
             endArrowhead: endAh,
             directionHint: c.directionHint,
+            fromMul,
+            toMul,
           }),
         );
       }

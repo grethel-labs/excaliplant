@@ -45,6 +45,7 @@ import {
   usecaseParensPlugin,
   shapeKeywordPlugin,
 } from "./plugins/component/shapes.mjs";
+import { classBlockPlugin } from "./plugins/component/class_block.mjs";
 import { connectionPlugin } from "./plugins/component/connections.mjs";
 import { noteOfPlugin, noteFreePlugin, noteBlockPlugin } from "./plugins/component/notes.mjs";
 
@@ -74,7 +75,12 @@ export const DEFAULT_COMPONENT_PLUGINS = [
   noteBlockPlugin,
   noteOfPlugin,
   noteFreePlugin,
-  shapeKeywordPlugin, // owns the class-block start
+  // class-diagram declarations (incl. `abstract class`, `interface`,
+  // `enum`, generics, `extends`, `implements`) — must run before the
+  // legacy `shapeKeywordPlugin` so the brace-form variants enter
+  // member-collection mode instead of being treated as containers.
+  classBlockPlugin,
+  shapeKeywordPlugin, // owns the legacy class-block start
   containerPlugin,
   bracketBoxPlugin,
   usecaseParensPlugin,

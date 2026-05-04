@@ -7,3 +7,11 @@ docs/.build-manifest.json              merge=keep-generated
 docs/ressources/generated/**/*.svg     merge=keep-generated
 docs/ressources/generated/**/*.png     merge=keep-generated -diff
 docs/ressources/generated/**/*.png     binary
+
+# Version-bearing manifests: run a real 3-way merge first, then for any
+# leftover conflict whose only difference is a `"version": "x.y.z"`
+# line, keep the higher semver. Real (non-version) conflicts are still
+# surfaced for human review. Driver is registered by the same prepare
+# hook as `keep-generated`.
+package.json                           merge=prefer-higher-version
+package-lock.json                      merge=prefer-higher-version
