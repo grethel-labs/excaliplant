@@ -83,6 +83,15 @@ export class Box {
     this._wrappedTitle = undefined;
     /** @type {string|undefined} */
     this._wrappedDescription = undefined;
+    /**
+     * Auto-shrunk font sizes computed by the sizing pass when a long
+     * unbreakable token would otherwise overflow the box. Defaults to
+     * the active style's `font.sizeTitle` / `font.sizeDescription`.
+     * @type {number|undefined}
+     */
+    this._wrappedTitleFontSize = undefined;
+    /** @type {number|undefined} */
+    this._wrappedDescriptionFontSize = undefined;
   }
   /** @returns {Plane | null} The owning plane (direct or via a {@link Subplane} parent). */
   get plane() {

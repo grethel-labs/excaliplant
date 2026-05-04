@@ -147,16 +147,21 @@ function seedFor(el) {
  * @returns {any} roughjs options.
  */
 function roughOpts(el) {
+  // Honour the per-element roughness Excalidraw stores: arrows /
+  // connection lines are emitted with `roughness: 0` so their SVG
+  // representation must be perfectly straight too. Falling back to
+  // the default (1) keeps Excalidraw's hand-drawn look for boxes.
+  const r = typeof el.roughness === "number" ? el.roughness : ROUGHNESS;
   return {
     seed: seedFor(el),
-    roughness: ROUGHNESS,
-    bowing: BOWING,
+    roughness: r,
+    bowing: r === 0 ? 0 : BOWING,
     stroke: el.strokeColor || "#000",
     strokeWidth: el.strokeWidth || 1.5,
     fill: /** @type {string|undefined} */ (undefined),
     fillStyle: "solid",
     fillWeight: FILL_WEIGHT,
-    disableMultiStroke: false,
+    disableMultiStroke: r === 0,
   };
 }
 

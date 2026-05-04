@@ -1,0 +1,39 @@
+# Example style override for excaliplant.
+#
+# Load with `loadStyleFromFile("./style.example.yaml")` (from
+# `@grethel-labs/excaliplant`) before calling `renderPlantUml`. The
+# loader supports a small YAML subset: nested maps via 2-space
+# indentation, scalars (numbers, true/false/null, quoted/bare strings)
+# and `# comments`. Sequences (`-`) are intentionally not supported.
+
+font:
+  family: Excalifont
+  sizeTitle: 18
+  sizeDescription: 13
+  sizeEdgeLabel: 10
+  sizePlaneTitle: 22
+  sizeSubplaneTitle: 16
+  glyphRatio: 0.51
+  lineHeight: 1.25
+  minSize: 8
+
+shape:
+  roughness: 1
+  connectionRoughness: 0
+  edgeLabelRoughness: 0
+  fillStyle: solid
+  strokeWidth: 2
+
+edgeLabel:
+  useLineColor: true
+  backgroundColor: "#444444"
+  textColor: "#ffffff"
+  strokeColor: ""
+  paddingX: 6
+  paddingY: 2
+  maxWidth: 160
+  segmentMargin: 24
+
+text:
+  autoShrink: true
+  minFontSize: 8

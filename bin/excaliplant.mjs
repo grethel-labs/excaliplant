@@ -37,6 +37,7 @@ Options:
   --label <s>      Source label written to appState.name.
   --no-canvas      For --svg: emit a tightly-cropped SVG without the 4:3 letterbox.
   --rng-seed <n>   Override the deterministic seed (use --rng-seed=random for non-determinism).
+  --style <file>   Load a JSON or YAML style override (see style.example.json).
   --max-input-bytes <N>
                    Reject stdin/file input larger than N bytes
                    (default ${DEFAULT_MAX_INPUT_BYTES}, ceiling ${MAX_INPUT_BYTES_CEILING}).
@@ -120,6 +121,9 @@ function parseArgs(argv) {
         break;
       case "--rng-seed":
         opts.rngSeed = argv[++i];
+        break;
+      case "--style":
+        opts.styleFile = argv[++i];
         break;
       case "--max-input-bytes": {
         const n = parsePositiveInt(argv[++i], "--max-input-bytes");
@@ -213,6 +217,11 @@ async function main() {
     text = await readInput(opts.input, opts.maxInputBytes);
   } catch (e) {
     die(1, e?.message || String(e));
+  }
+
+  if (opts.styleFile) {
+    const { loadStyleFromFile } = await import("../src/style/style.mjs");
+    loadStyleFromFile(opts.styleFile);
   }
 
   // Build deterministic / overridable RNG.
