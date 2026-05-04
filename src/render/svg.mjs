@@ -351,21 +351,26 @@ function colorOrNone(c) {
   return c;
 }
 
-/** @internal */
 /**
  * Escape a string for safe interpolation into an SVG attribute value.
+ * Escapes `&`, `"`, `<` and `>` so attacker-controlled input cannot
+ * break out of the surrounding `"..."` and inject extra attributes
+ * or markup.
  * @param {string} s Raw string.
  * @returns {string} Escaped string.
  */
-function escapeAttr(s) {
-  return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+export function escapeAttr(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
-/** @internal */
 /**
  * Escape a string for safe interpolation into SVG text content.
  * @param {string} s Raw string.
  * @returns {string} Escaped string.
  */
-function escapeText(s) {
+export function escapeText(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

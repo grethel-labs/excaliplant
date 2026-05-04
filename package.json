@@ -1,6 +1,6 @@
 {
   "name": "@grethel-labs/excaliplant",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.",
   "type": "module",
   "main": "index.mjs",
@@ -13,6 +13,7 @@
     "src/",
     "assets/fonts/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "SECURITY.md",
     "THIRD_PARTY_NOTICES.md"
@@ -40,7 +41,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky && node scripts/setup-merge-drivers.mjs",
-    "prepublishOnly": "node scripts/prepublish-guard.mjs && npm test && npm run build"
+    "prepublishOnly": "node scripts/prepublish-guard.mjs && npm test && npm run typecheck && npm run format:check && npm run build"
   },
   "lint-staged": {
     "*.{mjs,js,cjs,ts,json,yml,yaml,md}": "prettier --write"

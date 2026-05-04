@@ -52,28 +52,41 @@ import { stripComment, ALWAYS_SKIP } from "./utils.mjs";
  * @param {Record<string, any>} args.ctx        Mutable context object. Plugins
  *                                 attach state here; the engine never
  *                                 reads it directly.
+ * @param {(info: {line: string, index: number}) => void} [args.onUnknownLine]
+ *   Optional callback invoked for every non-skip, non-empty line that
+ *   no plugin consumed. Useful for `strict`/`diagnostics` modes; the
+ *   default behaviour (silent ignore) is preserved when omitted.
  * @returns {object}               Whatever `ctx.result` exposes —
  *                                 typically a `Diagram` /
  *                                 `SequenceDiagram` instance.
  * @public
  */
-export function runEngine({ lines, plugins, ctx }) {
+export function runEngine({ lines, plugins, ctx, onUnknownLine }) {
   /** @type {PluginBlock | null} */
   let block = null;
+  let index = 0;
   for (const raw of lines) {
     const line = stripComment(raw).trim();
 
     if (block) {
       if (block.tryEnd(line, ctx)) {
         block = null;
+        index++;
         continue;
       }
       block.onLine(line, ctx);
+      index++;
       continue;
     }
 
-    if (!line) continue;
-    if (ALWAYS_SKIP.some((re) => re.test(line))) continue;
+    if (!line) {
+      index++;
+      continue;
+    }
+    if (ALWAYS_SKIP.some((re) => re.test(line))) {
+      index++;
+      continue;
+    }
 
     let consumed = false;
     for (const p of plugins) {
@@ -90,8 +103,10 @@ export function runEngine({ lines, plugins, ctx }) {
         break;
       }
     }
-    // Unknown lines are silently ignored — same tolerance as before.
-    void consumed;
+    if (!consumed && typeof onUnknownLine === "function") {
+      onUnknownLine({ line, index });
+    }
+    index++;
   }
   ctx.finalize?.();
   return ctx.result;

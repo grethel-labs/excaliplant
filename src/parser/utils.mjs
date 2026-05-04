@@ -44,10 +44,23 @@ export const ALWAYS_SKIP = [
  * @public
  */
 export function stripComment(line) {
-  // PlantUML: ' starts a line comment except inside a string.
-  const idx = line.indexOf("'");
-  if (idx === 0) return "";
-  if (idx > 0 && /\s/.test(line[idx - 1])) return line.slice(0, idx);
+  // PlantUML: `'` starts a line comment, but inside a `"..."` string
+  // literal the apostrophe is just a regular character. Walk the line
+  // tracking quote state so labels like `"Bob 's service"` survive.
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (inQuotes) continue;
+    if (ch === "'") {
+      if (i === 0) return "";
+      const prev = line[i - 1];
+      if (/\s/.test(prev)) return line.slice(0, i);
+    }
+  }
   return line;
 }
 
@@ -64,17 +77,25 @@ export function stripQuotes(s) {
 }
 
 /**
- * Convert any string to an identifier-safe slug (`[a-z0-9_]+`).
+ * Convert any string to an identifier-safe slug. Preserves Unicode
+ * letters and digits (e.g. `ümlaut`, `日本`) while collapsing every
+ * other character to `_`. Falls back to a hashed identifier if the
+ * input has no letters/digits at all so that connections never lose
+ * their endpoint id.
  *
  * @param {string} s Free-form text to sluggify.
  * @returns {string} Lower-case, underscore-separated identifier.
  * @public
  */
 export function slug(s) {
-  return String(s)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+  const raw = String(s).toLowerCase();
+  const cleaned = raw.replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, "");
+  if (cleaned) return cleaned;
+  // No letters/digits at all – derive a stable fallback so that
+  // `[***]` and similar still produce a usable id.
+  let h = 0;
+  for (let i = 0; i < raw.length; i++) h = (h * 31 + raw.charCodeAt(i)) | 0;
+  return `id_${(h >>> 0).toString(36)}`;
 }
 
 /**

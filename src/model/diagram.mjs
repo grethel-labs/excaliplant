@@ -371,6 +371,8 @@ export class Message {
     this.startArrowhead = startArrowhead;
     this.endArrowhead = endArrowhead;
     this.y = 0;
+    /** Declaration order index across messages + notes. */
+    this.seq = -1;
   }
   /** @returns {boolean} `true` when sender and receiver are the same lifeline. */
   get isSelf() {
@@ -402,6 +404,8 @@ export class SequenceNote {
     this.y = 0;
     this.width = 0;
     this.height = 0;
+    /** Declaration order index across messages + notes. */
+    this.seq = -1;
   }
 }
 

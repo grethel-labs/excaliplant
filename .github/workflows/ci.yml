@@ -6,14 +6,11 @@ on:
   pull_request:
     branches: [main]
 
-# The auto-amend job force-pushes regenerated docs back onto the PR head.
-# It uses the repository bot SSH key instead of GITHUB_TOKEN so the amended
-# commit triggers a fresh CI run. GITHUB_TOKEN-authored pushes are ignored by
-# GitHub Actions recursion protection, which leaves required checks attached
-# to the previous commit.
+# Default permission scope: read-only. The single job that needs to push
+# (pr-docs-rebuild) re-asserts `contents: write` locally so the rest of
+# the matrix runs with the minimum privileges.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   test:
@@ -97,6 +94,11 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     needs: [test]
     runs-on: ubuntu-latest
+    # Force-pushes regenerated docs back onto the PR head, so this job
+    # is the only one that needs write access to the repository.
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
         with:
