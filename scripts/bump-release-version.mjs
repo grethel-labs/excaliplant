@@ -10,8 +10,6 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const RELEASE_TYPES = new Set(["major", "minor", "patch"]);
-const SUPPORTED_MARK = ":white_check_mark:";
-const UNSUPPORTED_MARK = ":x:";
 
 function usage() {
   console.error(`Usage: node scripts/bump-release-version.mjs --bump <major|minor|patch> [--base-version <x.y.z>]
@@ -62,44 +60,6 @@ function bumpVersion(version, bump) {
   throw new Error(`Invalid release bump: ${bump}`);
 }
 
-function rewriteSecuritySupportedVersions(content, nextVersion) {
-  const next = parseVersion(nextVersion);
-  const nextSupported = `${next.major}.${next.minor}.x`;
-  const lines = content.split("\n");
-  const tableRowRe = /^\|\s*`(\d+\.\d+\.x)`\s*\|\s*:[a-z0-9_-]{1,50}:\s*\|\s*$/;
-  const rowIndexes = [];
-  for (let i = 0; i < lines.length; i += 1) {
-    if (tableRowRe.test(lines[i])) {
-      rowIndexes.push(i);
-    }
-  }
-
-  if (rowIndexes.length === 0) {
-    return content;
-  }
-  if (rowIndexes.length !== 2) {
-    throw new Error("SECURITY.md supported versions table must contain exactly two version rows");
-  }
-
-  const oldSupportedMatch = tableRowRe.exec(lines[rowIndexes[0]]);
-  if (!oldSupportedMatch) {
-    throw new Error("Failed to parse the supported version row in SECURITY.md");
-  }
-  const oldDeprecatedMatch = tableRowRe.exec(lines[rowIndexes[1]]);
-  if (!oldDeprecatedMatch) {
-    throw new Error("Failed to parse the deprecated version row in SECURITY.md");
-  }
-  const oldSupported = oldSupportedMatch[1];
-  const oldDeprecated = oldDeprecatedMatch[1];
-  // Rotate rows so the newly supported line stays first, and the previously
-  // supported line remains listed but marked unsupported.
-  const nextDeprecated = oldSupported !== nextSupported ? oldSupported : oldDeprecated;
-
-  lines[rowIndexes[0]] = `| \`${nextSupported}\` | ${SUPPORTED_MARK} |`;
-  lines[rowIndexes[1]] = `| \`${nextDeprecated}\` | ${UNSUPPORTED_MARK}                |`;
-  return lines.join("\n");
-}
-
 async function readJson(file) {
   return JSON.parse(await readFile(file, "utf8"));
 }
@@ -131,15 +91,6 @@ async function main() {
       lockJson.packages[""].version = nextVersion;
     }
     await writeJson(lockPath, lockJson);
-  }
-
-  const securityPath = path.join(REPO_ROOT, "SECURITY.md");
-  if (existsSync(securityPath)) {
-    const securityContent = await readFile(securityPath, "utf8");
-    const updatedSecurityContent = rewriteSecuritySupportedVersions(securityContent, nextVersion);
-    if (updatedSecurityContent !== securityContent) {
-      await writeFile(securityPath, updatedSecurityContent);
-    }
   }
 
   console.log(nextVersion);

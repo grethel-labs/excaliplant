@@ -10,13 +10,10 @@ filesystem isolation.
 
 ## Supported versions
 
-We support **the latest published minor** on npm. Older lines do not
-receive backports.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| `0.3.x` | :white_check_mark: |
-| `0.2.x` | :x:                |
+The **current release on npm — including the latest patch — is fully
+supported**. Older versions may still work, but can show reduced
+functionality, missing fixes, or unaddressed advisories. Please upgrade
+to the latest version before reporting a vulnerability.
 
 ## Reporting a vulnerability
 

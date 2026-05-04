@@ -66,7 +66,7 @@ jobs:
                 echo "Version conflict detected, bumping version..."
                 node scripts/bump-release-version.mjs --base-version "$MAIN_VERSION" --bump patch
                 npm run build:docs
-                git add package.json package-lock.json SECURITY.md README.md docs/.build-manifest.json docs/ressources/generated/
+                git add package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
                 git commit -m "chore: bump version after rebase [skip ci]" || true
               fi
               
