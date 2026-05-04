@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.2.2** &nbsp;·&nbsp; 86 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.3.0** &nbsp;·&nbsp; 86 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -32,6 +32,13 @@ artefacts.
 > ⚠️ This README is generated. Edit
 > [`docs/README.template.md.njk`](./docs/README.template.md.njk) and
 > run `npm run build:docs`.
+
+> **AI-generated project notice:** This repository, including source code,
+> documentation, comments, and generated artefacts, was created almost entirely
+> with AI assistance. The maintainer does not adopt every generated sentence,
+> implementation detail, or artefact as a personal statement, endorsement, or
+> guarantee. Review everything carefully and use the code at your own risk; the
+> MIT License warranty disclaimer applies.
 
 ---
 
@@ -237,8 +244,11 @@ excaliplant
 │   ├── plantuml.test.mjs
 │   ├── security.test.mjs
 │   └── self_introspection.test.mjs
+├── AGENTS.md
 ├── CHANGELOG.md
+├── CLAUDE.md
 ├── CONTRIBUTING.md
+├── GEMINI.md
 ├── LICENSE
 ├── README.md
 ├── SECURITY.md
