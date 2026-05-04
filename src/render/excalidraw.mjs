@@ -1098,15 +1098,20 @@ function renderClass(box, color, elements) {
       backgroundColor: color.fill,
     }),
   );
-  const titleLines = String(box.title || "").split("\n").length;
+  // Prefer the wrapped title cached by the sizing pass so long names
+  // (notably class-diagram generics like `Container<T extends Base>`)
+  // do not overflow the box width. Falls back to the raw title for
+  // callers that bypass sizing.
+  const titleValue = box._wrappedTitle ?? String(box.title || "");
+  const titleLines = titleValue.split("\n").length;
   const titleH = FONT.sizeTitle * FONT.lineHeight * titleLines;
   let ty = box.y + SIZING.boxPaddingY;
   if (box.stereotype) {
     elements.push(
       text({
-        x: box.x,
+        x: box.x + SIZING.boxPaddingX,
         y: ty - 4,
-        width: box.width,
+        width: box.width - SIZING.boxPaddingX * 2,
         height: FONT.sizeDescription * FONT.lineHeight,
         value: `«${box.stereotype}»`,
         fontSize: FONT.sizeDescription,
@@ -1118,11 +1123,11 @@ function renderClass(box, color, elements) {
   }
   elements.push(
     text({
-      x: box.x,
+      x: box.x + SIZING.boxPaddingX,
       y: ty,
-      width: box.width,
+      width: box.width - SIZING.boxPaddingX * 2,
       height: titleH,
-      value: box.title,
+      value: titleValue,
       fontSize: FONT.sizeTitle,
       color: color.stroke,
       align: "center",

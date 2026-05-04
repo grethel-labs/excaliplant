@@ -269,6 +269,9 @@ function queueInheritance(hdr, childId, ctx) {
       startArrowhead: null,
       endArrowhead: "triangle_outline",
       directionHint: null,
+      // Class-diagram parents are implicitly declared per PlantUML
+      // semantics — opt this edge into endpoint auto-vivification.
+      allowVivify: true,
     });
   }
   for (const parent of hdr.implementsList) {
@@ -284,6 +287,7 @@ function queueInheritance(hdr, childId, ctx) {
       startArrowhead: null,
       endArrowhead: "triangle_outline",
       directionHint: null,
+      allowVivify: true,
     });
   }
 }

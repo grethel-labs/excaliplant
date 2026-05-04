@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-05-04
+
 ### Added
 
 - Class-diagram support for tplant-style PlantUML sources. The parser now
@@ -22,12 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Member modifier tags (`{abstract}`, `{static}`, `{field}`, `{method}`)
   survive `explodeBraces` and stay attached to the surrounding member
   line.
-- Class-diagram arrow targets that are referenced via a bare identifier
-  but never explicitly declared (typical for parents living in external
-  libraries) auto-vivify as stub class boxes, matching PlantUML's
-  behaviour. Bracket / paren / quoted shorthand references continue to
-  drop silently when undeclared, preserving existing component-diagram
-  semantics.
+- Class-diagram inheritance / realisation edges (`extends`,
+  `implements`) auto-vivify undeclared parents as stub class boxes,
+  matching PlantUML's implicit-declaration behaviour. Generic
+  component-style connections (`A --> B`) and bracket / paren / quoted
+  shorthand references (`[A]`, `(B)`, `"C"`) continue to drop silently
+  when undeclared, preserving existing component-diagram semantics.
 - New `prefer-higher-version` git merge driver auto-resolves conflicts
   on `package.json` / `package-lock.json` whose only disagreement is a
   `"version": "x.y.z"` line by keeping the higher semver. Real
