@@ -65,10 +65,12 @@ jobs:
           }
 
           function inferReleaseLabelsFromBranch(branch) {
+            const hasToken = (token) =>
+              new RegExp(`(^|[^a-zA-Z])${token}([^a-zA-Z]|$)`, "i").test(branch);
             const inferred = [];
-            if (/(^|[^a-zA-Z])major([^a-zA-Z]|$)/i.test(branch)) inferred.push("release:major");
-            if (/(^|[^a-zA-Z])minor([^a-zA-Z]|$)/i.test(branch)) inferred.push("release:minor");
-            if (/(^|[^a-zA-Z])patch([^a-zA-Z]|$)/i.test(branch)) inferred.push("release:patch");
+            if (hasToken("major")) inferred.push("release:major");
+            if (hasToken("minor")) inferred.push("release:minor");
+            if (hasToken("patch")) inferred.push("release:patch");
             return inferred;
           }
 
@@ -88,7 +90,7 @@ jobs:
               console.error(
                 `::error::Branch "${branchName}" matches multiple release kinds (${inferred.join(
                   ", ",
-                )}). Keep only one of MAJOR/MINOR/PATCH in the branch name or set exactly one release label manually.`,
+                )}). Keep only one of MAJOR/MINOR/PATCH in the branch name or manually add exactly one release label in the GitHub UI.`,
               );
               process.exit(1);
             } else {
