@@ -10,6 +10,8 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const RELEASE_TYPES = new Set(["major", "minor", "patch"]);
+const SUPPORTED_MARK = ":white_check_mark:";
+const UNSUPPORTED_MARK = ":x:";
 
 function usage() {
   console.error(`Usage: node scripts/bump-release-version.mjs --bump <major|minor|patch> [--base-version <x.y.z>]
@@ -60,25 +62,11 @@ function bumpVersion(version, bump) {
   throw new Error(`Invalid release bump: ${bump}`);
 }
 
-function derivePreviousMinorLine(versionLine) {
-  if (!/^\d+\.\d+\.x$/.test(versionLine)) {
-    throw new Error(`Invalid supported-version line: ${versionLine}`);
-  }
-  const parsed = parseVersion(versionLine.replace(/\.x$/, ".0"));
-  if (parsed.minor > 0) {
-    return `${parsed.major}.${parsed.minor - 1}.x`;
-  }
-  if (parsed.major > 0) {
-    return `${parsed.major - 1}.0.x`;
-  }
-  return "0.0.x";
-}
-
 function rewriteSecuritySupportedVersions(content, nextVersion) {
   const next = parseVersion(nextVersion);
   const nextSupported = `${next.major}.${next.minor}.x`;
   const lines = content.split("\n");
-  const tableRowRe = /^\|\s*`(\d+\.\d+\.x)`\s*\|\s*:[a-z0-9_]{1,50}:\s*\|\s*$/;
+  const tableRowRe = /^\|\s*`(\d+\.\d+\.x)`\s*\|\s*:[a-z0-9_-]{1,50}:\s*\|\s*$/;
   const rowIndexes = [];
   for (let i = 0; i < lines.length; i += 1) {
     if (tableRowRe.test(lines[i])) {
@@ -89,22 +77,26 @@ function rewriteSecuritySupportedVersions(content, nextVersion) {
   if (rowIndexes.length === 0) {
     return content;
   }
+  if (rowIndexes.length !== 2) {
+    throw new Error("SECURITY.md supported versions table must contain exactly two version rows");
+  }
 
   const oldSupportedMatch = tableRowRe.exec(lines[rowIndexes[0]]);
   if (!oldSupportedMatch) {
     throw new Error("Failed to parse the supported version row in SECURITY.md");
   }
-  const oldDeprecatedMatch = rowIndexes.length > 1 ? tableRowRe.exec(lines[rowIndexes[1]]) : null;
+  const oldDeprecatedMatch = tableRowRe.exec(lines[rowIndexes[1]]);
+  if (!oldDeprecatedMatch) {
+    throw new Error("Failed to parse the deprecated version row in SECURITY.md");
+  }
   const oldSupported = oldSupportedMatch[1];
-  const oldDeprecated = oldDeprecatedMatch?.[1] ?? derivePreviousMinorLine(oldSupported);
+  const oldDeprecated = oldDeprecatedMatch[1];
   // Rotate rows so the newly supported line stays first, and the previously
   // supported line remains listed but marked unsupported.
   const nextDeprecated = oldSupported !== nextSupported ? oldSupported : oldDeprecated;
 
-  lines[rowIndexes[0]] = `| \`${nextSupported}\` | :white_check_mark: |`;
-  if (rowIndexes.length > 1) {
-    lines[rowIndexes[1]] = `| \`${nextDeprecated}\` | :x:                |`;
-  }
+  lines[rowIndexes[0]] = `| \`${nextSupported}\` | ${SUPPORTED_MARK} |`;
+  lines[rowIndexes[1]] = `| \`${nextDeprecated}\` | ${UNSUPPORTED_MARK}                |`;
   return lines.join("\n");
 }
 
