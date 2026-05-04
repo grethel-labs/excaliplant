@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
 
 concurrency:
   group: pr-release-version-${{ github.event.pull_request.number }}
@@ -31,52 +31,82 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Detect PR author and auto-label Dependabot PRs
-        id: author
+      - name: Resolve release bump from live labels and branch naming
         env:
-          PR_USER: ${{ github.event.pull_request.user.login }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          IS_DEPENDABOT="false"
-          if [ "$PR_USER" = "dependabot[bot]" ]; then
-            IS_DEPENDABOT="true"
-            # Check if release:patch label is missing
-            LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
-            if ! echo "$LABELS" | grep -q "release:patch"; then
-              echo "Adding release:patch label to Dependabot PR"
-              gh pr edit "$PR_NUMBER" --add-label "release:patch"
-            fi
-          fi
-          echo "is_dependabot=$IS_DEPENDABOT" >> "$GITHUB_OUTPUT"
-
-      - name: Select release bump from PR labels
-        id: bump
-        env:
-          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
-        run: |
           node <<'NODE' >> "$GITHUB_OUTPUT"
-          const labels = JSON.parse(process.env.PR_LABELS || "[]");
+          const { execSync } = require("node:child_process");
+
+          const prNumber = process.env.PR_NUMBER;
+          const branchName = process.env.PR_HEAD_REF || "";
+          const releaseLabels = ["release:major", "release:minor", "release:patch"];
           const labelToBump = new Map([
             ["release:major", "major"],
             ["release:minor", "minor"],
             ["release:patch", "patch"],
           ]);
-          const selected = labels
-            .map((label) => [label, labelToBump.get(label)])
-            .filter(([, bump]) => bump);
+
+          function readLiveLabels() {
+            const output = execSync(
+              `gh pr view "${prNumber}" --json labels --jq '[.labels[].name]'`,
+              { encoding: "utf8" },
+            );
+            return JSON.parse(output);
+          }
+
+          function inferReleaseLabelsFromBranch(branch) {
+            return releaseLabels.filter((label) => {
+              const kind = label.split(":")[1];
+              const pattern = new RegExp(`(^|[^a-zA-Z])${kind}([^a-zA-Z]|$)`, "i");
+              return pattern.test(branch);
+            });
+          }
+
+          let labels = readLiveLabels();
+          let selected = labels.filter((label) => releaseLabels.includes(label));
+
+          if (selected.length === 0) {
+            const inferred = inferReleaseLabelsFromBranch(branchName);
+            let toAdd = "release:patch";
+
+            if (inferred.length === 1) {
+              toAdd = inferred[0];
+              console.error(
+                `Auto-labeling PR #${prNumber} from branch "${branchName}" with ${toAdd}.`,
+              );
+            } else if (inferred.length > 1) {
+              console.error(
+                `::error::Branch "${branchName}" matches multiple release kinds (${inferred.join(
+                  ", ",
+                )}). Keep only one of MAJOR/MINOR/PATCH in the branch name or set exactly one release label manually.`,
+              );
+              process.exit(1);
+            } else {
+              console.error(
+                `No MAJOR/MINOR/PATCH token in branch "${branchName}". Auto-labeling with release:patch.`,
+              );
+            }
+
+            execSync(`gh pr edit "${prNumber}" --add-label "${toAdd}"`, { stdio: "inherit" });
+            labels = readLiveLabels();
+            selected = labels.filter((label) => releaseLabels.includes(label));
+          }
 
           if (selected.length !== 1) {
             console.error(
               `::error::PRs into main must have exactly one release label: release:major, release:minor, or release:patch. Found: ${
-                selected.map(([label]) => label).join(", ") || "none"
+                selected.join(", ") || "none"
               }`,
             );
             process.exit(1);
           }
 
-          console.log(`type=${selected[0][1]}`);
-          console.error(`Release bump: ${selected[0][1]} (${selected[0][0]})`);
+          const selectedLabel = selected[0];
+          console.log(`type=${labelToBump.get(selectedLabel)}`);
+          console.error(`Release bump: ${labelToBump.get(selectedLabel)} (${selectedLabel})`);
           NODE
 
       - run: npm ci
