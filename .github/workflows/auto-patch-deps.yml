@@ -71,9 +71,9 @@ jobs:
         if: steps.patch.outputs.changed == 'true'
         id: bump
         run: |
-          NEW_VERSION=$(npm version patch --no-git-tag-version)
-          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Bumped to ${NEW_VERSION}"
+          NEW_VERSION=$(node scripts/bump-release-version.mjs --bump patch)
+          echo "version=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Bumped to v${NEW_VERSION}"
 
       - name: Rebuild docs with new version
         if: steps.patch.outputs.changed == 'true'

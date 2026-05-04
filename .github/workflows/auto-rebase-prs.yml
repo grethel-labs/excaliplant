@@ -64,7 +64,7 @@ jobs:
               # Check if version needs adjustment (conflict with another merged PR)
               if [ "$PR_VERSION" = "$MAIN_VERSION" ]; then
                 echo "Version conflict detected, bumping version..."
-                npm version patch --no-git-tag-version
+                node scripts/bump-release-version.mjs --base-version "$MAIN_VERSION" --bump patch
                 npm run build:docs
                 git add package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
                 git commit -m "chore: bump version after rebase [skip ci]" || true
