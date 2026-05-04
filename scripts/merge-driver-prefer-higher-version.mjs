@@ -148,7 +148,11 @@ function tryResolveVersionHunk(ours, theirs) {
   // Indentation / surrounding punctuation must agree so we don't
   // accidentally collapse a structurally different file.
   if (ourMatch[1] !== theirMatch[1] || ourMatch[3] !== theirMatch[3]) return null;
-  const winner = compareVersions(ourMatch[2], theirMatch[2]) >= 0 ? diff.our : diff.their;
+  const cmp = compareVersions(ourMatch[2], theirMatch[2]);
+  // Strict greater wins; on equality (same semver, possibly different
+  // whitespace inside the version string) prefer `ours` so the result
+  // is deterministic.
+  const winner = cmp >= 0 ? diff.our : diff.their;
   const resolved = ours.slice();
   resolved[diff.idx] = winner;
   return resolved;

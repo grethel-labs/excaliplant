@@ -22,6 +22,7 @@ test("merge-driver: compareVersions handles standard semver", () => {
   assert.equal(compareVersions("0.3.7", "0.3.7"), 0);
   assert.equal(compareVersions("1.0.0", "0.99.99"), 1);
   assert.equal(compareVersions("v0.3.10", "0.3.9"), 1); // numeric, not lexical
+  assert.equal(compareVersions("0.3.10", "0.3.9"), 1); // numeric also without v prefix
 });
 
 test("merge-driver: compareVersions tolerates malformed input", () => {

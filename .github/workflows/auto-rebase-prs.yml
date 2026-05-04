@@ -37,7 +37,7 @@ jobs:
         # the rebase below. Without this step git would surface
         # conflicts on `package.json` / `package-lock.json` / generated
         # docs that the drivers know how to resolve automatically.
-        run: npm ci --ignore-scripts=false
+        run: npm ci
 
       - name: Find and rebase open PRs
         env:
