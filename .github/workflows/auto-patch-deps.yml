@@ -99,13 +99,26 @@ jobs:
           # Open a PR if none exists yet, otherwise the force-push above
           # has already updated the existing PR.
           if ! gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
-            gh pr create \
+            PR_URL=$(gh pr create \
               --base main \
               --head "$BRANCH" \
               --title "deps: auto-patch dependencies + release ${NEW_VERSION}" \
               --body "Automated patch-level dependency updates and release ${NEW_VERSION}.
 
-          $(echo '${{ steps.patch.outputs.summary }}')"
+          $(echo '${{ steps.patch.outputs.summary }}')")
+            echo "Created PR: $PR_URL"
+            
+            # Add release:patch label for automated version handling
+            PR_NUM=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+            if [ -n "$PR_NUM" ]; then
+              gh pr edit "$PR_NUM" --add-label "release:patch"
+              echo "Added release:patch label to PR #$PR_NUM"
+            fi
+          else
+            # Update existing PR - ensure label is present
+            PR_NUM=$(gh pr view "$BRANCH" --json number --jq '.number')
+            gh pr edit "$PR_NUM" --add-label "release:patch"
+            echo "Ensured release:patch label on existing PR #$PR_NUM"
           fi
 
           # Auto-merge intentionally disabled: a malicious patch-level
