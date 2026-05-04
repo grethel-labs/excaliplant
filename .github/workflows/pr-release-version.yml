@@ -24,6 +24,7 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           node <<'NODE'
@@ -32,6 +33,7 @@ jobs:
 
           const prNumber = process.env.PR_NUMBER || "";
           const branchName = process.env.PR_HEAD_REF || "";
+          const repo = process.env.PR_REPO || "";
           const releaseLabels = ["release:major", "release:minor", "release:patch"];
           const branchTokenPatterns = new Map([
             ["major", /(^|[^a-zA-Z])major([^a-zA-Z]|$)/i],
@@ -53,6 +55,10 @@ jobs:
             console.error("::error::Missing PR_HEAD_REF environment variable.");
             process.exit(1);
           }
+          if (!process.env.PR_REPO) {
+            console.error("::error::Missing PR_REPO environment variable.");
+            process.exit(1);
+          }
           if (!process.env.GITHUB_OUTPUT) {
             console.error("::error::Missing GITHUB_OUTPUT environment variable.");
             process.exit(1);
@@ -66,7 +72,7 @@ jobs:
           function readLiveLabels() {
             const output = execFileSync(
               "gh",
-              ["pr", "view", prNumber, "--json", "labels", "--jq", "[.labels[].name]"],
+              ["pr", "view", prNumber, "-R", repo, "--json", "labels", "--jq", "[.labels[].name]"],
               { encoding: "utf8" },
             );
             return JSON.parse(output);
@@ -115,7 +121,7 @@ jobs:
 
             execFileSync(
               "gh",
-              ["pr", "edit", prNumber, "--add-label", selectedReleaseLabel],
+              ["pr", "edit", prNumber, "-R", repo, "--add-label", selectedReleaseLabel],
               { stdio: "inherit" },
             );
             labels = readLiveLabels();
