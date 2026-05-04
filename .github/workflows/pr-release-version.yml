@@ -19,18 +19,6 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-          ssh-key: ${{ secrets.BOT_SSH_KEY }}
-          persist-credentials: true
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-
       - name: Resolve release bump from live labels and branch naming
         id: bump
         env:
@@ -142,6 +130,18 @@ jobs:
           console.log(`type=${labelToBump.get(selectedLabel)}`);
           console.error(`Release bump: ${labelToBump.get(selectedLabel)} (${selectedLabel})`);
           NODE
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          ssh-key: ${{ secrets.BOT_SSH_KEY }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
 
       - run: npm ci
 
