@@ -108,7 +108,7 @@ jobs:
               );
               process.exit(1);
             } else {
-              console.log(
+              console.error(
                 `No MAJOR/MINOR/PATCH token in branch "${branchName}". Auto-labeling with release:patch.`,
               );
             }
