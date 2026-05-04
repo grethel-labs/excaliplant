@@ -61,6 +61,9 @@ function bumpVersion(version, bump) {
 }
 
 function derivePreviousMinorLine(versionLine) {
+  if (!/^\d+\.\d+\.x$/.test(versionLine)) {
+    throw new Error(`Invalid supported-version line: ${versionLine}`);
+  }
   const parsed = parseVersion(versionLine.replace(/\.x$/, ".0"));
   if (parsed.minor > 0) {
     return `${parsed.major}.${parsed.minor - 1}.x`;
@@ -75,7 +78,7 @@ function rewriteSecuritySupportedVersions(content, nextVersion) {
   const next = parseVersion(nextVersion);
   const nextSupported = `${next.major}.${next.minor}.x`;
   const lines = content.split("\n");
-  const tableRowRe = /^\|\s*`(\d+\.\d+\.x)`\s*\|\s*:[a-z_]+:\s*\|\s*$/;
+  const tableRowRe = /^\|\s*`(\d+\.\d+\.x)`\s*\|\s*:[a-z0-9_]+:\s*\|\s*$/;
   const rowIndexes = [];
   for (let i = 0; i < lines.length; i += 1) {
     if (tableRowRe.test(lines[i])) {
@@ -88,9 +91,14 @@ function rewriteSecuritySupportedVersions(content, nextVersion) {
   }
 
   const oldSupportedMatch = tableRowRe.exec(lines[rowIndexes[0]]);
+  if (!oldSupportedMatch) {
+    throw new Error("Failed to parse the supported version row in SECURITY.md");
+  }
   const oldDeprecatedMatch = rowIndexes.length > 1 ? tableRowRe.exec(lines[rowIndexes[1]]) : null;
-  const oldSupported = oldSupportedMatch?.[1] ?? nextSupported;
+  const oldSupported = oldSupportedMatch[1];
   const oldDeprecated = oldDeprecatedMatch?.[1] ?? derivePreviousMinorLine(nextSupported);
+  // Rotate rows so the newly supported line stays first, and the previously
+  // supported line remains listed but marked unsupported.
   const nextDeprecated = oldSupported !== nextSupported ? oldSupported : oldDeprecated;
 
   lines[rowIndexes[0]] = `| \`${nextSupported}\` | :white_check_mark: |`;
