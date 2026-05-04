@@ -78,7 +78,7 @@ function rewriteSecuritySupportedVersions(content, nextVersion) {
   const next = parseVersion(nextVersion);
   const nextSupported = `${next.major}.${next.minor}.x`;
   const lines = content.split("\n");
-  const tableRowRe = /^\|\s*`(\d+\.\d+\.x)`\s*\|\s*:[a-z0-9_]+:\s*\|\s*$/;
+  const tableRowRe = /^\|\s*`(\d+\.\d+\.x)`\s*\|\s*:[a-z0-9_]{1,50}:\s*\|\s*$/;
   const rowIndexes = [];
   for (let i = 0; i < lines.length; i += 1) {
     if (tableRowRe.test(lines[i])) {
@@ -96,7 +96,7 @@ function rewriteSecuritySupportedVersions(content, nextVersion) {
   }
   const oldDeprecatedMatch = rowIndexes.length > 1 ? tableRowRe.exec(lines[rowIndexes[1]]) : null;
   const oldSupported = oldSupportedMatch[1];
-  const oldDeprecated = oldDeprecatedMatch?.[1] ?? derivePreviousMinorLine(nextSupported);
+  const oldDeprecated = oldDeprecatedMatch?.[1] ?? derivePreviousMinorLine(oldSupported);
   // Rotate rows so the newly supported line stays first, and the previously
   // supported line remains listed but marked unsupported.
   const nextDeprecated = oldSupported !== nextSupported ? oldSupported : oldDeprecated;
