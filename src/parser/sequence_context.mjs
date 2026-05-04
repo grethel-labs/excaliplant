@@ -23,6 +23,7 @@ export function createSequenceContext() {
   const diagram = new SequenceDiagram();
   let messageCounter = 0;
   let noteCounter = 0;
+  let timelineCounter = 0;
 
   const ctx = {
     get result() {
@@ -86,14 +87,18 @@ export function createSequenceContext() {
      * @param {any} spec Plugin-built message record (without id).
      */
     addMessage(/** @type {any} */ spec) {
-      diagram.addMessage(new Message({ id: ctx.nextMessageId(), ...spec }));
+      const msg = new Message({ id: ctx.nextMessageId(), ...spec });
+      msg.seq = timelineCounter++;
+      diagram.addMessage(msg);
     },
     /**
      * Append a new note to the diagram (id is auto-assigned).
      * @param {any} spec Plugin-built note record (without id).
      */
     addNote(/** @type {any} */ spec) {
-      diagram.addNote(new SequenceNote({ id: ctx.nextNoteId(), ...spec }));
+      const note = new SequenceNote({ id: ctx.nextNoteId(), ...spec });
+      note.seq = timelineCounter++;
+      diagram.addNote(note);
     },
   };
   return ctx;

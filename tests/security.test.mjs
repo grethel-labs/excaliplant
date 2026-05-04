@@ -323,3 +323,89 @@ test("security: CLI rejects out-of-range --width", async () => {
   assert.equal(code, 2, "CLI should exit 2 on bad CLI args");
   assert.match(stderr, /--width out of range/);
 });
+
+// ---------------------------------------------------------------------------
+// canvas_svg background attribute injection
+// ---------------------------------------------------------------------------
+
+test("security: canvas SVG escapes attacker-controlled background", async () => {
+  const { excalidrawJsonToCanvasSvg } = await import("../src/render/canvas_svg.mjs");
+  const doc = await renderPlantUml(`@startuml
+[a] --> [b]
+@enduml`);
+  const payload = '" onload="alert(1)';
+  const svg = excalidrawJsonToCanvasSvg(doc, { background: payload });
+  // The literal payload must NOT appear in the output — escapeAttr must
+  // have collapsed the closing quote so the attacker cannot break out
+  // of the fill="..." attribute.
+  assert.ok(
+    !svg.includes('onload="alert(1)'),
+    "background injection broke out of the fill attribute",
+  );
+  assert.ok(svg.includes("&quot;"), "background was not HTML-escaped");
+});
+
+test("security: canvas SVG escapes background even on empty diagrams", async () => {
+  const { excalidrawJsonToCanvasSvg } = await import("../src/render/canvas_svg.mjs");
+  const payload = '"><script>alert(1)</script>';
+  const svg = excalidrawJsonToCanvasSvg(
+    { type: "excalidraw", version: 2, source: "", elements: [], appState: {}, files: {} },
+    { background: payload },
+  );
+  assert.ok(!svg.includes("<script>alert(1)"), "blankCanvas leaked attacker markup");
+  // Payload should appear in HTML-escaped form on the rect fill.
+  assert.ok(svg.includes("&quot;&gt;&lt;"));
+});
+
+// ---------------------------------------------------------------------------
+// Parser limits
+// ---------------------------------------------------------------------------
+
+test("security: parsePlantUml enforces maxInputBytes", () => {
+  const big = "[a] --> [b]\n".repeat(2000);
+  assert.throws(() => parsePlantUml(big, { limits: { maxInputBytes: 64 } }), /maxInputBytes/);
+});
+
+test("security: parsePlantUml enforces maxLines", () => {
+  const lines = Array.from({ length: 500 }, (_, i) => `[a${i}]`).join("\n");
+  assert.throws(
+    () => parsePlantUml(`@startuml\n${lines}\n@enduml`, { limits: { maxLines: 100 } }),
+    /maxLines/,
+  );
+});
+
+test("security: parsePlantUml enforces maxNodes", () => {
+  const lines = Array.from({ length: 50 }, (_, i) => `[a${i}]`).join("\n");
+  assert.throws(
+    () => parsePlantUml(`@startuml\n${lines}\n@enduml`, { limits: { maxNodes: 10 } }),
+    /maxNodes/,
+  );
+});
+
+test("security: parsePlantUml strict mode reports unknown lines", () => {
+  const src = `@startuml\n[a] --> [b]\n¯\\_(ツ)_/¯ banana\n@enduml`;
+  assert.throws(() => parsePlantUml(src, { unknownLines: "strict" }), /unknown line/);
+});
+
+// ---------------------------------------------------------------------------
+// Parser correctness: Unicode + quoted comments
+// ---------------------------------------------------------------------------
+
+test("functional: Unicode identifiers keep their connection edge", async () => {
+  const doc = await renderPlantUml(
+    `@startuml\n[\u00dcber]\n[\u00d6mega]\n[\u00dcber] --> [\u00d6mega]\n@enduml`,
+  );
+  const arrows = doc.elements.filter((e) => e.type === "arrow");
+  assert.ok(arrows.length >= 1, "Unicode endpoints lost their connection");
+});
+
+test("functional: stripComment respects apostrophes inside string literals", () => {
+  const src = `@startuml\ncomponent "Bob 's service" as bob\n[client]\nclient --> bob\n@enduml`;
+  const d = parsePlantUml(src);
+  const planes = d.planes ?? [];
+  const titles = planes.flatMap((p) => p.allBoxes.map((b) => b.title));
+  assert.ok(
+    titles.some((t) => t.includes("Bob 's service")),
+    `expected quoted title to survive, got ${JSON.stringify(titles)}`,
+  );
+});

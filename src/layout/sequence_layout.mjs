@@ -58,19 +58,20 @@ export function layoutSequenceDiagram(diagram) {
   for (const p of diagram.participants) p.lifelineTop = lifelineTop;
 
   // 3. Walk messages and notes in their declaration order, assigning y.
-  // We interleave them by relying on the parser's declaration order. The
-  // model only has separate lists, so we just place messages first, then
-  // notes near the most recent message (good-enough heuristic).
-  let y = lifelineTop + MESSAGE_FIRST_Y;
-  for (const m of diagram.messages) {
-    m.y = y;
-    y += m.isSelf ? SELF_HEIGHT + MESSAGE_GAP : MESSAGE_GAP;
-  }
+  // Both message and note objects carry a `seq` index assigned by the
+  // sequence context; we merge the two streams on that field so notes
+  // appear at the temporal position they were declared at, instead of
+  // being dumped at the bottom of the diagram.
+  const timeline = [
+    ...diagram.messages.map((m) => ({ kind: "msg", item: m, seq: m.seq ?? Infinity })),
+    ...diagram.notes.map((n) => ({ kind: "note", item: n, seq: n.seq ?? Infinity })),
+  ];
+  // Stable sort by declaration index. Items without a `seq` (e.g.
+  // programmatically-built diagrams) keep their relative order at the
+  // tail.
+  timeline.sort((a, b) => a.seq - b.seq);
 
-  // Notes: place them between messages along the same y-axis, spaced
-  // after the last message. This is a pragmatic placement; a future
-  // pass could weave them into the message timeline based on parser
-  // index.
+  // Pre-size notes so we know their height before assigning y.
   for (const n of diagram.notes) {
     const lines = n.text.split("\n");
     n.width = Math.max(
@@ -78,20 +79,31 @@ export function layoutSequenceDiagram(diagram) {
       Math.max(...lines.map((l) => measureLine(l, FONT.sizeDescription).width)) + NOTE_PAD * 2,
     );
     n.height = lines.length * FONT.sizeDescription * FONT.lineHeight + NOTE_PAD * 2;
-    if (n.side === "over" && n.target2) {
-      const x1 = Math.min(n.target.x, n.target2.x);
-      const x2 = Math.max(n.target.x, n.target2.x);
-      n.x = (x1 + x2) / 2 - n.width / 2;
-    } else if (n.side === "left") {
-      n.x = n.target.x - n.target.headWidth / 2 - n.width - NOTE_GAP;
-    } else if (n.side === "right") {
-      n.x = n.target.x + n.target.headWidth / 2 + NOTE_GAP;
+  }
+
+  let y = lifelineTop + MESSAGE_FIRST_Y;
+  for (const entry of timeline) {
+    if (entry.kind === "msg") {
+      const m = /** @type {import("../model/diagram.mjs").Message} */ (entry.item);
+      m.y = y;
+      y += m.isSelf ? SELF_HEIGHT + MESSAGE_GAP : MESSAGE_GAP;
     } else {
-      // over single
-      n.x = n.target.x - n.width / 2;
+      const n = /** @type {import("../model/diagram.mjs").SequenceNote} */ (entry.item);
+      if (n.side === "over" && n.target2) {
+        const x1 = Math.min(n.target.x, n.target2.x);
+        const x2 = Math.max(n.target.x, n.target2.x);
+        n.x = (x1 + x2) / 2 - n.width / 2;
+      } else if (n.side === "left") {
+        n.x = n.target.x - n.target.headWidth / 2 - n.width - NOTE_GAP;
+      } else if (n.side === "right") {
+        n.x = n.target.x + n.target.headWidth / 2 + NOTE_GAP;
+      } else {
+        // over single
+        n.x = n.target.x - n.width / 2;
+      }
+      n.y = y;
+      y += n.height + NOTE_GAP;
     }
-    n.y = y;
-    y += n.height + NOTE_GAP;
   }
 
   const lifelineBottom = y + BOTTOM_MARGIN;
