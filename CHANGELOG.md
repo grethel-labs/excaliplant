@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   behaviour. Bracket / paren / quoted shorthand references continue to
   drop silently when undeclared, preserving existing component-diagram
   semantics.
+- New `prefer-higher-version` git merge driver auto-resolves conflicts
+  on `package.json` / `package-lock.json` whose only disagreement is a
+  `"version": "x.y.z"` line by keeping the higher semver. Real
+  (non-version) conflicts are still surfaced for human review. Driver
+  is registered by `npm install` (via the `prepare` lifecycle hook) and
+  applied through `.gitattributes`. The auto-rebase workflow now runs
+  `npm ci` before rebasing so the driver is configured on the runner,
+  and regenerates docs after a successful rebase.
 
 ## [0.3.1] - 2026-05-04
 

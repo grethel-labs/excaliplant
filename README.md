@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.3.7** &nbsp;·&nbsp; 91 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.3.7** &nbsp;·&nbsp; 98 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -109,7 +109,7 @@ Lower-level entry points are also exported:
 npm test
 ```
 
-Ships with **91 tests** across functional, edge-case,
+Ships with **98 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -207,6 +207,7 @@ excaliplant
 ├── scripts
 │   ├── auto-patch-deps.mjs
 │   ├── bump-release-version.mjs
+│   ├── merge-driver-prefer-higher-version.mjs
 │   ├── prepublish-guard.mjs
 │   ├── setup-merge-drivers.mjs
 │   └── smoke.mjs
@@ -241,6 +242,7 @@ excaliplant
 ├── tests
 │   ├── edge_cases.test.mjs
 │   ├── functional_more.test.mjs
+│   ├── merge_driver.test.mjs
 │   ├── plantuml.test.mjs
 │   ├── security.test.mjs
 │   └── self_introspection.test.mjs

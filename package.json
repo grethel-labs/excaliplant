@@ -33,7 +33,7 @@
     "./model": "./src/model/diagram.mjs"
   },
   "scripts": {
-    "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs",
+    "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/merge_driver.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "build:docs": "node docs/scripts/build-docs.mjs",
     "build:api": "typedoc",
