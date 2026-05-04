@@ -156,15 +156,35 @@ export function createComponentContext() {
     },
 
     finalize() {
+      // Auto-vivify endpoints for connections referencing identifiers
+      // that were never explicitly declared. This mirrors PlantUML's
+      // behaviour for class-diagram-style headers like
+      // `class Child extends Parent` — the parent is implicitly
+      // declared. Bracket/paren/quoted shorthand references (`[A]`,
+      // `(B)`, `"C"`) deliberately do *not* auto-vivify so that the
+      // existing component-style behaviour (drop arrows to undeclared
+      // shapes) is preserved.
+      const ensureEndpoint = (/** @type {string} */ id, /** @type {boolean} */ shorthand) => {
+        const existing = boxes.get(id);
+        if (existing) return existing;
+        if (shorthand) return null;
+        const box = new Box({ id, title: id, shape: "class" });
+        boxes.set(id, box);
+        ensureFloatingPlane().addBox(box);
+        return box;
+      };
       // Resolve connections.
       for (const c of pendingConnections) {
-        const fromBox = boxes.get(c.fromId);
-        const toBox = boxes.get(c.toId);
+        const fromBox = ensureEndpoint(c.fromId, !!c.fromShorthand);
+        const toBox = ensureEndpoint(c.toId, !!c.toShorthand);
         if (!fromBox || !toBox || fromBox === toBox) continue;
         const [from, to] = c.reversed ? [toBox, fromBox] : [fromBox, toBox];
         const [startAh, endAh] = c.reversed
           ? [c.endArrowhead, c.startArrowhead]
           : [c.startArrowhead, c.endArrowhead];
+        const [fromMul, toMul] = c.reversed
+          ? [c.toMul || "", c.fromMul || ""]
+          : [c.fromMul || "", c.toMul || ""];
         diagram.addConnection(
           new Connection({
             id: `${c.fromId}->${c.toId}#${diagram.connections.length}`,
@@ -176,6 +196,8 @@ export function createComponentContext() {
             startArrowhead: startAh,
             endArrowhead: endAh,
             directionHint: c.directionHint,
+            fromMul,
+            toMul,
           }),
         );
       }

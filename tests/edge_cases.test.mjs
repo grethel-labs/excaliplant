@@ -248,3 +248,162 @@ test("renderDiagram works with a hand-built model (no PlantUML)", async () => {
   assert.equal(doc.type, "excalidraw");
   assert.ok(doc.elements.length > 0);
 });
+
+// ---------------------------------------------------------------------------
+// Class-diagram support (tplant-style PlantUML)
+// ---------------------------------------------------------------------------
+
+test("class diagram: interface / enum / abstract class blocks parse with members", () => {
+  const src = `@startuml
+interface SerializationContext {
+    +visited: Set<number>
+    +maxDepth: number
+}
+
+enum CanvasObjectState {
+    PLACING
+    SELECTABLE
+    EDITING
+}
+
+abstract class BaseStyle {
+    +color: Colord
+    +{abstract} toSnapshot(): StyleSnapshot
+    +{static} fromSnapshot(s: BorderSnapshot): BaseStyle
+}
+@enduml`;
+  const d = parsePlantUml(src);
+  const ctx = d.boxById("SerializationContext");
+  assert.ok(ctx, "interface box should exist");
+  assert.equal(ctx.shape, "interface");
+  assert.equal(ctx.stereotype, "interface");
+  assert.deepEqual(ctx.members, ["+visited: Set<number>", "+maxDepth: number"]);
+
+  const enumBox = d.boxById("CanvasObjectState");
+  assert.equal(enumBox.shape, "enum");
+  assert.equal(enumBox.stereotype, "enumeration");
+  assert.deepEqual(enumBox.members, ["PLACING", "SELECTABLE", "EDITING"]);
+
+  const base = d.boxById("BaseStyle");
+  assert.equal(base.shape, "class");
+  assert.equal(base.stereotype, "abstract");
+  // Modifier tags must survive `explodeBraces` and remain attached to
+  // the member line.
+  assert.ok(base.members.some((m) => m.includes("{abstract} toSnapshot")));
+  assert.ok(base.members.some((m) => m.includes("{static} fromSnapshot")));
+});
+
+test("class diagram: extends / implements headers create inheritance + realisation edges", () => {
+  const src = `@startuml
+interface Serializable<TSnapshot extends BaseSnapshot> {
+    +toSnapshot(): TSnapshot
+}
+
+interface StyleSnapshot extends BaseSnapshot {
+    +styleType: string
+}
+
+abstract class BaseStyle implements Serializable {
+    +color: Colord
+}
+
+class ObjectBorder extends BaseStyle {
+    +thickness: number
+}
+@enduml`;
+  const d = parsePlantUml(src);
+  // Generics survive on the title but the id is the bare name.
+  const serializable = d.boxById("Serializable");
+  assert.ok(serializable);
+  assert.match(serializable.title, /Serializable<TSnapshot extends BaseSnapshot>/);
+  // Undeclared parents (BaseSnapshot) auto-vivify as class stubs so
+  // inheritance edges aren't silently dropped.
+  assert.ok(d.boxById("BaseSnapshot"), "BaseSnapshot should auto-vivify");
+  // extends → inheritance, implements → realization.
+  const inh = d.connections.find(
+    (c) => c.from.id === "StyleSnapshot" && c.to.id === "BaseSnapshot",
+  );
+  assert.ok(inh);
+  assert.equal(inh.kind, "inheritance");
+  assert.equal(inh.dashed, false);
+  const impl = d.connections.find((c) => c.from.id === "BaseStyle" && c.to.id === "Serializable");
+  assert.ok(impl);
+  assert.equal(impl.kind, "realization");
+  assert.equal(impl.dashed, true);
+  const ext = d.connections.find((c) => c.from.id === "ObjectBorder" && c.to.id === "BaseStyle");
+  assert.ok(ext);
+  assert.equal(ext.kind, "inheritance");
+});
+
+test("class diagram: connection multiplicity labels are captured", () => {
+  const src = `@startuml
+class A
+class B
+class C
+A "1" o-- "0..*" B : contains
+A --> "1" C
+@enduml`;
+  const d = parsePlantUml(src);
+  const ab = d.connections.find((c) => c.from.id === "A" && c.to.id === "B");
+  assert.ok(ab);
+  assert.equal(ab.fromMul, "1");
+  assert.equal(ab.toMul, "0..*");
+  assert.equal(ab.label, "contains");
+  assert.equal(ab.kind, "aggregation");
+  const ac = d.connections.find((c) => c.from.id === "A" && c.to.id === "C");
+  assert.ok(ac);
+  assert.equal(ac.fromMul, "");
+  assert.equal(ac.toMul, "1");
+});
+
+test("class diagram: skinparam preamble is silently accepted", () => {
+  const src = `@startuml
+skinparam linetype ortho
+skinparam classBackgroundColor #FEFEFE
+skinparam classBorderColor #333333
+skinparam stereotypeCBackgroundColor #E8E8E8
+class A
+class B
+A --> B
+@enduml`;
+  // No errors / unknown lines under strict mode.
+  const d = parsePlantUml(src, { unknownLines: "strict" });
+  assert.equal(d.connections.length, 1);
+});
+
+test("class diagram: end-to-end render of tplant-style source produces SVG", async () => {
+  const src = `@startuml
+skinparam linetype ortho
+
+interface Serializable<TSnapshot extends BaseSnapshot> {
+    +toSnapshot(): TSnapshot
+}
+
+enum CanvasObjectState {
+    PLACING
+    SELECTABLE
+}
+
+abstract class BaseStyle implements Serializable {
+    +color: Colord
+    +{abstract} toSnapshot(): StyleSnapshot
+}
+
+class ObjectBorder extends BaseStyle {
+    +thickness: number
+    +{static} fromSnapshot(s: BorderSnapshot): ObjectBorder
+}
+
+ObjectBorder --> "1" BorderType
+@enduml`;
+  const doc = await renderPlantUml(src);
+  const { excalidrawToSvg } = await import("../index.mjs");
+  const svg = excalidrawToSvg(doc);
+  // Stereotypes rendered with guillemets.
+  assert.match(svg, /«interface»/);
+  assert.match(svg, /«enumeration»/);
+  assert.match(svg, /«abstract»/);
+  // Members survive into the rendered output.
+  assert.ok(svg.includes("PLACING"));
+  assert.ok(svg.includes("thickness"));
+});

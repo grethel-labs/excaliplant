@@ -4,6 +4,31 @@ All notable changes to `@grethel-labs/excaliplant` are documented in this
 file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Class-diagram support for tplant-style PlantUML sources. The parser now
+  understands `class | abstract class | interface | enum` blocks with
+  generic type parameters (`Container<T extends Base>`), `extends`, and
+  `implements` clauses, so headers like
+  `class Child extends Parent` or `abstract class Foo implements Bar`
+  produce inheritance / realisation edges automatically.
+- Connection multiplicity labels: `A "1" o-- "0..*" B : contains` is now
+  parsed and exposed as `Connection.fromMul` / `Connection.toMul`.
+- New `enum` shape rendered as a UML class compartment with the
+  `«enumeration»` stereotype; `interface` boxes carrying members render
+  as compartment boxes with the `«interface»` stereotype.
+- Member modifier tags (`{abstract}`, `{static}`, `{field}`, `{method}`)
+  survive `explodeBraces` and stay attached to the surrounding member
+  line.
+- Class-diagram arrow targets that are referenced via a bare identifier
+  but never explicitly declared (typical for parents living in external
+  libraries) auto-vivify as stub class boxes, matching PlantUML's
+  behaviour. Bracket / paren / quoted shorthand references continue to
+  drop silently when undeclared, preserving existing component-diagram
+  semantics.
+
 ## [0.3.1] - 2026-05-04
 
 ### Fixed

@@ -132,6 +132,19 @@ export function explodeBraces(lines) {
         buf += c;
         continue;
       }
+      // Preserve PlantUML class-diagram modifier tags (`{abstract}`,
+      // `{static}`, `{field}`, `{method}`, …) as part of the surrounding
+      // line. These are written `{word}` and must not be split off as
+      // their own brace lines, otherwise members like `+{abstract} foo()`
+      // disintegrate.
+      if (!inStr && c === "{") {
+        const m = raw.slice(i).match(/^\{([A-Za-z_][\w-]*)\}/);
+        if (m) {
+          buf += m[0];
+          i += m[0].length - 1;
+          continue;
+        }
+      }
       if (!inStr && (c === "{" || c === "}")) {
         if (buf.trim()) out.push(buf);
         out.push(c);
@@ -187,6 +200,8 @@ export function normaliseShape(kw) {
       return "entity";
     case "class":
       return "class";
+    case "enum":
+      return "enum";
     case "rectangle":
       return "rectangle";
     case "boundary":

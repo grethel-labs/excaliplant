@@ -143,7 +143,16 @@ function sizeBox(box, width) {
       shapeMin = Math.max(shapeMin, 110 + titleHeight);
       break;
     case "interface":
-      shapeMin = Math.max(shapeMin, 70 + titleHeight);
+      // Class-diagram interface: sized like a class once it has
+      // members or an explicit stereotype.
+      if ((box.members && box.members.length) || box.stereotype) {
+        shapeMin = Math.max(
+          shapeMin,
+          textHeight + (box.members?.length ?? 0) * FONT.sizeDescription * FONT.lineHeight + 12,
+        );
+      } else {
+        shapeMin = Math.max(shapeMin, 70 + titleHeight);
+      }
       break;
     case "usecase":
       shapeMin = Math.max(shapeMin, 70);
@@ -159,6 +168,7 @@ function sizeBox(box, width) {
       shapeMin = Math.max(shapeMin, textHeight + 8);
       break;
     case "class":
+    case "enum":
       if (box.members && box.members.length) {
         shapeMin = Math.max(
           shapeMin,

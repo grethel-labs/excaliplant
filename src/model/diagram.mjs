@@ -36,6 +36,7 @@ export const SHAPES = [
   "interface",
   "entity",
   "class",
+  "enum",
   "note",
 ];
 
@@ -221,6 +222,8 @@ export class Connection {
    * @param {string|null} [spec.startArrowhead] Excalidraw arrowhead at the source side.
    * @param {string|null} [spec.endArrowhead]   Excalidraw arrowhead at the target side.
    * @param {string|null} [spec.directionHint]  Layout hint: up | down | left | right.
+   * @param {string} [spec.fromMul] Multiplicity label rendered next to the source endpoint.
+   * @param {string} [spec.toMul]   Multiplicity label rendered next to the target endpoint.
    */
   constructor({
     id,
@@ -232,6 +235,8 @@ export class Connection {
     startArrowhead = null,
     endArrowhead = "arrow",
     directionHint = null,
+    fromMul = "",
+    toMul = "",
   }) {
     this.id = id;
     this.from = from;
@@ -245,6 +250,18 @@ export class Connection {
     this.endArrowhead = endArrowhead;
     /** @type {string|null} */
     this.directionHint = directionHint; // up|down|left|right|null
+    /**
+     * Multiplicity label rendered next to the source endpoint (e.g. `1`).
+     * Empty when no multiplicity was declared.
+     * @type {string}
+     */
+    this.fromMul = fromMul;
+    /**
+     * Multiplicity label rendered next to the target endpoint (e.g. `0..*`).
+     * Empty when no multiplicity was declared.
+     * @type {string}
+     */
+    this.toMul = toMul;
     /** @type {string|null} */
     this.fromSide = null;
     /** @type {string|null} */

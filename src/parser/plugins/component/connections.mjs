@@ -6,22 +6,35 @@
 
 import { classifyArrow, slug, unescapeLabel } from "../../utils.mjs";
 
-const CONNECTION_LINE =
-  /^(\S+)\s+([-.*o<|>]+(?:up|down|left|right|UP|DOWN|LEFT|RIGHT)?[-.*o<|>]*)\s+(\S+)(?:\s*:\s*(.+))?$/;
+// Endpoint can be a bare identifier, a bracket/paren/quoted shorthand,
+// or a quoted name. The arrow may be flanked by quoted multiplicity
+// labels: `Container "1" o-- "0..*" Item : "contains"`.
+const CONNECTION_LINE = new RegExp(
+  '^(\\[[^\\]]+\\]|\\([^)]+\\)|"[^"]+"|\\S+)' + // from endpoint
+    '(?:\\s+"([^"]*)")?' + // optional from-side multiplicity
+    "\\s+([-.*o<|>]+(?:up|down|left|right|UP|DOWN|LEFT|RIGHT)?[-.*o<|>]*)" + // arrow
+    '(?:\\s+"([^"]*)")?' + // optional to-side multiplicity
+    '\\s+(\\[[^\\]]+\\]|\\([^)]+\\)|"[^"]+"|\\S+)' + // to endpoint
+    "(?:\\s*:\\s*(.+))?$", // optional label
+);
 
 /**
  * Normalise a connection endpoint so that bracket / paren shorthands
  * (`[Foo]`, `(Use case)`) and quoted labels resolve to the same
  * identifier the corresponding shape declaration uses.
  * @param {string} raw Raw token captured by the connection regex.
- * @returns {string} Identifier suitable for the box-id lookup table.
+ * @returns {{id: string, shorthand: boolean}} Identifier suitable for
+ *   the box-id lookup table, plus a flag indicating whether the source
+ *   used a bracket/paren/quoted shorthand (those should not auto-vivify
+ *   a stub class box if the identifier is unknown — they are meant to
+ *   reference a previously declared shape).
  */
 function normaliseEndpoint(raw) {
   let s = raw.trim();
-  if (s.startsWith("[") && s.endsWith("]")) return slug(s.slice(1, -1));
-  if (s.startsWith("(") && s.endsWith(")")) return slug(s.slice(1, -1));
-  if (s.startsWith('"') && s.endsWith('"')) return slug(s.slice(1, -1));
-  return s;
+  if (s.startsWith("[") && s.endsWith("]")) return { id: slug(s.slice(1, -1)), shorthand: true };
+  if (s.startsWith("(") && s.endsWith(")")) return { id: slug(s.slice(1, -1)), shorthand: true };
+  if (s.startsWith('"') && s.endsWith('"')) return { id: slug(s.slice(1, -1)), shorthand: true };
+  return { id: s, shorthand: false };
 }
 
 /**
@@ -35,15 +48,19 @@ export const connectionPlugin = {
   tryLine(line, ctx) {
     const m = line.match(CONNECTION_LINE);
     if (!m) return false;
-    const [, rawFrom, op, rawTo, label] = m;
+    const [, rawFrom, fromMul, op, toMul, rawTo, label] = m;
     const arrow = classifyArrow(op);
     if (!arrow) return false;
-    const fromId = normaliseEndpoint(rawFrom);
-    const toId = normaliseEndpoint(rawTo);
+    const from = normaliseEndpoint(rawFrom);
+    const to = normaliseEndpoint(rawTo);
     ctx.queueConnection({
-      fromId,
-      toId,
+      fromId: from.id,
+      toId: to.id,
+      fromShorthand: from.shorthand,
+      toShorthand: to.shorthand,
       label: unescapeLabel(label?.trim() || ""),
+      fromMul: fromMul || "",
+      toMul: toMul || "",
       ...arrow,
     });
     return true;
