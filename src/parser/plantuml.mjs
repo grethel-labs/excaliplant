@@ -96,6 +96,21 @@ export const DEFAULT_SEQUENCE_PLUGINS = [
 ];
 
 /**
+ * Default upper bounds for `parsePlantUml`. Callers can override any
+ * of these via the `limits` option. The defaults are generous (10 MiB
+ * source, 100k lines, 10k boxes/edges) so legitimate large diagrams
+ * still parse, but malicious or runaway inputs fail fast instead of
+ * exhausting memory.
+ * @public
+ */
+export const DEFAULT_PARSE_LIMITS = Object.freeze({
+  maxInputBytes: 10 * 1024 * 1024,
+  maxLines: 100_000,
+  maxNodes: 10_000,
+  maxEdges: 10_000,
+});
+
+/**
  * Parse a PlantUML source string into the input-agnostic diagram model.
  * The parser auto-detects sequence vs. component syntax via the
  * internal `looksLikeSequence` heuristic.
@@ -105,6 +120,14 @@ export const DEFAULT_SEQUENCE_PLUGINS = [
  * @param {{component?: any[], sequence?: any[]}} [opts.plugins]
  *   Override the default plugin lists. Useful for adding support for
  *   unsupported PlantUML constructs without forking the library.
+ * @param {Partial<typeof DEFAULT_PARSE_LIMITS>} [opts.limits]
+ *   Override one or more resource limits. Anything omitted keeps the
+ *   default. Pass `null`/`Infinity` to disable a particular limit.
+ * @param {"silent"|"warn"|"strict"} [opts.unknownLines]
+ *   How to handle PlantUML lines that no plugin consumes. `silent`
+ *   (the default, preserves existing behaviour) drops them. `warn`
+ *   emits a `console.warn` per line. `strict` throws a `SyntaxError`
+ *   listing every unknown line.
  * @returns {import("../model/diagram.mjs").Diagram
  *          | import("../model/diagram.mjs").SequenceDiagram}
  * @public
@@ -112,24 +135,99 @@ export const DEFAULT_SEQUENCE_PLUGINS = [
 export function parsePlantUml(text, opts = {}) {
   const componentPlugins = opts.plugins?.component ?? DEFAULT_COMPONENT_PLUGINS;
   const sequencePlugins = opts.plugins?.sequence ?? DEFAULT_SEQUENCE_PLUGINS;
+  const limits = { ...DEFAULT_PARSE_LIMITS, ...(opts.limits || {}) };
+  const unknownMode = opts.unknownLines ?? "silent";
 
-  if (looksLikeSequence(text)) {
-    return /** @type {import("../model/diagram.mjs").SequenceDiagram} */ (
-      runEngine({
-        lines: text.split(/\r?\n/),
-        plugins: sequencePlugins,
-        ctx: createSequenceContext(),
-      })
+  if (typeof text !== "string") {
+    throw new TypeError("parsePlantUml: `text` must be a string");
+  }
+  const byteLen = Buffer.byteLength(text, "utf8");
+  if (Number.isFinite(limits.maxInputBytes) && byteLen > limits.maxInputBytes) {
+    throw new RangeError(
+      `parsePlantUml: input is ${byteLen} bytes, exceeds maxInputBytes=${limits.maxInputBytes}`,
+    );
+  }
+  const lines = text.split(/\r?\n/);
+  if (Number.isFinite(limits.maxLines) && lines.length > limits.maxLines) {
+    throw new RangeError(
+      `parsePlantUml: input has ${lines.length} lines, exceeds maxLines=${limits.maxLines}`,
     );
   }
 
-  return /** @type {import("../model/diagram.mjs").Diagram} */ (
-    runEngine({
-      lines: explodeBraces(text.split(/\r?\n/)),
-      plugins: componentPlugins,
-      ctx: createComponentContext(),
-    })
-  );
+  /** @type {Array<{line:string,index:number}>} */
+  const unknown = [];
+  const onUnknownLine =
+    unknownMode === "silent"
+      ? undefined
+      : (/** @type {{line:string,index:number}} */ info) => {
+          unknown.push(info);
+          if (unknownMode === "warn") {
+            console.warn(`parsePlantUml: unknown line ${info.index + 1}: ${info.line}`);
+          }
+        };
+
+  let diagram;
+  if (looksLikeSequence(text)) {
+    diagram = /** @type {import("../model/diagram.mjs").SequenceDiagram} */ (
+      runEngine({
+        lines,
+        plugins: sequencePlugins,
+        ctx: createSequenceContext(),
+        onUnknownLine,
+      })
+    );
+  } else {
+    diagram = /** @type {import("../model/diagram.mjs").Diagram} */ (
+      runEngine({
+        lines: explodeBraces(lines),
+        plugins: componentPlugins,
+        ctx: createComponentContext(),
+        onUnknownLine,
+      })
+    );
+  }
+  if (unknownMode === "strict" && unknown.length) {
+    const detail = unknown
+      .slice(0, 10)
+      .map((u) => `  line ${u.index + 1}: ${u.line}`)
+      .join("\n");
+    const more = unknown.length > 10 ? `\n  ...and ${unknown.length - 10} more` : "";
+    throw new SyntaxError(`parsePlantUml: ${unknown.length} unknown line(s):\n${detail}${more}`);
+  }
+  enforceModelLimits(diagram, limits);
+  return diagram;
+}
+
+/**
+ * Walk the parsed model and reject diagrams that exceed `limits`.
+ * Counts boxes (incl. notes) across all planes/subplanes and the
+ * connection list. Sequence diagrams are bounded by participant +
+ * message + note counts.
+ * @param {any} diagram Parsed model.
+ * @param {{maxNodes:number, maxEdges:number}} limits Effective limits.
+ */
+function enforceModelLimits(diagram, limits) {
+  let nodes = 0;
+  let edges = 0;
+  if (Array.isArray(diagram?.planes)) {
+    for (const plane of diagram.planes) {
+      nodes += plane.allBoxes?.length ?? plane.boxes?.length ?? 0;
+    }
+    edges = diagram.connections?.length ?? 0;
+  } else {
+    nodes = (diagram?.participants?.length ?? 0) + (diagram?.notes?.length ?? 0);
+    edges = diagram?.messages?.length ?? 0;
+  }
+  if (Number.isFinite(limits.maxNodes) && nodes > limits.maxNodes) {
+    throw new RangeError(
+      `parsePlantUml: diagram has ${nodes} nodes, exceeds maxNodes=${limits.maxNodes}`,
+    );
+  }
+  if (Number.isFinite(limits.maxEdges) && edges > limits.maxEdges) {
+    throw new RangeError(
+      `parsePlantUml: diagram has ${edges} edges, exceeds maxEdges=${limits.maxEdges}`,
+    );
+  }
 }
 
 // Sequence-only keywords trigger the sequence pipeline. `actor` and

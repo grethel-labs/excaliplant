@@ -19,8 +19,25 @@ jobs:
           cache: npm
           registry-url: "https://registry.npmjs.org"
       - run: npm ci
+      - run: npm run typecheck
+      - run: npm run format:check
       - run: npm test
+      - name: npm audit (production, fail on high)
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run build
+      - name: Pack + smoke-install (clean project)
+        run: |
+          set -eux
+          mkdir -p tarball
+          npm pack --pack-destination "$PWD/tarball"
+          TARBALL=$(ls tarball/grethel-labs-excaliplant-*.tgz | head -1)
+          mkdir smoke-test
+          cp scripts/smoke.mjs smoke-test/
+          cd smoke-test
+          npm init -y >/dev/null
+          npm pkg set type=module
+          npm install "$PWD/../$TARBALL"
+          node smoke.mjs
       - name: Verify package.json version matches tag
         run: |
           PKG_VERSION="v$(node -p "require('./package.json').version")"

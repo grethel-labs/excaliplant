@@ -53,7 +53,7 @@ import { excalidrawToSvg } from "./src/render/svg.mjs";
 import { excalidrawJsonToCanvasSvg } from "./src/render/canvas_svg.mjs";
 import { svgToPng } from "./src/render/png.mjs";
 
-export { parsePlantUml } from "./src/parser/plantuml.mjs";
+export { parsePlantUml, DEFAULT_PARSE_LIMITS } from "./src/parser/plantuml.mjs";
 export { layoutDiagram } from "./src/layout/elk_layout.mjs";
 export { exportDiagram } from "./src/render/excalidraw.mjs";
 export { excalidrawToSvg } from "./src/render/svg.mjs";
@@ -156,13 +156,15 @@ export class RenderResult {
  * @param {string} [opts.sourceLabel]  Forwarded to the renderer's
  *                                     appState.name.
  * @param {() => number} [opts.rng]    Optional deterministic RNG.
+ * @param {Partial<import("./src/parser/plantuml.mjs").DEFAULT_PARSE_LIMITS>} [opts.limits]
+ *   Optional resource limits forwarded to {@link parsePlantUml}.
  * @returns {RenderResult}             Thenable wrapping the Excalidraw
  *                                     JSON document.
  */
 export function renderPlantUml(plantuml, opts = {}) {
   return new RenderResult(
     (async () => {
-      const diagram = parsePlantUml(plantuml);
+      const diagram = parsePlantUml(plantuml, { limits: opts.limits });
       await layoutDiagram(diagram);
       return exportDiagram(diagram, {
         sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
