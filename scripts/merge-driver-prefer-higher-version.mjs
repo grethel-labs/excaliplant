@@ -28,6 +28,7 @@
 
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 /**
  * Compare two semver-ish strings (`x.y.z`, optional `v` prefix and
@@ -200,8 +201,10 @@ export function runDriver({ ours, base, theirs, markerSize = "7", label = "" }) 
   return remaining === 0 ? 0 : 1;
 }
 
-// CLI entrypoint.
-if (import.meta.url === `file://${process.argv[1]}`) {
+// CLI entrypoint. Use `pathToFileURL` so the comparison works on
+// Windows (where `process.argv[1]` is a drive-letter path like
+// `C:\\foo\\bar.mjs`, not a `file://` URL).
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [, , oursPath, basePath, theirsPath, markerSize, label] = process.argv;
   if (!oursPath || !basePath || !theirsPath) {
     console.error(
