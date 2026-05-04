@@ -60,6 +60,47 @@ function bumpVersion(version, bump) {
   throw new Error(`Invalid release bump: ${bump}`);
 }
 
+function derivePreviousMinorLine(versionLine) {
+  const parsed = parseVersion(versionLine.replace(/\.x$/, ".0"));
+  if (parsed.minor > 0) {
+    return `${parsed.major}.${parsed.minor - 1}.x`;
+  }
+  if (parsed.major > 0) {
+    return `${parsed.major - 1}.0.x`;
+  }
+  return "0.0.x";
+}
+
+function rewriteSecuritySupportedVersions(content, nextVersion) {
+  const next = parseVersion(nextVersion);
+  const nextSupported = `${next.major}.${next.minor}.x`;
+  const lines = content.split("\n");
+  const tableRowRe = /^\|\s*`(\d+\.\d+\.x)`\s*\|\s*:[a-z_]+:\s*\|\s*$/;
+  const rowIndexes = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (tableRowRe.test(lines[i])) {
+      rowIndexes.push(i);
+    }
+  }
+
+  if (rowIndexes.length === 0) {
+    return content;
+  }
+
+  const oldSupportedMatch = tableRowRe.exec(lines[rowIndexes[0]]);
+  const oldDeprecatedMatch =
+    rowIndexes.length > 1 ? tableRowRe.exec(lines[rowIndexes[1]]) : null;
+  const oldSupported = oldSupportedMatch?.[1] ?? nextSupported;
+  const oldDeprecated = oldDeprecatedMatch?.[1] ?? derivePreviousMinorLine(nextSupported);
+  const nextDeprecated = oldSupported !== nextSupported ? oldSupported : oldDeprecated;
+
+  lines[rowIndexes[0]] = `| \`${nextSupported}\` | :white_check_mark: |`;
+  if (rowIndexes.length > 1) {
+    lines[rowIndexes[1]] = `| \`${nextDeprecated}\` | :x:                |`;
+  }
+  return lines.join("\n");
+}
+
 async function readJson(file) {
   return JSON.parse(await readFile(file, "utf8"));
 }
@@ -91,6 +132,18 @@ async function main() {
       lockJson.packages[""].version = nextVersion;
     }
     await writeJson(lockPath, lockJson);
+  }
+
+  const securityPath = path.join(REPO_ROOT, "SECURITY.md");
+  if (existsSync(securityPath)) {
+    const securityContent = await readFile(securityPath, "utf8");
+    const updatedSecurityContent = rewriteSecuritySupportedVersions(
+      securityContent,
+      nextVersion,
+    );
+    if (updatedSecurityContent !== securityContent) {
+      await writeFile(securityPath, updatedSecurityContent);
+    }
   }
 
   console.log(nextVersion);

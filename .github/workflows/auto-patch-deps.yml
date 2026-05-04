@@ -71,9 +71,9 @@ jobs:
         if: steps.patch.outputs.changed == 'true'
         id: bump
         run: |
-          NEW_VERSION=$(npm version patch --no-git-tag-version)
-          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Bumped to ${NEW_VERSION}"
+          NEW_VERSION=$(node scripts/bump-release-version.mjs --bump patch)
+          echo "version=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Bumped to v${NEW_VERSION}"
 
       - name: Rebuild docs with new version
         if: steps.patch.outputs.changed == 'true'
@@ -91,7 +91,7 @@ jobs:
           # Always recreate the auto-patch branch from the current main
           # so old, stale patch attempts get overwritten.
           git checkout -B "$BRANCH"
-          git add package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
+          git add package.json package-lock.json SECURITY.md README.md docs/.build-manifest.json docs/ressources/generated/
           MSG=$'deps: auto-patch dependencies + release '"${NEW_VERSION}"$'\n\n${{ steps.patch.outputs.summary }}'
           git commit -m "$MSG"
           git push --force-with-lease origin "$BRANCH"
