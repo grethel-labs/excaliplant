@@ -67,7 +67,8 @@ export function createSequenceContext() {
         stereotype = "",
       },
     ) {
-      if (diagram.participantById(id)) return diagram.participantById(id);
+      const existing = diagram.participantById(id);
+      if (existing) return existing;
       const p = new Participant({ id, title, shape, stereotype });
       diagram.addParticipant(p);
       return p;

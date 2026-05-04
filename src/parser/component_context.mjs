@@ -29,7 +29,7 @@ import { planeColor, subplaneColor } from "../style/colors.mjs";
  */
 export function createComponentContext() {
   const diagram = new Diagram();
-  /** @type {Array<{kind:'plane'|'subplane', plane?:Plane, subplane?:Subplane, id:string}>} */
+  /** @type {Array<{kind:'plane', plane:Plane, id:string} | {kind:'subplane', subplane:Subplane, id:string}>} */
   const stack = [];
   const planes = new Map();
   const subplanes = new Map();
@@ -58,7 +58,8 @@ export function createComponentContext() {
 
   const findPlane = () => {
     for (let i = stack.length - 1; i >= 0; i--) {
-      if (stack[i].kind === "plane") return stack[i].plane;
+      const entry = stack[i];
+      if (entry.kind === "plane") return entry.plane;
     }
     return null;
   };
@@ -89,9 +90,11 @@ export function createComponentContext() {
         planes.set(id, plane);
         stack.push({ kind: "plane", plane, id });
       } else {
-        const parentPlane = findPlane();
+        // findPlane is non-null here because the first stack entry
+        // is always a plane (openContainer with empty stack pushes one).
+        const parentPlane = /** @type {Plane} */ (findPlane() ?? ensureFloatingPlane());
         const sub = new Subplane({ id, title, kind });
-        if (parentPlane?.color) sub.color = subplaneColor(parentPlane.color);
+        if (parentPlane.color) sub.color = subplaneColor(parentPlane.color);
         parentPlane.addSubplane(sub);
         subplanes.set(id, sub);
         stack.push({ kind: "subplane", subplane: sub, id });
