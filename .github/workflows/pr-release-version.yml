@@ -132,7 +132,12 @@ jobs:
           }
 
           const selectedLabel = selected[0];
-          appendFileSync(process.env.GITHUB_OUTPUT, `type=${labelToBump.get(selectedLabel)}\n`);
+          try {
+            appendFileSync(process.env.GITHUB_OUTPUT, `type=${labelToBump.get(selectedLabel)}\n`);
+          } catch (error) {
+            console.error(`::error::Failed to write workflow output: ${error.message}`);
+            process.exit(1);
+          }
           console.error(`Release bump: ${labelToBump.get(selectedLabel)} (${selectedLabel})`);
           NODE
 
