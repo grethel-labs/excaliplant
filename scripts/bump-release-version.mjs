@@ -88,8 +88,7 @@ function rewriteSecuritySupportedVersions(content, nextVersion) {
   }
 
   const oldSupportedMatch = tableRowRe.exec(lines[rowIndexes[0]]);
-  const oldDeprecatedMatch =
-    rowIndexes.length > 1 ? tableRowRe.exec(lines[rowIndexes[1]]) : null;
+  const oldDeprecatedMatch = rowIndexes.length > 1 ? tableRowRe.exec(lines[rowIndexes[1]]) : null;
   const oldSupported = oldSupportedMatch?.[1] ?? nextSupported;
   const oldDeprecated = oldDeprecatedMatch?.[1] ?? derivePreviousMinorLine(nextSupported);
   const nextDeprecated = oldSupported !== nextSupported ? oldSupported : oldDeprecated;
@@ -137,10 +136,7 @@ async function main() {
   const securityPath = path.join(REPO_ROOT, "SECURITY.md");
   if (existsSync(securityPath)) {
     const securityContent = await readFile(securityPath, "utf8");
-    const updatedSecurityContent = rewriteSecuritySupportedVersions(
-      securityContent,
-      nextVersion,
-    );
+    const updatedSecurityContent = rewriteSecuritySupportedVersions(securityContent, nextVersion);
     if (updatedSecurityContent !== securityContent) {
       await writeFile(securityPath, updatedSecurityContent);
     }
