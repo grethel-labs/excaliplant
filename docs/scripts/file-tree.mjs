@@ -5,7 +5,16 @@
 // Keeping this in code — rather than maintained by hand in the
 // template — guarantees the tree never drifts from reality.
 
-import tree from "tree-node-cli";
+// `tree-node-cli` v1 exposes the function as a CommonJS default export,
+// while v3 ships an ESM named export. Import the namespace and pick whichever
+// is available so the docs build works across both major versions.
+import * as treeModule from "tree-node-cli";
+
+/** @type {(root: string, opts?: object) => string} */
+const tree =
+  /** @type {any} */ (treeModule).tree ??
+  /** @type {any} */ (treeModule).default ??
+  /** @type {any} */ (treeModule);
 import { REPO_ROOT } from "./config.mjs";
 
 /**
