@@ -32,15 +32,16 @@ jobs:
           cache: npm
 
       - name: Resolve release bump from live labels and branch naming
+        id: bump
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           node <<'NODE' >> "$GITHUB_OUTPUT"
-          const { execSync } = require("node:child_process");
+          const { execFileSync } = require("node:child_process");
 
-          const prNumber = process.env.PR_NUMBER;
+          const prNumber = process.env.PR_NUMBER || "";
           const branchName = process.env.PR_HEAD_REF || "";
           const releaseLabels = ["release:major", "release:minor", "release:patch"];
           const labelToBump = new Map([
@@ -49,20 +50,26 @@ jobs:
             ["release:patch", "patch"],
           ]);
 
+          if (!/^\d+$/.test(prNumber)) {
+            console.error(`::error::Invalid PR number: ${JSON.stringify(prNumber)}`);
+            process.exit(1);
+          }
+
           function readLiveLabels() {
-            const output = execSync(
-              `gh pr view "${prNumber}" --json labels --jq '[.labels[].name]'`,
+            const output = execFileSync(
+              "gh",
+              ["pr", "view", prNumber, "--json", "labels", "--jq", "[.labels[].name]"],
               { encoding: "utf8" },
             );
             return JSON.parse(output);
           }
 
           function inferReleaseLabelsFromBranch(branch) {
-            return releaseLabels.filter((label) => {
-              const kind = label.split(":")[1];
-              const pattern = new RegExp(`(^|[^a-zA-Z])${kind}([^a-zA-Z]|$)`, "i");
-              return pattern.test(branch);
-            });
+            const inferred = [];
+            if (/(^|[^a-zA-Z])major([^a-zA-Z]|$)/i.test(branch)) inferred.push("release:major");
+            if (/(^|[^a-zA-Z])minor([^a-zA-Z]|$)/i.test(branch)) inferred.push("release:minor");
+            if (/(^|[^a-zA-Z])patch([^a-zA-Z]|$)/i.test(branch)) inferred.push("release:patch");
+            return inferred;
           }
 
           let labels = readLiveLabels();
@@ -70,12 +77,12 @@ jobs:
 
           if (selected.length === 0) {
             const inferred = inferReleaseLabelsFromBranch(branchName);
-            let toAdd = "release:patch";
+            let selectedReleaseLabel = "release:patch";
 
             if (inferred.length === 1) {
-              toAdd = inferred[0];
+              selectedReleaseLabel = inferred[0];
               console.error(
-                `Auto-labeling PR #${prNumber} from branch "${branchName}" with ${toAdd}.`,
+                `Auto-labeling PR #${prNumber} from branch "${branchName}" with ${selectedReleaseLabel}.`,
               );
             } else if (inferred.length > 1) {
               console.error(
@@ -90,7 +97,18 @@ jobs:
               );
             }
 
-            execSync(`gh pr edit "${prNumber}" --add-label "${toAdd}"`, { stdio: "inherit" });
+            if (!releaseLabels.includes(selectedReleaseLabel)) {
+              console.error(
+                `::error::Unexpected release label candidate: ${selectedReleaseLabel}`,
+              );
+              process.exit(1);
+            }
+
+            execFileSync(
+              "gh",
+              ["pr", "edit", prNumber, "--add-label", selectedReleaseLabel],
+              { stdio: "inherit" },
+            );
             labels = readLiveLabels();
             selected = labels.filter((label) => releaseLabels.includes(label));
           }
