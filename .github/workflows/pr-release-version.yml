@@ -44,11 +44,26 @@ jobs:
           const prNumber = process.env.PR_NUMBER || "";
           const branchName = process.env.PR_HEAD_REF || "";
           const releaseLabels = ["release:major", "release:minor", "release:patch"];
+          const branchTokenPatterns = new Map([
+            ["major", /(^|[^a-zA-Z])major([^a-zA-Z]|$)/i],
+            ["minor", /(^|[^a-zA-Z])minor([^a-zA-Z]|$)/i],
+            ["patch", /(^|[^a-zA-Z])patch([^a-zA-Z]|$)/i],
+          ]);
           const labelToBump = new Map([
             ["release:major", "major"],
             ["release:minor", "minor"],
             ["release:patch", "patch"],
           ]);
+
+          if (!process.env.PR_NUMBER) {
+            console.error("::error::Missing PR_NUMBER environment variable.");
+            process.exit(1);
+          }
+
+          if (!process.env.PR_HEAD_REF) {
+            console.error("::error::Missing PR_HEAD_REF environment variable.");
+            process.exit(1);
+          }
 
           if (!/^\d+$/.test(prNumber)) {
             console.error(`::error::Invalid PR number: ${JSON.stringify(prNumber)}`);
@@ -65,8 +80,7 @@ jobs:
           }
 
           function inferReleaseLabelsFromBranch(branch) {
-            const hasToken = (token) =>
-              new RegExp(`(^|[^a-zA-Z])${token}([^a-zA-Z]|$)`, "i").test(branch);
+            const hasToken = (token) => branchTokenPatterns.get(token)?.test(branch) ?? false;
             const inferred = [];
             if (hasToken("major")) inferred.push("release:major");
             if (hasToken("minor")) inferred.push("release:minor");
@@ -94,7 +108,7 @@ jobs:
               );
               process.exit(1);
             } else {
-              console.error(
+              console.log(
                 `No MAJOR/MINOR/PATCH token in branch "${branchName}". Auto-labeling with release:patch.`,
               );
             }
