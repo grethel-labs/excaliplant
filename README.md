@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.5.0** &nbsp;·&nbsp; 114 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.5.1** &nbsp;·&nbsp; 116 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -113,7 +113,7 @@ regenerated from JSDoc on every `npm run build:docs` run.
 npm test
 ```
 
-Ships with **114 tests** across functional, edge-case,
+Ships with **116 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -194,6 +194,7 @@ PlantUML text
 excaliplant
 ├── assets
 │   └── fonts
+│       ├── Excalifont-Regular.ttf
 │       ├── Excalifont-Regular.woff2
 │       └── LICENSE.txt
 ├── bin
