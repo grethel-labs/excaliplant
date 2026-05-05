@@ -308,7 +308,14 @@ layout, the geometry fields are zero.
 ##### `Box.constructor`
 
 ```ts
-constructor({ id, title, description = "", shape = "rectangle", stereotype = "", members = [] });
+constructor({
+  id,
+  title,
+  description = "",
+  shape = "rectangle",
+  stereotype = "",
+  members = [],
+});
 ```
 
 | Param  | Type     | Description |

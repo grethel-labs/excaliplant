@@ -13,6 +13,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import nunjucks from "nunjucks";
+import prettier from "prettier";
 
 import { renderPlantUml, excalidrawJsonToCanvasSvg, svgToPng } from "../../index.mjs";
 import { extractDocBlocks } from "./extract-docs.mjs";
@@ -133,7 +134,20 @@ async function main() {
   // always runs alongside the README so they cannot drift apart.
   const apiModules = await buildApiModel([SRC_DIR, ENTRY_FILE], REPO_ROOT);
   const apiTpl = await readFile(API_TEMPLATE_FILE, "utf8");
-  const apiRendered = env.renderString(apiTpl, { pkg, modules: apiModules });
+  const apiRaw = env.renderString(apiTpl, { pkg, modules: apiModules });
+  // Collapse 3+ consecutive blank lines to 2 and remove a leading blank line.
+  // The API template uses {% if %}{% endif %} guards that leave stray blank
+  // lines when the condition is false; this normalises the output without
+  // requiring trimBlocks/lstripBlocks (which would interact badly with the
+  // explicit {%- -%} dash-stripping already present in the template).
+  const apiNormalised = apiRaw.replace(/\n{3,}/g, "\n\n").replace(/^\n/, "");
+  // Format through Prettier so the on-disk file is already Prettier-compliant.
+  // Without this step the build-manifest hash recorded here and the hash after
+  // a subsequent `npm run format` would diverge, causing the manifest check to
+  // fail even though no manual edits were made.
+  const apiRendered = await prettier.format(apiNormalised, {
+    filepath: API_OUTPUT_FILE,
+  });
   await writeFile(API_OUTPUT_FILE, apiRendered, "utf8");
   const apiSymbolCount = apiModules.reduce((n, m) => n + m.symbols.length, 0);
   console.log(
