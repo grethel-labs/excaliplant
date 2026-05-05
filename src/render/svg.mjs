@@ -303,7 +303,13 @@ function roughPolyline(el, withArrow) {
       ? ` marker-start="url(#m_${el.startArrowhead}_start)"`
       : "";
     const endMarker = el.endArrowhead ? ` marker-end="url(#m_${el.endArrowhead}_end)"` : "";
-    body += `<polyline points="${polyPts}" fill="none" stroke="${escapeAttr(el.strokeColor || "#000")}" stroke-width="0" stroke-opacity="0"${startMarker}${endMarker}/>`;
+    // Marker rendering rules vary across renderers:
+    //   - stroke-width="0" : Safari and resvg skip markers (degenerate stroke)
+    //   - stroke="none"    : some renderers also skip markers
+    // Safest combination: a real, non-zero stroke width in a fully
+    // transparent colour. The polyline contributes no visible pixels
+    // but markers still attach at the vertices everywhere.
+    body += `<polyline points="${polyPts}" fill="none" stroke="rgba(0,0,0,0)" stroke-width="1"${startMarker}${endMarker}/>`;
   }
   return body;
 }

@@ -3,11 +3,11 @@
   "files": {
     "README.md": "58d6c2bfd316d5847c1968de58d3d810632b07b2a43fbbef16343cb139b1f823",
     "docs/API.md": "b7c0368e0e10c2bf9057013bfa4e577c74cb2a4f03be120446760363cb3740ea",
-    "docs/ressources/generated/svg/modules.svg": "080f2ccaf977acb135578882a471b5a5f00352c2ec716e6816137824b93012a0",
-    "docs/ressources/generated/png/modules.png": "7fe41f61d6382fab62483634f6d835a5d958929db5b960b45a203efd188791da",
-    "docs/ressources/generated/svg/sequence.svg": "e58281806eb49c281ded6f44d69503b54030dca7111454d7a0d31f965d501493",
-    "docs/ressources/generated/png/sequence.png": "3b81c6f04336e338a2b254325dfa9cf113ba476af47c50cc85cae275da947006",
-    "docs/ressources/generated/svg/plugins.svg": "e44bb38ecfb2682d6d387b7c2426416fb4bf40a122c078e0d86d6e609e4ccd75",
-    "docs/ressources/generated/png/plugins.png": "03179984c8355fbb182fe98bb0003d9e04f21666c66ed3f51a6c3bca89fe2ac8"
+    "docs/ressources/generated/svg/modules.svg": "a791ade56540c82a3b12a5f03d54dc2469f2845b79be30fafe157c25c6dd3808",
+    "docs/ressources/generated/png/modules.png": "4b4d0682ef2d6d2a6ae316c0b042a8e83775fd0685a3085461521fb8427f08fe",
+    "docs/ressources/generated/svg/sequence.svg": "97aeee61360000f8791541b0c7a98e791f5e5f84cd3432c69bb1bc4b103919b6",
+    "docs/ressources/generated/png/sequence.png": "0dafe7585b8406c4df3cf035295733d198e31ee9f121c433d993612311971544",
+    "docs/ressources/generated/svg/plugins.svg": "4d76fc0173a324d23b64b3deb06e521077ee5876ceb078a40b166d9faea0443b",
+    "docs/ressources/generated/png/plugins.png": "6ed427a36fdea2b285c87c22a68cf4a12274efcf3dcc3ab5a412f4875c3190f9"
   }
 }
