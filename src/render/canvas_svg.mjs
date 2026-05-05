@@ -52,15 +52,25 @@ export function excalidrawJsonToCanvasSvg(doc, opts = {}) {
 
   const innerBody = inner.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 
+  // The inner SVG starts with a root-level <defs> block (font-face + arrowhead
+  // markers).  After we strip the <svg> wrapper that <defs> ends up inside the
+  // canvas <g transform>, which prevents Safari and resvg from resolving
+  // marker IDs.  Hoist it to the canvas root so it stays a direct child of
+  // the outer <svg>.
+  const defsMatch = innerBody.match(/^(\s*)(<defs>[\s\S]*?<\/defs>)([\s\S]*)$/);
+  const rootDefs = defsMatch ? defsMatch[2] : "";
+  const bodyWithoutDefs = defsMatch ? defsMatch[3] : innerBody;
+
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" ` +
       `width="${width}" height="${height}" ` +
       `viewBox="0 0 ${width} ${height}" ` +
       `font-family='${EXCALIFONT_FONT_STACK}'>`,
     `<rect width="${width}" height="${height}" fill="${safeBackground}"/>`,
+    rootDefs,
     `<g transform="translate(${offsetX} ${offsetY}) scale(${scale}) ` +
       `translate(${-innerVb.x} ${-innerVb.y})">`,
-    innerBody,
+    bodyWithoutDefs,
     `</g>`,
     `</svg>`,
   ].join("");
