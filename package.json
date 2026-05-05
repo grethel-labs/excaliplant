@@ -37,8 +37,8 @@
     "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/merge_driver.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs tests/style.test.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "build:docs": "node docs/scripts/build-docs.mjs",
-    "build:api": "typedoc",
-    "build": "npm run build:docs && npm run build:api",
+    "build:api": "node docs/scripts/build-docs.mjs",
+    "build": "npm run build:docs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky && node scripts/setup-merge-drivers.mjs",
@@ -84,7 +84,6 @@
     "nunjucks": "^3.2.4",
     "prettier": "^3.8.3",
     "tree-node-cli": "^3.0.0",
-    "typedoc": "^0.28.19",
     "typescript": "^6.0.3"
   }
 }

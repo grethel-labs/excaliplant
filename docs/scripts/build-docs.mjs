@@ -16,6 +16,7 @@ import nunjucks from "nunjucks";
 
 import { renderPlantUml, excalidrawJsonToCanvasSvg, svgToPng } from "../../index.mjs";
 import { extractDocBlocks } from "./extract-docs.mjs";
+import { buildApiModel } from "./extract-api.mjs";
 import {
   buildModuleDiagramSource,
   buildSequenceDiagramSource,
@@ -32,6 +33,8 @@ import {
   PNG_DIR,
   TEMPLATE_FILE,
   README_FILE,
+  API_TEMPLATE_FILE,
+  API_OUTPUT_FILE,
   README_IMAGE_FORMAT,
   CANVAS_WIDTH,
   PNG_SCALE,
@@ -125,6 +128,18 @@ async function main() {
     `  wrote README.md (${generated.length} diagrams, ${moduleDocs.length} module blocks, ${testCount} tests)`,
   );
 
+  // Render the single-page API reference (docs/API.md). This
+  // replaces the previous TypeDoc HTML site under docs/api/ and
+  // always runs alongside the README so they cannot drift apart.
+  const apiModules = await buildApiModel([SRC_DIR, ENTRY_FILE], REPO_ROOT);
+  const apiTpl = await readFile(API_TEMPLATE_FILE, "utf8");
+  const apiRendered = env.renderString(apiTpl, { pkg, modules: apiModules });
+  await writeFile(API_OUTPUT_FILE, apiRendered, "utf8");
+  const apiSymbolCount = apiModules.reduce((n, m) => n + m.symbols.length, 0);
+  console.log(
+    `  wrote docs/API.md (${apiModules.length} modules, ${apiSymbolCount} exported symbols)`,
+  );
+
   // Write a build manifest so CI can distinguish a legitimate local
   // `npm run build:docs` (manifest hashes match the files on disk)
   // from a manual edit to a generated file (hashes diverge). The CI
@@ -159,6 +174,7 @@ async function writeBuildManifest(generated) {
   // so including them in the manifest would break the CI guard on a
   // fresh checkout.
   files["README.md"] = await sha256(README_FILE);
+  files["docs/API.md"] = await sha256(API_OUTPUT_FILE);
   for (const a of generated) {
     for (const rel of [a.svg, a.png]) {
       files[rel] = await sha256(path.join(REPO_ROOT, rel));

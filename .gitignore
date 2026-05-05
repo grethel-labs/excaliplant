@@ -10,6 +10,5 @@ node_modules/
 # them GitHub's rendered README would show broken thumbnails. The
 # PNGs are kept too as a fallback for renderers that don't allow
 # SVG.
-docs/api/
 docs/ressources/generated/puml/
 docs/ressources/generated/excalidraw/

@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Edge-label chips now carry `customData.role` markers
   (`edgeLabelChip` / `edgeLabelText`) so renderers, tests, and
   third-party tools can identify them reliably.
+- Auto-generated single-page API reference at
+  [`docs/API.md`](docs/API.md). It replaces the previous TypeDoc HTML
+  site under `docs/api/` and is rendered from JSDoc by
+  [`docs/scripts/extract-api.mjs`](docs/scripts/extract-api.mjs) +
+  [`docs/API.template.md.njk`](docs/API.template.md.njk) on every
+  `npm run build:docs` run, so it can never drift from the README.
+  The TypeDoc devDependency was removed.
 
 ### Changed
 
