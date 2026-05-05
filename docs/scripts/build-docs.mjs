@@ -186,18 +186,22 @@ async function writeBuildManifest(generated) {
 }
 
 async function countTests() {
-  // Count `test("...")` and `it("...")` calls anywhere in the test
-  // files, not just at column 0 — tests inside `describe` blocks are
-  // indented so the previous `^test\(` pattern under-counted.
-  const { readdir } = await import("node:fs/promises");
+  // Run node:test with TAP reporter and read the "# pass N" summary
+  // line.  This gives the exact runtime count, which the previous
+  // source-regex approach under-counted (loop-generated tests) and
+  // over-counted (.test() method calls in assertions).
+  const { spawnSync } = await import("node:child_process");
   const dir = path.join(REPO_ROOT, "tests");
-  const files = (await readdir(dir)).filter((f) => f.endsWith(".test.mjs"));
-  let n = 0;
-  for (const f of files) {
-    const text = await readFile(path.join(dir, f), "utf8");
-    n += (text.match(/(?:^|[\s.;{])(?:test|it)\s*\(/gm) || []).length;
+  const result = spawnSync(
+    process.execPath,
+    ["--test", "--test-reporter=tap", `${dir}/*.test.mjs`],
+    { encoding: "utf8", shell: true },
+  );
+  const match = result.stdout.match(/^# pass (\d+)/m);
+  if (!match) {
+    throw new Error(`countTests: could not parse '# pass' from node:test output`);
   }
-  return n;
+  return Number(match[1]);
 }
 
 main().catch((e) => {

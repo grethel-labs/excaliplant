@@ -1,13 +1,13 @@
 {
   "version": 1,
   "files": {
-    "README.md": "41f0afafa9a9721816b809048cd011e6f3ff22af3fd5b5e4db527492f1cfde87",
+    "README.md": "58d6c2bfd316d5847c1968de58d3d810632b07b2a43fbbef16343cb139b1f823",
     "docs/API.md": "c99e3695c085efecc5dacb364b12583ec9232b7f768e77776f29363ebe160c31",
-    "docs/ressources/generated/svg/modules.svg": "dc826ff917f1c06899cdcce01b1a51ce76efee5e7e1c580c0fadc1a32222cd4f",
+    "docs/ressources/generated/svg/modules.svg": "d5743a6dee2bcf14adbf93820d2c219a21642a18c881fc74a2984733236a41de",
     "docs/ressources/generated/png/modules.png": "7fe41f61d6382fab62483634f6d835a5d958929db5b960b45a203efd188791da",
-    "docs/ressources/generated/svg/sequence.svg": "a8db9427249108d01a8443aaa755d3630d87091f61f694a136f4df3bd46fa468",
+    "docs/ressources/generated/svg/sequence.svg": "7c6eeba083b74d20f5828ec99fce3399945e3a45dc3609a3bf007b13b8f3b8a2",
     "docs/ressources/generated/png/sequence.png": "3b81c6f04336e338a2b254325dfa9cf113ba476af47c50cc85cae275da947006",
-    "docs/ressources/generated/svg/plugins.svg": "10ac28b1813f35b551937c4387839b6051e90eebdd63a28664a16bf2301ca97f",
+    "docs/ressources/generated/svg/plugins.svg": "e340e56f6454806ce1226135e3ad2dffcc54b1aa5d4cb0258c42dee017e8a06c",
     "docs/ressources/generated/png/plugins.png": "03179984c8355fbb182fe98bb0003d9e04f21666c66ed3f51a6c3bca89fe2ac8"
   }
 }
