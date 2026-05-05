@@ -1,7 +1,7 @@
 Excalifont
 ==========
 
-The Excalifont woff2 font file in this directory is bundled into
+The Excalifont woff2 and decompressed TrueType font files in this directory are bundled into
 @grethel-labs/excaliplant so SVG and PNG exports render text in the
 same hand-drawn typeface that Excalidraw uses on screen.
 

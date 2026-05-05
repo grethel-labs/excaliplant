@@ -37,7 +37,8 @@ patched release within 30 days for confirmed high/critical issues.
 - Treat `renderPlantUml(input)` like any other untrusted-input parser.
   Run it inside a worker / isolated process if your input source is
   hostile.
-- The SVG output **inlines the Excalifont woff2** as a `data:` URL.
+- The SVG output **inlines the Excalifont woff2** as a `data:` URL;
+  PNG rasterisation loads the bundled TrueType copy through `resvg`.
   Some sandboxing environments restrict data URLs in fonts; if that
   applies, post-process the SVG to drop the `<style>` block.
 - The PNG path uses `@resvg/resvg-js` which executes as native code

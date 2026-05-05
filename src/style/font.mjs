@@ -2,8 +2,10 @@
 // hand-drawn typeface that Excalidraw uses on screen.
 //
 // Excalidraw ships Excalifont as a multi-subset family. We bundle the
-// Latin subset (U+20-7E plus common punctuation) — that's all our
-// labels need, and keeps the inline data URL small (~33 KB base64).
+// Latin subset (U+20-7E plus common punctuation). SVG output embeds the
+// compact woff2 as a data URL, while PNG output points resvg at the
+// decompressed TrueType copy because resvg/fontdb does not load woff2
+// files from `fontFiles`.
 //
 // The font is OFL-licensed; the upstream copy lives at
 // excalidraw/excalidraw on GitHub. The OFL notice is preserved in
@@ -14,12 +16,22 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const FONT_PATH = path.resolve(here, "..", "..", "assets", "fonts", "Excalifont-Regular.woff2");
+const WOFF2_FONT_PATH = path.resolve(
+  here,
+  "..",
+  "..",
+  "assets",
+  "fonts",
+  "Excalifont-Regular.woff2",
+);
+const TTF_FONT_PATH = path.resolve(here, "..", "..", "assets", "fonts", "Excalifont-Regular.ttf");
 
 /** Family name used inside the SVG `font-family` attribute. */
 export const EXCALIFONT_FAMILY = "Excalifont";
 /** Absolute filesystem path to the bundled woff2. */
-export const EXCALIFONT_FONT_PATH = FONT_PATH;
+export const EXCALIFONT_FONT_PATH = WOFF2_FONT_PATH;
+/** Absolute filesystem path to the bundled TrueType copy used by resvg. */
+export const EXCALIFONT_RASTER_FONT_PATH = TTF_FONT_PATH;
 
 /** @type {Buffer | null} */
 let _woff2 = null;
@@ -31,7 +43,7 @@ let _woff2 = null;
  * @public
  */
 export function getExcalifontWoff2() {
-  if (!_woff2) _woff2 = readFileSync(FONT_PATH);
+  if (!_woff2) _woff2 = readFileSync(WOFF2_FONT_PATH);
   return _woff2;
 }
 
