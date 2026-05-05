@@ -1702,14 +1702,15 @@ _Source: [`src/style/font.mjs`](src/style/font.mjs)_
 
 ### Exports
 
-| Name                                                        | Kind     | Visibility  |
-| ----------------------------------------------------------- | -------- | ----------- |
-| [`EXCALIFONT_FAMILY`](#excalifont_family-stylefont)         | const    | unspecified |
-| [`EXCALIFONT_FONT_PATH`](#excalifont_font_path-stylefont)   | const    | unspecified |
-| [`getExcalifontWoff2`](#getexcalifontwoff2-stylefont)       | function | public      |
-| [`getExcalifontDataUrl`](#getexcalifontdataurl-stylefont)   | function | public      |
-| [`getExcalifontFontFace`](#getexcalifontfontface-stylefont) | function | public      |
-| [`EXCALIFONT_FONT_STACK`](#excalifont_font_stack-stylefont) | const    | unspecified |
+| Name                                                                    | Kind     | Visibility  |
+| ----------------------------------------------------------------------- | -------- | ----------- |
+| [`EXCALIFONT_FAMILY`](#excalifont_family-stylefont)                     | const    | unspecified |
+| [`EXCALIFONT_FONT_PATH`](#excalifont_font_path-stylefont)               | const    | unspecified |
+| [`EXCALIFONT_RASTER_FONT_PATH`](#excalifont_raster_font_path-stylefont) | const    | unspecified |
+| [`getExcalifontWoff2`](#getexcalifontwoff2-stylefont)                   | function | public      |
+| [`getExcalifontDataUrl`](#getexcalifontdataurl-stylefont)               | function | public      |
+| [`getExcalifontFontFace`](#getexcalifontfontface-stylefont)             | function | public      |
+| [`EXCALIFONT_FONT_STACK`](#excalifont_font_stack-stylefont)             | const    | unspecified |
 
 #### <a id="excalifont_family-stylefont"></a>`EXCALIFONT_FAMILY`
 
@@ -1726,6 +1727,14 @@ const EXCALIFONT_FONT_PATH;
 ```
 
 Absolute filesystem path to the bundled woff2.
+
+#### <a id="excalifont_raster_font_path-stylefont"></a>`EXCALIFONT_RASTER_FONT_PATH`
+
+```ts
+const EXCALIFONT_RASTER_FONT_PATH;
+```
+
+Absolute filesystem path to the bundled TrueType copy used by resvg.
 
 #### <a id="getexcalifontwoff2-stylefont"></a>`getExcalifontWoff2`
 
