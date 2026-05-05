@@ -44,13 +44,16 @@ export function excalidrawToSvg(doc, opts = {}) {
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family='${FONT_FAMILY}'>`,
   );
-  // Inline Excalifont so the SVG carries the same hand-drawn typeface
-  // Excalidraw uses on screen, even when GitHub or any other host
-  // serves the file as a sandboxed `<img>` (no external font fetches).
-  out.push(`<defs><style type="text/css"><![CDATA[${getExcalifontFontFace()}]]></style></defs>`);
+  // Root-level <defs>: font-face + arrowhead markers. Keeping both here
+  // (rather than inside the translate <g>) ensures every SVG renderer
+  // finds the markers, as some implementations (Safari, resvg, some
+  // Markdown sanitisers) only resolve <marker> IDs when the <defs>
+  // is a direct child of the root <svg> element.
+  out.push(
+    `<defs><style type="text/css"><![CDATA[${getExcalifontFontFace()}]]></style>${arrowheadMarkers()}</defs>`,
+  );
   out.push(`<rect width="100%" height="100%" fill="${escapeAttr(bg)}"/>`);
   out.push(`<g transform="translate(${tx} ${ty})">`);
-  out.push(arrowheadDefs());
 
   for (const el of elements) {
     const node = renderOne(el);
@@ -329,9 +332,11 @@ function svgText(el) {
 
 // ── arrowheads ────────────────────────────────────────────────────────────
 
-function arrowheadDefs() {
-  return `<defs>
-    <marker id="m_arrow_end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
+// Returns only the <marker> elements (no wrapping <defs>). The caller
+// merges them into the root <defs> block so SVG renderers that only
+// resolve marker IDs from root-level <defs> (Safari, resvg) work.
+function arrowheadMarkers() {
+  return `<marker id="m_arrow_end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
     <marker id="m_arrow_start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
     <marker id="m_triangle_end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
     <marker id="m_triangle_start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
@@ -340,8 +345,7 @@ function arrowheadDefs() {
     <marker id="m_diamond_end" viewBox="0 0 12 10" refX="11" refY="5" markerWidth="10" markerHeight="8" orient="auto"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#000"/></marker>
     <marker id="m_diamond_start" viewBox="0 0 12 10" refX="1" refY="5" markerWidth="10" markerHeight="8" orient="auto-start-reverse"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#000"/></marker>
     <marker id="m_diamond_outline_end" viewBox="0 0 12 10" refX="11" refY="5" markerWidth="10" markerHeight="8" orient="auto"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#fff" stroke="#000"/></marker>
-    <marker id="m_diamond_outline_start" viewBox="0 0 12 10" refX="1" refY="5" markerWidth="10" markerHeight="8" orient="auto-start-reverse"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#fff" stroke="#000"/></marker>
-  </defs>`;
+    <marker id="m_diamond_outline_start" viewBox="0 0 12 10" refX="1" refY="5" markerWidth="10" markerHeight="8" orient="auto-start-reverse"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#fff" stroke="#000"/></marker>`;
 }
 
 // ── misc ──────────────────────────────────────────────────────────────────
