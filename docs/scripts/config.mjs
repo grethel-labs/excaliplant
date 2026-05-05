@@ -25,6 +25,12 @@ export const PNG_DIR = path.join(GEN_DIR, "png");
 export const TEMPLATE_FILE = path.join(DOCS_DIR, "README.template.md.njk");
 export const README_FILE = path.join(REPO_ROOT, "README.md");
 
+// Template + output for the auto-generated single-page API reference.
+// `docs/API.md` replaces the previous TypeDoc HTML site under
+// `docs/api/`. The generator is part of `npm run build:docs`.
+export const API_TEMPLATE_FILE = path.join(DOCS_DIR, "API.template.md.njk");
+export const API_OUTPUT_FILE = path.join(DOCS_DIR, "API.md");
+
 // Canvas size for every diagram. Keep the aspect ratio constant so
 // the README does not jump as the diagrams update. Width drives the
 // PNG resolution; the SVG just gets a viewBox of the same proportion.

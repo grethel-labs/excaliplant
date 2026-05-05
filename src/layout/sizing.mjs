@@ -7,7 +7,7 @@
 // of a container share the same content width so titles align.
 
 import { Box, Plane, Subplane } from "../model/diagram.mjs";
-import { FONT, measureLine, measureWrapped } from "../style/text.mjs";
+import { FONT, measureLine, measureWrapped, measureFitted } from "../style/text.mjs";
 
 /**
  * Default padding / spacing constants used by {@link sizeDiagram}.
@@ -110,23 +110,45 @@ function sizeBox(box, width) {
   const innerWidth = Math.max(20, width - SIZING.boxPaddingX * 2);
   // Auto-wrap the title so long labels stay inside the box. Manual
   // line breaks ("\n") are preserved by wrapping each segment
-  // independently.
+  // independently. `measureFitted` shrinks the font size when a
+  // single token would still overflow the inner width at the
+  // configured base size — long unbreakable identifiers (e.g.
+  // "AVeryLongClassName") then visibly shrink instead of overflowing.
   const titleSegments = String(box.title || "").split("\n");
   /** @type {string[]} */
   const wrappedTitleLines = [];
+  let titleFontSize = FONT.sizeTitle;
   for (const seg of titleSegments) {
-    const wrapped = measureWrapped(seg, FONT.sizeTitle, innerWidth);
-    if (wrapped.lines.length === 0) wrappedTitleLines.push("");
-    else wrappedTitleLines.push(...wrapped.lines);
+    const fitted = measureFitted(seg, FONT.sizeTitle, innerWidth);
+    titleFontSize = Math.min(titleFontSize, fitted.fontSize);
+    if (fitted.lines.length === 0) wrappedTitleLines.push("");
+    else wrappedTitleLines.push(...fitted.lines);
+  }
+  // Re-wrap every segment at the chosen size so all title lines share
+  // one font size (mixed-size titles look broken).
+  if (titleFontSize !== FONT.sizeTitle) {
+    wrappedTitleLines.length = 0;
+    for (const seg of titleSegments) {
+      const w = measureWrapped(seg, titleFontSize, innerWidth);
+      if (w.lines.length === 0) wrappedTitleLines.push("");
+      else wrappedTitleLines.push(...w.lines);
+    }
   }
   // Cache the wrapped title so the renderer can emit the exact same
   // line breaks the sizing pass measured.
   box._wrappedTitle = wrappedTitleLines.join("\n");
-  const titleHeight = wrappedTitleLines.length * FONT.sizeTitle * FONT.lineHeight;
-  const description = box.description
-    ? measureWrapped(box.description, FONT.sizeDescription, innerWidth)
-    : { height: 0, lines: /** @type {string[]} */ ([]) };
-  if (box.description) box._wrappedDescription = description.lines.join("\n");
+  box._wrappedTitleFontSize = titleFontSize;
+  const titleHeight = wrappedTitleLines.length * titleFontSize * FONT.lineHeight;
+  let descriptionFontSize = FONT.sizeDescription;
+  /** @type {{height:number, lines:string[]}} */
+  let description = { height: 0, lines: [] };
+  if (box.description) {
+    const fittedDesc = measureFitted(box.description, FONT.sizeDescription, innerWidth);
+    descriptionFontSize = fittedDesc.fontSize;
+    description = { height: fittedDesc.height, lines: fittedDesc.lines };
+    box._wrappedDescription = description.lines.join("\n");
+    box._wrappedDescriptionFontSize = descriptionFontSize;
+  }
   let textHeight = SIZING.boxPaddingY + titleHeight;
   if (box.stereotype) textHeight += FONT.sizeDescription * FONT.lineHeight;
   if (description.height) textHeight += SIZING.boxTitleGap + description.height;

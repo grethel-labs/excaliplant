@@ -9,6 +9,7 @@
 // (`./png.mjs`) needs `@resvg/resvg-js` to be installed.
 
 import { excalidrawToSvg, escapeAttr } from "./svg.mjs";
+import { EXCALIFONT_FONT_STACK } from "../style/font.mjs";
 
 export const DEFAULT_CANVAS_WIDTH = 1200;
 export const MIN_CANVAS_WIDTH = 16;
@@ -54,7 +55,8 @@ export function excalidrawJsonToCanvasSvg(doc, opts = {}) {
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" ` +
       `width="${width}" height="${height}" ` +
-      `viewBox="0 0 ${width} ${height}">`,
+      `viewBox="0 0 ${width} ${height}" ` +
+      `font-family='${EXCALIFONT_FONT_STACK}'>`,
     `<rect width="${width}" height="${height}" fill="${safeBackground}"/>`,
     `<g transform="translate(${offsetX} ${offsetY}) scale(${scale}) ` +
       `translate(${-innerVb.x} ${-innerVb.y})">`,

@@ -66,6 +66,16 @@ export { svgToPng } from "./src/render/png.mjs";
 export { EXCALIDRAW_SCHEMA, ROUNDNESS } from "./src/render/schema.mjs";
 export { createSeededRng, stableHash32 } from "./src/render/rng.mjs";
 export {
+  DEFAULT_STYLE,
+  EXCALIDRAW_FONT_FAMILY,
+  getStyle,
+  setStyle,
+  resetStyle,
+  loadStyleFromFile,
+  resolveFontFamilyId,
+  parseSimpleYaml,
+} from "./src/style/style.mjs";
+export {
   Box,
   Connection,
   Diagram,

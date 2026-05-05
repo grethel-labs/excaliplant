@@ -6,6 +6,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `src/style/style.mjs` module with a single source of truth for
+  renderer styling. `getStyle()` / `setStyle()` / `resetStyle()` /
+  `loadStyleFromFile()` are exported from the package root, the CLI
+  exposes `excaliplant --style <file>`, and the `./style` subpath is
+  importable directly. The loader supports JSON and a small YAML
+  subset (nested maps, scalars, comments) so style overrides can live
+  in either format. Example presets ship as
+  [`style.example.json`](style.example.json) and
+  [`style.example.yaml`](style.example.yaml).
+- Auto-shrink for box titles and descriptions: long unbreakable
+  identifiers now reduce their font size (down to `text.minFontSize`)
+  rather than overflowing. Disable via `text.autoShrink: false`. New
+  helper `measureFitted` is exported from `src/style/text.mjs`.
+- Edge-label chips now carry `customData.role` markers
+  (`edgeLabelChip` / `edgeLabelText`) so renderers, tests, and
+  third-party tools can identify them reliably.
+- Auto-generated single-page API reference at
+  [`docs/API.md`](docs/API.md). It replaces the previous TypeDoc HTML
+  site under `docs/api/` and is rendered from JSDoc by
+  [`docs/scripts/extract-api.mjs`](docs/scripts/extract-api.mjs) +
+  [`docs/API.template.md.njk`](docs/API.template.md.njk) on every
+  `npm run build:docs` run, so it can never drift from the README.
+  The TypeDoc devDependency was removed.
+
+### Changed
+
+- Edge labels render as a compact tag in the connection's stroke
+  colour with white text by default (`edgeLabel.useLineColor`,
+  `edgeLabel.textColor`, `edgeLabel.maxWidth`, …). The chip itself is
+  emitted with `roughness: 0` and no rounded corners so it reads as a
+  clean badge sitting on the line; default font size dropped to 10 px.
+- The `svg.mjs` renderer now honours the per-element `roughness`
+  field, so connection arrows / lines and edge-label chips appear
+  perfectly straight in the exported SVG / PNG (matching the existing
+  `roughness: 0` Excalidraw JSON output).
+- `FONT` from `src/style/text.mjs` is now a live view of the active
+  style document. Existing reads (`FONT.sizeTitle`, `FONT.family`,
+  …) keep working; calls to `setStyle()` / `loadStyleFromFile()`
+  immediately propagate to sizing and rendering.
+
 ## [0.3.7] - 2026-05-04
 
 ### Added

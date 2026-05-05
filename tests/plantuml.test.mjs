@@ -50,10 +50,25 @@ test("renderPlantUml produces a well-formed Excalidraw doc", async () => {
   }
   const rects = doc.elements.filter((e) => e.type === "rectangle");
   assert.ok(rects.length >= 4);
+  // Edge-label chips render with roughness 0 by design (and carry a
+  // `customData.role` marker so renderers / tests can identify them).
+  // All other rectangles keep Excalidraw's default sketchy look.
   for (const r of rects) {
-    assert.equal(r.roughness, 1);
-    assert.deepEqual(r.roundness, { type: 3 });
+    if (r.customData?.role === "edgeLabelChip") {
+      assert.equal(r.roughness, 0);
+      assert.equal(r.roundness, null);
+    } else {
+      assert.equal(r.roughness, 1);
+      assert.deepEqual(r.roundness, { type: 3 });
+    }
   }
+  // Edge labels: chip background equals the connection's stroke colour
+  // (or the configured fallback) and the text is white.
+  const labelTexts = doc.elements.filter(
+    (e) => e.type === "text" && e.customData?.role === "edgeLabelText",
+  );
+  assert.equal(labelTexts.length, 3);
+  for (const t of labelTexts) assert.equal(t.strokeColor, "#ffffff");
 });
 
 // ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@
 
 import { Box, Plane, Subplane, SequenceDiagram } from "../model/diagram.mjs";
 import { FONT, measureWrapped } from "../style/text.mjs";
+import { getStyle } from "../style/style.mjs";
 import { SIZING } from "../layout/sizing.mjs";
 import { boxColor } from "../style/colors.mjs";
 import { EXCALIDRAW_SCHEMA, ROUNDNESS } from "./schema.mjs";
@@ -721,8 +722,9 @@ function renderBoxText(box, color, elements, { titleColor } = {}) {
   // text never overflows the box width). Falls back to the raw title
   // for callers that bypass sizing.
   const titleValue = box._wrappedTitle ?? String(box.title || "");
+  const titleFontSize = box._wrappedTitleFontSize ?? FONT.sizeTitle;
   const titleLines = titleValue.split("\n").length;
-  const titleHeight = FONT.sizeTitle * FONT.lineHeight * titleLines;
+  const titleHeight = titleFontSize * FONT.lineHeight * titleLines;
   if (box.stereotype) {
     elements.push(
       text({
@@ -744,13 +746,14 @@ function renderBoxText(box, color, elements, { titleColor } = {}) {
       width: box.width - SIZING.boxPaddingX * 2,
       height: titleHeight,
       value: titleValue,
-      fontSize: FONT.sizeTitle,
+      fontSize: titleFontSize,
       color: titleColor || color.stroke,
       align: "center",
     }),
   );
   if (box.description) {
     const descValue = box._wrappedDescription ?? String(box.description);
+    const descFontSize = box._wrappedDescriptionFontSize ?? FONT.sizeDescription;
     elements.push(
       text({
         x: tx,
@@ -762,7 +765,7 @@ function renderBoxText(box, color, elements, { titleColor } = {}) {
         width: box.width - SIZING.boxPaddingX * 2,
         height: box.height - SIZING.boxPaddingY * 2 - titleHeight,
         value: descValue,
-        fontSize: FONT.sizeDescription,
+        fontSize: descFontSize,
         color: "#444",
       }),
     );
@@ -1243,36 +1246,49 @@ function renderEdgeLabel(conn) {
   const cy = (a.y + b.y) / 2;
 
   // Segment angle, normalised to [-π/2, π/2] so text always reads
-  // upright (never upside down).
+  // upright (never upside down). The chip + text are rotated by this
+  // angle so the label visually rides on top of the connection.
   let angle = Math.atan2(b.y - a.y, b.x - a.x);
   if (angle > Math.PI / 2) angle -= Math.PI;
   else if (angle < -Math.PI / 2) angle += Math.PI;
 
+  const style = /** @type {any} */ (getStyle()).edgeLabel || {};
+  const lineColor = conn.from.plane?.color?.stroke || "#444";
+  const bgColor = style.useLineColor === false ? style.backgroundColor || "#444" : lineColor;
+  const strokeColor = style.strokeColor || bgColor;
+  const textColor = style.textColor || "#ffffff";
+  const padX = typeof style.paddingX === "number" ? style.paddingX : 6;
+  const padY = typeof style.paddingY === "number" ? style.paddingY : 2;
+  const segMargin = typeof style.segmentMargin === "number" ? style.segmentMargin : 24;
+  const maxWidthCap = typeof style.maxWidth === "number" ? style.maxWidth : 160;
+
   const fontSize = FONT.sizeEdgeLabel;
-  // Clamp the chip width to the segment length (minus a small margin
-  // so arrowheads stay clear) and cap at a comfortable absolute max.
-  const segCap = Math.max(40, bestLen - 24);
-  const maxChipWidth = Math.min(180, segCap);
-  const wrapped = measureWrapped(String(conn.label), fontSize, maxChipWidth - 12);
-  const padX = 6;
-  const padY = 3;
-  const w = Math.min(maxChipWidth, wrapped.width + padX * 2);
-  const h = wrapped.height + padY * 2;
+  // Clamp the chip width to the segment length (minus a margin so
+  // arrowheads stay clear) and cap at the configured absolute max.
+  const segCap = Math.max(40, bestLen - segMargin);
+  const maxChipWidth = Math.min(maxWidthCap, segCap);
+  const wrapped = measureWrapped(String(conn.label), fontSize, maxChipWidth - padX * 2);
+  const w = Math.min(maxChipWidth, Math.max(20, wrapped.width + padX * 2));
+  const h = Math.max(fontSize * FONT.lineHeight, wrapped.height) + padY * 2;
   const x = cx - w / 2;
   const y = cy - h / 2;
   const value = wrapped.lines.join("\n");
 
+  // Chip: line-coloured pill, no wobble, no rounded corners, so the
+  // label reads as a clean tag riding on the connection.
   const chip = rect({
     x,
     y,
     width: w,
     height: h,
-    strokeColor: "#aab2bd",
-    backgroundColor: "#ffffff",
+    strokeColor,
+    backgroundColor: bgColor,
   });
   chip.angle = angle;
-  // `rect()` already sets roughness 1 + proportional roundness; we
-  // keep both so the chip matches the rest of the diagram's wobble.
+  chip.roughness = 0;
+  chip.roundness = null;
+  chip.strokeWidth = 1;
+  chip.customData = { role: "edgeLabelChip" };
 
   const label = text({
     x: x + padX,
@@ -1281,11 +1297,12 @@ function renderEdgeLabel(conn) {
     height: h - padY * 2,
     value,
     fontSize,
-    color: "#222",
+    color: textColor,
     align: "center",
     vAlign: "middle",
   });
   label.angle = angle;
+  label.customData = { role: "edgeLabelText" };
   return [chip, label];
 }
 

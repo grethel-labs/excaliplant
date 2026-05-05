@@ -7,47 +7,42 @@
 // glyph ratio empirically tuned for Excalifont. The exporter writes
 // the same `fontSize` Excalidraw will use, so visible labels stay
 // inside the boxes computed here.
+//
+// Font sizes are sourced from the live style document
+// (`src/style/style.mjs`), so loading a custom style.json / style.yaml
+// changes wrapping, sizing, and rendering in one place.
+
+import { EXCALIDRAW_FONT_FAMILY, getStyle, resolveFontFamilyId } from "./style.mjs";
+
+export { EXCALIDRAW_FONT_FAMILY };
 
 /**
- * Excalidraw `fontFamily` enum mirror. Keep this in sync with
- * Excalidraw upstream (`packages/common/src/constants.ts`); these
- * numeric ids end up verbatim inside the exported `.excalidraw`
- * documents and decide which bundled font Excalidraw will display
- * when the file is opened.
+ * Live view of the active font configuration. Reading e.g.
+ * `FONT.sizeTitle` always returns the current value from the active
+ * style; `FONT.family` returns the resolved Excalidraw numeric id.
  *
  * @public
+ * @type {any}
  */
-export const EXCALIDRAW_FONT_FAMILY = Object.freeze({
-  Virgil: 1,
-  Helvetica: 2,
-  Cascadia: 3,
-  LocalFont: 4,
-  Excalifont: 5,
-  Nunito: 6,
-  LilitaOne: 7,
-  ComicShanns: 8,
-  LiberationSans: 9,
-});
-
-/**
- * Font defaults used by the sizing and renderer pipelines. Numeric
- * sizes are in CSS px; `family` matches Excalidraw's font enum (5 =
- * Excalifont — the same hand-drawn typeface the bundled woff2 in
- * `assets/fonts/Excalifont-Regular.woff2` carries, so SVG / PNG
- * exports and re-opening the JSON in Excalidraw all show the same
- * glyphs).
- * @public
- */
-export const FONT = {
-  family: EXCALIDRAW_FONT_FAMILY.Excalifont,
-  sizeTitle: 18,
-  sizeDescription: 13,
-  sizeEdgeLabel: 12, // connection labels: kept smaller than body text
-  sizePlaneTitle: 22,
-  sizeSubplaneTitle: 16,
-  glyphRatio: 0.51, // average char width / fontSize for Excalifont
-  lineHeight: 1.25,
-};
+export const FONT = new Proxy(
+  {},
+  {
+    get(_t, key) {
+      const f = /** @type {any} */ (getStyle()).font;
+      if (key === "family") return resolveFontFamilyId(f.family);
+      return /** @type {any} */ (f)[key];
+    },
+    has(_t, key) {
+      return key === "family" || key in /** @type {any} */ (getStyle()).font;
+    },
+    ownKeys() {
+      return Object.keys(/** @type {any} */ (getStyle()).font);
+    },
+    getOwnPropertyDescriptor() {
+      return { enumerable: true, configurable: true };
+    },
+  },
+);
 
 /**
  * Measure a single-line label.
@@ -101,4 +96,44 @@ export function measureWrapped(text, fontSize, maxWidth) {
     height: lines.length * fontSize * FONT.lineHeight,
     lines,
   };
+}
+
+/**
+ * Word-wrap `text` and shrink the font size when a single token would
+ * still exceed `maxWidth` at the requested size. Returns the chosen
+ * font size alongside the wrapped lines so the renderer can emit the
+ * same size the sizing pass measured.
+ *
+ * Auto-shrink is governed by the active style: when `text.autoShrink`
+ * is `false` the function falls back to the regular `measureWrapped`
+ * result without shrinking.
+ *
+ * @param {string} text
+ * @param {number} fontSize
+ * @param {number} maxWidth
+ * @param {object} [opts]
+ * @param {number} [opts.minFontSize] Lower bound; defaults to the active style.
+ * @returns {{ fontSize:number, width:number, height:number, lines:string[] }}
+ * @public
+ */
+export function measureFitted(text, fontSize, maxWidth, opts = {}) {
+  const style = /** @type {any} */ (getStyle());
+  const enabled = style.text?.autoShrink !== false;
+  const minSize = Math.max(
+    1,
+    opts.minFontSize ?? style.text?.minFontSize ?? style.font?.minSize ?? 8,
+  );
+  let fs = fontSize;
+  let wrapped = measureWrapped(text, fs, maxWidth);
+  if (!enabled || !text) return { fontSize: fs, ...wrapped };
+  // `measureWrapped` clamps its reported width to `maxWidth`. To
+  // detect a single token that still overflows we re-measure the raw
+  // line widths and compare them against `maxWidth`.
+  const rawMaxLineWidth = (/** @type {string[]} */ lines, /** @type {number} */ sz) =>
+    Math.max(0, ...lines.map((/** @type {string} */ l) => l.length * sz * FONT.glyphRatio));
+  while (fs > minSize && rawMaxLineWidth(wrapped.lines, fs) > maxWidth + 0.5) {
+    fs -= 1;
+    wrapped = measureWrapped(text, fs, maxWidth);
+  }
+  return { fontSize: fs, ...wrapped };
 }
