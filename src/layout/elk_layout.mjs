@@ -59,10 +59,10 @@ const ROOT_OPTIONS = {
   "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
   "elk.layered.spacing.nodeNodeBetweenLayers": "90",
   "elk.spacing.nodeNode": "45",
-  "elk.spacing.edgeNode": "30",
-  "elk.spacing.edgeEdge": "18",
-  "elk.spacing.edgeNodeBetweenLayers": "30",
-  "elk.spacing.edgeEdgeBetweenLayers": "18",
+  "elk.spacing.edgeNode": "75",
+  "elk.spacing.edgeEdge": "27",
+  "elk.spacing.edgeNodeBetweenLayers": "75",
+  "elk.spacing.edgeEdgeBetweenLayers": "27",
   "elk.padding": "[top=36,left=36,bottom=36,right=36]",
 };
 
