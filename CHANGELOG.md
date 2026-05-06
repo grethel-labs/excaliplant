@@ -27,6 +27,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Class-diagram styling can now colour UML class-like boxes by type
   with `classDiagram.colorByType` and `classDiagram.typeColors`
   (`class`, `abstract`, `interface`, `enum`).
+- Sequence diagrams now parse, lay out, and render combined fragments
+  for `opt`, `loop`, `alt` / `else`, `par`, `break`, `critical`, and
+  `group` blocks. Fragment frames are included in Excalidraw JSON,
+  SVG, and PNG output.
+- Sequence diagrams now support PlantUML lifecycle and timeline
+  constructs: `autonumber`, `create`, `activate`, `deactivate`,
+  `destroy`, inline message suffixes (`++`, `--`, `**`, `!!`),
+  participant `box ... end box` groups, `ref over` references,
+  dividers, delays, spacers, `par` / `and`, and `critical` / `group`
+  `option` operands, plus block and compact sequence colour skinparams
+  for arrows, participants, and lifelines.
 - Auto-generated single-page API reference at
   [`docs/API.md`](docs/API.md). It replaces the previous TypeDoc HTML
   site under `docs/api/` and is rendered from JSDoc by
@@ -45,6 +56,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - UML class boxes now draw a thin compartment separator between
   attribute-like members and operation/function members when both are
   present.
+- Sequence-diagram rendering now gives combined fragments typed
+  background/stroke colours with solid header labels, reserves vertical
+  margins around fragment frames, expands nested parent fragments
+  recursively, prevents adjacent fragment overlap, and colours
+  participant heads with deterministic hash-based pastel fills.
+- Sequence-diagram message labels now wrap to their available arrow
+  length and reserve enough vertical space so long labels do not
+  overlap neighbouring timeline entries.
 - The `svg.mjs` renderer now honours the per-element `roughness`
   field, so connection arrows / lines and edge-label chips appear
   perfectly straight in the exported SVG / PNG (matching the existing

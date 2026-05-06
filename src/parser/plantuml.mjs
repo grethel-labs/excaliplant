@@ -38,6 +38,7 @@ import { createSequenceContext } from "./sequence_context.mjs";
 import {
   titlePlugin as componentTitlePlugin,
   closeBracePlugin,
+  skinparamPlugin as componentSkinparamPlugin,
 } from "./plugins/component/preamble.mjs";
 import { containerPlugin } from "./plugins/component/containers.mjs";
 import {
@@ -50,9 +51,14 @@ import { connectionPlugin } from "./plugins/component/connections.mjs";
 import { noteOfPlugin, noteFreePlugin, noteBlockPlugin } from "./plugins/component/notes.mjs";
 
 // Sequence plugin registry.
-import { titlePlugin as sequenceTitlePlugin } from "./plugins/sequence/preamble.mjs";
+import {
+  titlePlugin as sequenceTitlePlugin,
+  skinparamPlugin as sequenceSkinparamPlugin,
+} from "./plugins/sequence/preamble.mjs";
 import { participantPlugin } from "./plugins/sequence/participants.mjs";
 import { messagePlugin } from "./plugins/sequence/messages.mjs";
+import { fragmentPlugin } from "./plugins/sequence/fragments.mjs";
+import { sequenceAdvancedPlugin } from "./plugins/sequence/advanced.mjs";
 import {
   noteSidePlugin,
   noteOverPlugin,
@@ -68,6 +74,7 @@ import {
  */
 export const DEFAULT_COMPONENT_PLUGINS = [
   componentTitlePlugin,
+  componentSkinparamPlugin,
   closeBracePlugin,
   // Block plugins (note, class) come BEFORE container so a `note … of X`
   // line isn't mis-parsed by some other rule, and `class X { … }` isn't
@@ -93,11 +100,14 @@ export const DEFAULT_COMPONENT_PLUGINS = [
  */
 export const DEFAULT_SEQUENCE_PLUGINS = [
   sequenceTitlePlugin,
+  sequenceSkinparamPlugin,
   participantPlugin,
   noteSideBlockPlugin,
   noteOverBlockPlugin,
   noteSidePlugin,
   noteOverPlugin,
+  sequenceAdvancedPlugin,
+  fragmentPlugin,
   messagePlugin,
 ];
 
@@ -207,8 +217,8 @@ export function parsePlantUml(text, opts = {}) {
 /**
  * Walk the parsed model and reject diagrams that exceed `limits`.
  * Counts boxes (incl. notes) across all planes/subplanes and the
- * connection list. Sequence diagrams are bounded by participant +
- * message + note counts.
+ * connection list. Sequence diagrams are bounded by participants,
+ * timeline decorations, activations, and messages.
  * @param {any} diagram Parsed model.
  * @param {{maxNodes:number, maxEdges:number}} limits Effective limits.
  */
@@ -221,7 +231,14 @@ function enforceModelLimits(diagram, limits) {
     }
     edges = diagram.connections?.length ?? 0;
   } else {
-    nodes = (diagram?.participants?.length ?? 0) + (diagram?.notes?.length ?? 0);
+    nodes =
+      (diagram?.participants?.length ?? 0) +
+      (diagram?.notes?.length ?? 0) +
+      (diagram?.fragments?.length ?? 0) +
+      (diagram?.activations?.length ?? 0) +
+      (diagram?.markers?.length ?? 0) +
+      (diagram?.references?.length ?? 0) +
+      (diagram?.participantGroups?.length ?? 0);
     edges = diagram?.messages?.length ?? 0;
   }
   if (Number.isFinite(limits.maxNodes) && nodes > limits.maxNodes) {
@@ -250,6 +267,12 @@ function looksLikeSequence(text) {
     const line = stripComment(raw).trim();
     if (!line) continue;
     if (/^(participant|boundary|control|collections|queue)\b/.test(line)) return true;
+    if (/^skinparam\s+sequence\b/i.test(line)) return true;
+    if (/^(opt|loop|alt|par|break|critical|group)\b/.test(line)) return true;
+    if (/^(activate|deactivate|destroy|create|autonumber|ref|box)\b/.test(line)) return true;
+    if (/^==.*==$/.test(line) || /^\.\.\./.test(line) || /^(?:\|\|\||\|\|\d+\|\|)$/.test(line)) {
+      return true;
+    }
   }
   return false;
 }

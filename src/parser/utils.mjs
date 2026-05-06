@@ -22,18 +22,7 @@ export const TITLE_LINE = /^title\s+(.+)$/;
  * engine's `skip` array if needed.
  * @public
  */
-export const ALWAYS_SKIP = [
-  /^@startuml/,
-  /^@enduml/,
-  /^skinparam/,
-  /^!/,
-  /^hide\s/,
-  /^show\s/,
-  /^scale\s/,
-  /^autonumber\b/,
-  /^activate\s/,
-  /^deactivate\s/,
-];
+export const ALWAYS_SKIP = [/^@startuml/, /^@enduml/, /^!/, /^hide\s/, /^show\s/, /^scale\s/];
 
 /**
  * Strip a trailing PlantUML line comment (`'…`), preserving any `'`

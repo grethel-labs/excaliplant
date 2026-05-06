@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.5.3** &nbsp;·&nbsp; 116 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.5.3** &nbsp;·&nbsp; 136 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -107,13 +107,29 @@ The complete list of exported symbols, with parameter tables and
 return types, lives in [`docs/API.md`](./docs/API.md). It is
 regenerated from JSDoc on every `npm run build:docs` run.
 
+### Sequence diagram coverage
+
+Sequence diagrams support participants (`participant`, `actor`,
+`boundary`, `control`, `entity`, `database`, `collections`, `queue`),
+message arrows including async/reply/reverse/bidirectional variants,
+notes, participant `box ... end box` groups, `ref over` references,
+dividers (`== label ==`), delays (`... label ...`), spacers (`|||` /
+`||45||`), `autonumber`, lifecycle controls (`create`, `activate`,
+`deactivate`, `destroy`) and inline message lifecycle suffixes
+(`++`, `--`, `**`, `!!`). Combined fragments render for `opt`,
+`loop`, `alt`/`else`, `par`/`and`, `break`, `critical`/`option`, and
+`group`/`option` blocks. A small sequence `skinparam` subset maps
+directly to output colours in block or compact form: `ArrowColor`,
+`ParticipantBackgroundColor`, `ParticipantBorderColor`, and
+`LifeLineBorderColor`.
+
 ### Run the tests
 
 ```sh
 npm test
 ```
 
-Ships with **116 tests** across functional, edge-case,
+Ships with **136 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -215,6 +231,7 @@ excaliplant
 ├── scripts
 │   ├── auto-patch-deps.mjs
 │   ├── bump-release-version.mjs
+│   ├── clean-test-output.mjs
 │   ├── merge-driver-prefer-higher-version.mjs
 │   ├── prepublish-guard.mjs
 │   ├── setup-merge-drivers.mjs
@@ -249,6 +266,8 @@ excaliplant
 │       ├── style.mjs
 │       └── text.mjs
 ├── tests
+│   ├── helpers
+│   │   └── output.mjs
 │   ├── edge_cases.test.mjs
 │   ├── functional_more.test.mjs
 │   ├── merge_driver.test.mjs
