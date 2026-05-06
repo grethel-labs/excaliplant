@@ -18,6 +18,9 @@ const FONT_FAMILY = EXCALIFONT_FONT_STACK;
 const ROUGHNESS = 1; // Excalidraw's default roughness.
 const BOWING = 1;
 const FILL_WEIGHT = 0; // 0 → roughjs picks a sensible default.
+// Arrowhead size in user-space pixels: 0.7 × elk.spacing.edgeNode (30 px).
+// Must be updated together with that ELK spacing value.
+const ARROWHEAD_PX = Math.round(0.7 * 30); // = 21
 
 const generator = rough.generator();
 
@@ -405,8 +408,8 @@ const ARROWHEAD_GEOMETRY = {
     viewBox: "0 0 10 10",
     refXEnd: 9,
     refXStart: 1,
-    width: 8,
-    height: 8,
+    width: ARROWHEAD_PX,
+    height: ARROWHEAD_PX,
     path: "M0,0 L10,5 L0,10",
     outline: false,
     open: true,
@@ -415,8 +418,8 @@ const ARROWHEAD_GEOMETRY = {
     viewBox: "0 0 10 10",
     refXEnd: 9,
     refXStart: 1,
-    width: 9,
-    height: 9,
+    width: ARROWHEAD_PX,
+    height: ARROWHEAD_PX,
     path: "M0,0 L10,5 L0,10 z",
     outline: false,
     open: false,
@@ -425,8 +428,8 @@ const ARROWHEAD_GEOMETRY = {
     viewBox: "0 0 10 10",
     refXEnd: 9,
     refXStart: 1,
-    width: 10,
-    height: 10,
+    width: ARROWHEAD_PX + 2,
+    height: ARROWHEAD_PX + 2,
     path: "M0,0 L10,5 L0,10 z",
     outline: true,
     open: false,
@@ -435,8 +438,8 @@ const ARROWHEAD_GEOMETRY = {
     viewBox: "0 0 12 10",
     refXEnd: 11,
     refXStart: 1,
-    width: 10,
-    height: 8,
+    width: Math.round(ARROWHEAD_PX * 1.3),
+    height: ARROWHEAD_PX,
     path: "M0,5 L6,0 L12,5 L6,10 z",
     outline: false,
     open: false,
@@ -445,8 +448,8 @@ const ARROWHEAD_GEOMETRY = {
     viewBox: "0 0 12 10",
     refXEnd: 11,
     refXStart: 1,
-    width: 10,
-    height: 8,
+    width: Math.round(ARROWHEAD_PX * 1.3),
+    height: ARROWHEAD_PX,
     path: "M0,5 L6,0 L12,5 L6,10 z",
     outline: true,
     open: false,
@@ -485,7 +488,9 @@ function arrowheadMarkers(keys) {
         ? `fill="#fff" stroke="${safeColor}"`
         : `fill="${safeColor}"`;
     out.push(
-      `<marker id="${id}" viewBox="${geom.viewBox}" refX="${refX}" refY="5" markerWidth="${geom.width}" markerHeight="${geom.height}" orient="${orient}"><path d="${geom.path}" ${fillStroke}/></marker>`,
+      // markerUnits="userSpaceOnUse" makes width/height explicit pixel
+      // values (ARROWHEAD_PX) independent of the element's stroke-width.
+      `<marker id="${id}" viewBox="${geom.viewBox}" refX="${refX}" refY="5" markerWidth="${geom.width}" markerHeight="${geom.height}" markerUnits="userSpaceOnUse" orient="${orient}"><path d="${geom.path}" ${fillStroke}/></marker>`,
     );
   }
   return out.join("\n    ");
