@@ -78,6 +78,33 @@ test("renderPlantUml produces a well-formed Excalidraw doc", async () => {
   writeOutput("smoke.png", svgToPng(svg, { width: 900 }));
 });
 
+test("SVG renderer strokes rounded rectangle outlines", () => {
+  const svg = excalidrawToSvg({
+    type: "excalidraw",
+    appState: { viewBackgroundColor: "#ffffff" },
+    elements: [
+      {
+        id: "rounded",
+        type: "rectangle",
+        x: 10,
+        y: 20,
+        width: 120,
+        height: 60,
+        strokeColor: "#123456",
+        backgroundColor: "#ffffff",
+        strokeWidth: 2,
+        roughness: 0,
+        roundness: { type: 3 },
+        seed: 1,
+        isDeleted: false,
+      },
+    ],
+  });
+
+  const strokePath = svg.match(/<path[^>]+stroke="#123456"[^>]*>/)?.[0] || "";
+  assert.match(strokePath, /\sC[\d.,\s-]+/);
+});
+
 // ---------------------------------------------------------------------------
 // Extended component-diagram features
 // ---------------------------------------------------------------------------

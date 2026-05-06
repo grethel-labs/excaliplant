@@ -267,7 +267,9 @@ function roughRect(el) {
   // outlines, so we mirror that.
   const fillSvg =
     fill !== "none" ? `<path d="${rectPath(el)}" fill="${escapeAttr(fill)}" stroke="none"/>` : "";
-  const drawable = generator.rectangle(el.x, el.y, el.width, el.height, roughOpts(el));
+  const drawable = el.roundness
+    ? generator.path(rectPath(el), roughOpts(el))
+    : generator.rectangle(el.x, el.y, el.width, el.height, roughOpts(el));
   return fillSvg + drawableToSvg(drawable, el);
 }
 

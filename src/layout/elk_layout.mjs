@@ -57,10 +57,16 @@ const elk = new ELK();
 // root-only layoutOptions do not reach them. We pass corridor spacing
 // through elk.layout(..., { layoutOptions }) so every hierarchical node
 // receives the same values unless it explicitly overrides them.
-const MIN_PORT_GAP = 24;
+const MIN_PORT_GAP = 26;
 
-const EDGE_CORRIDOR_GAP = MIN_PORT_GAP * 2.5;
-const EDGE_NODE_GAP = MIN_PORT_GAP * 3;
+// A single-line edge-label chip is roughly 17 px tall. 26 px centreline
+// spacing leaves several pixels between two labels on adjacent parallel
+// edges without making corridors feel oversized.
+const EDGE_CORRIDOR_GAP = 26;
+// ELK measures edge-node spacing from a node border to the edge centreline.
+// Keep this comfortably larger than corridor spacing so routed edge bundles
+// read as separate corridors instead of hugging class boxes.
+const EDGE_NODE_GAP = 96;
 
 const GLOBAL_LAYOUT_OPTIONS = {
   "elk.spacing.edgeEdge": `${EDGE_CORRIDOR_GAP}`,
