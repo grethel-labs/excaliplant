@@ -15,7 +15,7 @@ const HEAD_MIN_W = 110;
 const HEAD_HEIGHT = 50;
 const ACTOR_HEAD_HEIGHT = 80; // taller for stickman
 const PARTICIPANT_GAP = 60;
-const TOP_MARGIN = 60;
+const TOP_MARGIN = 90;
 const SIDE_MARGIN = 40;
 const MESSAGE_FIRST_Y = 50; // distance from lifeline top to first arrow
 const MESSAGE_GAP = 50;
@@ -32,7 +32,7 @@ const MARKER_GAP = 16;
 const DIVIDER_HEIGHT = 30;
 const DELAY_HEIGHT = 34;
 const ACTIVATION_WIDTH = 12;
-const ACTIVATION_DEPTH_GAP = 8;
+const DECORATION_INNER_MARGIN = 12;
 const PARTICIPANT_GROUP_PAD_X = 16;
 const PARTICIPANT_GROUP_PAD_Y = 14;
 const BOTTOM_MARGIN = 60;
@@ -160,6 +160,7 @@ export function layoutSequenceDiagram(diagram) {
   }
 
   layoutFragments(diagram, timelineTop, y);
+  adjustDecorationBounds(diagram);
   layoutActivations(diagram, seqY, y);
 
   const lifelineBottom = y + BOTTOM_MARGIN;
@@ -231,6 +232,48 @@ function layoutParticipantGroups(diagram, timelineTop) {
 }
 
 /**
+ * Clip markers and references that fall inside a fragment to the
+ * fragment's inner bounds. This integrates dividers and `ref` frames
+ * into the same nesting concept as combined fragments: a decorator
+ * inside a fragment is visually contained by it.
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @returns {void}
+ */
+function adjustDecorationBounds(diagram) {
+  if (!diagram.fragments.length) return;
+
+  /**
+   * @param {number | undefined} seq
+   * @returns {import("../model/diagram.mjs").SequenceFragment | null}
+   */
+  const findInnermostFragment = (seq) => {
+    const s = seq ?? Infinity;
+    const containing = diagram.fragments.filter(
+      (f) => f.width > 0 && f.startSeq <= s && f.endSeq > s,
+    );
+    if (!containing.length) return null;
+    return containing.reduce((smallest, f) =>
+      f.endSeq - f.startSeq < smallest.endSeq - smallest.startSeq ? f : smallest,
+    );
+  };
+
+  for (const marker of diagram.markers) {
+    if (marker.kind === "space") continue;
+    const fragment = findInnermostFragment(marker.seq);
+    if (!fragment) continue;
+    marker.x = fragment.x + DECORATION_INNER_MARGIN;
+    marker.width = Math.max(marker.width, fragment.width - DECORATION_INNER_MARGIN * 2);
+  }
+
+  for (const ref of diagram.references) {
+    const fragment = findInnermostFragment(ref.seq);
+    if (!fragment) continue;
+    ref.x = fragment.x + DECORATION_INNER_MARGIN;
+    ref.width = Math.max(ref.width, fragment.width - DECORATION_INNER_MARGIN * 2);
+  }
+}
+
+/**
  * Position activation bars after all timeline y coordinates are known.
  * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
  * @param {Map<number, number>} seqY Map from declaration index to y.
@@ -241,7 +284,8 @@ function layoutActivations(diagram, seqY, timelineBottom) {
   for (const activation of diagram.activations) {
     const start = yForSeq(seqY, activation.startSeq, timelineBottom);
     const end = yForSeq(seqY, activation.endSeq, timelineBottom);
-    activation.x = activation.participant.x + 6 + activation.depth * ACTIVATION_DEPTH_GAP;
+    activation.x =
+      activation.participant.x - ACTIVATION_WIDTH / 2 + activation.depth * (ACTIVATION_WIDTH / 2);
     activation.y = start - 4;
     activation.width = ACTIVATION_WIDTH;
     activation.height = Math.max(18, end - start + 8);
