@@ -60,9 +60,15 @@ const ROOT_OPTIONS = {
   "elk.layered.spacing.nodeNodeBetweenLayers": "90",
   "elk.spacing.nodeNode": "45",
   "elk.spacing.edgeNode": "75",
-  "elk.spacing.edgeEdge": "27",
+  // edgeEdge / edgeEdgeBetweenLayers: gap between two parallel edges
+  // routed in the same corridor (vertical corridors between layers,
+  // horizontal corridors between rows). With many edges crossing one
+  // corridor — typical for class diagrams — these values determine how
+  // tightly the parallel lines bundle. 60 px keeps each line clearly
+  // distinguishable.
+  "elk.spacing.edgeEdge": "60",
   "elk.spacing.edgeNodeBetweenLayers": "75",
-  "elk.spacing.edgeEdgeBetweenLayers": "27",
+  "elk.spacing.edgeEdgeBetweenLayers": "60",
   "elk.padding": "[top=36,left=36,bottom=36,right=36]",
 };
 
