@@ -23,6 +23,8 @@ test("DEFAULT_STYLE is frozen and exposes the documented shape", () => {
   assert.equal(DEFAULT_STYLE.shape.connectionRoughness, 0);
   assert.equal(DEFAULT_STYLE.edgeLabel.useLineColor, true);
   assert.equal(DEFAULT_STYLE.edgeLabel.textColor, "#ffffff");
+  assert.equal(DEFAULT_STYLE.classDiagram.colorByType, false);
+  assert.equal(DEFAULT_STYLE.classDiagram.typeColors.interface.fill, "#f0fdfa");
 });
 
 test("setStyle deep-merges and resetStyle restores defaults", () => {

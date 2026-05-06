@@ -17,7 +17,7 @@
 // no Excalidraw-internal version-specific arrow fields.
 
 import { Box, Plane, Subplane, SequenceDiagram } from "../model/diagram.mjs";
-import { FONT, measureWrapped } from "../style/text.mjs";
+import { FONT, measureWrapped, isOperationMember } from "../style/text.mjs";
 import { getStyle } from "../style/style.mjs";
 import { SIZING } from "../layout/sizing.mjs";
 import { boxColor, planeColor } from "../style/colors.mjs";
@@ -688,7 +688,7 @@ function boxStrokeColor(box) {
   } else {
     parentColor = plane?.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" };
   }
-  return boxColor(parentColor).stroke;
+  return boxRenderColor(box, parentColor).stroke;
 }
 
 /**
@@ -699,7 +699,7 @@ function boxStrokeColor(box) {
  * @returns {void}
  */
 function renderBox(box, parentColor, elements) {
-  const color = boxColor(parentColor);
+  const color = boxRenderColor(box, parentColor);
   switch (box.shape) {
     case "actor":
       return renderActor(box, color, elements);
@@ -730,6 +730,52 @@ function renderBox(box, parentColor, elements) {
     default:
       return renderRectangleShape(box, color, elements);
   }
+}
+
+/**
+ * Resolve the final colour triple for a box, including optional UML
+ * class-diagram type colouring.
+ * @param {Box} box Box to colour.
+ * @param {ColorTriple} parentColor Owning plane/subplane colour triple.
+ * @returns {ColorTriple} Final box colour triple.
+ */
+function boxRenderColor(box, parentColor) {
+  const color = boxColor(parentColor);
+  const classColor = classTypeColor(box, color);
+  return classColor || color;
+}
+
+/**
+ * @param {Box} box Box to classify.
+ * @returns {"class"|"abstract"|"interface"|"enum"|""} UML class-box type key.
+ */
+function classTypeKey(box) {
+  if (box.shape === "interface") return "interface";
+  if (box.shape === "enum") return "enum";
+  if (box.shape === "class") {
+    const stereotype = String(box.stereotype || "").toLowerCase();
+    return stereotype.includes("abstract") ? "abstract" : "class";
+  }
+  return "";
+}
+
+/**
+ * @param {Box} box Box to colour.
+ * @param {ColorTriple} fallback Fallback colour triple.
+ * @returns {ColorTriple|null} Type-specific colour, or null when disabled/not applicable.
+ */
+function classTypeColor(box, fallback) {
+  const style = /** @type {any} */ (getStyle()).classDiagram || {};
+  if (style.colorByType !== true) return null;
+  const key = classTypeKey(box);
+  if (!key) return null;
+  const configured = style.typeColors?.[key];
+  if (!configured || typeof configured !== "object") return fallback;
+  return {
+    stroke: typeof configured.stroke === "string" ? configured.stroke : fallback.stroke,
+    fill: typeof configured.fill === "string" ? configured.fill : fallback.fill,
+    titleFill: typeof configured.titleFill === "string" ? configured.titleFill : fallback.titleFill,
+  };
 }
 
 /**
@@ -1207,20 +1253,82 @@ function renderClass(box, color, elements) {
     // wrap inside the box instead of bleeding past the right edge.
     /** @type {string[][] | undefined} */
     const wrapped = box._wrappedMembers;
-    const memberLines = wrapped ? wrapped.flat() : box.members.map((m) => String(m));
-    elements.push(
-      text({
-        x: box.x + SIZING.boxPaddingX,
-        y: sepY + 4,
-        width: box.width - SIZING.boxPaddingX * 2,
-        height: memberLines.length * FONT.sizeDescription * FONT.lineHeight,
-        value: memberLines.join("\n"),
-        fontSize: FONT.sizeDescription,
-        color: "#222",
-        align: "left",
-      }),
-    );
+    const groups = partitionClassMembers(box.members, wrapped);
+    const textX = box.x + SIZING.boxPaddingX;
+    const textWidth = box.width - SIZING.boxPaddingX * 2;
+    const memberY = sepY + SIZING.classCompartmentGap;
+    if (groups.attributes.length && groups.operations.length) {
+      const attrHeight = groups.attributes.length * FONT.sizeDescription * FONT.lineHeight;
+      elements.push(
+        text({
+          x: textX,
+          y: memberY,
+          width: textWidth,
+          height: attrHeight,
+          value: groups.attributes.join("\n"),
+          fontSize: FONT.sizeDescription,
+          color: "#222",
+          align: "left",
+        }),
+      );
+      const opSepY = memberY + attrHeight + SIZING.classCompartmentGap;
+      elements.push(
+        line({
+          points: [
+            { x: box.x, y: opSepY },
+            { x: box.x + box.width, y: opSepY },
+          ],
+          strokeColor: color.stroke,
+          strokeWidth: 1,
+        }),
+      );
+      elements.push(
+        text({
+          x: textX,
+          y: opSepY + SIZING.classCompartmentGap,
+          width: textWidth,
+          height: groups.operations.length * FONT.sizeDescription * FONT.lineHeight,
+          value: groups.operations.join("\n"),
+          fontSize: FONT.sizeDescription,
+          color: "#222",
+          align: "left",
+        }),
+      );
+    } else {
+      const memberLines = groups.attributes.length ? groups.attributes : groups.operations;
+      elements.push(
+        text({
+          x: textX,
+          y: memberY,
+          width: textWidth,
+          height: memberLines.length * FONT.sizeDescription * FONT.lineHeight,
+          value: memberLines.join("\n"),
+          fontSize: FONT.sizeDescription,
+          color: "#222",
+          align: "left",
+        }),
+      );
+    }
   }
+}
+
+/**
+ * Split wrapped UML class members into attribute and operation lines.
+ * @param {string[]} members Raw member declarations.
+ * @param {string[][]|undefined} wrapped Per-member wrapped lines from sizing.
+ * @returns {{attributes:string[],operations:string[]}}
+ */
+function partitionClassMembers(members, wrapped) {
+  /** @type {string[]} */
+  const attributes = [];
+  /** @type {string[]} */
+  const operations = [];
+  members.forEach((member, index) => {
+    const lines = wrapped?.[index] || [String(member)];
+    if (isOperationMember(member)) operations.push(...lines);
+    else attributes.push(...lines);
+  });
+  return { attributes, operations };
 }
 
 // --- Note (yellow sticky) ----------------------------------------------

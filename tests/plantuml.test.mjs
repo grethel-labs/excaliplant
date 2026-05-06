@@ -78,6 +78,25 @@ test("renderPlantUml produces a well-formed Excalidraw doc", async () => {
   writeOutput("smoke.png", svgToPng(svg, { width: 900 }));
 });
 
+test("class boxes separate attributes from operations", async () => {
+  const doc = await renderPlantUml(
+    `@startuml
+class Account {
+  +id: string
+  +name: string
+  +save(): void
+  +load(id: string): Account
+}
+@enduml`,
+    { sourceLabel: "class-compartments" },
+  );
+
+  const separators = doc.elements.filter((e) => e.type === "line");
+  assert.equal(separators.length, 2);
+  const ys = separators.map((line) => line.y + line.points[0][1]).sort((a, b) => a - b);
+  assert.ok(ys[1] > ys[0], "operation separator should be below the title separator");
+});
+
 test("SVG renderer strokes rounded rectangle outlines", () => {
   const svg = excalidrawToSvg({
     type: "excalidraw",

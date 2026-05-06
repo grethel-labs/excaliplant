@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Edge-label chips now carry `customData.role` markers
   (`edgeLabelChip` / `edgeLabelText`) so renderers, tests, and
   third-party tools can identify them reliably.
+- Class-diagram styling can now colour UML class-like boxes by type
+  with `classDiagram.colorByType` and `classDiagram.typeColors`
+  (`class`, `abstract`, `interface`, `enum`).
 - Auto-generated single-page API reference at
   [`docs/API.md`](docs/API.md). It replaces the previous TypeDoc HTML
   site under `docs/api/` and is rendered from JSDoc by
@@ -39,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `edgeLabel.textColor`, `edgeLabel.maxWidth`, …). The chip itself is
   emitted with `roughness: 0` and no rounded corners so it reads as a
   clean badge sitting on the line; default font size dropped to 10 px.
+- UML class boxes now draw a thin compartment separator between
+  attribute-like members and operation/function members when both are
+  present.
 - The `svg.mjs` renderer now honours the per-element `roughness`
   field, so connection arrows / lines and edge-label chips appear
   perfectly straight in the exported SVG / PNG (matching the existing

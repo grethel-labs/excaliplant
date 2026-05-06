@@ -13,6 +13,8 @@ import {
   SequenceDiagram,
   Box,
   Connection,
+  setStyle,
+  resetStyle,
 } from "../index.mjs";
 import { DEFAULT_COMPONENT_PLUGINS } from "../src/parser/plantuml.mjs";
 import { writeOutput } from "./helpers/output.mjs";
@@ -1022,6 +1024,7 @@ test("class diagram: large fluffle diagram – render does not crash", async () 
   // Regression: rendering a large class diagram must not throw.
   const { excalidrawToSvg } = await import("../src/render/svg.mjs");
   const { svgToPng } = await import("../src/render/png.mjs");
+  resetStyle();
   const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-regression" });
   assert.equal(doc.type, "excalidraw");
   assert.ok(doc.elements.length > 0, "must produce at least one element");
@@ -1043,4 +1046,29 @@ test("class diagram: large fluffle diagram – render does not crash", async () 
   writeOutput("fluffle.excalidraw.json", JSON.stringify(doc, null, 2));
   writeOutput("fluffle.svg", svg);
   writeOutput("fluffle.png", svgToPng(svg, { width: 2400 }));
+
+  try {
+    setStyle({ classDiagram: { colorByType: true } });
+    const typedDoc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-type-colors" });
+    const typedRects = typedDoc.elements.filter((e) => e.type === "rectangle");
+    assert.ok(
+      typedRects.some((e) => e.backgroundColor === "#f0fdfa"),
+      "expected interface boxes to use type-based fill",
+    );
+    assert.ok(
+      typedRects.some((e) => e.backgroundColor === "#fffbeb"),
+      "expected enum boxes to use type-based fill",
+    );
+    assert.ok(
+      typedRects.some((e) => e.backgroundColor === "#f5f3ff"),
+      "expected abstract class boxes to use type-based fill",
+    );
+
+    const typedSvg = excalidrawToSvg(typedDoc);
+    writeOutput("fluffle-type-colors.excalidraw.json", JSON.stringify(typedDoc, null, 2));
+    writeOutput("fluffle-type-colors.svg", typedSvg);
+    writeOutput("fluffle-type-colors.png", svgToPng(typedSvg, { width: 2400 }));
+  } finally {
+    resetStyle();
+  }
 });

@@ -215,3 +215,17 @@ export function wrapMemberSignature(signature, fontSize, maxWidth, opts = {}) {
     height: lines.length * fontSize * FONT.lineHeight,
   };
 }
+
+/**
+ * Classify a UML class member line as an operation when it contains a
+ * parameter list. Attribute declarations may contain `:` for types and
+ * generic brackets, but PlantUML method/function members are denoted by
+ * parentheses.
+ *
+ * @param {string} member Raw class/interface/enum member line.
+ * @returns {boolean} `true` for operation/function members.
+ * @internal
+ */
+export function isOperationMember(member) {
+  return String(member ?? "").includes("(");
+}

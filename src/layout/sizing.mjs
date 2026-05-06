@@ -13,6 +13,7 @@ import {
   measureWrapped,
   measureFitted,
   wrapMemberSignature,
+  isOperationMember,
 } from "../style/text.mjs";
 
 /**
@@ -25,6 +26,8 @@ export const SIZING = {
   boxPaddingX: 14,
   boxPaddingY: 12,
   boxTitleGap: 4,
+  classCompartmentGap: 4,
+  classMemberSeparatorExtra: 8,
   boxMinHeight: 56,
   boxConnectionSlot: 18, // height per connection on a side
 
@@ -177,7 +180,11 @@ function sizeBox(box, width) {
         /** @type {string[][]} */
         const wrappedMembers = [];
         let totalLines = 0;
+        let hasAttributes = false;
+        let hasOperations = false;
         for (const member of box.members ?? []) {
+          if (isOperationMember(member)) hasOperations = true;
+          else hasAttributes = true;
           const segments = String(member).split("\n");
           /** @type {string[]} */
           const lines = [];
@@ -190,9 +197,11 @@ function sizeBox(box, width) {
           totalLines += Math.max(1, lines.length);
         }
         if (wrappedMembers.length) box._wrappedMembers = wrappedMembers;
+        const separatorExtra =
+          hasAttributes && hasOperations ? SIZING.classMemberSeparatorExtra : 0;
         shapeMin = Math.max(
           shapeMin,
-          textHeight + totalLines * FONT.sizeDescription * FONT.lineHeight + 12,
+          textHeight + totalLines * FONT.sizeDescription * FONT.lineHeight + 12 + separatorExtra,
         );
       } else {
         shapeMin = Math.max(shapeMin, 70 + titleHeight);
@@ -223,7 +232,11 @@ function sizeBox(box, width) {
         /** @type {string[][]} */
         const wrappedMembers = [];
         let totalLines = 0;
+        let hasAttributes = false;
+        let hasOperations = false;
         for (const member of box.members) {
+          if (isOperationMember(member)) hasOperations = true;
+          else hasAttributes = true;
           const segments = String(member).split("\n");
           /** @type {string[]} */
           const lines = [];
@@ -236,9 +249,11 @@ function sizeBox(box, width) {
           totalLines += Math.max(1, lines.length);
         }
         box._wrappedMembers = wrappedMembers;
+        const separatorExtra =
+          hasAttributes && hasOperations ? SIZING.classMemberSeparatorExtra : 0;
         shapeMin = Math.max(
           shapeMin,
-          textHeight + totalLines * FONT.sizeDescription * FONT.lineHeight + 12,
+          textHeight + totalLines * FONT.sizeDescription * FONT.lineHeight + 12 + separatorExtra,
         );
       }
       break;
