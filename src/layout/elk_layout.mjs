@@ -52,13 +52,22 @@ const elk = new ELK();
 // enforce a minimum box height of `(max_edges_per_side + 1) * MIN_PORT_GAP`
 // before handing the graph to ELK.
 //
-// IMPORTANT: elk.spacing.edgeEdge, edgeEdgeBetweenLayers, edgeNode,
-// edgeNodeBetweenLayers, portPort, and even baseValue have been
-// empirically verified to have ZERO effect on same-source fan-out
-// port spacing in elkjs. Those options only apply to routing corridors
-// between different node pairs. The ONLY effective knob for arrowhead
-// separation is box height → ensureBoxHeightForEdges() below.
+// Corridor spacing options must be applied to the parent that owns the
+// edges. Since most edges live inside Plane/Subplane compound nodes,
+// root-only layoutOptions do not reach them. We pass corridor spacing
+// through elk.layout(..., { layoutOptions }) so every hierarchical node
+// receives the same values unless it explicitly overrides them.
 const MIN_PORT_GAP = 24;
+
+const EDGE_CORRIDOR_GAP = MIN_PORT_GAP * 2.5;
+const EDGE_NODE_GAP = MIN_PORT_GAP * 3;
+
+const GLOBAL_LAYOUT_OPTIONS = {
+  "elk.spacing.edgeEdge": `${EDGE_CORRIDOR_GAP}`,
+  "elk.layered.spacing.edgeEdgeBetweenLayers": `${EDGE_CORRIDOR_GAP}`,
+  "elk.spacing.edgeNode": `${EDGE_NODE_GAP}`,
+  "elk.layered.spacing.edgeNodeBetweenLayers": `${EDGE_NODE_GAP}`,
+};
 
 // ELK layout options. These are tuned for many-node, many-edge,
 // hierarchical compound layouts with orthogonal edge routing — i.e.
@@ -124,7 +133,7 @@ export async function layoutDiagram(diagram) {
   const graph = buildElkGraph(diagram);
 
   // Step 3: run ELK.
-  const result = await elk.layout(graph);
+  const result = await elk.layout(graph, { layoutOptions: GLOBAL_LAYOUT_OPTIONS });
 
   // Step 4: write geometry back.
   applyElkResult(diagram, result);
