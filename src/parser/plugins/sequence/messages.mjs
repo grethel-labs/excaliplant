@@ -6,10 +6,12 @@
 //   ->>    async open arrowhead
 //   <-     reverse
 //   <-->   bidirectional
+//   ++/--/**/!! lifecycle suffixes after the target
 
 import { unescapeLabel } from "../../utils.mjs";
 
-const SEQ_MESSAGE = /^(\S+)\s+((?:<-+>?|-+>>?|<<?-+|<-+|--)+)\s+(\S+)(?:\s*:\s*(.*))?$/;
+const SEQ_MESSAGE =
+  /^(\S+)\s+((?:<-+>?|-+>>?|<<?-+|<-+|--)+)\s+(\S+)(?:\s+(\+\+|--|\*\*|!!))?(?:\s*:\s*(.*))?$/;
 
 /**
  * Sequence-diagram message: `A op B [: label]`. Operator flavours:
@@ -21,7 +23,7 @@ export const messagePlugin = {
   tryLine(line, ctx) {
     const m = line.match(SEQ_MESSAGE);
     if (!m) return false;
-    const [, fromId, op, toId, label] = m;
+    const [, fromId, op, toId, lifecycle = "", label] = m;
     const from = ctx.ensureParticipant(fromId);
     const to = ctx.ensureParticipant(toId);
     const dashed = op.includes("--");
@@ -29,15 +31,27 @@ export const messagePlugin = {
     const bidir = /<.*>/.test(op);
     const asyncOpen = op.includes(">>") || op.includes("<<");
     const [src, dst] = reversed ? [to, from] : [from, to];
-    ctx.addMessage({
+    const msg = ctx.addMessage({
       from: src,
       to: dst,
       label: unescapeLabel(label?.trim() || ""),
       dashed,
-      kind: src === dst ? "self" : dashed ? "reply" : asyncOpen ? "async" : "sync",
+      kind: src === dst ? "self" : asyncOpen ? "async" : dashed ? "reply" : "sync",
       startArrowhead: bidir ? (asyncOpen ? "arrow" : "triangle") : null,
       endArrowhead: asyncOpen ? "arrow" : "triangle",
     });
+    msg.lifecycle = lifecycle;
+    if (lifecycle === "++") {
+      ctx.startActivation(dst, "", msg.seq);
+    } else if (lifecycle === "--") {
+      ctx.endActivation(src, msg.seq);
+    } else if (lifecycle === "**") {
+      msg.creates = true;
+      ctx.markCreated(dst, msg.seq);
+    } else if (lifecycle === "!!") {
+      msg.destroys = true;
+      ctx.markDestroyed(dst, msg.seq);
+    }
     return true;
   },
 };

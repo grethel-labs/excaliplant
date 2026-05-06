@@ -294,6 +294,438 @@ test("sequence diagram parses participants, messages, notes", () => {
   assert.ok(d.notes[1].target2);
 });
 
+const SEQ_FRAGMENTS = `
+@startuml
+participant A
+participant B
+
+loop retry up to 3 times
+  A -> B : request
+  alt success
+    B --> A : result
+  else failure
+    B --> A : error
+  end
+  opt cache response
+    A -> A : remember
+  end
+end
+@enduml
+`;
+
+test("sequence diagram parses and renders combined fragments", async () => {
+  const d = parsePlantUml(SEQ_FRAGMENTS);
+  assert.ok(d instanceof SequenceDiagram);
+  assert.equal(d.fragments.length, 3);
+  const loop = d.fragments.find((f) => f.kind === "loop");
+  const alt = d.fragments.find((f) => f.kind === "alt");
+  const opt = d.fragments.find((f) => f.kind === "opt");
+  assert.ok(loop);
+  assert.ok(alt);
+  assert.ok(opt);
+  assert.equal(alt.operands.length, 2);
+  assert.equal(alt.operands[1].label, "failure");
+
+  const doc = await renderPlantUml(SEQ_FRAGMENTS, { sourceLabel: "seq-fragments" });
+  const frames = doc.elements.filter(
+    (e) => e.type === "rectangle" && e.customData?.role === "sequenceFragmentFrame",
+  );
+  assert.equal(frames.length, 3);
+  assert.ok(frames.some((f) => f.customData.kind === "loop"));
+  assert.ok(frames.some((f) => f.customData.kind === "alt"));
+  assert.ok(frames.some((f) => f.customData.kind === "opt"));
+});
+
+const ALL_SEQUENCE_FRAGMENTS = `
+@startuml
+participant A
+participant B
+
+opt optional cache
+  A -> B : maybe cache
+end
+loop retry
+  A -> B : retry request
+end
+alt success
+  B --> A : ok
+else failure
+  B --> A : error
+end
+par primary path
+  A -> B : primary
+else secondary path
+  B -> A : secondary
+end
+break invalid input
+  A -> B : abort
+end
+critical commit section
+  A -> B : commit
+end
+group validation phase
+  A -> B : validate
+end
+@enduml
+`;
+
+const sequenceFragmentFrames = (doc) =>
+  doc.elements.filter(
+    (e) => e.type === "rectangle" && e.customData?.role === "sequenceFragmentFrame",
+  );
+const sequenceFragmentHeaders = (doc) =>
+  doc.elements.filter(
+    (e) => e.type === "rectangle" && e.customData?.role === "sequenceFragmentHeader",
+  );
+const right = (el) => el.x + el.width;
+const bottom = (el) => el.y + el.height;
+const verticalOverlap = (a, b) => Math.max(a.y, b.y) < Math.min(bottom(a), bottom(b));
+const horizontalOverlap = (a, b) => Math.max(a.x, b.x) < Math.min(right(a), right(b));
+
+test("sequence diagram renders every combined fragment kind with typed colours", async () => {
+  const d = parsePlantUml(ALL_SEQUENCE_FRAGMENTS);
+  assert.ok(d instanceof SequenceDiagram);
+  const kinds = d.fragments.map((fragment) => fragment.kind);
+  assert.deepEqual(kinds, ["opt", "loop", "alt", "par", "break", "critical", "group"]);
+  assert.equal(d.fragments.find((fragment) => fragment.kind === "alt")?.operands.length, 2);
+  assert.equal(d.fragments.find((fragment) => fragment.kind === "par")?.operands.length, 2);
+
+  const doc = await renderPlantUml(ALL_SEQUENCE_FRAGMENTS, {
+    sourceLabel: "seq-all-fragments",
+  });
+  const frames = sequenceFragmentFrames(doc);
+  const headers = sequenceFragmentHeaders(doc);
+  assert.equal(frames.length, 7);
+  assert.equal(headers.length, 7);
+  for (const frame of frames) {
+    assert.notEqual(frame.backgroundColor, "transparent");
+    assert.notEqual(frame.backgroundColor, "#ffffff");
+    assert.ok(frame.customData.kind);
+  }
+  assert.ok(new Set(frames.map((frame) => frame.backgroundColor)).size >= 5);
+  for (const header of headers) {
+    assert.equal(header.backgroundColor, header.strokeColor);
+  }
+  const headerTexts = doc.elements.filter(
+    (e) => e.type === "text" && e.customData?.role === "sequenceFragmentHeaderText",
+  );
+  assert.equal(headerTexts.length, 7);
+  assert.ok(headerTexts.every((textEl) => textEl.strokeColor === "#ffffff"));
+  const operandText = doc.elements.find(
+    (e) => e.type === "text" && e.customData?.role === "sequenceFragmentOperandText",
+  );
+  assert.ok(operandText);
+  assert.notEqual(operandText.strokeColor, "#ffffff");
+});
+
+test("sequence fragment frames reserve vertical margins and adjacent blocks do not overlap", async () => {
+  const src = `
+@startuml
+participant A
+participant B
+
+opt first block
+  A -> B : one
+end
+opt second block
+  A -> B : two
+end
+loop third block
+  A -> B : three
+end
+@enduml
+`;
+  const doc = await renderPlantUml(src, { sourceLabel: "seq-adjacent-fragments" });
+  const frames = sequenceFragmentFrames(doc).sort((a, b) => a.y - b.y);
+  assert.equal(frames.length, 3);
+  for (let i = 1; i < frames.length; i++) {
+    assert.ok(
+      bottom(frames[i - 1]) <= frames[i].y,
+      `expected frame ${i - 1} to end before frame ${i} starts`,
+    );
+  }
+  const arrows = doc.elements.filter((e) => e.type === "arrow").sort((a, b) => a.y - b.y);
+  assert.equal(arrows.length, 3);
+  for (const [index, frame] of frames.entries()) {
+    assert.ok(frame.y < arrows[index].y, "frame should start above its message");
+    assert.ok(bottom(frame) > arrows[index].y, "frame should end below its message");
+  }
+});
+
+test("nested sequence fragments expand parent frames recursively", async () => {
+  const src = `
+@startuml
+participant A
+participant B
+
+loop outer retry
+  alt branch
+    opt inner optional
+      A -> B : nested request
+    end
+  else fallback
+    B --> A : fallback
+  end
+end
+@enduml
+`;
+  const doc = await renderPlantUml(src, { sourceLabel: "seq-nested-fragments" });
+  const byKind = Object.fromEntries(
+    sequenceFragmentFrames(doc).map((frame) => [frame.customData.kind, frame]),
+  );
+  const loop = byKind.loop;
+  const alt = byKind.alt;
+  const opt = byKind.opt;
+  assert.ok(loop);
+  assert.ok(alt);
+  assert.ok(opt);
+
+  assert.ok(loop.x < alt.x);
+  assert.ok(right(loop) > right(alt));
+  assert.ok(loop.y < alt.y);
+  assert.ok(bottom(loop) > bottom(alt));
+  assert.ok(alt.x < opt.x);
+  assert.ok(right(alt) > right(opt));
+  assert.ok(alt.y < opt.y);
+  assert.ok(bottom(alt) > bottom(opt));
+});
+
+test("sequence participants get deterministic pastel heads and lifelines enter heads", async () => {
+  const src = `
+@startuml
+participant Alice
+participant Bob
+Alice -> Bob : hi
+@enduml
+`;
+  const doc1 = await renderPlantUml(src, { sourceLabel: "seq-head-colors" });
+  const doc2 = await renderPlantUml(src, { sourceLabel: "seq-head-colors" });
+  const heads1 = doc1.elements.filter(
+    (e) => e.type === "rectangle" && e.customData?.role === "sequenceParticipantHead",
+  );
+  const heads2 = doc2.elements.filter(
+    (e) => e.type === "rectangle" && e.customData?.role === "sequenceParticipantHead",
+  );
+  assert.equal(heads1.length, 2);
+  assert.deepEqual(
+    heads1.map((head) => head.backgroundColor),
+    heads2.map((head) => head.backgroundColor),
+  );
+  assert.ok(heads1.every((head) => head.backgroundColor !== "#f5f7fa"));
+  assert.ok(new Set(heads1.map((head) => head.backgroundColor)).size >= 2);
+
+  const lifelines = doc1.elements.filter(
+    (e) => e.type === "line" && e.customData?.role === "sequenceLifeline",
+  );
+  assert.equal(lifelines.length, 2);
+  for (const lifeline of lifelines) {
+    const head = heads1.find(
+      (candidate) => candidate.customData.participantId === lifeline.customData.participantId,
+    );
+    assert.ok(head);
+    assert.ok(lifeline.y > head.y);
+    assert.ok(lifeline.y < bottom(head));
+  }
+});
+
+test("sequence message labels wrap to arrow length and reserve vertical space", async () => {
+  const src = `
+@startuml
+participant A
+participant B
+A -> B : this request payload description is intentionally much longer than the available arrow span
+B --> A : next
+@enduml
+`;
+  const baselineSrc = `
+@startuml
+participant A
+participant B
+A -> B : short
+B --> A : next
+@enduml
+`;
+  const doc = await renderPlantUml(src, { sourceLabel: "seq-wrapped-message-label" });
+  const baselineDoc = await renderPlantUml(baselineSrc, {
+    sourceLabel: "seq-short-message-label",
+  });
+  const arrows = doc.elements.filter((e) => e.type === "arrow").sort((a, b) => a.y - b.y);
+  const baselineArrows = baselineDoc.elements
+    .filter((e) => e.type === "arrow")
+    .sort((a, b) => a.y - b.y);
+  const labels = doc.elements
+    .filter((e) => e.type === "text" && e.customData?.role === "sequenceMessageLabel")
+    .sort((a, b) => a.y - b.y);
+
+  assert.equal(arrows.length, 2);
+  assert.equal(baselineArrows.length, 2);
+  assert.equal(labels.length, 2);
+  const longLabel = labels[0];
+  assert.ok(longLabel.text.includes("\n"));
+  assert.ok(longLabel.width <= arrows[0].width + 0.5);
+  assert.ok(longLabel.y < arrows[0].y);
+  assert.ok(bottom(longLabel) <= arrows[0].y);
+  assert.ok(arrows[0].y > baselineArrows[0].y);
+  assert.ok(arrows[1].y > baselineArrows[1].y);
+});
+
+test("sequence diagram renders lifecycle, creation, destruction and autonumber", async () => {
+  const src = `
+@startuml
+autonumber 10 5
+participant Alice
+create participant Worker
+Alice -> Worker ** : spawn worker
+activate Worker #LightBlue
+Worker -> Worker ++ : process job
+Worker --> Alice -- : done
+destroy Worker
+@enduml
+`;
+  const d = parsePlantUml(src);
+  assert.ok(d instanceof SequenceDiagram);
+  assert.equal(d.messages.length, 3);
+  assert.deepEqual(
+    d.messages.map((message) => message.number),
+    ["10", "15", "20"],
+  );
+  const worker = d.participantById("Worker");
+  assert.ok(worker);
+  assert.notEqual(worker.createdSeq, null);
+  assert.notEqual(worker.destroyedSeq, null);
+  assert.ok(d.activations.length >= 2);
+  assert.ok(d.messages[0].creates);
+
+  const doc = await renderPlantUml(src, { sourceLabel: "seq-lifecycle" });
+  const labels = doc.elements.filter(
+    (e) => e.type === "text" && e.customData?.role === "sequenceMessageLabel",
+  );
+  assert.ok(labels.some((label) => String(label.text).startsWith("10 spawn worker")));
+  assert.ok(
+    doc.elements.some((e) => e.type === "rectangle" && e.customData?.role === "sequenceActivation"),
+  );
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceDestroyMarker"));
+  assert.ok(
+    doc.elements.some((e) => e.customData?.role === "sequenceMessage" && e.customData.creates),
+  );
+});
+
+test("sequence diagram renders participant boxes, references, dividers, delays and advanced operands", async () => {
+  const src = `
+@startuml
+skinparam sequence {
+  ArrowColor #ff0000
+  ParticipantBackgroundColor #LightYellow
+  ParticipantBorderColor #00aa00
+  LifeLineBorderColor #0000ff
+}
+box "API Layer" #LightBlue
+participant A #LightGreen
+participant B
+end box
+
+== Bootstrap ==
+A -> B : start
+... waiting for callback ...
+ref over A, B : external contract with a fairly long description
+|||
+par primary path
+  A -> B : primary
+and secondary path
+  B -> A : secondary
+end
+critical commit section
+  A -> B : commit
+option rollback branch
+  B -> A : rollback
+end
+group audit phase
+  A -> B : audit
+option skip audit
+  B -> A : skip
+end
+@enduml
+`;
+  const d = parsePlantUml(src);
+  assert.ok(d instanceof SequenceDiagram);
+  assert.equal(d.participantGroups.length, 1);
+  assert.equal(d.references.length, 1);
+  assert.ok(d.markers.some((marker) => marker.kind === "divider"));
+  assert.ok(d.markers.some((marker) => marker.kind === "delay"));
+  assert.ok(d.markers.some((marker) => marker.kind === "space"));
+  assert.equal(d.fragments.find((fragment) => fragment.kind === "par")?.operands.length, 2);
+  assert.equal(d.fragments.find((fragment) => fragment.kind === "critical")?.operands.length, 2);
+  assert.equal(d.fragments.find((fragment) => fragment.kind === "group")?.operands.length, 2);
+  assert.equal(d.participantById("A")?.color, "#LightGreen");
+  assert.equal(d.style.arrowColor, "#ff0000");
+  assert.equal(d.style.participantBackgroundColor, "#LightYellow");
+  assert.equal(d.style.participantBorderColor, "#00aa00");
+  assert.equal(d.style.lifelineColor, "#0000ff");
+
+  const doc = await renderPlantUml(src, { sourceLabel: "seq-advanced-constructs" });
+  assert.ok(
+    doc.elements.some(
+      (e) => e.type === "rectangle" && e.customData?.role === "sequenceParticipantGroup",
+    ),
+  );
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceDivider"));
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceDelay"));
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceReference"));
+  assert.ok(
+    doc.elements.some(
+      (e) => e.customData?.role === "sequenceMessage" && e.strokeColor === "#ff0000",
+    ),
+  );
+  assert.ok(
+    doc.elements.some(
+      (e) => e.customData?.role === "sequenceLifeline" && e.strokeColor === "#0000ff",
+    ),
+  );
+  assert.ok(
+    doc.elements.some(
+      (e) =>
+        e.customData?.role === "sequenceParticipantHead" &&
+        e.customData.participantId === "B" &&
+        e.backgroundColor === "#fef9c3" &&
+        e.strokeColor === "#00aa00",
+    ),
+  );
+  const frames = sequenceFragmentFrames(doc);
+  assert.ok(frames.some((frame) => frame.customData.kind === "critical"));
+  assert.ok(frames.some((frame) => frame.customData.kind === "group"));
+});
+
+test("sequence diagram applies compact skinparams, bare boxes and dashed async messages", async () => {
+  const src = `
+@startuml
+skinparam sequence ArrowColor #123456
+box
+participant A
+participant B
+end box
+A -->> B : async over dashed line
+@enduml
+`;
+  const d = parsePlantUml(src);
+  assert.ok(d instanceof SequenceDiagram);
+  assert.equal(d.style.arrowColor, "#123456");
+  assert.equal(d.participantGroups.length, 1);
+  assert.equal(d.participantGroups[0].label, "");
+  assert.equal(d.messages[0].kind, "async");
+
+  const doc = await renderPlantUml(src, { sourceLabel: "seq-compact-skinparam" });
+  assert.ok(
+    doc.elements.some(
+      (e) => e.customData?.role === "sequenceMessage" && e.strokeColor === "#123456",
+    ),
+  );
+  assert.ok(
+    doc.elements.some(
+      (e) => e.type === "rectangle" && e.customData?.role === "sequenceParticipantGroup",
+    ),
+  );
+});
+
 test("sequence diagram renders to Excalidraw without ELK", async () => {
   const doc = await renderPlantUml(SEQ, { sourceLabel: "seq" });
   assert.equal(doc.type, "excalidraw");

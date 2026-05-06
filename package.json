@@ -1,6 +1,6 @@
 {
   "name": "@grethel-labs/excaliplant",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.",
   "type": "module",
   "main": "index.mjs",
@@ -63,6 +63,8 @@
     "svg",
     "png",
     "uml",
+    "javascript",
+    "js",
     "sequence-diagram"
   ],
   "publishConfig": {

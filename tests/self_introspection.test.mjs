@@ -45,15 +45,39 @@ test("renderPlantUml call-flow sequence diagram parses + renders", async () => {
   const seq = parsePlantUml(puml);
   assert.ok(seq instanceof SequenceDiagram);
   // The flow has at least: caller → parser → layout → renderer.
-  assert.ok(seq.participants.length >= 4);
+  assert.ok(seq.participants.length >= 6);
   assert.ok(seq.messages.length >= 4);
-  const doc = await renderPlantUml(puml, { sourceLabel: "self.sequence" });
-  assert.equal(doc.type, "excalidraw");
+  assert.ok(seq.fragments.some((f) => f.kind === "loop"));
+  assert.ok(seq.fragments.some((f) => f.kind === "alt"));
+  assert.ok(seq.fragments.some((f) => f.kind === "opt"));
+  assert.ok(seq.participantGroups.length >= 1);
+  assert.ok(seq.references.length >= 1);
+  assert.ok(seq.markers.some((m) => m.kind === "divider"));
+  assert.ok(seq.markers.some((m) => m.kind === "delay"));
+  assert.ok(seq.markers.some((m) => m.kind === "space"));
+  assert.ok(seq.activations.length >= 1);
 
-  const svg = excalidrawToSvg(doc);
+  const result = renderPlantUml(puml, { sourceLabel: "self.sequence" });
+  const doc = await result;
+  assert.equal(doc.type, "excalidraw");
+  assert.ok(
+    doc.elements.some((e) => e.customData?.role === "sequenceFragmentFrame"),
+    "self sequence should render combined fragment frames",
+  );
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceParticipantGroup"));
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceReference"));
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceDivider"));
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceDelay"));
+  assert.ok(doc.elements.some((e) => e.customData?.role === "sequenceActivation"));
+
+  const svg = await result.toSvg({ canvas: false });
+  const png = await result.toPng({ canvas: false, width: 1200 });
+  assert.ok(svg.includes("<svg"));
+  assert.ok(Buffer.isBuffer(png));
+  assert.ok(png.length > 0);
   writeOutput("self-sequence.excalidraw.json", JSON.stringify(doc, null, 2));
   writeOutput("self-sequence.svg", svg);
-  writeOutput("self-sequence.png", svgToPng(svg, { width: 1200 }));
+  writeOutput("self-sequence.png", png);
 });
 
 test("plugin-detail PlantUML enumerates every default plugin as a box", async () => {

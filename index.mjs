@@ -84,7 +84,12 @@ export {
   Participant,
   Message,
   SequenceDiagram,
+  SequenceActivation,
+  SequenceFragment,
+  SequenceMarker,
   SequenceNote,
+  SequenceParticipantGroup,
+  SequenceReference,
   SHAPES,
 } from "./src/model/diagram.mjs";
 

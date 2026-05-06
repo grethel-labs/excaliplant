@@ -382,6 +382,14 @@ test("security: parsePlantUml enforces maxNodes", () => {
   );
 });
 
+test("security: parsePlantUml enforces maxNodes for sequence activations", () => {
+  const lines = Array.from({ length: 20 }, () => "activate A").join("\n");
+  assert.throws(
+    () => parsePlantUml(`@startuml\n${lines}\n@enduml`, { limits: { maxNodes: 10 } }),
+    /maxNodes/,
+  );
+});
+
 test("security: parsePlantUml strict mode reports unknown lines", () => {
   const src = `@startuml\n[a] --> [b]\n¯\\_(ツ)_/¯ banana\n@enduml`;
   assert.throws(() => parsePlantUml(src, { unknownLines: "strict" }), /unknown line/);

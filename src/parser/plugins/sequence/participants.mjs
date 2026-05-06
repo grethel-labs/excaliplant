@@ -3,7 +3,7 @@
 import { slug, unescapeLabel } from "../../utils.mjs";
 
 const SEQ_PARTICIPANT =
-  /^(participant|actor|boundary|control|collections|queue|database|entity)\s+(?:"([^"]+)"|(\S+))(?:\s+as\s+(\S+))?(?:\s*<<\s*([^>]+?)\s*>>)?$/;
+  /^(participant|actor|boundary|control|collections|queue|database|entity)\s+(?:"([^"]+)"|(\S+))(?:\s+as\s+(\S+))?(?:\s*<<\s*([^>]+?)\s*>>)?(?:\s+(#[\w-]+))?$/;
 
 /**
  * Sequence-diagram participant declaration.
@@ -14,10 +14,10 @@ export const participantPlugin = {
   tryLine(line, ctx) {
     const m = line.match(SEQ_PARTICIPANT);
     if (!m) return false;
-    const [, kw, qTitle, bareId, alias, stereo] = m;
+    const [, kw, qTitle, bareId, alias, stereo, color] = m;
     const id = alias || bareId || slug(qTitle);
     const title = unescapeLabel(qTitle || bareId || id);
-    ctx.declareParticipant({ id, title, shape: kw, stereotype: stereo || "" });
+    ctx.declareParticipant({ id, title, shape: kw, stereotype: stereo || "", color: color || "" });
     return true;
   },
 };
