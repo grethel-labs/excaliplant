@@ -4,17 +4,18 @@ This package bundles or depends on the following third-party works.
 
 ---
 
-## Excalifont (Latin subset, woff2)
+## Excalifont (Latin subset, woff2 + TrueType)
 
 - Path: [`assets/fonts/Excalifont-Regular.woff2`](assets/fonts/Excalifont-Regular.woff2)
+- Path: [`assets/fonts/Excalifont-Regular.ttf`](assets/fonts/Excalifont-Regular.ttf)
 - Upstream: <https://github.com/excalidraw/excalidraw>
 - License: SIL Open Font License 1.1 (OFL-1.1)
 - Reproduction of the OFL notice is bundled alongside the binary at
   [`assets/fonts/LICENSE.txt`](assets/fonts/LICENSE.txt).
 
-The font is embedded into exported SVG / PNG documents as a `data:`
-URL so they render with the same hand-drawn Excalidraw look in any
-context (GitHub README rendering, sandboxed `<img>` hosts, …).
+The woff2 file is embedded into exported SVG documents as a `data:` URL.
+The TrueType copy is loaded by `@resvg/resvg-js` for PNG rasterisation,
+because resvg's `fontFiles` loader does not load woff2 files.
 
 ---
 

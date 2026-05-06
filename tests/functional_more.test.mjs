@@ -6,8 +6,16 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Resvg } from "@resvg/resvg-js";
 import { parsePlantUml, renderPlantUml, Diagram, SequenceDiagram } from "../index.mjs";
+import { excalidrawJsonToCanvasSvg } from "../src/render/canvas_svg.mjs";
+import { svgToPng } from "../src/render/png.mjs";
 import { excalidrawToSvg } from "../src/render/svg.mjs";
+import {
+  EXCALIFONT_FAMILY,
+  EXCALIFONT_FONT_PATH,
+  EXCALIFONT_RASTER_FONT_PATH,
+} from "../src/style/font.mjs";
 
 // ---------------------------------------------------------------------------
 // Component / container variants
@@ -234,6 +242,52 @@ Foo --> Bar
 @enduml`);
   const svg = excalidrawToSvg(doc);
   assert.match(svg, /<text\b/);
+});
+
+test("functional: canvas SVG keeps shared defs at the root", async () => {
+  const doc = await renderPlantUml(`@startuml
+component A
+component B
+A --> B
+@enduml`);
+  const svg = excalidrawJsonToCanvasSvg(doc, { width: 800 });
+  const defsIndex = svg.indexOf("<defs>");
+  const groupIndex = svg.indexOf("<g transform=");
+  assert.ok(defsIndex > -1, "expected a root defs block");
+  assert.ok(groupIndex > -1, "expected a canvas transform group");
+  assert.ok(defsIndex < groupIndex, "defs must be emitted before the canvas transform group");
+  assert.equal((svg.match(/<defs>/g) || []).length, 1);
+  assert.match(svg, /marker-end="url\(#m_arrow_end\)"/);
+  assert.match(svg, /@font-face\{font-family:"Excalifont"/);
+});
+
+test("functional: svgToPng loads bundled Excalifont for raster output", () => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="96" viewBox="0 0 360 96" font-family="${EXCALIFONT_FAMILY}"><rect width="100%" height="100%" fill="white"/><text x="20" y="66" font-size="42" fill="black">Excalifont 123</text></svg>`;
+  const rendered = svgToPng(svg, { width: 360 });
+  const expected = new Resvg(svg, {
+    fitTo: { mode: "width", value: 360 },
+    background: "#ffffff",
+    font: {
+      loadSystemFonts: true,
+      fontFiles: [EXCALIFONT_RASTER_FONT_PATH],
+      defaultFontFamily: EXCALIFONT_FAMILY,
+    },
+  })
+    .render()
+    .asPng();
+  const oldWoff2Only = new Resvg(svg, {
+    fitTo: { mode: "width", value: 360 },
+    background: "#ffffff",
+    font: {
+      loadSystemFonts: true,
+      fontFiles: [EXCALIFONT_FONT_PATH],
+      defaultFontFamily: EXCALIFONT_FAMILY,
+    },
+  })
+    .render()
+    .asPng();
+  assert.deepEqual(rendered, expected);
+  assert.notDeepEqual(rendered, oldWoff2Only);
 });
 
 test("functional: empty Excalidraw doc produces a minimal but valid SVG", () => {
