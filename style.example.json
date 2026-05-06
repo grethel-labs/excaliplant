@@ -27,6 +27,15 @@
     "maxWidth": 160,
     "segmentMargin": 24
   },
+  "classDiagram": {
+    "colorByType": false,
+    "typeColors": {
+      "class": { "stroke": "#475569", "fill": "#f8fafc", "titleFill": "#e2e8f0" },
+      "abstract": { "stroke": "#7c3aed", "fill": "#f5f3ff", "titleFill": "#ddd6fe" },
+      "interface": { "stroke": "#0f766e", "fill": "#f0fdfa", "titleFill": "#99f6e4" },
+      "enum": { "stroke": "#b45309", "fill": "#fffbeb", "titleFill": "#fde68a" }
+    }
+  },
   "text": {
     "autoShrink": true,
     "minFontSize": 8

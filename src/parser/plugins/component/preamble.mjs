@@ -31,3 +31,24 @@ export const closeBracePlugin = {
     return true;
   },
 };
+
+/**
+ * Component diagrams currently tolerate PlantUML skinparams without applying
+ * them so strict parsing stays compatible with common style preambles.
+ * @type {import("../../engine.mjs").Plugin}
+ */
+export const skinparamPlugin = {
+  name: "component.skinparam",
+  tryLine(line) {
+    return /^skinparam\b/i.test(line);
+  },
+  tryStart(line) {
+    if (!/^skinparam\b.*\{$/i.test(line)) return null;
+    return {
+      onLine() {},
+      tryEnd(blockLine) {
+        return blockLine === "}";
+      },
+    };
+  },
+};

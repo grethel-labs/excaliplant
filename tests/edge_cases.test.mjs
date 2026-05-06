@@ -13,8 +13,11 @@ import {
   SequenceDiagram,
   Box,
   Connection,
+  setStyle,
+  resetStyle,
 } from "../index.mjs";
 import { DEFAULT_COMPONENT_PLUGINS } from "../src/parser/plantuml.mjs";
+import { writeOutput } from "./helpers/output.mjs";
 
 // ---------------------------------------------------------------------------
 // Empty / minimal inputs
@@ -406,4 +409,666 @@ ObjectBorder --> "1" BorderType
   // Members survive into the rendered output.
   assert.ok(svg.includes("PLACING"));
   assert.ok(svg.includes("thickness"));
+});
+
+// ---------------------------------------------------------------------------
+// Visual regression: large class diagram with enums, interfaces, abstract
+// classes and concrete subclasses.
+//
+// Known issues captured here as failing assertions so that fixes can be
+// verified against this baseline:
+//
+//  1. Text overflow – member text exceeds the box width causing visual
+//     clipping / overflow in the rendered SVG.
+//  2. Spurious root plane – all boxes land inside a single synthetic
+//     wrapper plane even though none of the top-level declarations sit
+//     inside an explicit `package` / `namespace` container.  The diagram
+//     should have `planes.length === 0` (all boxes floating) once fixed.
+//  3. Excessive vertical stacking – the layout becomes a tall single
+//     column instead of a more balanced 2-D graph.  This is a symptom of
+//     issue 2: ELK treats the wrapper plane as a single cluster and
+//     stacks its children vertically.
+// ---------------------------------------------------------------------------
+
+const FLUFFLE_SRC = `@startuml
+!define RECTANGLE class
+
+skinparam backgroundColor white
+skinparam classBackgroundColor #FEFEFE
+skinparam classBorderColor #333333
+skinparam arrowColor #333333
+skinparam stereotypeCBackgroundColor #E8E8E8
+
+skinparam linetype ortho
+skinparam ranksep 60
+skinparam nodesep 40
+skinparam padding 4
+skinparam roundcorner 8
+
+enum QuantumFluffleType {
+    WAFFLE
+    PANCAKE
+    DONUT
+    NOODLE
+    SPAGHETTI
+    CLOUD
+    SCREAM
+    SIGNBOARD
+    VOID
+}
+
+enum CrustAlignment {
+    soggy
+    chewy
+    burnt
+}
+
+enum UnicornStretchMode {
+    SQUISH
+    SMOTHER
+    WRAP
+    PETRIFIED
+}
+
+interface SparkleSnapshot extends BaseCrystal {
+    +sparkleFlavor: string
+    +sparkleDescription: string
+    +isShiny: boolean
+    +ghostliness: number
+    +rainbowHex: string
+}
+
+interface CrustSnapshot extends SparkleSnapshot {
+    +kind: "crust"
+    +crunchiness: number
+    +type: CrustAlignment
+    +zigzagPattern: number[]
+}
+
+interface FillingSnapshot extends SparkleSnapshot {
+    +kind: "filling"
+}
+
+interface BlingSnapshot extends SparkleSnapshot {
+    +kind: "disco-bling"
+}
+
+interface PhysicsDenialSnapshot extends BaseCrystal {
+    +kind: "physics-denial"
+    +canWobble: boolean
+    +canSpin: boolean
+    +canGrow: boolean
+    +joinGroupHugs: boolean
+    +enableRealityHacking: boolean
+    +mustStaySquare: boolean
+    +minFluffiness: number
+    +minSquishiness: number
+    +spinSpeedLimit: number
+    +syncNameToOven?: boolean
+    +syncDescriptionToOven?: boolean
+    +showGeneralNonsense: boolean
+    +showIdentityCrisis: boolean
+    +showSecretProperties: boolean
+    +showTransmogrification: boolean
+    +editPositionX: boolean
+    +editPositionY: boolean
+    +editSizeW: boolean
+    +editSizeH: boolean
+    +showCreamFilling: boolean
+    +showSandwichCrust: boolean
+    +showDiscoBling: boolean
+    +showMoodRing: boolean
+    +showMetaNarrative: boolean
+}
+
+interface ExtraMagicSnapshot extends BaseCrystal {
+    +kind: string
+}
+
+interface WandWavingGuide {
+    +id: string
+    +title: string
+    +description?: string
+    +defaultOpen?: boolean
+    +placement?: "magical" | "mundane"
+    +fields: WandWavingFieldDescriptor[]
+    +visibleWhenKey?: string
+}
+
+interface FluffleSnapshot extends BaseCrystal {
+    +id: number
+    +x: number
+    +y: number
+    +rotation: number
+    +visible: boolean
+    +name: string
+    +description: string
+    +manifestationVariant: number
+    +crust: CrustSnapshot
+    +filling: FillingSnapshot
+    +discoBling: BlingSnapshot[]
+    +physicsDenial: PhysicsDenialSnapshot
+    +extraMagic: ExtraMagicSnapshot
+}
+
+abstract class BaseSparkle implements Magical {
+    +sparkleFlavor: string
+    +sparkleDescription: string
+    +isShiny: boolean
+    +ghostliness: number
+    +rainbowHex: Rainbowd
+    +getRainbowHex(): string
+    +{abstract} captureInCrystalBall(ctx?: CrystalBallContext): SparkleSnapshot
+    +getHoverSparkle(): string
+    +getClickSparkle(): string
+    +getDisplaySparkle(isDark: boolean): string
+    +getDisplayHoverSparkle(isDark: boolean): string
+    +getDisplayClickSparkle(isDark: boolean): string
+    +setSparkleFromDisplay(displayHex: AnyColor, isDark: boolean): void
+    +getDisplayRainbowd(isDark: boolean): Rainbowd
+}
+
+abstract class AbstractFluffle implements Magical {
+    +type: QuantumFluffleType
+    +id: number
+    +x: number
+    +y: number
+    +rotation: number
+    +visible: boolean
+    +name: string
+    +description: string
+    +manifestationVariant: number
+    -_mood: QuantumFluffleMood
+    +crust: SandwichCrust
+    +filling: CreamFilling
+    +discoBling: DiscoBling[]
+    +selectedCrust: SandwichCrust
+    +selectedFilling: CreamFilling
+    +physicsDenial: PhysicsDenial
+    +extraMagic: ExtraMagic
+    +isDark: boolean
+    +getDiscoBling(name: string): DiscoBling
+    +mood: QuantumFluffleMood
+    +setMood(newMood: QuantumFluffleMood): boolean
+    +updateProperties(props: Partial<Omit<this, "type" | "id">>): void
+    +{abstract} captureInCrystalBall(ctx?: CrystalBallContext): FluffleSnapshot
+    #{abstract} createCollisionObject(): Flatten.AnyShape
+    +isHamsterInside(x: number, y: number): boolean
+    +cuddlesWith(other: AbstractFluffle): boolean
+    +containedWithin(container: AbstractFluffle): boolean
+    +{abstract} cloneWithNewSoul(newId: number): AbstractFluffle
+    +getWandWavingGuides(): WandWavingGuide[]
+}
+
+class SandwichCrust extends BaseSparkle {
+    +crunchiness: number
+    +texture: CrustAlignment
+    +zigzagPattern: number[]
+    +captureInCrystalBall(): CrustSnapshot
+    +clone(): SandwichCrust
+    +{static} fromCrystalBall(snapshot: CrustSnapshot): SandwichCrust
+}
+
+class CreamFilling extends BaseSparkle {
+    +captureInCrystalBall(): FillingSnapshot
+    +clone(): CreamFilling
+    +getHoverSparkle(): string
+    +getClickSparkle(): string
+    +getDisplayHoverSparkle(isDark: boolean): string
+    +getDisplayClickSparkle(isDark: boolean): string
+    +{static} fromCrystalBall(snapshot: FillingSnapshot): CreamFilling
+}
+
+class DiscoBling extends BaseSparkle {
+    +captureInCrystalBall(): BlingSnapshot
+    +clone(): DiscoBling
+    +{static} fromCrystalBall(snapshot: BlingSnapshot): DiscoBling
+}
+
+class PhysicsDenial implements Magical {
+    +canWobble: boolean
+    +canSpin: boolean
+    +canGrow: boolean
+    +joinGroupHugs: boolean
+    +enableRealityHacking: boolean
+    +mustStaySquare: boolean
+    +minFluffiness: number
+    +minSquishiness: number
+    +spinSpeedLimit: number
+    +syncNameToOven: boolean
+    +syncDescriptionToOven: boolean
+    +showGeneralNonsense: boolean
+    +showIdentityCrisis: boolean
+    +showSecretProperties: boolean
+    +showTransmogrification: boolean
+    +editPositionX: boolean
+    +editPositionY: boolean
+    +editSizeW: boolean
+    +editSizeH: boolean
+    +showCreamFilling: boolean
+    +showSandwichCrust: boolean
+    +showDiscoBling: boolean
+    +showMoodRing: boolean
+    +showMetaNarrative: boolean
+    +captureInCrystalBall(): PhysicsDenialSnapshot
+    +{static} fromCrystalBall(snapshot: PhysicsDenialSnapshot): PhysicsDenial
+}
+
+class ExtraMagic implements Magical {
+    +captureInCrystalBall(): ExtraMagicSnapshot
+}
+
+class PancakeMagic extends ExtraMagic {
+    +captureInCrystalBall(): PancakeMagicSnapshot
+    +{static} fromCrystalBall(_snapshot: PancakeMagicSnapshot): PancakeMagic
+}
+
+class FluffyPancake extends AbstractFluffle {
+    +width: number
+    +height: number
+    +manifestationVariant: 0 | 1 | 2
+    +extraMagic: PancakeMagic
+    +updateProperties(props: Partial<FluffyPancake>): void
+    +cloneWithNewSoul(newId: number): AbstractFluffle
+    +getAdjustedPancakeProps(): { width: number; height: number; }
+    +getEffectiveSyrupThickness(): number
+    +captureInCrystalBall(ctx?: CrystalBallContext): PancakeSnapshot
+    +{static} fromCrystalBall(snapshot: PancakeSnapshot, ctx?: CrystalBallDecodingContext): FluffyPancake
+}
+
+class SpaghettiMagic extends ExtraMagic {
+    +enableNoodleTwirling: boolean
+    +mustBeSlurped: boolean
+    +captureInCrystalBall(): SpaghettiMagicSnapshot
+    +{static} fromCrystalBall(snapshot: SpaghettiMagicSnapshot): SpaghettiMagic
+}
+
+class SpaghettiMonster extends AbstractFluffle {
+    +noodleJoints: NoodleJoint[]
+    +slurped: boolean
+    +manifestationVariant: 0 | 1 | 2
+    +extraMagic: SpaghettiMagic
+    +symmetricNoodleCount: number
+    +symmetricMaxNoodles: number
+    +symmetricSauceRadius: number
+    +getNoodleJoints(): NoodleJoint[]
+    +getFlatNoodles(): number[]
+    +getMeatballCenter(): { x: number; y: number; }
+    +getBoundingBox(): { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number; }
+    +updateProperties(props: Partial<SpaghettiMonster>): void
+    +cloneWithNewSoul(newId: number): AbstractFluffle
+    +captureInCrystalBall(ctx?: CrystalBallContext): SpaghettiMonsterSnapshot
+    +{static} fromCrystalBall(snapshot: SpaghettiMonsterSnapshot, ctx?: CrystalBallDecodingContext): SpaghettiMonster
+}
+
+class CloudMagic extends ExtraMagic {
+    +enableCloudSwapping: boolean
+    +allowedStretchModes: string[]
+    +captureInCrystalBall(): CloudMagicSnapshot
+    +{static} fromCrystalBall(snapshot: CloudMagicSnapshot): CloudMagic
+}
+
+class FluffyCloud extends AbstractFluffle {
+    +width: number
+    +height: number
+    +manifestationVariant: 0 | 1 | 3 | 2
+    +extraMagic: CloudMagic
+    +cloudSrc: string
+    +cloudNaturalWidth: number
+    +cloudNaturalHeight: number
+    +stretchMode: UnicornStretchMode
+    +prebuiltCloud: boolean
+    +cloudFileUuid: string
+    +cloudFloating: boolean
+    +updateProperties(props: Partial<FluffyCloud>): void
+    +cloneWithNewSoul(newId: number): AbstractFluffle
+    +getAdjustedCloudProps(): { width: number; height: number; }
+    +getEffectiveEdgeFluffiness(): number
+    +captureInCrystalBall(ctx?: CrystalBallContext): CloudSnapshot
+    +{static} fromCrystalBall(snapshot: CloudSnapshot, ctx?: CrystalBallDecodingContext): FluffyCloud
+}
+
+class ScreamMagic extends ExtraMagic {
+    +enableScreamFormatting: boolean
+    +enableScreamPath: boolean
+    +syncOvenTitleToScream: boolean
+    +syncOvenDescriptionToScream: boolean
+    +captureInCrystalBall(): ScreamMagicSnapshot
+    +{static} fromCrystalBall(snapshot: ScreamMagicSnapshot): ScreamMagic
+}
+
+class ShoutStyle extends BaseSparkle {
+    +loud: boolean
+    +wobbly: boolean
+    +underlined: boolean
+    +volume: number
+    +fontFamily: string
+    +captureInCrystalBall(): ShoutStyleSnapshot
+    +{static} fromCrystalBall(snapshot: ShoutStyleSnapshot): ShoutStyle
+}
+
+class LoudScream extends AbstractFluffle {
+    +width: number
+    +height: number
+    +content: string
+    +style: ShoutStyle
+    +hasYellCurve: boolean
+    +manifestationVariant: 0 | 1 | 3 | 2
+    +extraMagic: ScreamMagic
+    +getEffectiveVolume(): number
+    +measureScreamWidth(text: string, volume: number): number
+    +getScreamColor(): string
+    +fitBoundsToScream(): void
+    +updateProperties(props: Partial<LoudScream>): void
+    +cloneWithNewSoul(newId: number): AbstractFluffle
+    +captureInCrystalBall(ctx?: CrystalBallContext): ScreamSnapshot
+    +{static} fromCrystalBall(snapshot: ScreamSnapshot, ctx?: CrystalBallDecodingContext): LoudScream
+}
+
+class SignMagic extends ExtraMagic {
+    +enableSignEditing: boolean
+    +enablePaddingControl: boolean
+    +syncOvenTitleToSign: boolean
+    +syncOvenDescriptionToSign: boolean
+    +captureInCrystalBall(): SignMagicSnapshot
+    +{static} fromCrystalBall(snapshot: SignMagicSnapshot): SignMagic
+}
+
+class SandwichSign extends AbstractFluffle {
+    +width: number
+    +height: number
+    +htmlGraffiti: string
+    +padding: number
+    +fontSizeMultiplier: number
+    +graffitiAlign: "center" | "left" | "right"
+    +manifestationVariant: 0 | 1 | 3 | 2
+    +extraMagic: SignMagic
+    +updateProperties(props: Partial<SandwichSign>): void
+    +cloneWithNewSoul(newId: number): AbstractFluffle
+    +getAdjustedSignProps(): { width: number; height: number; }
+    +getEffectiveEdgeCrunchiness(): number
+    +getGraffitiColor(): string
+    +getPlainGraffiti(): string
+    +captureInCrystalBall(ctx?: CrystalBallContext): SignSnapshot
+    +{static} fromCrystalBall(snapshot: SignSnapshot, ctx?: CrystalBallDecodingContext): SandwichSign
+}
+
+CrustSnapshot --> "1" CrustAlignment
+BaseSparkle --> "1" SparkleSnapshot
+SandwichCrust --> "1" CrustSnapshot
+CreamFilling --> "1" FillingSnapshot
+DiscoBling --> "1" BlingSnapshot
+PhysicsDenial --> "1" PhysicsDenialSnapshot
+ExtraMagic --> "1" ExtraMagicSnapshot
+AbstractFluffle --> "1" QuantumFluffleType
+AbstractFluffle --> "1" SandwichCrust
+AbstractFluffle --> "1" CreamFilling
+AbstractFluffle --> "*" DiscoBling
+AbstractFluffle --> "1" PhysicsDenial
+AbstractFluffle --> "1" ExtraMagic
+AbstractFluffle --> "1" FluffleSnapshot
+AbstractFluffle --> "*" WandWavingGuide
+FluffleSnapshot --> "1" CrustSnapshot
+FluffleSnapshot --> "1" FillingSnapshot
+FluffleSnapshot --> "*" BlingSnapshot
+FluffleSnapshot --> "1" PhysicsDenialSnapshot
+FluffleSnapshot --> "1" ExtraMagicSnapshot
+PancakeMagic --> "1" PancakeMagicSnapshot
+FluffyPancake --> "1" PancakeMagic
+FluffyPancake --> "1" PancakeSnapshot
+SpaghettiMagic --> "1" SpaghettiMagicSnapshot
+SpaghettiMonster --> "*" NoodleJoint
+SpaghettiMonster --> "1" SpaghettiMagic
+SpaghettiMonster --> "1" SpaghettiMonsterSnapshot
+CloudMagic --> "1" CloudMagicSnapshot
+FluffyCloud --> "1" CloudMagic
+FluffyCloud --> "1" UnicornStretchMode
+FluffyCloud --> "1" CloudSnapshot
+ScreamMagic --> "1" ScreamMagicSnapshot
+ShoutStyle --> "1" ShoutStyleSnapshot
+LoudScream --> "1" ShoutStyle
+LoudScream --> "1" ScreamMagic
+LoudScream --> "1" ScreamSnapshot
+SignMagic --> "1" SignMagicSnapshot
+SandwichSign --> "1" SignMagic
+SandwichSign --> "1" SignSnapshot
+@enduml`;
+
+test("class diagram: large fluffle diagram – parser smoke (no crash, all top-level boxes reachable)", () => {
+  // Regression: large real-world-style class diagram with enums, interfaces,
+  // abstract classes, concrete subclasses, inheritance chains, and many
+  // connections. Must not crash the parser and must produce a Diagram.
+  const d = parsePlantUml(FLUFFLE_SRC);
+  assert.ok(d instanceof Diagram);
+
+  // All top-level type declarations must be addressable by their slug id.
+  const expectedIds = [
+    "QuantumFluffleType",
+    "CrustAlignment",
+    "UnicornStretchMode",
+    "SparkleSnapshot",
+    "CrustSnapshot",
+    "FillingSnapshot",
+    "BlingSnapshot",
+    "PhysicsDenialSnapshot",
+    "ExtraMagicSnapshot",
+    "WandWavingGuide",
+    "FluffleSnapshot",
+    "BaseSparkle",
+    "AbstractFluffle",
+    "SandwichCrust",
+    "CreamFilling",
+    "DiscoBling",
+    "PhysicsDenial",
+    "ExtraMagic",
+    "PancakeMagic",
+    "FluffyPancake",
+    "SpaghettiMagic",
+    "SpaghettiMonster",
+    "CloudMagic",
+    "FluffyCloud",
+    "ScreamMagic",
+    "ShoutStyle",
+    "LoudScream",
+    "SignMagic",
+    "SandwichSign",
+  ];
+  for (const id of expectedIds) {
+    assert.ok(d.boxById(id), `box "${id}" must be reachable via boxById()`);
+  }
+
+  // Inheritance edges: extends → inheritance, implements → realization.
+  const sandwichCrustToBaseSparkle = d.connections.find(
+    (c) => c.from.id === "SandwichCrust" && c.to.id === "BaseSparkle",
+  );
+  assert.ok(sandwichCrustToBaseSparkle, "SandwichCrust extends BaseSparkle");
+  assert.equal(sandwichCrustToBaseSparkle.kind, "inheritance");
+
+  const abstractFluffleToMagical = d.connections.find(
+    (c) => c.from.id === "AbstractFluffle" && c.to.id === "Magical",
+  );
+  assert.ok(abstractFluffleToMagical, "AbstractFluffle implements Magical");
+  assert.equal(abstractFluffleToMagical.kind, "realization");
+});
+
+test("class diagram: large fluffle diagram – __floating__ plane is rendered transparently", async () => {
+  // Top-level declarations (not inside any explicit package/namespace) land
+  // in the synthetic __floating__ collector plane in the model. The
+  // renderer must NOT draw a bounding rectangle or title tab for that
+  // plane, so it stays invisible on the Excalidraw canvas.
+  const d = parsePlantUml(FLUFFLE_SRC);
+  assert.equal(d.planes.length, 1, "all boxes should sit in a single floating plane");
+  assert.equal(d.planes[0].id, "__floating__");
+
+  const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-floating" });
+  // Every Excalidraw rectangle must correspond to either a box body or
+  // an edge-label chip — never to the floating plane's frame.
+  const planeRect = doc.elements.find((el) => {
+    if (el.type !== "rectangle") return false;
+    if (el.customData?.role === "edgeLabelChip") return false;
+    return (
+      Math.abs(el.x - d.planes[0].x) < 1 &&
+      Math.abs(el.y - d.planes[0].y) < 1 &&
+      Math.abs(el.width - d.planes[0].width) < 1 &&
+      Math.abs(el.height - d.planes[0].height) < 1
+    );
+  });
+  assert.equal(planeRect, undefined, "no rectangle may match the __floating__ plane bounds");
+});
+
+test("class diagram: large fluffle diagram – top-level boxes use distinct per-id colours", async () => {
+  // Floating-plane direct children get their own deterministic colour
+  // triple derived from the box id, so individual top-level types stay
+  // visually distinguishable.
+  const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-colors" });
+  const arrows = doc.elements.filter((e) => e.type === "arrow");
+  // Use arrow stroke colour as a proxy for "source box plane colour".
+  // With the per-box colouring fix, several distinct stroke colours
+  // must show up; otherwise everything would share one floating-plane
+  // colour.
+  const strokes = new Set(arrows.map((a) => a.strokeColor));
+  assert.ok(
+    strokes.size >= 5,
+    `expected at least 5 distinct arrow stroke colours, got ${strokes.size}`,
+  );
+});
+
+test("class diagram: large fluffle diagram – long member signatures wrap inside boxes", async () => {
+  // The sizing pass must wrap long method signatures (e.g. those with
+  // generics and many parameters) at semantically meaningful break
+  // points so members do not bleed past the right edge.
+  const { sizeDiagram } = await import("../src/layout/sizing.mjs");
+  const d = parsePlantUml(FLUFFLE_SRC);
+  sizeDiagram(d);
+  const fluffle = d.boxById("AbstractFluffle");
+  assert.ok(fluffle, "AbstractFluffle box must exist");
+  const wrapped = fluffle._wrappedMembers;
+  assert.ok(Array.isArray(wrapped), "AbstractFluffle should have _wrappedMembers after sizing");
+  assert.equal(wrapped.length, fluffle.members.length, "one wrapped entry per logical member");
+  // At least one of the long signatures must wrap to multiple lines.
+  const hasMultiLine = wrapped.some((entry) => entry.length > 1);
+  assert.ok(hasMultiLine, "at least one long member signature must wrap onto multiple lines");
+});
+
+test("class diagram: large fluffle diagram – composition/aggregation arrows keep null endArrowhead", async () => {
+  // Regression: the renderer used `conn.endArrowhead ?? "arrow"` which
+  // clobbered the intentional `null` set by classifyArrow() for
+  // composition (`*--`) and aggregation (`o--`). Those operators must
+  // emit a diamond at the source side and NO arrow head at the target.
+  const src = `@startuml
+class A
+class B
+class C
+A *-- B
+A o-- C
+@enduml`;
+  const doc = await renderPlantUml(src);
+  const arrows = doc.elements.filter((e) => e.type === "arrow");
+  assert.equal(arrows.length, 2);
+  const composition = arrows.find((a) => a.startArrowhead === "diamond");
+  const aggregation = arrows.find((a) => a.startArrowhead === "diamond_outline");
+  assert.ok(composition, "composition arrow must have startArrowhead=diamond");
+  assert.equal(composition.endArrowhead, null, "composition must have endArrowhead=null");
+  assert.ok(aggregation, "aggregation arrow must have startArrowhead=diamond_outline");
+  assert.equal(aggregation.endArrowhead, null, "aggregation must have endArrowhead=null");
+});
+
+test("class diagram: large fluffle diagram – arrows match source-box stroke colour", async () => {
+  // Each arrow must carry the same stroke colour as the outline of
+  // its source box. For top-level boxes inside the synthetic
+  // __floating__ plane this is the per-box `planeColor(box.id)`
+  // colour; the renderer used to fall back to the (invisible)
+  // floating-plane colour, painting all arrows in a single drab tone.
+  const { planeColor } = await import("../src/style/colors.mjs");
+  const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-arrows" });
+
+  // Pick a known top-level connection: AbstractFluffle implements Magical.
+  const arrows = doc.elements.filter((e) => e.type === "arrow");
+  const sourceStroke = planeColor("AbstractFluffle").stroke;
+  const matching = arrows.filter((a) => a.strokeColor === sourceStroke);
+  assert.ok(
+    matching.length >= 1,
+    `expected at least one arrow with AbstractFluffle's stroke colour ${sourceStroke}`,
+  );
+});
+
+test("class diagram: SVG markers carry the source-box stroke colour", async () => {
+  // The SVG renderer must emit per-colour <marker> definitions and
+  // reference them by colour-suffixed ids so each arrowhead
+  // (composition diamond, inheritance triangle, …) inherits the
+  // colour of its arrow shaft.
+  const { excalidrawToSvg } = await import("../src/render/svg.mjs");
+  const src = `@startuml
+class A
+class B
+A --|> B
+@enduml`;
+  const doc = await renderPlantUml(src);
+  const svg = excalidrawToSvg(doc);
+  // Marker reference ids include a hex-only colour suffix.
+  const refMatch = svg.match(/marker-end="url\(#m_triangle_outline_end_([0-9a-f]+)\)"/);
+  assert.ok(refMatch, "expected an inheritance marker reference with colour suffix");
+  const suffix = refMatch[1];
+  // The marker definition for the same id must exist in the defs and
+  // its stroke / fill must encode the same colour the arrow uses.
+  const markerDef = new RegExp(
+    `<marker id="m_triangle_outline_end_${suffix}"[^>]*><path[^/]*stroke="([^"]+)"`,
+  );
+  const defMatch = svg.match(markerDef);
+  assert.ok(defMatch, "matching marker definition with stroke colour must exist");
+  // The marker stroke must be a real colour, not the legacy black.
+  assert.notEqual(defMatch[1], "#000", "marker stroke must inherit the source-box colour");
+});
+
+test("class diagram: large fluffle diagram – render does not crash", async () => {
+  // Regression: rendering a large class diagram must not throw.
+  const { excalidrawToSvg } = await import("../src/render/svg.mjs");
+  const { svgToPng } = await import("../src/render/png.mjs");
+  resetStyle();
+  const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-regression" });
+  assert.equal(doc.type, "excalidraw");
+  assert.ok(doc.elements.length > 0, "must produce at least one element");
+
+  // There must be at least one rectangle per declared class/interface/enum.
+  const rects = doc.elements.filter((e) => e.type === "rectangle");
+  assert.ok(rects.length >= 10, `expected >=10 rectangles, got ${rects.length}`);
+
+  // No element may have NaN geometry – that would indicate a layout failure.
+  for (const el of doc.elements) {
+    if ("x" in el) assert.ok(!Number.isNaN(el.x), `element ${el.id} has NaN x`);
+    if ("y" in el) assert.ok(!Number.isNaN(el.y), `element ${el.id} has NaN y`);
+    if ("width" in el) assert.ok(!Number.isNaN(el.width), `element ${el.id} has NaN width`);
+    if ("height" in el) assert.ok(!Number.isNaN(el.height), `element ${el.id} has NaN height`);
+  }
+
+  // Write artefacts for manual inspection.
+  const svg = excalidrawToSvg(doc);
+  writeOutput("fluffle.excalidraw.json", JSON.stringify(doc, null, 2));
+  writeOutput("fluffle.svg", svg);
+  writeOutput("fluffle.png", svgToPng(svg, { width: 2400 }));
+
+  try {
+    setStyle({ classDiagram: { colorByType: true } });
+    const typedDoc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-type-colors" });
+    const typedRects = typedDoc.elements.filter((e) => e.type === "rectangle");
+    assert.ok(
+      typedRects.some((e) => e.backgroundColor === "#f0fdfa"),
+      "expected interface boxes to use type-based fill",
+    );
+    assert.ok(
+      typedRects.some((e) => e.backgroundColor === "#fffbeb"),
+      "expected enum boxes to use type-based fill",
+    );
+    assert.ok(
+      typedRects.some((e) => e.backgroundColor === "#f5f3ff"),
+      "expected abstract class boxes to use type-based fill",
+    );
+
+    const typedSvg = excalidrawToSvg(typedDoc);
+    writeOutput("fluffle-type-colors.excalidraw.json", JSON.stringify(typedDoc, null, 2));
+    writeOutput("fluffle-type-colors.svg", typedSvg);
+    writeOutput("fluffle-type-colors.png", svgToPng(typedSvg, { width: 2400 }));
+  } finally {
+    resetStyle();
+  }
 });

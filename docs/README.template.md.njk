@@ -117,6 +117,22 @@ The complete list of exported symbols, with parameter tables and
 return types, lives in [`docs/API.md`](./docs/API.md). It is
 regenerated from JSDoc on every `npm run build:docs` run.
 
+### Sequence diagram coverage
+
+Sequence diagrams support participants (`participant`, `actor`,
+`boundary`, `control`, `entity`, `database`, `collections`, `queue`),
+message arrows including async/reply/reverse/bidirectional variants,
+notes, participant `box ... end box` groups, `ref over` references,
+dividers (`== label ==`), delays (`... label ...`), spacers (`|||` /
+`||45||`), `autonumber`, lifecycle controls (`create`, `activate`,
+`deactivate`, `destroy`) and inline message lifecycle suffixes
+(`++`, `--`, `**`, `!!`). Combined fragments render for `opt`,
+`loop`, `alt`/`else`, `par`/`and`, `break`, `critical`/`option`, and
+`group`/`option` blocks. A small sequence `skinparam` subset maps
+directly to output colours in block or compact form: `ArrowColor`,
+`ParticipantBackgroundColor`, `ParticipantBorderColor`, and
+`LifeLineBorderColor`.
+
 ### Run the tests
 
 ```sh

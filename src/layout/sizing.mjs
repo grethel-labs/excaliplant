@@ -7,7 +7,14 @@
 // of a container share the same content width so titles align.
 
 import { Box, Plane, Subplane } from "../model/diagram.mjs";
-import { FONT, measureLine, measureWrapped, measureFitted } from "../style/text.mjs";
+import {
+  FONT,
+  measureLine,
+  measureWrapped,
+  measureFitted,
+  wrapMemberSignature,
+  isOperationMember,
+} from "../style/text.mjs";
 
 /**
  * Default padding / spacing constants used by {@link sizeDiagram}.
@@ -19,6 +26,8 @@ export const SIZING = {
   boxPaddingX: 14,
   boxPaddingY: 12,
   boxTitleGap: 4,
+  classCompartmentGap: 4,
+  classMemberSeparatorExtra: 8,
   boxMinHeight: 56,
   boxConnectionSlot: 18, // height per connection on a side
 
@@ -168,9 +177,31 @@ function sizeBox(box, width) {
       // Class-diagram interface: sized like a class once it has
       // members or an explicit stereotype.
       if ((box.members && box.members.length) || box.stereotype) {
+        /** @type {string[][]} */
+        const wrappedMembers = [];
+        let totalLines = 0;
+        let hasAttributes = false;
+        let hasOperations = false;
+        for (const member of box.members ?? []) {
+          if (isOperationMember(member)) hasOperations = true;
+          else hasAttributes = true;
+          const segments = String(member).split("\n");
+          /** @type {string[]} */
+          const lines = [];
+          for (const seg of segments) {
+            const w = wrapMemberSignature(seg, FONT.sizeDescription, innerWidth);
+            if (w.lines.length === 0) lines.push("");
+            else lines.push(...w.lines);
+          }
+          wrappedMembers.push(lines);
+          totalLines += Math.max(1, lines.length);
+        }
+        if (wrappedMembers.length) box._wrappedMembers = wrappedMembers;
+        const separatorExtra =
+          hasAttributes && hasOperations ? SIZING.classMemberSeparatorExtra : 0;
         shapeMin = Math.max(
           shapeMin,
-          textHeight + (box.members?.length ?? 0) * FONT.sizeDescription * FONT.lineHeight + 12,
+          textHeight + totalLines * FONT.sizeDescription * FONT.lineHeight + 12 + separatorExtra,
         );
       } else {
         shapeMin = Math.max(shapeMin, 70 + titleHeight);
@@ -192,9 +223,37 @@ function sizeBox(box, width) {
     case "class":
     case "enum":
       if (box.members && box.members.length) {
+        // Wrap each member signature at semantically meaningful break
+        // points (commas, parentheses, etc.) so long method signatures
+        // stay inside the box width instead of overflowing the right
+        // edge. The cached `_wrappedMembers` array (one entry per
+        // logical member, possibly multi-line) is consumed by the
+        // renderer.
+        /** @type {string[][]} */
+        const wrappedMembers = [];
+        let totalLines = 0;
+        let hasAttributes = false;
+        let hasOperations = false;
+        for (const member of box.members) {
+          if (isOperationMember(member)) hasOperations = true;
+          else hasAttributes = true;
+          const segments = String(member).split("\n");
+          /** @type {string[]} */
+          const lines = [];
+          for (const seg of segments) {
+            const w = wrapMemberSignature(seg, FONT.sizeDescription, innerWidth);
+            if (w.lines.length === 0) lines.push("");
+            else lines.push(...w.lines);
+          }
+          wrappedMembers.push(lines);
+          totalLines += Math.max(1, lines.length);
+        }
+        box._wrappedMembers = wrappedMembers;
+        const separatorExtra =
+          hasAttributes && hasOperations ? SIZING.classMemberSeparatorExtra : 0;
         shapeMin = Math.max(
           shapeMin,
-          textHeight + box.members.length * FONT.sizeDescription * FONT.lineHeight + 12,
+          textHeight + totalLines * FONT.sizeDescription * FONT.lineHeight + 12 + separatorExtra,
         );
       }
       break;

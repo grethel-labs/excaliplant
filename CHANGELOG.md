@@ -24,6 +24,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Edge-label chips now carry `customData.role` markers
   (`edgeLabelChip` / `edgeLabelText`) so renderers, tests, and
   third-party tools can identify them reliably.
+- Class-diagram styling can now colour UML class-like boxes by type
+  with `classDiagram.colorByType` and `classDiagram.typeColors`
+  (`class`, `abstract`, `interface`, `enum`).
+- Sequence diagrams now parse, lay out, and render combined fragments
+  for `opt`, `loop`, `alt` / `else`, `par`, `break`, `critical`, and
+  `group` blocks. Fragment frames are included in Excalidraw JSON,
+  SVG, and PNG output.
+- Sequence diagrams now support PlantUML lifecycle and timeline
+  constructs: `autonumber`, `create`, `activate`, `deactivate`,
+  `destroy`, inline message suffixes (`++`, `--`, `**`, `!!`),
+  participant `box ... end box` groups, `ref over` references,
+  dividers, delays, spacers, `par` / `and`, and `critical` / `group`
+  `option` operands, plus block and compact sequence colour skinparams
+  for arrows, participants, and lifelines.
 - Auto-generated single-page API reference at
   [`docs/API.md`](docs/API.md). It replaces the previous TypeDoc HTML
   site under `docs/api/` and is rendered from JSDoc by
@@ -39,6 +53,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `edgeLabel.textColor`, `edgeLabel.maxWidth`, …). The chip itself is
   emitted with `roughness: 0` and no rounded corners so it reads as a
   clean badge sitting on the line; default font size dropped to 10 px.
+- UML class boxes now draw a thin compartment separator between
+  attribute-like members and operation/function members when both are
+  present.
+- Sequence-diagram rendering now gives combined fragments typed
+  background/stroke colours with solid header labels, reserves vertical
+  margins around fragment frames, expands nested parent fragments
+  recursively, prevents adjacent fragment overlap, and colours
+  participant heads with deterministic hash-based pastel fills.
+- Sequence-diagram message labels now wrap to their available arrow
+  length and reserve enough vertical space so long labels do not
+  overlap neighbouring timeline entries.
 - The `svg.mjs` renderer now honours the per-element `roughness`
   field, so connection arrows / lines and edge-label chips appear
   perfectly straight in the exported SVG / PNG (matching the existing
@@ -47,6 +72,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   style document. Existing reads (`FONT.sizeTitle`, `FONT.family`,
   …) keep working; calls to `setStyle()` / `loadStyleFromFile()`
   immediately propagate to sizing and rendering.
+
+### Fixed
+
+- Connection arrows now always inherit the **outline colour of their
+  source box** (not the owning plane's colour), and arrowheads
+  (`arrow`, `triangle`, `triangle_outline`, `diamond`,
+  `diamond_outline`) are rendered in the matching colour in both the
+  Excalidraw JSON output and the SVG / PNG export. The SVG renderer
+  emits one `<marker>` definition per (arrowhead-type, colour)
+  combination actually in use and references it via a
+  colour-suffixed marker id, so renderers without
+  `context-stroke` support (resvg-js, some Markdown sanitisers) still
+  produce coloured arrowheads. Box-stroke resolution is shared with
+  the box renderer through the new `boxStrokeColor()` helper, so
+  arrows always agree with the box outline including the
+  per-id colours used for `__floating__`-plane children.
+- Class-diagram visual regressions on large tplant-style sources:
+  - Composition (`*--`) and aggregation (`o--`) arrows now keep
+    their intentional `endArrowhead: null`. The renderer used to
+    coerce `null` to `"arrow"`, which produced a spurious target
+    arrow alongside the source diamond.
+  - The synthetic `__floating__` collector plane (used for
+    declarations that live outside any explicit
+    `package` / `namespace`) is no longer drawn as a visible
+    bounding rectangle or labelled tab. Its child boxes each
+    receive their own deterministic per-id colour
+    (`planeColor(box.id)`) so individual top-level types stay
+    visually distinguishable, and outgoing arrows pick up the
+    matching source-box stroke colour rather than the (invisible)
+    floating-plane colour.
+  - Long class / interface / enum member signatures now wrap at
+    semantically meaningful break points (after `,` `(` `:`,
+    before `|` `&` `)`) via the new `wrapMemberSignature` helper
+    in `src/style/text.mjs`, with continuation indent. Sizing
+    grows the box height accordingly so members no longer bleed
+    past the right edge.
 
 ## [0.3.7] - 2026-05-04
 

@@ -17,10 +17,10 @@
 // no Excalidraw-internal version-specific arrow fields.
 
 import { Box, Plane, Subplane, SequenceDiagram } from "../model/diagram.mjs";
-import { FONT, measureWrapped } from "../style/text.mjs";
+import { FONT, measureWrapped, isOperationMember } from "../style/text.mjs";
 import { getStyle } from "../style/style.mjs";
 import { SIZING } from "../layout/sizing.mjs";
-import { boxColor } from "../style/colors.mjs";
+import { boxColor, planeColor } from "../style/colors.mjs";
 import { EXCALIDRAW_SCHEMA, ROUNDNESS } from "./schema.mjs";
 import { createSeededRng, stableHash32 } from "./rng.mjs";
 
@@ -289,12 +289,25 @@ export function exportDiagram(diagram, opts = {}) {
 
   for (const plane of diagram.planes) renderPlane(plane, elements);
   for (const conn of diagram.connections) {
+    // NB: pass `startArrowhead` / `endArrowhead` through verbatim. Using
+    // `?? "arrow"` here would clobber the `null` that classifyArrow()
+    // sets for composition / aggregation (where the arrow head only
+    // sits on one side: the diamond at the source, no head at the
+    // target). The Connection model already defaults to the right
+    // values when the operator does not specify them.
+    //
+    // Stroke colour matches the source box's outline colour, so each
+    // arrow is visually anchored to the box it originates from. The
+    // helper mirrors the colour-resolution rules used by renderPlane /
+    // renderSubplane / renderBox so the colour is always identical to
+    // what the box itself paints.
+    const strokeColor = boxStrokeColor(conn.from);
     const a = arrow({
       points: conn.path,
-      strokeColor: conn.from.plane?.color?.stroke || "#444",
+      strokeColor,
       dashed: conn.dashed,
       startArrowhead: conn.startArrowhead ?? null,
-      endArrowhead: conn.endArrowhead ?? "arrow",
+      endArrowhead: conn.endArrowhead === undefined ? "arrow" : conn.endArrowhead,
     });
     if (a) elements.push(a);
     if (conn.label) {
@@ -567,37 +580,53 @@ function bandFromEdge(x0, y0, x1, y1, thick, stroke, fill) {
 
 /**
  * Render a {@link Plane} (frame + title tab + recursive children).
+ *
+ * The synthetic `"__floating__"` plane (created by the parser to hold
+ * top-level boxes that were never enclosed in an explicit
+ * `package`/`namespace`) is rendered transparently: its frame and
+ * title tab are skipped so it does not appear as an all-encompassing
+ * container on the canvas. Each direct child box receives its own
+ * deterministic colour triple (derived from the box id) so individual
+ * top-level types stay visually distinguishable.
+ *
  * @param {Plane} plane Plane to draw.
  * @param {ExcalElement[]} elements Excalidraw element list — mutated in place.
  * @returns {void}
  */
 function renderPlane(plane, elements) {
   const color = plane.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" };
-  elements.push(
-    rect({
-      x: plane.x,
-      y: plane.y,
-      width: plane.width,
-      height: plane.height,
-      strokeColor: color.stroke,
-      backgroundColor: color.fill,
-    }),
-  );
-  renderTitleTab(
-    {
-      parent: plane,
-      color,
-      title: plane.title,
-      fontSize: FONT.sizePlaneTitle,
-      height: SIZING.planeTitleHeight,
-      paddingX: SIZING.planePaddingX,
-    },
-    elements,
-  );
+  const isFloating = plane.id === "__floating__";
+
+  if (!isFloating) {
+    elements.push(
+      rect({
+        x: plane.x,
+        y: plane.y,
+        width: plane.width,
+        height: plane.height,
+        strokeColor: color.stroke,
+        backgroundColor: color.fill,
+      }),
+    );
+    renderTitleTab(
+      {
+        parent: plane,
+        color,
+        title: plane.title,
+        fontSize: FONT.sizePlaneTitle,
+        height: SIZING.planeTitleHeight,
+        paddingX: SIZING.planePaddingX,
+      },
+      elements,
+    );
+  }
 
   for (const child of plane.children) {
+    // Floating-plane direct children get their own per-box colour so
+    // top-level classes / interfaces / enums are visually distinct.
+    const childColor = isFloating && child instanceof Box ? planeColor(child.id) : color;
     if (child instanceof Subplane) renderSubplane(child, color, elements);
-    else if (child instanceof Box) renderBox(child, color, elements);
+    else if (child instanceof Box) renderBox(child, childColor, elements);
   }
 }
 
@@ -639,6 +668,30 @@ function renderSubplane(sub, planeC, elements) {
 }
 
 /**
+ * Resolve the stroke (border) colour of a {@link Box}, mirroring the
+ * colour-resolution rules used by {@link renderPlane} /
+ * {@link renderSubplane} / {@link renderBox}. Used by the connection
+ * loop so each arrow shares its source box's outline colour.
+ * @param {Box} box Source box of a connection.
+ * @returns {string} `#RRGGBB` stroke colour for the box outline.
+ */
+function boxStrokeColor(box) {
+  const plane = box.plane;
+  /** @type {ColorTriple} */
+  let parentColor;
+  if (box.parent instanceof Subplane) {
+    const sub = box.parent;
+    parentColor = sub.color ||
+      plane?.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" };
+  } else if (plane?.id === "__floating__") {
+    parentColor = planeColor(box.id);
+  } else {
+    parentColor = plane?.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" };
+  }
+  return boxRenderColor(box, parentColor).stroke;
+}
+
+/**
  * Render a single {@link Box}; dispatches to a per-shape helper.
  * @param {Box} box Box to draw.
  * @param {ColorTriple} parentColor Owning plane/subplane colour triple.
@@ -646,7 +699,7 @@ function renderSubplane(sub, planeC, elements) {
  * @returns {void}
  */
 function renderBox(box, parentColor, elements) {
-  const color = boxColor(parentColor);
+  const color = boxRenderColor(box, parentColor);
   switch (box.shape) {
     case "actor":
       return renderActor(box, color, elements);
@@ -677,6 +730,52 @@ function renderBox(box, parentColor, elements) {
     default:
       return renderRectangleShape(box, color, elements);
   }
+}
+
+/**
+ * Resolve the final colour triple for a box, including optional UML
+ * class-diagram type colouring.
+ * @param {Box} box Box to colour.
+ * @param {ColorTriple} parentColor Owning plane/subplane colour triple.
+ * @returns {ColorTriple} Final box colour triple.
+ */
+function boxRenderColor(box, parentColor) {
+  const color = boxColor(parentColor);
+  const classColor = classTypeColor(box, color);
+  return classColor || color;
+}
+
+/**
+ * @param {Box} box Box to classify.
+ * @returns {"class"|"abstract"|"interface"|"enum"|""} UML class-box type key.
+ */
+function classTypeKey(box) {
+  if (box.shape === "interface") return "interface";
+  if (box.shape === "enum") return "enum";
+  if (box.shape === "class") {
+    const stereotype = String(box.stereotype || "").toLowerCase();
+    return stereotype.includes("abstract") ? "abstract" : "class";
+  }
+  return "";
+}
+
+/**
+ * @param {Box} box Box to colour.
+ * @param {ColorTriple} fallback Fallback colour triple.
+ * @returns {ColorTriple|null} Type-specific colour, or null when disabled/not applicable.
+ */
+function classTypeColor(box, fallback) {
+  const style = /** @type {any} */ (getStyle()).classDiagram || {};
+  if (style.colorByType !== true) return null;
+  const key = classTypeKey(box);
+  if (!key) return null;
+  const configured = style.typeColors?.[key];
+  if (!configured || typeof configured !== "object") return fallback;
+  return {
+    stroke: typeof configured.stroke === "string" ? configured.stroke : fallback.stroke,
+    fill: typeof configured.fill === "string" ? configured.fill : fallback.fill,
+    titleFill: typeof configured.titleFill === "string" ? configured.titleFill : fallback.titleFill,
+  };
 }
 
 /**
@@ -1148,19 +1247,88 @@ function renderClass(box, color, elements) {
         strokeWidth: 1,
       }),
     );
-    elements.push(
-      text({
-        x: box.x + SIZING.boxPaddingX,
-        y: sepY + 4,
-        width: box.width - SIZING.boxPaddingX * 2,
-        height: box.members.length * FONT.sizeDescription * FONT.lineHeight,
-        value: box.members.join("\n"),
-        fontSize: FONT.sizeDescription,
-        color: "#222",
-        align: "left",
-      }),
-    );
+    // Prefer the per-member wrapped lines cached by the sizing pass —
+    // this preserves the semantic break points (after `,`, `(`, ` :`,
+    // etc.) chosen by `wrapMemberSignature`, so long method signatures
+    // wrap inside the box instead of bleeding past the right edge.
+    /** @type {string[][] | undefined} */
+    const wrapped = box._wrappedMembers;
+    const groups = partitionClassMembers(box.members, wrapped);
+    const textX = box.x + SIZING.boxPaddingX;
+    const textWidth = box.width - SIZING.boxPaddingX * 2;
+    const memberY = sepY + SIZING.classCompartmentGap;
+    if (groups.attributes.length && groups.operations.length) {
+      const attrHeight = groups.attributes.length * FONT.sizeDescription * FONT.lineHeight;
+      elements.push(
+        text({
+          x: textX,
+          y: memberY,
+          width: textWidth,
+          height: attrHeight,
+          value: groups.attributes.join("\n"),
+          fontSize: FONT.sizeDescription,
+          color: "#222",
+          align: "left",
+        }),
+      );
+      const opSepY = memberY + attrHeight + SIZING.classCompartmentGap;
+      elements.push(
+        line({
+          points: [
+            { x: box.x, y: opSepY },
+            { x: box.x + box.width, y: opSepY },
+          ],
+          strokeColor: color.stroke,
+          strokeWidth: 1,
+        }),
+      );
+      elements.push(
+        text({
+          x: textX,
+          y: opSepY + SIZING.classCompartmentGap,
+          width: textWidth,
+          height: groups.operations.length * FONT.sizeDescription * FONT.lineHeight,
+          value: groups.operations.join("\n"),
+          fontSize: FONT.sizeDescription,
+          color: "#222",
+          align: "left",
+        }),
+      );
+    } else {
+      const memberLines = groups.attributes.length ? groups.attributes : groups.operations;
+      elements.push(
+        text({
+          x: textX,
+          y: memberY,
+          width: textWidth,
+          height: memberLines.length * FONT.sizeDescription * FONT.lineHeight,
+          value: memberLines.join("\n"),
+          fontSize: FONT.sizeDescription,
+          color: "#222",
+          align: "left",
+        }),
+      );
+    }
   }
+}
+
+/**
+ * Split wrapped UML class members into attribute and operation lines.
+ * @param {string[]} members Raw member declarations.
+ * @param {string[][]|undefined} wrapped Per-member wrapped lines from sizing.
+ * @returns {{attributes:string[],operations:string[]}}
+ */
+function partitionClassMembers(members, wrapped) {
+  /** @type {string[]} */
+  const attributes = [];
+  /** @type {string[]} */
+  const operations = [];
+  members.forEach((member, index) => {
+    const lines = wrapped?.[index] || [String(member)];
+    if (isOperationMember(member)) operations.push(...lines);
+    else attributes.push(...lines);
+  });
+  return { attributes, operations };
 }
 
 // --- Note (yellow sticky) ----------------------------------------------
@@ -1245,12 +1413,13 @@ function renderEdgeLabel(conn) {
   const cx = (a.x + b.x) / 2;
   const cy = (a.y + b.y) / 2;
 
-  // Segment angle, normalised to [-π/2, π/2] so text always reads
-  // upright (never upside down). The chip + text are rotated by this
-  // angle so the label visually rides on top of the connection.
-  let angle = Math.atan2(b.y - a.y, b.x - a.x);
-  if (angle > Math.PI / 2) angle -= Math.PI;
-  else if (angle < -Math.PI / 2) angle += Math.PI;
+  // Label rotation: vertical segments always use -π/2 (90° CCW),
+  // horizontal segments use 0. This makes vertical labels consistent
+  // regardless of which direction the arrow points (up or down).
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const isVertical = Math.abs(dy) > Math.abs(dx);
+  const angle = isVertical ? -Math.PI / 2 : 0;
 
   const style = /** @type {any} */ (getStyle()).edgeLabel || {};
   const lineColor = conn.from.plane?.color?.stroke || "#444";

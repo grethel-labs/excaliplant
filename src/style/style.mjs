@@ -85,6 +85,16 @@ export const DEFAULT_STYLE = deepFreeze({
     /** Minimum gap to leave around arrowheads at the segment ends. */
     segmentMargin: 24,
   },
+  classDiagram: {
+    /** When true, UML class-like boxes use `typeColors` instead of plane colours. */
+    colorByType: false,
+    typeColors: {
+      class: { stroke: "#475569", fill: "#f8fafc", titleFill: "#e2e8f0" },
+      abstract: { stroke: "#7c3aed", fill: "#f5f3ff", titleFill: "#ddd6fe" },
+      interface: { stroke: "#0f766e", fill: "#f0fdfa", titleFill: "#99f6e4" },
+      enum: { stroke: "#b45309", fill: "#fffbeb", titleFill: "#fde68a" },
+    },
+  },
   text: {
     /** Auto-shrink long titles/descriptions until they fit. */
     autoShrink: true,

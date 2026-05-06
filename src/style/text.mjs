@@ -137,3 +137,95 @@ export function measureFitted(text, fontSize, maxWidth, opts = {}) {
   }
   return { fontSize: fs, ...wrapped };
 }
+
+/**
+ * Wrap a single class/interface member signature (e.g.
+ * `+foo(bar: number, baz: Map<string, T>): Promise<void>`) at semantically
+ * meaningful break points: after `,`, `(`, `)`, `:`, ` `, `|`, `&`.
+ * Continuation lines get a small indent so it stays visually clear that
+ * they belong to the previous declaration.
+ *
+ * Falls back to whitespace-based wrapping when no preferred break point
+ * fits inside `maxWidth`.
+ *
+ * @param {string} signature Single member line (no embedded newlines).
+ * @param {number} fontSize Font size used for measurement.
+ * @param {number} maxWidth Available inner width in px.
+ * @param {object} [opts]
+ * @param {string} [opts.indent] Continuation indent (defaults to `"  "`).
+ * @returns {{ lines:string[], width:number, height:number }}
+ * @public
+ */
+export function wrapMemberSignature(signature, fontSize, maxWidth, opts = {}) {
+  const indent = opts.indent ?? "  ";
+  const text = String(signature ?? "");
+  if (!text) return { lines: [], width: 0, height: 0 };
+  const charsPerLine = Math.max(8, Math.floor(maxWidth / (fontSize * FONT.glyphRatio)));
+  if (text.length <= charsPerLine) {
+    return {
+      lines: [text],
+      width: text.length * fontSize * FONT.glyphRatio,
+      height: fontSize * FONT.lineHeight,
+    };
+  }
+  // Preferred break characters in priority order. Breaking AFTER the
+  // character keeps the punctuation glued to the previous line, which
+  // mirrors how IDEs typically format long signatures.
+  const BREAK_AFTER = new Set([",", "(", ":"]);
+  const BREAK_BEFORE = new Set(["|", "&", ")"]);
+  const lines = [];
+  let remaining = text;
+  let isContinuation = false;
+  while (remaining.length > 0) {
+    const prefix = isContinuation ? indent : "";
+    const budget = Math.max(8, charsPerLine - prefix.length);
+    if (remaining.length <= budget) {
+      lines.push(prefix + remaining);
+      break;
+    }
+    // Search for the latest preferred break point inside the budget.
+    let cut = -1;
+    for (let i = Math.min(budget, remaining.length - 1); i >= Math.floor(budget / 3); i--) {
+      const ch = remaining[i];
+      if (BREAK_AFTER.has(ch)) {
+        cut = i + 1;
+        break;
+      }
+      if (BREAK_BEFORE.has(ch)) {
+        cut = i;
+        break;
+      }
+      if (ch === " ") {
+        cut = i;
+        break;
+      }
+    }
+    if (cut === -1) {
+      // No preferred break point; fall back to a hard cut at the budget
+      // boundary to avoid an infinite loop on a single huge token.
+      cut = budget;
+    }
+    lines.push((prefix + remaining.slice(0, cut)).trimEnd());
+    remaining = remaining.slice(cut).replace(/^\s+/, "");
+    isContinuation = true;
+  }
+  return {
+    lines,
+    width: Math.max(0, ...lines.map((l) => l.length * fontSize * FONT.glyphRatio)),
+    height: lines.length * fontSize * FONT.lineHeight,
+  };
+}
+
+/**
+ * Classify a UML class member line as an operation when it contains a
+ * parameter list. Attribute declarations may contain `:` for types and
+ * generic brackets, but PlantUML method/function members are denoted by
+ * parentheses.
+ *
+ * @param {string} member Raw class/interface/enum member line.
+ * @returns {boolean} `true` for operation/function members.
+ * @internal
+ */
+export function isOperationMember(member) {
+  return String(member ?? "").includes("(");
+}

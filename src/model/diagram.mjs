@@ -92,6 +92,16 @@ export class Box {
     this._wrappedTitleFontSize = undefined;
     /** @type {number|undefined} */
     this._wrappedDescriptionFontSize = undefined;
+    /**
+     * Per-member wrapped lines computed by the sizing pass for class /
+     * interface / enum boxes. Each entry corresponds to one logical
+     * member from `box.members` and contains 1+ visual lines that
+     * already fit inside the box width. Used by the renderer to draw
+     * long method signatures across multiple lines instead of letting
+     * them bleed past the right edge.
+     * @type {string[][]|undefined}
+     */
+    this._wrappedMembers = undefined;
   }
   /** @returns {Plane | null} The owning plane (direct or via a {@link Subplane} parent). */
   get plane() {
@@ -347,18 +357,28 @@ export class Participant {
    * @param {string} spec.title Display name above the lifeline head.
    * @param {string} [spec.shape] participant | actor | boundary | control | entity | database | collections | queue.
    * @param {string} [spec.stereotype] Optional PlantUML `<<tag>>`.
+   * @param {string} [spec.color] Optional PlantUML colour token.
    */
-  constructor({ id, title, shape = "participant", stereotype = "" }) {
+  constructor({ id, title, shape = "participant", stereotype = "", color = "" }) {
     this.id = id;
     this.title = title;
     this.shape = shape; // participant | actor | boundary | control | entity | database | collections | queue
     this.stereotype = stereotype;
+    this.color = color;
     this.x = 0; // centre x of the head
     this.headY = 0;
     this.headWidth = 0;
     this.headHeight = 0;
     this.lifelineTop = 0;
     this.lifelineBottom = 0;
+    /** @type {number|null} Declaration index where this lifeline is created, or `null` for top-level participants. */
+    this.createdSeq = null;
+    /** @type {number|null} Declaration index where this lifeline is destroyed, or `null` when it reaches the tail. */
+    this.destroyedSeq = null;
+    /** Rendered y-coordinate of the destroy marker, assigned by layout. */
+    this.destroyY = 0;
+    /** @type {string|null} Optional participant group id from `box ... end box`. */
+    this.groupId = null;
   }
 }
 
@@ -396,7 +416,23 @@ export class Message {
     this.kind = kind; // sync | async | reply | self
     this.startArrowhead = startArrowhead;
     this.endArrowhead = endArrowhead;
+    /** Optional autonumber prefix rendered with the label. */
+    this.number = "";
+    /** Whether this message creates the receiver lifeline (`**`). */
+    this.creates = false;
+    /** Whether this message destroys a lifeline (`!!`). */
+    this.destroys = false;
+    /** Inline lifecycle marker: ++ | -- | ** | !! | "". */
+    this.lifecycle = "";
     this.y = 0;
+    /** Label text after layout-time wrapping. */
+    this.wrappedLabel = label;
+    /** Width of the wrapped label text box. */
+    this.labelWidth = 0;
+    /** Height of the wrapped label text box. */
+    this.labelHeight = 0;
+    /** Font size chosen for the wrapped label. */
+    this.labelFontSize = 0;
     /** Declaration order index across messages + notes. */
     this.seq = -1;
   }
@@ -436,8 +472,140 @@ export class SequenceNote {
 }
 
 /**
- * Sequence diagram model: lifelines, messages and notes laid out on
- * a vertical time axis.
+ * Combined fragment in a sequence diagram (`opt`, `loop`, `alt`, `par`,
+ * `break`, `critical`, `group`). A fragment owns one or more operands;
+ * each operand spans a declaration-order range on the sequence timeline.
+ * @public
+ */
+export class SequenceFragment {
+  /**
+   * @param {object} spec
+   * @param {string} spec.id Unique fragment identifier.
+   * @param {string} spec.kind Fragment operator: opt | loop | alt | par | break | critical | group.
+   * @param {string} [spec.label] Header/guard text for the first operand.
+   * @param {{label:string,startSeq:number,endSeq:number,y?:number}[]} [spec.operands]
+   *   Operand ranges in declaration-order indices.
+   */
+  constructor({ id, kind, label = "", operands = [] }) {
+    this.id = id;
+    this.kind = kind;
+    this.label = label;
+    this.operands = operands;
+    this.startSeq = operands[0]?.startSeq ?? -1;
+    this.endSeq = operands[operands.length - 1]?.endSeq ?? this.startSeq;
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+  }
+}
+
+/**
+ * Activation bar on a participant lifeline.
+ * @public
+ */
+export class SequenceActivation {
+  /**
+   * @param {object} spec
+   * @param {string} spec.id Unique activation identifier.
+   * @param {Participant} spec.participant Activated lifeline.
+   * @param {number} spec.startSeq Declaration index where activation starts.
+   * @param {number} [spec.endSeq] Declaration index where activation ends.
+   * @param {string} [spec.color] Optional PlantUML activation colour.
+   * @param {number} [spec.depth] Stack depth for nested activations.
+   */
+  constructor({ id, participant, startSeq, endSeq = startSeq, color = "", depth = 0 }) {
+    this.id = id;
+    this.participant = participant;
+    this.startSeq = startSeq;
+    this.endSeq = endSeq;
+    this.color = color;
+    this.depth = depth;
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+  }
+}
+
+/**
+ * Timeline marker such as dividers (`== label ==`), delays (`...`), and vertical spacers.
+ * @public
+ */
+export class SequenceMarker {
+  /**
+   * @param {object} spec
+   * @param {string} spec.id Unique marker identifier.
+   * @param {string} spec.kind divider | delay | space.
+   * @param {string} [spec.label] Optional marker text.
+   * @param {number} [spec.size] Requested vertical size for space markers.
+   */
+  constructor({ id, kind, label = "", size = 0 }) {
+    this.id = id;
+    this.kind = kind;
+    this.label = label;
+    this.size = size;
+    this.seq = -1;
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+  }
+}
+
+/**
+ * `ref over ...` reference frame in a sequence diagram.
+ * @public
+ */
+export class SequenceReference {
+  /**
+   * @param {object} spec
+   * @param {string} spec.id Unique reference identifier.
+   * @param {string} spec.label Reference text.
+   * @param {Participant} spec.target Primary lifeline.
+   * @param {Participant|null} [spec.target2] Optional second lifeline.
+   */
+  constructor({ id, label, target, target2 = null }) {
+    this.id = id;
+    this.label = label;
+    this.target = target;
+    this.target2 = target2;
+    this.seq = -1;
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+    this.wrappedLabel = label;
+  }
+}
+
+/**
+ * Participant grouping box declared with PlantUML `box ... end box`.
+ * @public
+ */
+export class SequenceParticipantGroup {
+  /**
+   * @param {object} spec
+   * @param {string} spec.id Unique group identifier.
+   * @param {string} [spec.label] Group label.
+   * @param {string} [spec.color] Optional PlantUML colour token.
+   */
+  constructor({ id, label = "", color = "" }) {
+    this.id = id;
+    this.label = label;
+    this.color = color;
+    /** @type {Participant[]} */
+    this.participants = [];
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+  }
+}
+
+/**
+ * Sequence diagram model: lifelines, messages, notes, fragments and
+ * other timeline decorations laid out on a vertical time axis.
  * @public
  */
 export class SequenceDiagram {
@@ -449,6 +617,27 @@ export class SequenceDiagram {
     this.messages = [];
     /** @type {SequenceNote[]} */
     this.notes = [];
+    /** @type {SequenceFragment[]} */
+    this.fragments = [];
+    /** @type {SequenceActivation[]} */
+    this.activations = [];
+    /** @type {SequenceMarker[]} */
+    this.markers = [];
+    /** @type {SequenceReference[]} */
+    this.references = [];
+    /** @type {SequenceParticipantGroup[]} */
+    this.participantGroups = [];
+    /**
+     * Parsed sequence-level style hints from supported `skinparam sequence`
+     * colours. Empty strings mean renderer defaults should be used.
+     * @type {{arrowColor:string,participantBackgroundColor:string,participantBorderColor:string,lifelineColor:string}}
+     */
+    this.style = {
+      arrowColor: "",
+      participantBackgroundColor: "",
+      participantBorderColor: "",
+      lifelineColor: "",
+    };
     this.width = 0;
     this.height = 0;
   }
@@ -478,6 +667,51 @@ export class SequenceDiagram {
   addNote(n) {
     this.notes.push(n);
     return n;
+  }
+  /**
+   * Register a combined sequence fragment.
+   * @param {SequenceFragment} f Fragment to add.
+   * @returns {SequenceFragment} The same fragment (for chaining).
+   */
+  addFragment(f) {
+    this.fragments.push(f);
+    return f;
+  }
+  /**
+   * Register an activation bar.
+   * @param {SequenceActivation} a Activation to add.
+   * @returns {SequenceActivation} The same activation.
+   */
+  addActivation(a) {
+    this.activations.push(a);
+    return a;
+  }
+  /**
+   * Register a sequence marker.
+   * @param {SequenceMarker} m Marker to add.
+   * @returns {SequenceMarker} The same marker.
+   */
+  addMarker(m) {
+    this.markers.push(m);
+    return m;
+  }
+  /**
+   * Register a reference frame.
+   * @param {SequenceReference} r Reference to add.
+   * @returns {SequenceReference} The same reference.
+   */
+  addReference(r) {
+    this.references.push(r);
+    return r;
+  }
+  /**
+   * Register a participant group.
+   * @param {SequenceParticipantGroup} g Group to add.
+   * @returns {SequenceParticipantGroup} The same group.
+   */
+  addParticipantGroup(g) {
+    this.participantGroups.push(g);
+    return g;
   }
   /**
    * Look up a lifeline by id.

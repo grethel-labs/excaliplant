@@ -45,6 +45,36 @@ import { layoutSequenceDiagram } from "./sequence_layout.mjs";
 
 const elk = new ELK();
 
+// ELK distributes ports evenly along each side using the formula
+//   port_y = (side_height / (n + 1)) * i
+// so the per-port gap equals `side_height / (n + 1)`. To guarantee a
+// minimum visual gap between the arrowheads of parallel edges, we
+// enforce a minimum box height of `(max_edges_per_side + 1) * MIN_PORT_GAP`
+// before handing the graph to ELK.
+//
+// Corridor spacing options must be applied to the parent that owns the
+// edges. Since most edges live inside Plane/Subplane compound nodes,
+// root-only layoutOptions do not reach them. We pass corridor spacing
+// through elk.layout(..., { layoutOptions }) so every hierarchical node
+// receives the same values unless it explicitly overrides them.
+const MIN_PORT_GAP = 26;
+
+// A single-line edge-label chip is roughly 17 px tall. 26 px centreline
+// spacing leaves several pixels between two labels on adjacent parallel
+// edges without making corridors feel oversized.
+const EDGE_CORRIDOR_GAP = 26;
+// ELK measures edge-node spacing from a node border to the edge centreline.
+// Keep this comfortably larger than corridor spacing so routed edge bundles
+// read as separate corridors instead of hugging class boxes.
+const EDGE_NODE_GAP = 96;
+
+const GLOBAL_LAYOUT_OPTIONS = {
+  "elk.spacing.edgeEdge": `${EDGE_CORRIDOR_GAP}`,
+  "elk.layered.spacing.edgeEdgeBetweenLayers": `${EDGE_CORRIDOR_GAP}`,
+  "elk.spacing.edgeNode": `${EDGE_NODE_GAP}`,
+  "elk.layered.spacing.edgeNodeBetweenLayers": `${EDGE_NODE_GAP}`,
+};
+
 // ELK layout options. These are tuned for many-node, many-edge,
 // hierarchical compound layouts with orthogonal edge routing — i.e.
 // what we have. See https://eclipse.dev/elk/reference/options.html
@@ -57,29 +87,25 @@ const ROOT_OPTIONS = {
   "elk.layered.crossingMinimization.semiInteractive": "true",
   "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
   "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "60",
-  "elk.spacing.nodeNode": "30",
-  "elk.spacing.edgeNode": "20",
-  "elk.spacing.edgeEdge": "12",
-  "elk.spacing.edgeNodeBetweenLayers": "20",
-  "elk.spacing.edgeEdgeBetweenLayers": "12",
-  "elk.padding": "[top=24,left=24,bottom=24,right=24]",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "90",
+  "elk.spacing.nodeNode": "45",
+  "elk.padding": "[top=36,left=36,bottom=36,right=36]",
 };
 
 const PLANE_OPTIONS = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
   "elk.padding": `[top=${SIZING.planeTitleHeight + SIZING.planePaddingY},left=${SIZING.planePaddingX},bottom=${SIZING.planePaddingY},right=${SIZING.planePaddingX}]`,
-  "elk.layered.spacing.nodeNodeBetweenLayers": "50",
-  "elk.spacing.nodeNode": "24",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "75",
+  "elk.spacing.nodeNode": "36",
 };
 
 const SUBPLANE_OPTIONS = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
   "elk.padding": `[top=${SIZING.subplaneTitleHeight + SIZING.subplanePaddingY},left=${SIZING.subplanePaddingX},bottom=${SIZING.subplanePaddingY},right=${SIZING.subplanePaddingX}]`,
-  "elk.layered.spacing.nodeNodeBetweenLayers": "40",
-  "elk.spacing.nodeNode": "16",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "60",
+  "elk.spacing.nodeNode": "24",
 };
 
 /**
@@ -105,11 +131,15 @@ export async function layoutDiagram(diagram) {
   // Step 1: text-based box sizing.
   sizeDiagram(diagram);
 
+  // Step 1b: widen boxes that receive or emit many parallel edges so
+  // ELK's DISTRIBUTED port alignment keeps arrowheads apart.
+  ensureBoxHeightForEdges(diagram);
+
   // Step 2: build the ELK graph.
   const graph = buildElkGraph(diagram);
 
   // Step 3: run ELK.
-  const result = await elk.layout(graph);
+  const result = await elk.layout(graph, { layoutOptions: GLOBAL_LAYOUT_OPTIONS });
 
   // Step 4: write geometry back.
   applyElkResult(diagram, result);
@@ -202,6 +232,46 @@ function buildElkGraph(diagram) {
   }
 
   return root;
+}
+
+/**
+ * Expand box heights so ELK's distributed port allocation places
+ * arrowheads at least MIN_PORT_GAP px apart.
+ *
+ * ELK uses `height / (n + 1)` for the gap between n ports on one
+ * side. Required height = `(n + 1) * MIN_PORT_GAP`. We only ever
+ * increase heights (never shrink), so box labels and members still
+ * fit.
+ *
+ * @param {import("../model/diagram.mjs").Diagram} diagram
+ * @returns {void}
+ */
+function ensureBoxHeightForEdges(diagram) {
+  // Count incoming and outgoing connections per box.
+  /** @type {Map<string, {in: number, out: number}>} */
+  const counts = new Map();
+  const get = (/** @type {string} */ id) => {
+    if (!counts.has(id)) counts.set(id, { in: 0, out: 0 });
+    return /** @type {{in:number,out:number}} */ (counts.get(id));
+  };
+  for (const conn of diagram.connections) {
+    get(conn.from.id).out += 1;
+    get(conn.to.id).in += 1;
+  }
+  // Raise each box's height if needed.
+  for (const plane of diagram.planes) {
+    for (const child of plane.children) {
+      const boxes = child instanceof Subplane ? child.boxes : [child];
+      for (const box of boxes) {
+        if (!(box instanceof Box)) continue;
+        const c = counts.get(box.id);
+        if (!c) continue;
+        const maxEdgesPerSide = Math.max(c.in, c.out);
+        const minH = (maxEdgesPerSide + 1) * MIN_PORT_GAP;
+        if (box.height < minH) box.height = minH;
+      }
+    }
+  }
 }
 
 /**
