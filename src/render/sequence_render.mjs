@@ -51,31 +51,32 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
   const elements = [];
   const style = sequenceStyle(diagram.style);
 
+  // ─── Layering contract ────────────────────────────────────────────────────
+  // 1. Participant group boxes (back-most)
+  // 2. Fragment / ref fills   (coloured areas behind lifelines)
+  // 3. Participant heads       (cap tops of lifelines)
+  // 4. Lifelines               (dashed, pass through fills and heads)
+  // 5. Activation bars         (solid bars on lifelines)
+  // 6. Fragment / ref borders  (frames on top of lifelines — the key fix)
+  // 7. Markers (dividers)      (section separators)
+  // 8. Participant tail boxes  (mirror of heads at the bottom)
+  // 9. Notes / messages        (timeline content)
+  // 10. Title                  (always topmost)
+  // ─────────────────────────────────────────────────────────────────────────
+
   for (const group of diagram.participantGroups) {
     renderParticipantGroup(group, elements, { rect, text });
   }
 
-  // Combined fragment frames sit behind lifelines and messages.
+  // Pass 1 – fills only (behind lifelines so the dashed lifeline shows through).
   for (const fragment of diagram.fragments) {
-    renderFragment(fragment, elements, { rect, text, line });
+    renderFragmentFill(fragment, elements, { rect });
   }
-
-  // Activation bars sit above fragment fills but below section dividers and
-  // participant heads. This way dividers always overlay the activation bar,
-  // preventing the bar from visually cutting through a divider band.
-  for (const activation of diagram.activations) {
-    renderActivation(activation, elements, { rect });
-  }
-
-  for (const marker of diagram.markers) {
-    renderMarker(marker, elements, { rect, text, line });
-  }
-
   for (const ref of diagram.references) {
-    renderReference(ref, elements, { rect, text });
+    renderReferenceFill(ref, elements, { rect });
   }
 
-  // Participant heads
+  // Participant heads sit above fills.
   for (const p of diagram.participants) {
     if (p.shape === "actor") renderActorHead(p, elements, { line, ellipse, text }, style);
     else renderParticipantHead(p, elements, { rect, text, ellipse, line }, style);
@@ -96,6 +97,23 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
     });
     lifeline.customData = { role: "sequenceLifeline", participantId: p.id };
     elements.push(lifeline);
+  }
+
+  // Activation bars on top of lifelines.
+  for (const activation of diagram.activations) {
+    renderActivation(activation, elements, { rect });
+  }
+
+  // Pass 2 – borders + labels on top of lifelines (the overstand the user wants).
+  for (const fragment of diagram.fragments) {
+    renderFragmentBorder(fragment, elements, { rect, text, line });
+  }
+  for (const ref of diagram.references) {
+    renderReferenceBorder(ref, elements, { rect, text });
+  }
+
+  for (const marker of diagram.markers) {
+    renderMarker(marker, elements, { rect, text, line });
   }
 
   // Tail boxes mirror heads at the bottom and sit above lifelines.
@@ -289,20 +307,44 @@ function renderMarker(marker, elements, { rect, text, line }) {
 }
 
 /**
- * Render a `ref over` frame.
+ * Render only the background fill of a `ref over` frame (fill pass —
+ * rendered before lifelines so the fill sits behind the dashed lines).
  * @param {import("../model/diagram.mjs").SequenceReference} ref Reference metadata.
  * @param {any[]} elements Excalidraw element list.
  * @param {Record<string, Function>} prims Primitive factories.
  * @returns {void}
  */
-function renderReference(ref, elements, { rect, text }) {
+function renderReferenceFill(ref, elements, { rect }) {
+  const fill = rect({
+    x: ref.x,
+    y: ref.y,
+    width: ref.width,
+    height: ref.height,
+    strokeColor: "transparent",
+    backgroundColor: REFERENCE_FILL,
+  });
+  fill.roughness = 0;
+  fill.strokeWidth = 0;
+  fill.customData = { role: "sequenceReferenceFill", referenceId: ref.id };
+  elements.push(fill);
+}
+
+/**
+ * Render the border, header tab, and label of a `ref over` frame
+ * (border pass — rendered after lifelines so the frame sits on top).
+ * @param {import("../model/diagram.mjs").SequenceReference} ref Reference metadata.
+ * @param {any[]} elements Excalidraw element list.
+ * @param {Record<string, Function>} prims Primitive factories.
+ * @returns {void}
+ */
+function renderReferenceBorder(ref, elements, { rect, text }) {
   const frame = rect({
     x: ref.x,
     y: ref.y,
     width: ref.width,
     height: ref.height,
     strokeColor: REFERENCE_STROKE,
-    backgroundColor: REFERENCE_FILL,
+    backgroundColor: "transparent",
   });
   frame.roughness = 0;
   frame.strokeWidth = 1;
@@ -335,8 +377,6 @@ function renderReference(ref, elements, { rect, text }) {
     x: ref.x + 12,
     y: ref.y + 28,
     width: ref.width - 24,
-    // Leave 12px bottom padding (REFERENCE_PAD_Y = 12 defined in layout).
-    // Previously ref.height - 34 left only 6px.
     height: ref.height - 40,
     value: ref.wrappedLabel || ref.label,
     fontSize: FONT.sizeDescription,
@@ -348,13 +388,41 @@ function renderReference(ref, elements, { rect, text }) {
 }
 
 /**
- * Render a UML combined fragment frame.
+ * Render only the background fill of a combined fragment (fill pass —
+ * rendered before lifelines so the fill sits behind the dashed lines).
  * @param {import("../model/diagram.mjs").SequenceFragment} fragment Fragment metadata.
  * @param {any[]} elements Excalidraw element list — mutated in place.
  * @param {Record<string, Function>} prims Primitive factories.
  * @returns {void}
  */
-function renderFragment(fragment, elements, { rect, text, line }) {
+function renderFragmentFill(fragment, elements, { rect }) {
+  if (!fragment.width || !fragment.height) return;
+  const colors = fragmentColors(fragment.kind);
+  const fill = rect({
+    x: fragment.x,
+    y: fragment.y,
+    width: fragment.width,
+    height: fragment.height,
+    strokeColor: "transparent",
+    backgroundColor: colors.fill,
+  });
+  fill.roughness = 0;
+  fill.strokeWidth = 0;
+  fill.customData = { role: "sequenceFragmentFrame", kind: fragment.kind };
+  elements.push(fill);
+}
+
+/**
+ * Render the border, header tab, labels, and operand separators of a
+ * combined fragment (border pass — rendered after lifelines so the frame
+ * sits on top and its border visibly overlaps the lifeline dashes).
+ * @param {import("../model/diagram.mjs").SequenceFragment} fragment Fragment metadata.
+ * @param {any[]} elements Excalidraw element list — mutated in place.
+ * @param {Record<string, Function>} prims Primitive factories.
+ * @returns {void}
+ */
+function renderFragmentBorder(fragment, elements, { rect, text, line }) {
+  if (!fragment.width || !fragment.height) return;
   const colors = fragmentColors(fragment.kind);
   const frame = rect({
     x: fragment.x,
@@ -362,11 +430,11 @@ function renderFragment(fragment, elements, { rect, text, line }) {
     width: fragment.width,
     height: fragment.height,
     strokeColor: colors.stroke,
-    backgroundColor: colors.fill,
+    backgroundColor: "transparent",
   });
   frame.roughness = 0;
   frame.strokeWidth = 1;
-  frame.customData = { role: "sequenceFragmentFrame", kind: fragment.kind };
+  frame.customData = { role: "sequenceFragmentBorder", kind: fragment.kind };
   elements.push(frame);
 
   const header = `${fragment.kind}${fragment.label ? ` ${fragment.label}` : ""}`;
