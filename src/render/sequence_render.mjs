@@ -18,7 +18,6 @@ const REFERENCE_STROKE = "#64748b";
 const REFERENCE_FILL = "#f8fafc";
 const REFERENCE_HEADER = "#475569";
 const DIVIDER_STROKE = "#475569";
-const DIVIDER_FILL = "#e2e8f0";
 const DELAY_STROKE = "#64748b";
 const FRAGMENT_COLORS = /** @type {Record<string, {stroke:string,fill:string,header:string}>} */ (
   Object.freeze({
@@ -78,6 +77,13 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
     renderFragment(fragment, elements, { rect, text, line });
   }
 
+  // Activation bars sit above fragment fills but below section dividers and
+  // participant heads. This way dividers always overlay the activation bar,
+  // preventing the bar from visually cutting through a divider band.
+  for (const activation of diagram.activations) {
+    renderActivation(activation, elements, { rect });
+  }
+
   for (const marker of diagram.markers) {
     renderMarker(marker, elements, { rect, text, line });
   }
@@ -107,10 +113,6 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
     });
     lifeline.customData = { role: "sequenceLifeline", participantId: p.id };
     elements.push(lifeline);
-  }
-
-  for (const activation of diagram.activations) {
-    renderActivation(activation, elements, { rect });
   }
 
   // Tail boxes mirror heads at the bottom and sit above lifelines.
@@ -223,22 +225,28 @@ function renderParticipantGroup(group, elements, { rect, text }) {
 function renderMarker(marker, elements, { rect, text, line }) {
   if (marker.kind === "space") return;
   if (marker.kind === "divider") {
-    const band = rect({
-      x: marker.x,
-      y: marker.y,
-      width: marker.width,
-      height: marker.height,
-      strokeColor: DIVIDER_STROKE,
-      backgroundColor: DIVIDER_FILL,
-    });
-    band.roughness = 0;
-    band.strokeWidth = 1;
-    band.customData = { role: "sequenceDivider", markerId: marker.id };
-    elements.push(band);
+    // Render as two horizontal solid lines (top + bottom) with the label
+    // centred between them. Using lines rather than a filled rectangle keeps
+    // the divider visually lightweight and avoids conflicts with activation
+    // bars that span across the separator area.
+    for (const lineY of [marker.y, marker.y + marker.height]) {
+      const divLine = line({
+        points: [
+          { x: marker.x, y: lineY },
+          { x: marker.x + marker.width, y: lineY },
+        ],
+        strokeColor: DIVIDER_STROKE,
+        strokeWidth: 1,
+      });
+      divLine.roughness = 0;
+      divLine.customData = { role: "sequenceDivider", markerId: marker.id };
+      elements.push(divLine);
+    }
     if (marker.label) {
+      const labelY = marker.y + (marker.height - FONT.sizeDescription * FONT.lineHeight) / 2;
       const label = text({
         x: marker.x + 8,
-        y: marker.y + 6,
+        y: labelY,
         width: marker.width - 16,
         height: FONT.sizeDescription * FONT.lineHeight,
         value: marker.label,
