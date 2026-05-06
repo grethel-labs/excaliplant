@@ -55,23 +55,6 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
     renderParticipantGroup(group, elements, { rect, text });
   }
 
-  // Title sits above participant group boxes in z-order so it is never
-  // obscured by a `box` frame that shares the top margin area.
-  if (diagram.title) {
-    elements.push(
-      text({
-        x: 20,
-        y: 16,
-        width: diagram.width - 40,
-        height: 30,
-        value: diagram.title,
-        fontSize: FONT.sizePlaneTitle,
-        color: HEAD_STROKE,
-        align: "center",
-      }),
-    );
-  }
-
   // Combined fragment frames sit behind lifelines and messages.
   for (const fragment of diagram.fragments) {
     renderFragment(fragment, elements, { rect, text, line });
@@ -163,6 +146,24 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
 
   for (const p of diagram.participants) {
     if (p.destroyY) renderDestroyMarker(p, elements, { line });
+  }
+
+  // Title is rendered last so it is always the topmost element in
+  // Excalidraw's z-order — above group boxes, participant heads,
+  // lifelines, and activation bars.
+  if (diagram.title) {
+    elements.push(
+      text({
+        x: 20,
+        y: 16,
+        width: diagram.width - 40,
+        height: 30,
+        value: diagram.title,
+        fontSize: FONT.sizePlaneTitle,
+        color: HEAD_STROKE,
+        align: "center",
+      }),
+    );
   }
 
   return {
@@ -334,7 +335,9 @@ function renderReference(ref, elements, { rect, text }) {
     x: ref.x + 12,
     y: ref.y + 28,
     width: ref.width - 24,
-    height: ref.height - 34,
+    // Leave 12px bottom padding (REFERENCE_PAD_Y = 12 defined in layout).
+    // Previously ref.height - 34 left only 6px.
+    height: ref.height - 40,
     value: ref.wrappedLabel || ref.label,
     fontSize: FONT.sizeDescription,
     color: "#334155",

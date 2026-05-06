@@ -334,6 +334,50 @@ export function createSequenceContext() {
         }
       }
       participantGroupStack.length = 0;
+
+      // If no explicit ++/-- activations were declared, leave activation bars
+      // empty so diagrams without them stay visually clean.
+      if (!diagram.activations.length) return;
+
+      // For participants that have no explicit ++/-- activation bars, generate
+      // implicit bars from sync call → reply message pairs. This ensures all
+      // participants show activation bars consistently whenever any participant
+      // uses explicit activation markers.
+      const explicitIds = new Set(diagram.activations.map((a) => a.participant.id));
+      /** @type {Map<string, SequenceActivation[]>} */
+      const implicitStacks = new Map();
+      for (const msg of diagram.messages) {
+        if (msg.isSelf) continue;
+        if (msg.kind === "reply") {
+          const pid = msg.from.id;
+          if (explicitIds.has(pid)) continue;
+          const stack = implicitStacks.get(pid);
+          if (stack?.length) {
+            const act = stack.pop();
+            if (act) act.endSeq = Math.max(act.startSeq, msg.seq);
+          }
+        } else {
+          const pid = msg.to.id;
+          if (explicitIds.has(pid)) continue;
+          const stack = implicitStacks.get(pid) ?? [];
+          const act = new SequenceActivation({
+            id: `seqact_${activationCounter++}`,
+            participant: msg.to,
+            startSeq: msg.seq,
+            endSeq: msg.seq,
+            depth: stack.length,
+          });
+          stack.push(act);
+          implicitStacks.set(pid, stack);
+          diagram.addActivation(act);
+        }
+      }
+      // Close any implicit activations that had no matching reply.
+      for (const stack of implicitStacks.values()) {
+        for (const act of stack) {
+          act.endSeq = Math.max(act.startSeq, timelineCounter);
+        }
+      }
     },
   };
 

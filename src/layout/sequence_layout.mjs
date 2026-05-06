@@ -117,13 +117,15 @@ export function layoutSequenceDiagram(diagram) {
   let y = timelineTop + MESSAGE_FIRST_Y;
   for (const entry of timeline) {
     y += boundaryGapBefore(entry.seq);
-    if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
     if (entry.kind === "msg") {
       const m = /** @type {import("../model/diagram.mjs").Message} */ (entry.item);
       if (!m.isSelf) {
         y += Math.max(0, m.labelHeight - FONT.sizeDescription * FONT.lineHeight);
       }
       m.y = y;
+      // Record seqY AFTER the label-height delta so that activation bars
+      // align with the actual arrow position, not the pre-delta y.
+      if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
       y += m.isSelf ? Math.max(SELF_HEIGHT, m.labelHeight + 8) + MESSAGE_GAP : MESSAGE_GAP;
     } else if (entry.kind === "note") {
       const n = /** @type {import("../model/diagram.mjs").SequenceNote} */ (entry.item);
@@ -140,6 +142,7 @@ export function layoutSequenceDiagram(diagram) {
         n.x = n.target.x - n.width / 2;
       }
       n.y = y;
+      if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
       y += n.height + NOTE_GAP;
     } else if (entry.kind === "marker") {
       const marker = /** @type {import("../model/diagram.mjs").SequenceMarker} */ (entry.item);
@@ -147,14 +150,24 @@ export function layoutSequenceDiagram(diagram) {
       marker.y = y;
       marker.width = Math.max(220, totalWidth - SIDE_MARGIN * 2);
       marker.height = marker.kind === "space" ? Math.max(12, marker.size || 36) : marker.height;
+      if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
       y += marker.height + MARKER_GAP;
     } else if (entry.kind === "ref") {
       const ref = /** @type {import("../model/diagram.mjs").SequenceReference} */ (entry.item);
-      const x1 = Math.min(ref.target.x, ref.target2?.x ?? ref.target.x);
-      const x2 = Math.max(ref.target.x, ref.target2?.x ?? ref.target.x);
-      ref.width = Math.max(ref.width, x2 - x1 + PARTICIPANT_GAP);
-      ref.x = (x1 + x2) / 2 - ref.width / 2;
+      // Use participant head edges (not centres) plus FRAGMENT_SIDE_MARGIN so
+      // ref frames are positioned consistently with combined-fragment boxes.
+      const pLeft = Math.min(
+        ref.target.x - ref.target.headWidth / 2,
+        (ref.target2?.x ?? Infinity) - (ref.target2?.headWidth ?? 0) / 2,
+      );
+      const pRight = Math.max(
+        ref.target.x + ref.target.headWidth / 2,
+        (ref.target2?.x ?? -Infinity) + (ref.target2?.headWidth ?? 0) / 2,
+      );
+      ref.x = pLeft - FRAGMENT_SIDE_MARGIN;
+      ref.width = Math.max(ref.width, pRight - pLeft + FRAGMENT_SIDE_MARGIN * 2);
       ref.y = y;
+      if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
       y += ref.height + NOTE_GAP;
     }
   }
