@@ -48,10 +48,16 @@ const FRAGMENT_COLORS = /** @type {Record<string, {stroke:string,fill:string,hea
  */
 export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
   const { rect, text, arrow, ellipse, line } = primitives;
+  /** @type {any[]} */
   const elements = [];
   const style = sequenceStyle(diagram.style);
 
-  // Title
+  for (const group of diagram.participantGroups) {
+    renderParticipantGroup(group, elements, { rect, text });
+  }
+
+  // Title sits above participant group boxes in z-order so it is never
+  // obscured by a `box` frame that shares the top margin area.
   if (diagram.title) {
     elements.push(
       text({
@@ -65,10 +71,6 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
         align: "center",
       }),
     );
-  }
-
-  for (const group of diagram.participantGroups) {
-    renderParticipantGroup(group, elements, { rect, text });
   }
 
   // Combined fragment frames sit behind lifelines and messages.
