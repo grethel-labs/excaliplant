@@ -18,9 +18,9 @@ const FONT_FAMILY = EXCALIFONT_FONT_STACK;
 const ROUGHNESS = 1; // Excalidraw's default roughness.
 const BOWING = 1;
 const FILL_WEIGHT = 0; // 0 → roughjs picks a sensible default.
-// Arrowhead size in user-space pixels: 0.7 × elk.spacing.edgeNode (30 px).
+// Arrowhead size in user-space pixels: 0.7 × elk.spacing.edgeNode (75 px).
 // Must be updated together with that ELK spacing value.
-const ARROWHEAD_PX = Math.round(0.7 * 30); // = 21
+const ARROWHEAD_PX = Math.round(0.7 * 75); // = 53
 
 const generator = rough.generator();
 
