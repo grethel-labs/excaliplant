@@ -1305,12 +1305,13 @@ function renderEdgeLabel(conn) {
   const cx = (a.x + b.x) / 2;
   const cy = (a.y + b.y) / 2;
 
-  // Segment angle, normalised to [-π/2, π/2] so text always reads
-  // upright (never upside down). The chip + text are rotated by this
-  // angle so the label visually rides on top of the connection.
-  let angle = Math.atan2(b.y - a.y, b.x - a.x);
-  if (angle > Math.PI / 2) angle -= Math.PI;
-  else if (angle < -Math.PI / 2) angle += Math.PI;
+  // Label rotation: vertical segments always use -π/2 (90° CCW),
+  // horizontal segments use 0. This makes vertical labels consistent
+  // regardless of which direction the arrow points (up or down).
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const isVertical = Math.abs(dy) > Math.abs(dx);
+  const angle = isVertical ? -Math.PI / 2 : 0;
 
   const style = /** @type {any} */ (getStyle()).edgeLabel || {};
   const lineColor = conn.from.plane?.color?.stroke || "#444";
