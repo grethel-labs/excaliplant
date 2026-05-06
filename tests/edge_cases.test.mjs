@@ -970,6 +970,53 @@ A o-- C
   assert.equal(aggregation.endArrowhead, null, "aggregation must have endArrowhead=null");
 });
 
+test("class diagram: large fluffle diagram – arrows match source-box stroke colour", async () => {
+  // Each arrow must carry the same stroke colour as the outline of
+  // its source box. For top-level boxes inside the synthetic
+  // __floating__ plane this is the per-box `planeColor(box.id)`
+  // colour; the renderer used to fall back to the (invisible)
+  // floating-plane colour, painting all arrows in a single drab tone.
+  const { planeColor } = await import("../src/style/colors.mjs");
+  const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-arrows" });
+
+  // Pick a known top-level connection: AbstractFluffle implements Magical.
+  const arrows = doc.elements.filter((e) => e.type === "arrow");
+  const sourceStroke = planeColor("AbstractFluffle").stroke;
+  const matching = arrows.filter((a) => a.strokeColor === sourceStroke);
+  assert.ok(
+    matching.length >= 1,
+    `expected at least one arrow with AbstractFluffle's stroke colour ${sourceStroke}`,
+  );
+});
+
+test("class diagram: SVG markers carry the source-box stroke colour", async () => {
+  // The SVG renderer must emit per-colour <marker> definitions and
+  // reference them by colour-suffixed ids so each arrowhead
+  // (composition diamond, inheritance triangle, …) inherits the
+  // colour of its arrow shaft.
+  const { excalidrawToSvg } = await import("../src/render/svg.mjs");
+  const src = `@startuml
+class A
+class B
+A --|> B
+@enduml`;
+  const doc = await renderPlantUml(src);
+  const svg = excalidrawToSvg(doc);
+  // Marker reference ids include a hex-only colour suffix.
+  const refMatch = svg.match(/marker-end="url\(#m_triangle_outline_end_([0-9a-f]+)\)"/);
+  assert.ok(refMatch, "expected an inheritance marker reference with colour suffix");
+  const suffix = refMatch[1];
+  // The marker definition for the same id must exist in the defs and
+  // its stroke / fill must encode the same colour the arrow uses.
+  const markerDef = new RegExp(
+    `<marker id="m_triangle_outline_end_${suffix}"[^>]*><path[^/]*stroke="([^"]+)"`,
+  );
+  const defMatch = svg.match(markerDef);
+  assert.ok(defMatch, "matching marker definition with stroke colour must exist");
+  // The marker stroke must be a real colour, not the legacy black.
+  assert.notEqual(defMatch[1], "#000", "marker stroke must inherit the source-box colour");
+});
+
 test("class diagram: large fluffle diagram – render does not crash", async () => {
   // Regression: rendering a large class diagram must not throw.
   const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-regression" });

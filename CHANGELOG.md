@@ -50,6 +50,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Connection arrows now always inherit the **outline colour of their
+  source box** (not the owning plane's colour), and arrowheads
+  (`arrow`, `triangle`, `triangle_outline`, `diamond`,
+  `diamond_outline`) are rendered in the matching colour in both the
+  Excalidraw JSON output and the SVG / PNG export. The SVG renderer
+  emits one `<marker>` definition per (arrowhead-type, colour)
+  combination actually in use and references it via a
+  colour-suffixed marker id, so renderers without
+  `context-stroke` support (resvg-js, some Markdown sanitisers) still
+  produce coloured arrowheads. Box-stroke resolution is shared with
+  the box renderer through the new `boxStrokeColor()` helper, so
+  arrows always agree with the box outline including the
+  per-id colours used for `__floating__`-plane children.
 - Class-diagram visual regressions on large tplant-style sources:
   - Composition (`*--`) and aggregation (`o--`) arrows now keep
     their intentional `endArrowhead: null`. The renderer used to

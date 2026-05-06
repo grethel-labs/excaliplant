@@ -44,13 +44,26 @@ export function excalidrawToSvg(doc, opts = {}) {
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family='${FONT_FAMILY}'>`,
   );
+  // Collect every (arrowhead-type, end, stroke-colour) triple that
+  // actually appears so we only emit the markers we need. Each marker
+  // bakes the colour into its `fill` / `stroke` so SVG renderers
+  // without `context-stroke` support (resvg-js, some Markdown
+  // sanitisers) still produce coloured arrowheads.
+  /** @type {Set<string>} */
+  const markerKeys = new Set();
+  for (const el of elements) {
+    if (el.type !== "arrow") continue;
+    const color = el.strokeColor || "#000000";
+    if (el.startArrowhead) markerKeys.add(`${el.startArrowhead}|start|${color}`);
+    if (el.endArrowhead) markerKeys.add(`${el.endArrowhead}|end|${color}`);
+  }
   // Root-level <defs>: font-face + arrowhead markers. Keeping both here
   // (rather than inside the translate <g>) ensures every SVG renderer
   // finds the markers, as some implementations (Safari, resvg, some
   // Markdown sanitisers) only resolve <marker> IDs when the <defs>
   // is a direct child of the root <svg> element.
   out.push(
-    `<defs><style type="text/css"><![CDATA[${getExcalifontFontFace()}]]></style>${arrowheadMarkers()}</defs>`,
+    `<defs><style type="text/css"><![CDATA[${getExcalifontFontFace()}]]></style>${arrowheadMarkers(markerKeys)}</defs>`,
   );
   out.push(`<rect width="100%" height="100%" fill="${escapeAttr(bg)}"/>`);
   out.push(`<g transform="translate(${tx} ${ty})">`);
@@ -299,10 +312,13 @@ function roughPolyline(el, withArrow) {
   // endpoint (not a wobble-jittered endpoint of the rough path).
   if (withArrow && (el.startArrowhead || el.endArrowhead)) {
     const polyPts = pts.map((/** @type {[number,number]} */ [x, y]) => `${x},${y}`).join(" ");
+    const colorSuffix = colorMarkerSuffix(el.strokeColor || "#000000");
     const startMarker = el.startArrowhead
-      ? ` marker-start="url(#m_${el.startArrowhead}_start)"`
+      ? ` marker-start="url(#m_${el.startArrowhead}_start_${colorSuffix})"`
       : "";
-    const endMarker = el.endArrowhead ? ` marker-end="url(#m_${el.endArrowhead}_end)"` : "";
+    const endMarker = el.endArrowhead
+      ? ` marker-end="url(#m_${el.endArrowhead}_end_${colorSuffix})"`
+      : "";
     // Marker rendering rules vary across renderers:
     //   - stroke-width="0" : Safari and resvg skip markers (degenerate stroke)
     //   - stroke="none"    : some renderers also skip markers
@@ -338,20 +354,101 @@ function svgText(el) {
 
 // ── arrowheads ────────────────────────────────────────────────────────────
 
+/**
+ * Sanitise an arbitrary CSS colour into a marker-id-safe suffix.
+ * Hex colours collapse to their 6-digit lowercase form; everything
+ * else is reduced to its alphanumerics. Used by both the marker
+ * registry and the polyline marker reference so they always agree.
+ * @param {string} color
+ * @returns {string}
+ */
+function colorMarkerSuffix(color) {
+  return String(color || "")
+    .toLowerCase()
+    .replace(/[^0-9a-z]/g, "");
+}
+
+// Marker geometry presets: viewBox, refX (for end-side), markerWidth /
+// markerHeight, and the path. Outline variants flip the fill rule:
+// `outline` markers use `fill="<canvas>" stroke="<color>"`, while solid
+// markers use `fill="<color>"`. The canvas colour is currently fixed
+// at white (matching the Excalidraw default canvas).
+const ARROWHEAD_GEOMETRY = {
+  arrow: {
+    viewBox: "0 0 10 10",
+    refXEnd: 9,
+    refXStart: 1,
+    width: 8,
+    height: 8,
+    path: "M0,0 L10,5 L0,10 z",
+    outline: false,
+  },
+  triangle: {
+    viewBox: "0 0 10 10",
+    refXEnd: 9,
+    refXStart: 1,
+    width: 9,
+    height: 9,
+    path: "M0,0 L10,5 L0,10 z",
+    outline: false,
+  },
+  triangle_outline: {
+    viewBox: "0 0 10 10",
+    refXEnd: 9,
+    refXStart: 1,
+    width: 10,
+    height: 10,
+    path: "M0,0 L10,5 L0,10 z",
+    outline: true,
+  },
+  diamond: {
+    viewBox: "0 0 12 10",
+    refXEnd: 11,
+    refXStart: 1,
+    width: 10,
+    height: 8,
+    path: "M0,5 L6,0 L12,5 L6,10 z",
+    outline: false,
+  },
+  diamond_outline: {
+    viewBox: "0 0 12 10",
+    refXEnd: 11,
+    refXStart: 1,
+    width: 10,
+    height: 8,
+    path: "M0,5 L6,0 L12,5 L6,10 z",
+    outline: true,
+  },
+};
+
 // Returns only the <marker> elements (no wrapping <defs>). The caller
 // merges them into the root <defs> block so SVG renderers that only
 // resolve marker IDs from root-level <defs> (Safari, resvg) work.
-function arrowheadMarkers() {
-  return `<marker id="m_arrow_end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
-    <marker id="m_arrow_start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
-    <marker id="m_triangle_end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
-    <marker id="m_triangle_start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker>
-    <marker id="m_triangle_outline_end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#fff" stroke="#000"/></marker>
-    <marker id="m_triangle_outline_start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#fff" stroke="#000"/></marker>
-    <marker id="m_diamond_end" viewBox="0 0 12 10" refX="11" refY="5" markerWidth="10" markerHeight="8" orient="auto"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#000"/></marker>
-    <marker id="m_diamond_start" viewBox="0 0 12 10" refX="1" refY="5" markerWidth="10" markerHeight="8" orient="auto-start-reverse"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#000"/></marker>
-    <marker id="m_diamond_outline_end" viewBox="0 0 12 10" refX="11" refY="5" markerWidth="10" markerHeight="8" orient="auto"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#fff" stroke="#000"/></marker>
-    <marker id="m_diamond_outline_start" viewBox="0 0 12 10" refX="1" refY="5" markerWidth="10" markerHeight="8" orient="auto-start-reverse"><path d="M0,5 L6,0 L12,5 L6,10 z" fill="#fff" stroke="#000"/></marker>`;
+//
+// `keys` is a Set of `${type}|${start|end}|${color}` triples collected
+// from the actual arrow elements; one marker is emitted per triple so
+// each arrowhead inherits the colour of its arrow.
+/**
+ * @param {Set<string>} keys
+ * @returns {string}
+ */
+function arrowheadMarkers(keys) {
+  const out = [];
+  for (const key of keys) {
+    const [type, side, color] = key.split("|");
+    const geom = ARROWHEAD_GEOMETRY[/** @type {keyof typeof ARROWHEAD_GEOMETRY} */ (type)];
+    if (!geom) continue;
+    const suffix = colorMarkerSuffix(color);
+    const id = `m_${type}_${side}_${suffix}`;
+    const refX = side === "end" ? geom.refXEnd : geom.refXStart;
+    const orient = side === "end" ? "auto" : "auto-start-reverse";
+    const safeColor = escapeAttr(color);
+    const fillStroke = geom.outline ? `fill="#fff" stroke="${safeColor}"` : `fill="${safeColor}"`;
+    out.push(
+      `<marker id="${id}" viewBox="${geom.viewBox}" refX="${refX}" refY="5" markerWidth="${geom.width}" markerHeight="${geom.height}" orient="${orient}"><path d="${geom.path}" ${fillStroke}/></marker>`,
+    );
+  }
+  return out.join("\n    ");
 }
 
 // ── misc ──────────────────────────────────────────────────────────────────

@@ -296,15 +296,12 @@ export function exportDiagram(diagram, opts = {}) {
     // target). The Connection model already defaults to the right
     // values when the operator does not specify them.
     //
-    // Stroke colour mirrors the per-box colouring used by renderPlane:
-    // top-level boxes inside the synthetic __floating__ plane each get
-    // their own deterministic colour, so their outgoing arrows must
-    // pick up the same source-box colour rather than the (invisible)
-    // floating-plane colour.
-    let strokeColor = conn.from.plane?.color?.stroke || "#444";
-    if (conn.from.plane?.id === "__floating__") {
-      strokeColor = planeColor(conn.from.id).stroke;
-    }
+    // Stroke colour matches the source box's outline colour, so each
+    // arrow is visually anchored to the box it originates from. The
+    // helper mirrors the colour-resolution rules used by renderPlane /
+    // renderSubplane / renderBox so the colour is always identical to
+    // what the box itself paints.
+    const strokeColor = boxStrokeColor(conn.from);
     const a = arrow({
       points: conn.path,
       strokeColor,
@@ -668,6 +665,30 @@ function renderSubplane(sub, planeC, elements) {
     }),
   );
   for (const box of sub.boxes) renderBox(box, color, elements);
+}
+
+/**
+ * Resolve the stroke (border) colour of a {@link Box}, mirroring the
+ * colour-resolution rules used by {@link renderPlane} /
+ * {@link renderSubplane} / {@link renderBox}. Used by the connection
+ * loop so each arrow shares its source box's outline colour.
+ * @param {Box} box Source box of a connection.
+ * @returns {string} `#RRGGBB` stroke colour for the box outline.
+ */
+function boxStrokeColor(box) {
+  const plane = box.plane;
+  /** @type {ColorTriple} */
+  let parentColor;
+  if (box.parent instanceof Subplane) {
+    const sub = box.parent;
+    parentColor = sub.color ||
+      plane?.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" };
+  } else if (plane?.id === "__floating__") {
+    parentColor = planeColor(box.id);
+  } else {
+    parentColor = plane?.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" };
+  }
+  return boxColor(parentColor).stroke;
 }
 
 /**

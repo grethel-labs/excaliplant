@@ -257,7 +257,11 @@ A --> B
   assert.ok(groupIndex > -1, "expected a canvas transform group");
   assert.ok(defsIndex < groupIndex, "defs must be emitted before the canvas transform group");
   assert.equal((svg.match(/<defs>/g) || []).length, 1);
-  assert.match(svg, /marker-end="url\(#m_arrow_end\)"/);
+  // Marker IDs now embed a colour suffix so each arrowhead can match
+  // the colour of its arrow. Just assert that an `m_arrow_end_*`
+  // marker is referenced — the exact suffix depends on the source
+  // box's deterministic colour.
+  assert.match(svg, /marker-end="url\(#m_arrow_end_[0-9a-f]+\)"/);
   assert.match(svg, /@font-face\{font-family:"Excalifont"/);
 });
 
