@@ -50,9 +50,14 @@ const elk = new ELK();
 // so the per-port gap equals `side_height / (n + 1)`. To guarantee a
 // minimum visual gap between the arrowheads of parallel edges, we
 // enforce a minimum box height of `(max_edges_per_side + 1) * MIN_PORT_GAP`
-// before handing the graph to ELK. This pre-sizing step is the ONLY
-// reliable way to control port spacing in elkjs — spacing.portPort has
-// no effect with FREE port constraints.
+// before handing the graph to ELK.
+//
+// IMPORTANT: elk.spacing.edgeEdge, edgeEdgeBetweenLayers, edgeNode,
+// edgeNodeBetweenLayers, portPort, and even baseValue have been
+// empirically verified to have ZERO effect on same-source fan-out
+// port spacing in elkjs. Those options only apply to routing corridors
+// between different node pairs. The ONLY effective knob for arrowhead
+// separation is box height → ensureBoxHeightForEdges() below.
 const MIN_PORT_GAP = 24;
 
 // ELK layout options. These are tuned for many-node, many-edge,
@@ -69,16 +74,6 @@ const ROOT_OPTIONS = {
   "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
   "elk.layered.spacing.nodeNodeBetweenLayers": "90",
   "elk.spacing.nodeNode": "45",
-  "elk.spacing.edgeNode": "75",
-  // edgeEdge / edgeEdgeBetweenLayers: gap between two parallel edges
-  // routed in the same corridor (vertical corridors between layers,
-  // horizontal corridors between rows). With many edges crossing one
-  // corridor — typical for class diagrams — these values determine how
-  // tightly the parallel lines bundle. 60 px keeps each line clearly
-  // distinguishable.
-  "elk.spacing.edgeEdge": "60",
-  "elk.spacing.edgeNodeBetweenLayers": "75",
-  "elk.spacing.edgeEdgeBetweenLayers": "60",
   "elk.padding": "[top=36,left=36,bottom=36,right=36]",
 };
 
