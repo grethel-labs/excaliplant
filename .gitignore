@@ -12,3 +12,5 @@ node_modules/
 # SVG.
 docs/ressources/generated/puml/
 docs/ressources/generated/excalidraw/
+tests/output/
+.vscode/
