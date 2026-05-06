@@ -15,6 +15,7 @@ import {
   Connection,
 } from "../index.mjs";
 import { DEFAULT_COMPONENT_PLUGINS } from "../src/parser/plantuml.mjs";
+import { writeOutput } from "./helpers/output.mjs";
 
 // ---------------------------------------------------------------------------
 // Empty / minimal inputs
@@ -1019,6 +1020,8 @@ A --|> B
 
 test("class diagram: large fluffle diagram – render does not crash", async () => {
   // Regression: rendering a large class diagram must not throw.
+  const { excalidrawToSvg } = await import("../src/render/svg.mjs");
+  const { svgToPng } = await import("../src/render/png.mjs");
   const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-regression" });
   assert.equal(doc.type, "excalidraw");
   assert.ok(doc.elements.length > 0, "must produce at least one element");
@@ -1034,4 +1037,10 @@ test("class diagram: large fluffle diagram – render does not crash", async () 
     if ("width" in el) assert.ok(!Number.isNaN(el.width), `element ${el.id} has NaN width`);
     if ("height" in el) assert.ok(!Number.isNaN(el.height), `element ${el.id} has NaN height`);
   }
+
+  // Write artefacts for manual inspection.
+  const svg = excalidrawToSvg(doc);
+  writeOutput("fluffle.excalidraw.json", JSON.stringify(doc, null, 2));
+  writeOutput("fluffle.svg", svg);
+  writeOutput("fluffle.png", svgToPng(svg, { width: 2400 }));
 });

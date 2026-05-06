@@ -16,6 +16,7 @@ import {
   EXCALIFONT_FONT_PATH,
   EXCALIFONT_RASTER_FONT_PATH,
 } from "../src/style/font.mjs";
+import { writeOutput } from "./helpers/output.mjs";
 
 // ---------------------------------------------------------------------------
 // Component / container variants
@@ -143,6 +144,9 @@ Bob --> Alice: ok
 @enduml`;
   const doc = await renderPlantUml(src);
   assert.ok(doc.elements.length > 0);
+  const svg = excalidrawToSvg(doc);
+  writeOutput("functional-sequence.svg", svg);
+  writeOutput("functional-sequence.png", svgToPng(svg, { width: 800 }));
 });
 
 test("functional: sequence diagram with 20 lifelines lays out", async () => {
@@ -394,4 +398,6 @@ orders --> pay
   assert.ok(doc.elements.length > 10);
   const svg = excalidrawToSvg(doc);
   assert.ok(svg.length > 1000);
+  writeOutput("functional-large-component.svg", svg);
+  writeOutput("functional-large-component.png", svgToPng(svg, { width: 1200 }));
 });

@@ -2,6 +2,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { renderPlantUml, parsePlantUml, SequenceDiagram } from "../index.mjs";
+import { excalidrawToSvg } from "../src/render/svg.mjs";
+import { svgToPng } from "../src/render/png.mjs";
+import { writeOutput } from "./helpers/output.mjs";
 
 const SAMPLE = `
 @startuml
@@ -69,6 +72,10 @@ test("renderPlantUml produces a well-formed Excalidraw doc", async () => {
   );
   assert.equal(labelTexts.length, 3);
   for (const t of labelTexts) assert.equal(t.strokeColor, "#ffffff");
+
+  const svg = excalidrawToSvg(doc);
+  writeOutput("smoke.svg", svg);
+  writeOutput("smoke.png", svgToPng(svg, { width: 900 }));
 });
 
 // ---------------------------------------------------------------------------
@@ -169,6 +176,10 @@ test("rich diagram renders to Excalidraw with mixed primitives", async () => {
   assert.ok(arrowHeads.has("triangle_outline"));
   assert.ok(arrowHeads.has("diamond"));
   assert.ok(arrowHeads.has("diamond_outline"));
+
+  const svg = excalidrawToSvg(doc);
+  writeOutput("rich.svg", svg);
+  writeOutput("rich.png", svgToPng(svg, { width: 1200 }));
 });
 
 // ---------------------------------------------------------------------------
@@ -248,4 +259,8 @@ test("sequence diagram renders to Excalidraw without ELK", async () => {
   assert.ok(dashedLines.length >= 4);
   // 7 messages → 7 arrows.
   assert.equal(arrows.length, 7);
+
+  const svg = excalidrawToSvg(doc);
+  writeOutput("seq.svg", svg);
+  writeOutput("seq.png", svgToPng(svg, { width: 1000 }));
 });
