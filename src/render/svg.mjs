@@ -114,24 +114,43 @@ function computeBounds(elements) {
 /** @internal */
 /**
  * Render one Excalidraw element as an SVG fragment.
+ * Elements with a non-zero `angle` are wrapped in a `<g transform="rotate(...)">`.
+ * Excalidraw rotates around the element centre in degrees; SVG rotates in
+ * degrees too so the conversion is direct.
  * @param {any} el Excalidraw element.
  * @returns {string} SVG markup for the element (empty string when unsupported).
  */
 function renderOne(el) {
+  let inner;
   switch (el.type) {
     case "rectangle":
-      return roughRect(el);
+      inner = roughRect(el);
+      break;
     case "ellipse":
-      return roughEllipse(el);
+      inner = roughEllipse(el);
+      break;
     case "line":
-      return roughPolyline(el, false);
+      inner = roughPolyline(el, false);
+      break;
     case "arrow":
-      return roughPolyline(el, true);
+      inner = roughPolyline(el, true);
+      break;
     case "text":
-      return svgText(el);
+      inner = svgText(el);
+      break;
     default:
       return "";
   }
+  if (!inner) return "";
+  // Wrap in a rotation transform when the element has a non-zero angle.
+  // Excalidraw stores radians; SVG rotate() takes degrees.
+  const angleDeg = ((el.angle || 0) * 180) / Math.PI;
+  if (Math.abs(angleDeg) < 0.001) return inner;
+  // Rotation centre: element centre (x + w/2, y + h/2). For arrows/lines
+  // that have no explicit width/height we fall back to their first point.
+  const cx = el.x + (el.width || 0) / 2;
+  const cy = el.y + (el.height || 0) / 2;
+  return `<g transform="rotate(${angleDeg.toFixed(4)},${cx},${cy})">${inner}</g>`;
 }
 
 // ── roughjs helpers ───────────────────────────────────────────────────────
@@ -252,7 +271,11 @@ function roughRect(el) {
  * @returns {string} `d` value (no `<path>` wrapper).
  */
 function rectPath(el) {
-  const r = el.roundness ? Math.min(8, el.width / 4, el.height / 4) : 0;
+  // `roundness: {type: 3}` (proportional) mirrors Excalidraw's "rounded
+  // corners" toggle. Excalidraw uses ~10% of the shorter side, clamped to
+  // a sensible maximum. We replicate that formula here so the SVG output
+  // matches the visual look of the Excalidraw editor.
+  const r = el.roundness ? Math.min(el.width * 0.1, el.height * 0.1, 32) : 0;
   if (!r) {
     return `M${el.x},${el.y} h${el.width} v${el.height} h${-el.width} z`;
   }
@@ -374,14 +397,19 @@ function colorMarkerSuffix(color) {
 // markers use `fill="<color>"`. The canvas colour is currently fixed
 // at white (matching the Excalidraw default canvas).
 const ARROWHEAD_GEOMETRY = {
+  // Excalidraw "arrow" type is an open chevron (two stroke lines, no fill)
+  // — analogous to ">" — not a filled triangle. Use `open: true` so the
+  // marker builder emits `fill="none" stroke="<color>"` instead of
+  // `fill="<color>"`. The path has no closing `z`.
   arrow: {
     viewBox: "0 0 10 10",
     refXEnd: 9,
     refXStart: 1,
     width: 8,
     height: 8,
-    path: "M0,0 L10,5 L0,10 z",
+    path: "M0,0 L10,5 L0,10",
     outline: false,
+    open: true,
   },
   triangle: {
     viewBox: "0 0 10 10",
@@ -391,6 +419,7 @@ const ARROWHEAD_GEOMETRY = {
     height: 9,
     path: "M0,0 L10,5 L0,10 z",
     outline: false,
+    open: false,
   },
   triangle_outline: {
     viewBox: "0 0 10 10",
@@ -400,6 +429,7 @@ const ARROWHEAD_GEOMETRY = {
     height: 10,
     path: "M0,0 L10,5 L0,10 z",
     outline: true,
+    open: false,
   },
   diamond: {
     viewBox: "0 0 12 10",
@@ -409,6 +439,7 @@ const ARROWHEAD_GEOMETRY = {
     height: 8,
     path: "M0,5 L6,0 L12,5 L6,10 z",
     outline: false,
+    open: false,
   },
   diamond_outline: {
     viewBox: "0 0 12 10",
@@ -418,6 +449,7 @@ const ARROWHEAD_GEOMETRY = {
     height: 8,
     path: "M0,5 L6,0 L12,5 L6,10 z",
     outline: true,
+    open: false,
   },
 };
 
@@ -443,7 +475,15 @@ function arrowheadMarkers(keys) {
     const refX = side === "end" ? geom.refXEnd : geom.refXStart;
     const orient = side === "end" ? "auto" : "auto-start-reverse";
     const safeColor = escapeAttr(color);
-    const fillStroke = geom.outline ? `fill="#fff" stroke="${safeColor}"` : `fill="${safeColor}"`;
+    // Three fill/stroke modes:
+    //   open    — open chevron: fill=none, stroke=color (e.g. Excalidraw "arrow")
+    //   outline — hollow shape: fill=white, stroke=color
+    //   solid   — filled shape: fill=color
+    const fillStroke = geom.open
+      ? `fill="none" stroke="${safeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`
+      : geom.outline
+        ? `fill="#fff" stroke="${safeColor}"`
+        : `fill="${safeColor}"`;
     out.push(
       `<marker id="${id}" viewBox="${geom.viewBox}" refX="${refX}" refY="5" markerWidth="${geom.width}" markerHeight="${geom.height}" orient="${orient}"><path d="${geom.path}" ${fillStroke}/></marker>`,
     );

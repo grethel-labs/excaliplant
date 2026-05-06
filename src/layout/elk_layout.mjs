@@ -57,29 +57,29 @@ const ROOT_OPTIONS = {
   "elk.layered.crossingMinimization.semiInteractive": "true",
   "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
   "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "60",
-  "elk.spacing.nodeNode": "30",
-  "elk.spacing.edgeNode": "20",
-  "elk.spacing.edgeEdge": "12",
-  "elk.spacing.edgeNodeBetweenLayers": "20",
-  "elk.spacing.edgeEdgeBetweenLayers": "12",
-  "elk.padding": "[top=24,left=24,bottom=24,right=24]",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "90",
+  "elk.spacing.nodeNode": "45",
+  "elk.spacing.edgeNode": "30",
+  "elk.spacing.edgeEdge": "18",
+  "elk.spacing.edgeNodeBetweenLayers": "30",
+  "elk.spacing.edgeEdgeBetweenLayers": "18",
+  "elk.padding": "[top=36,left=36,bottom=36,right=36]",
 };
 
 const PLANE_OPTIONS = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
   "elk.padding": `[top=${SIZING.planeTitleHeight + SIZING.planePaddingY},left=${SIZING.planePaddingX},bottom=${SIZING.planePaddingY},right=${SIZING.planePaddingX}]`,
-  "elk.layered.spacing.nodeNodeBetweenLayers": "50",
-  "elk.spacing.nodeNode": "24",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "75",
+  "elk.spacing.nodeNode": "36",
 };
 
 const SUBPLANE_OPTIONS = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
   "elk.padding": `[top=${SIZING.subplaneTitleHeight + SIZING.subplanePaddingY},left=${SIZING.subplanePaddingX},bottom=${SIZING.subplanePaddingY},right=${SIZING.subplanePaddingX}]`,
-  "elk.layered.spacing.nodeNodeBetweenLayers": "40",
-  "elk.spacing.nodeNode": "16",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "60",
+  "elk.spacing.nodeNode": "24",
 };
 
 /**
