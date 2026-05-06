@@ -45,6 +45,16 @@ import { layoutSequenceDiagram } from "./sequence_layout.mjs";
 
 const elk = new ELK();
 
+// ELK distributes ports evenly along each side using the formula
+//   port_y = (side_height / (n + 1)) * i
+// so the per-port gap equals `side_height / (n + 1)`. To guarantee a
+// minimum visual gap between the arrowheads of parallel edges, we
+// enforce a minimum box height of `(max_edges_per_side + 1) * MIN_PORT_GAP`
+// before handing the graph to ELK. This pre-sizing step is the ONLY
+// reliable way to control port spacing in elkjs — spacing.portPort has
+// no effect with FREE port constraints.
+const MIN_PORT_GAP = 24;
+
 // ELK layout options. These are tuned for many-node, many-edge,
 // hierarchical compound layouts with orthogonal edge routing — i.e.
 // what we have. See https://eclipse.dev/elk/reference/options.html
@@ -110,6 +120,10 @@ export async function layoutDiagram(diagram) {
 
   // Step 1: text-based box sizing.
   sizeDiagram(diagram);
+
+  // Step 1b: widen boxes that receive or emit many parallel edges so
+  // ELK's DISTRIBUTED port alignment keeps arrowheads apart.
+  ensureBoxHeightForEdges(diagram);
 
   // Step 2: build the ELK graph.
   const graph = buildElkGraph(diagram);
@@ -208,6 +222,46 @@ function buildElkGraph(diagram) {
   }
 
   return root;
+}
+
+/**
+ * Expand box heights so ELK's distributed port allocation places
+ * arrowheads at least MIN_PORT_GAP px apart.
+ *
+ * ELK uses `height / (n + 1)` for the gap between n ports on one
+ * side. Required height = `(n + 1) * MIN_PORT_GAP`. We only ever
+ * increase heights (never shrink), so box labels and members still
+ * fit.
+ *
+ * @param {import("../model/diagram.mjs").Diagram} diagram
+ * @returns {void}
+ */
+function ensureBoxHeightForEdges(diagram) {
+  // Count incoming and outgoing connections per box.
+  /** @type {Map<string, {in: number, out: number}>} */
+  const counts = new Map();
+  const get = (/** @type {string} */ id) => {
+    if (!counts.has(id)) counts.set(id, { in: 0, out: 0 });
+    return /** @type {{in:number,out:number}} */ (counts.get(id));
+  };
+  for (const conn of diagram.connections) {
+    get(conn.from.id).out += 1;
+    get(conn.to.id).in += 1;
+  }
+  // Raise each box's height if needed.
+  for (const plane of diagram.planes) {
+    for (const child of plane.children) {
+      const boxes = child instanceof Subplane ? child.boxes : [child];
+      for (const box of boxes) {
+        if (!(box instanceof Box)) continue;
+        const c = counts.get(box.id);
+        if (!c) continue;
+        const maxEdgesPerSide = Math.max(c.in, c.out);
+        const minH = (maxEdgesPerSide + 1) * MIN_PORT_GAP;
+        if (box.height < minH) box.height = minH;
+      }
+    }
+  }
 }
 
 /**
