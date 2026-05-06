@@ -92,6 +92,16 @@ export class Box {
     this._wrappedTitleFontSize = undefined;
     /** @type {number|undefined} */
     this._wrappedDescriptionFontSize = undefined;
+    /**
+     * Per-member wrapped lines computed by the sizing pass for class /
+     * interface / enum boxes. Each entry corresponds to one logical
+     * member from `box.members` and contains 1+ visual lines that
+     * already fit inside the box width. Used by the renderer to draw
+     * long method signatures across multiple lines instead of letting
+     * them bleed past the right edge.
+     * @type {string[][]|undefined}
+     */
+    this._wrappedMembers = undefined;
   }
   /** @returns {Plane | null} The owning plane (direct or via a {@link Subplane} parent). */
   get plane() {

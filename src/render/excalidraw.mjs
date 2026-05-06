@@ -20,7 +20,7 @@ import { Box, Plane, Subplane, SequenceDiagram } from "../model/diagram.mjs";
 import { FONT, measureWrapped } from "../style/text.mjs";
 import { getStyle } from "../style/style.mjs";
 import { SIZING } from "../layout/sizing.mjs";
-import { boxColor } from "../style/colors.mjs";
+import { boxColor, planeColor } from "../style/colors.mjs";
 import { EXCALIDRAW_SCHEMA, ROUNDNESS } from "./schema.mjs";
 import { createSeededRng, stableHash32 } from "./rng.mjs";
 
@@ -289,12 +289,28 @@ export function exportDiagram(diagram, opts = {}) {
 
   for (const plane of diagram.planes) renderPlane(plane, elements);
   for (const conn of diagram.connections) {
+    // NB: pass `startArrowhead` / `endArrowhead` through verbatim. Using
+    // `?? "arrow"` here would clobber the `null` that classifyArrow()
+    // sets for composition / aggregation (where the arrow head only
+    // sits on one side: the diamond at the source, no head at the
+    // target). The Connection model already defaults to the right
+    // values when the operator does not specify them.
+    //
+    // Stroke colour mirrors the per-box colouring used by renderPlane:
+    // top-level boxes inside the synthetic __floating__ plane each get
+    // their own deterministic colour, so their outgoing arrows must
+    // pick up the same source-box colour rather than the (invisible)
+    // floating-plane colour.
+    let strokeColor = conn.from.plane?.color?.stroke || "#444";
+    if (conn.from.plane?.id === "__floating__") {
+      strokeColor = planeColor(conn.from.id).stroke;
+    }
     const a = arrow({
       points: conn.path,
-      strokeColor: conn.from.plane?.color?.stroke || "#444",
+      strokeColor,
       dashed: conn.dashed,
       startArrowhead: conn.startArrowhead ?? null,
-      endArrowhead: conn.endArrowhead ?? "arrow",
+      endArrowhead: conn.endArrowhead === undefined ? "arrow" : conn.endArrowhead,
     });
     if (a) elements.push(a);
     if (conn.label) {
@@ -567,37 +583,53 @@ function bandFromEdge(x0, y0, x1, y1, thick, stroke, fill) {
 
 /**
  * Render a {@link Plane} (frame + title tab + recursive children).
+ *
+ * The synthetic `"__floating__"` plane (created by the parser to hold
+ * top-level boxes that were never enclosed in an explicit
+ * `package`/`namespace`) is rendered transparently: its frame and
+ * title tab are skipped so it does not appear as an all-encompassing
+ * container on the canvas. Each direct child box receives its own
+ * deterministic colour triple (derived from the box id) so individual
+ * top-level types stay visually distinguishable.
+ *
  * @param {Plane} plane Plane to draw.
  * @param {ExcalElement[]} elements Excalidraw element list — mutated in place.
  * @returns {void}
  */
 function renderPlane(plane, elements) {
   const color = plane.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" };
-  elements.push(
-    rect({
-      x: plane.x,
-      y: plane.y,
-      width: plane.width,
-      height: plane.height,
-      strokeColor: color.stroke,
-      backgroundColor: color.fill,
-    }),
-  );
-  renderTitleTab(
-    {
-      parent: plane,
-      color,
-      title: plane.title,
-      fontSize: FONT.sizePlaneTitle,
-      height: SIZING.planeTitleHeight,
-      paddingX: SIZING.planePaddingX,
-    },
-    elements,
-  );
+  const isFloating = plane.id === "__floating__";
+
+  if (!isFloating) {
+    elements.push(
+      rect({
+        x: plane.x,
+        y: plane.y,
+        width: plane.width,
+        height: plane.height,
+        strokeColor: color.stroke,
+        backgroundColor: color.fill,
+      }),
+    );
+    renderTitleTab(
+      {
+        parent: plane,
+        color,
+        title: plane.title,
+        fontSize: FONT.sizePlaneTitle,
+        height: SIZING.planeTitleHeight,
+        paddingX: SIZING.planePaddingX,
+      },
+      elements,
+    );
+  }
 
   for (const child of plane.children) {
+    // Floating-plane direct children get their own per-box colour so
+    // top-level classes / interfaces / enums are visually distinct.
+    const childColor = isFloating && child instanceof Box ? planeColor(child.id) : color;
     if (child instanceof Subplane) renderSubplane(child, color, elements);
-    else if (child instanceof Box) renderBox(child, color, elements);
+    else if (child instanceof Box) renderBox(child, childColor, elements);
   }
 }
 
@@ -1148,13 +1180,20 @@ function renderClass(box, color, elements) {
         strokeWidth: 1,
       }),
     );
+    // Prefer the per-member wrapped lines cached by the sizing pass —
+    // this preserves the semantic break points (after `,`, `(`, ` :`,
+    // etc.) chosen by `wrapMemberSignature`, so long method signatures
+    // wrap inside the box instead of bleeding past the right edge.
+    /** @type {string[][] | undefined} */
+    const wrapped = box._wrappedMembers;
+    const memberLines = wrapped ? wrapped.flat() : box.members.map((m) => String(m));
     elements.push(
       text({
         x: box.x + SIZING.boxPaddingX,
         y: sepY + 4,
         width: box.width - SIZING.boxPaddingX * 2,
-        height: box.members.length * FONT.sizeDescription * FONT.lineHeight,
-        value: box.members.join("\n"),
+        height: memberLines.length * FONT.sizeDescription * FONT.lineHeight,
+        value: memberLines.join("\n"),
         fontSize: FONT.sizeDescription,
         color: "#222",
         align: "left",

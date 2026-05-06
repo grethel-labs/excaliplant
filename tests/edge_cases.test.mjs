@@ -888,30 +888,86 @@ test("class diagram: large fluffle diagram – parser smoke (no crash, all top-l
   assert.equal(abstractFluffleToMagical.kind, "realization");
 });
 
-test("class diagram: large fluffle diagram – top-level boxes use __floating__ plane only", () => {
-  // Known visual issue: all top-level declarations (not inside any explicit
-  // package/namespace) land inside the synthetic __floating__ collector plane.
-  // ELK then treats this single plane as a cluster and stacks its children
-  // in a tall column, causing excessively vertical layout output.
-  //
-  // Ideally the renderer should skip the __floating__ plane's bounding
-  // rectangle so it does not appear as a visible all-encompassing container
-  // in the Excalidraw canvas.  Fix tracker: spurious root plane.
+test("class diagram: large fluffle diagram – __floating__ plane is rendered transparently", async () => {
+  // Top-level declarations (not inside any explicit package/namespace) land
+  // in the synthetic __floating__ collector plane in the model. The
+  // renderer must NOT draw a bounding rectangle or title tab for that
+  // plane, so it stays invisible on the Excalidraw canvas.
   const d = parsePlantUml(FLUFFLE_SRC);
+  assert.equal(d.planes.length, 1, "all boxes should sit in a single floating plane");
+  assert.equal(d.planes[0].id, "__floating__");
 
-  // At most one plane may exist (the synthetic __floating__ collector).
-  // No explicit container was declared in the source, so zero explicit
-  // planes is the desired end-state after the fix.
-  assert.ok(d.planes.length <= 1, `expected at most one synthetic plane, got ${d.planes.length}`);
-  if (d.planes.length === 1) {
-    // The sole plane must be the floating-box collector, not an unnamed
-    // container that was never declared in the source.
-    assert.equal(
-      d.planes[0].id,
-      "__floating__",
-      "the sole plane must be __floating__, not an unnamed container",
+  const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-floating" });
+  // Every Excalidraw rectangle must correspond to either a box body or
+  // an edge-label chip — never to the floating plane's frame.
+  const planeRect = doc.elements.find((el) => {
+    if (el.type !== "rectangle") return false;
+    if (el.customData?.role === "edgeLabelChip") return false;
+    return (
+      Math.abs(el.x - d.planes[0].x) < 1 &&
+      Math.abs(el.y - d.planes[0].y) < 1 &&
+      Math.abs(el.width - d.planes[0].width) < 1 &&
+      Math.abs(el.height - d.planes[0].height) < 1
     );
-  }
+  });
+  assert.equal(planeRect, undefined, "no rectangle may match the __floating__ plane bounds");
+});
+
+test("class diagram: large fluffle diagram – top-level boxes use distinct per-id colours", async () => {
+  // Floating-plane direct children get their own deterministic colour
+  // triple derived from the box id, so individual top-level types stay
+  // visually distinguishable.
+  const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-colors" });
+  const arrows = doc.elements.filter((e) => e.type === "arrow");
+  // Use arrow stroke colour as a proxy for "source box plane colour".
+  // With the per-box colouring fix, several distinct stroke colours
+  // must show up; otherwise everything would share one floating-plane
+  // colour.
+  const strokes = new Set(arrows.map((a) => a.strokeColor));
+  assert.ok(
+    strokes.size >= 5,
+    `expected at least 5 distinct arrow stroke colours, got ${strokes.size}`,
+  );
+});
+
+test("class diagram: large fluffle diagram – long member signatures wrap inside boxes", async () => {
+  // The sizing pass must wrap long method signatures (e.g. those with
+  // generics and many parameters) at semantically meaningful break
+  // points so members do not bleed past the right edge.
+  const { sizeDiagram } = await import("../src/layout/sizing.mjs");
+  const d = parsePlantUml(FLUFFLE_SRC);
+  sizeDiagram(d);
+  const fluffle = d.boxById("AbstractFluffle");
+  assert.ok(fluffle, "AbstractFluffle box must exist");
+  const wrapped = fluffle._wrappedMembers;
+  assert.ok(Array.isArray(wrapped), "AbstractFluffle should have _wrappedMembers after sizing");
+  assert.equal(wrapped.length, fluffle.members.length, "one wrapped entry per logical member");
+  // At least one of the long signatures must wrap to multiple lines.
+  const hasMultiLine = wrapped.some((entry) => entry.length > 1);
+  assert.ok(hasMultiLine, "at least one long member signature must wrap onto multiple lines");
+});
+
+test("class diagram: large fluffle diagram – composition/aggregation arrows keep null endArrowhead", async () => {
+  // Regression: the renderer used `conn.endArrowhead ?? "arrow"` which
+  // clobbered the intentional `null` set by classifyArrow() for
+  // composition (`*--`) and aggregation (`o--`). Those operators must
+  // emit a diamond at the source side and NO arrow head at the target.
+  const src = `@startuml
+class A
+class B
+class C
+A *-- B
+A o-- C
+@enduml`;
+  const doc = await renderPlantUml(src);
+  const arrows = doc.elements.filter((e) => e.type === "arrow");
+  assert.equal(arrows.length, 2);
+  const composition = arrows.find((a) => a.startArrowhead === "diamond");
+  const aggregation = arrows.find((a) => a.startArrowhead === "diamond_outline");
+  assert.ok(composition, "composition arrow must have startArrowhead=diamond");
+  assert.equal(composition.endArrowhead, null, "composition must have endArrowhead=null");
+  assert.ok(aggregation, "aggregation arrow must have startArrowhead=diamond_outline");
+  assert.equal(aggregation.endArrowhead, null, "aggregation must have endArrowhead=null");
 });
 
 test("class diagram: large fluffle diagram – render does not crash", async () => {

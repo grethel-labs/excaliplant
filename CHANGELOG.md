@@ -48,6 +48,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   …) keep working; calls to `setStyle()` / `loadStyleFromFile()`
   immediately propagate to sizing and rendering.
 
+### Fixed
+
+- Class-diagram visual regressions on large tplant-style sources:
+  - Composition (`*--`) and aggregation (`o--`) arrows now keep
+    their intentional `endArrowhead: null`. The renderer used to
+    coerce `null` to `"arrow"`, which produced a spurious target
+    arrow alongside the source diamond.
+  - The synthetic `__floating__` collector plane (used for
+    declarations that live outside any explicit
+    `package` / `namespace`) is no longer drawn as a visible
+    bounding rectangle or labelled tab. Its child boxes each
+    receive their own deterministic per-id colour
+    (`planeColor(box.id)`) so individual top-level types stay
+    visually distinguishable, and outgoing arrows pick up the
+    matching source-box stroke colour rather than the (invisible)
+    floating-plane colour.
+  - Long class / interface / enum member signatures now wrap at
+    semantically meaningful break points (after `,` `(` `:`,
+    before `|` `&` `)`) via the new `wrapMemberSignature` helper
+    in `src/style/text.mjs`, with continuation indent. Sizing
+    grows the box height accordingly so members no longer bleed
+    past the right edge.
+
 ## [0.3.7] - 2026-05-04
 
 ### Added
