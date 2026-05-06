@@ -25,6 +25,12 @@ jobs:
       - name: npm audit (production, fail on high)
         run: npm audit --omit=dev --audit-level=high
       - run: npm run build
+      - name: Commit generated docs (keeps working tree clean for prepublishOnly)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/API.md docs/.build-manifest.json docs/ressources/generated/
+          git diff --cached --quiet || git commit -m "docs: regenerate for ${GITHUB_REF_NAME} [skip ci]"
       - name: Pack + smoke-install (clean project)
         run: |
           set -eux

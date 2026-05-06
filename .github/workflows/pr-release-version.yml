@@ -182,11 +182,11 @@ jobs:
       - name: Detect version drift
         id: drift
         run: |
-          if git diff --quiet -- package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/; then
+          if git diff --quiet -- package.json package-lock.json README.md docs/API.md docs/.build-manifest.json docs/ressources/generated/; then
             echo "drifted=false" >> "$GITHUB_OUTPUT"
           else
             echo "drifted=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
+            git --no-pager diff --stat -- package.json package-lock.json README.md docs/API.md docs/.build-manifest.json docs/ressources/generated/
           fi
 
       - name: Amend + force-push release version
@@ -194,7 +194,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json README.md docs/.build-manifest.json docs/ressources/generated/
+          git add package.json package-lock.json README.md docs/API.md docs/.build-manifest.json docs/ressources/generated/
           git commit --amend --no-edit
           git push --force-with-lease origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
