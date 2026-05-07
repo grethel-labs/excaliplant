@@ -147,11 +147,12 @@ export function layoutSequenceDiagram(diagram) {
     } else if (entry.kind === "marker") {
       const marker = /** @type {import("../model/diagram.mjs").SequenceMarker} */ (entry.item);
       marker.x = SIDE_MARGIN;
-      marker.y = y;
       marker.width = Math.max(220, totalWidth - SIDE_MARGIN * 2);
       marker.height = marker.kind === "space" ? Math.max(12, marker.size || 36) : marker.height;
+      y += FRAGMENT_TOP_MARGIN;
+      marker.y = y;
       if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
-      y += marker.height + MARKER_GAP;
+      y += marker.height + FRAGMENT_BOTTOM_MARGIN;
     } else if (entry.kind === "ref") {
       const ref = /** @type {import("../model/diagram.mjs").SequenceReference} */ (entry.item);
       // Use participant head edges (not centres) plus FRAGMENT_SIDE_MARGIN so
@@ -166,9 +167,10 @@ export function layoutSequenceDiagram(diagram) {
       );
       ref.x = pLeft - FRAGMENT_SIDE_MARGIN;
       ref.width = Math.max(ref.width, pRight - pLeft + FRAGMENT_SIDE_MARGIN * 2);
+      y += FRAGMENT_TOP_MARGIN;
       ref.y = y;
       if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
-      y += ref.height + NOTE_GAP;
+      y += ref.height + FRAGMENT_BOTTOM_MARGIN;
     }
   }
 
