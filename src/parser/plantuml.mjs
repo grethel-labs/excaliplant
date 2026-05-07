@@ -62,8 +62,10 @@ import { sequenceAdvancedPlugin } from "./plugins/sequence/advanced.mjs";
 import {
   noteSidePlugin,
   noteOverPlugin,
+  noteAcrossPlugin,
   noteSideBlockPlugin,
   noteOverBlockPlugin,
+  noteAcrossBlockPlugin,
 } from "./plugins/sequence/notes.mjs";
 
 /**
@@ -104,8 +106,10 @@ export const DEFAULT_SEQUENCE_PLUGINS = [
   participantPlugin,
   noteSideBlockPlugin,
   noteOverBlockPlugin,
+  noteAcrossBlockPlugin,
   noteSidePlugin,
   noteOverPlugin,
+  noteAcrossPlugin,
   sequenceAdvancedPlugin,
   fragmentPlugin,
   messagePlugin,

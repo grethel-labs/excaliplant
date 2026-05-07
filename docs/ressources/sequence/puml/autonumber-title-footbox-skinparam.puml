@@ -1,0 +1,18 @@
+@startuml
+skinparam sequence {
+  ArrowColor #123456
+  ParticipantBackgroundColor #LightYellow
+  ParticipantBorderColor #00aa00
+  LifeLineBorderColor #0000ff
+}
+hide footbox
+title Styled numbered flow
+autonumber 10 5
+participant Alice
+participant Bob
+Alice -> Bob: first numbered
+autonumber stop
+Bob -> Alice: unnumbered
+autonumber resume
+Alice --> Bob: numbered again
+@enduml

@@ -9,9 +9,9 @@
  * @module tests/helpers/output
  */
 
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 
 /** Absolute path to the `tests/output/` directory. */
 export const OUTPUT_DIR = join(fileURLToPath(import.meta.url), "../../output");
@@ -22,5 +22,7 @@ export const OUTPUT_DIR = join(fileURLToPath(import.meta.url), "../../output");
  * @param {string|Buffer|Uint8Array} content Content to write.
  */
 export function writeOutput(filename, content) {
-  writeFileSync(join(OUTPUT_DIR, filename), content);
+  const target = join(OUTPUT_DIR, filename);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, content);
 }

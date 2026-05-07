@@ -10,6 +10,7 @@ import {
   SequenceMarker,
   SequenceReference,
   SequenceParticipantGroup,
+  SequenceArrow,
 } from "../model/diagram.mjs";
 
 /**
@@ -40,10 +41,12 @@ import {
  *   endFragment(): boolean,
  *   startActivation(participant: import("../model/diagram.mjs").Participant, color?: string, seq?: number): void,
  *   endActivation(participant: import("../model/diagram.mjs").Participant, seq?: number): boolean,
+ *   addReturnMessage(label?: string): boolean,
  *   markCreated(participant: import("../model/diagram.mjs").Participant, seq?: number): void,
  *   markDestroyed(participant: import("../model/diagram.mjs").Participant, seq?: number): void,
  *   setAutonumber(enabled: boolean, start?: number, step?: number): void,
  *   setSequenceStyle(key: keyof import("../model/diagram.mjs").SequenceDiagram["style"], value: string): void,
+ *   setFootboxVisible(visible: boolean): void,
  *   startParticipantGroup(label?: string, color?: string): void,
  *   endParticipantGroup(): boolean,
  * }}
@@ -68,6 +71,8 @@ export function createSequenceContext() {
   const activationStacks = new Map();
   /** @type {SequenceParticipantGroup[]} */
   const participantGroupStack = [];
+  /** @type {Message|null} */
+  let lastMessage = null;
 
   /** @param {SequenceFragment} fragment */
   const closeCurrentOperand = (fragment) => {
@@ -108,21 +113,29 @@ export function createSequenceContext() {
 
     /**
      * Explicitly declare a participant (`participant Foo as f`).
-     * @param {{id:string,title:string,shape?:string,stereotype?:string,color?:string}} spec Participant specification.
+     * @param {{id:string,title:string,shape?:string,stereotype?:string,color?:string,order?:number|null}} spec Participant specification.
      * @returns {Participant} The created or existing lifeline.
      */
     declareParticipant(
-      /** @type {{id:string,title:string,shape?:string,stereotype?:string,color?:string}} */ {
+      /** @type {{id:string,title:string,shape?:string,stereotype?:string,color?:string,order?:number|null}} */ {
         id,
         title,
         shape = "participant",
         stereotype = "",
         color = "",
+        order = null,
       },
     ) {
       const existing = diagram.participantById(id);
-      if (existing) return existing;
-      const p = new Participant({ id, title, shape, stereotype, color });
+      if (existing) {
+        existing.title = title || existing.title;
+        existing.shape = shape || existing.shape;
+        existing.stereotype = stereotype || existing.stereotype;
+        existing.color = color || existing.color;
+        if (order !== null) existing.order = order;
+        return existing;
+      }
+      const p = new Participant({ id, title, shape, stereotype, color, order });
       diagram.addParticipant(p);
       attachToCurrentParticipantGroup(p);
       return p;
@@ -177,6 +190,7 @@ export function createSequenceContext() {
       }
       msg.seq = timelineCounter++;
       diagram.addMessage(msg);
+      lastMessage = msg;
       return msg;
     },
     /**
@@ -252,7 +266,7 @@ export function createSequenceContext() {
      * @param {string} [color]
      * @param {number} [seq]
      */
-    startActivation(participant, color = "", seq = timelineCounter) {
+    startActivation(participant, color = "", seq = timelineCounter, caller = null) {
       const stack = activationStacks.get(participant.id) ?? [];
       const activation = new SequenceActivation({
         id: ctx.nextActivationId(),
@@ -260,6 +274,11 @@ export function createSequenceContext() {
         startSeq: Math.max(0, seq),
         color,
         depth: stack.length,
+        caller:
+          caller ||
+          (lastMessage && lastMessage.to === participant && lastMessage.from !== participant
+            ? lastMessage.from
+            : null),
       });
       stack.push(activation);
       activationStacks.set(participant.id, stack);
@@ -276,6 +295,31 @@ export function createSequenceContext() {
       const activation = stack?.pop();
       if (!activation) return false;
       activation.endSeq = Math.max(activation.startSeq, seq);
+      return true;
+    },
+    /** Add a reply message from the most recent activation to its caller. */
+    addReturnMessage(label = "") {
+      const open = [...activationStacks.values()]
+        .map((stack) => stack[stack.length - 1])
+        .filter(Boolean)
+        .sort((a, b) => (b?.startSeq ?? -1) - (a?.startSeq ?? -1))[0];
+      if (!open?.caller) return false;
+      const arrow = new SequenceArrow({
+        source: "return",
+        direction: open.participant === open.caller ? "self" : "left",
+        end: { head: "filled", excalidrawArrowhead: "triangle" },
+        line: { style: "dashed" },
+      });
+      const msg = ctx.addMessage({
+        from: open.participant,
+        to: open.caller,
+        label,
+        dashed: true,
+        kind: "reply",
+        endArrowhead: "triangle",
+        arrow,
+      });
+      ctx.endActivation(open.participant, msg.seq);
       return true;
     },
     /** Mark a participant as created at a declaration index. */
@@ -323,6 +367,10 @@ export function createSequenceContext() {
      */
     setSequenceStyle(key, value) {
       diagram.style[key] = value;
+    },
+    /** Toggle bottom participant footboxes. */
+    setFootboxVisible(/** @type {boolean} */ visible) {
+      diagram.showFootbox = visible;
     },
     /** Close unterminated fragments tolerantly at EOF. */
     finalize() {

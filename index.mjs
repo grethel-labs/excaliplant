@@ -85,11 +85,18 @@ export {
   Message,
   SequenceDiagram,
   SequenceActivation,
+  SequenceArrow,
+  SequenceArrowEndpoint,
+  SequenceArrowLine,
   SequenceFragment,
   SequenceMarker,
   SequenceNote,
   SequenceParticipantGroup,
   SequenceReference,
+  SEQUENCE_ARROW_ANCHORS,
+  SEQUENCE_ARROW_DIRECTIONS,
+  SEQUENCE_ARROW_HEADS,
+  SEQUENCE_ARROW_LINE_STYLES,
   SHAPES,
 } from "./src/model/diagram.mjs";
 

@@ -1,0 +1,19 @@
+@startuml
+title Arrow variants and endpoints
+participant Alice as A
+participant Bob as B
+A -> B: filled head
+A ->> B: open head
+A -->> B: dashed open
+A <-> B: bidirectional
+A o->o B: circle endpoints
+A x-> B: cross at start
+A ->x B: lost at end
+A -\ B: partial lower head
+A -/ B: partial upper head
+A -[#red]> B: red arrow
+[-> A: incoming from diagram edge
+A ->]: outgoing to diagram edge
+?-> B: short incoming
+B ->?: short outgoing
+@enduml

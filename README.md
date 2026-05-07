@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.6.0** &nbsp;·&nbsp; 136 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.6.0** &nbsp;·&nbsp; 141 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -129,7 +129,7 @@ directly to output colours in block or compact form: `ArrowColor`,
 npm test
 ```
 
-Ships with **136 tests** across functional, edge-case,
+Ships with **141 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -217,17 +217,23 @@ excaliplant
 │   └── excaliplant.mjs
 ├── docs
 │   ├── ressources
+│   │   └── sequence
+│   │       ├── puml
+│   │       └── svg
 │   ├── scripts
 │   │   ├── build-docs.mjs
+│   │   ├── build-sequence-coverage.mjs
 │   │   ├── check-build-manifest.mjs
 │   │   ├── config.mjs
 │   │   ├── extract-api.mjs
 │   │   ├── extract-docs.mjs
 │   │   ├── file-tree.mjs
-│   │   └── self-diagrams.mjs
+│   │   ├── self-diagrams.mjs
+│   │   └── sequence-coverage-examples.mjs
 │   ├── API.md
 │   ├── API.template.md.njk
-│   └── README.template.md.njk
+│   ├── README.template.md.njk
+│   └── sequence-components.md
 ├── scripts
 │   ├── auto-patch-deps.mjs
 │   ├── bump-release-version.mjs
@@ -274,6 +280,7 @@ excaliplant
 │   ├── plantuml.test.mjs
 │   ├── security.test.mjs
 │   ├── self_introspection.test.mjs
+│   ├── sequence_components.test.mjs
 │   └── style.test.mjs
 ├── AGENTS.md
 ├── CHANGELOG.md

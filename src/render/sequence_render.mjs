@@ -118,7 +118,7 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
 
   // Tail boxes mirror heads at the bottom and sit above lifelines.
   for (const p of diagram.participants) {
-    if (p.shape !== "actor" && !p.destroyY) {
+    if (diagram.showFootbox && p.shape !== "actor" && !p.destroyY) {
       const tail = /** @type {any} */ ({
         ...p,
         headY: p.lifelineBottom - p.headHeight,
@@ -130,27 +130,27 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
 
   // Notes
   for (const n of diagram.notes) {
-    elements.push(
-      rect({
-        x: n.x,
-        y: n.y,
-        width: n.width,
-        height: n.height,
-        strokeColor: NOTE_STROKE,
-        backgroundColor: NOTE_FILL,
-      }),
-    );
-    elements.push(
-      text({
-        x: n.x + 8,
-        y: n.y + 8,
-        width: n.width - 16,
-        height: n.height - 16,
-        value: n.text,
-        fontSize: FONT.sizeDescription,
-        color: "#000",
-      }),
-    );
+    const note = rect({
+      x: n.x,
+      y: n.y,
+      width: n.width,
+      height: n.height,
+      strokeColor: NOTE_STROKE,
+      backgroundColor: sequenceColor(n.color, NOTE_FILL),
+    });
+    note.customData = { role: "sequenceNote", noteId: n.id, shape: n.shape };
+    elements.push(note);
+    const noteText = text({
+      x: n.x + 8,
+      y: n.y + 8,
+      width: n.width - 16,
+      height: n.height - 16,
+      value: n.text,
+      fontSize: FONT.sizeDescription,
+      color: "#000",
+    });
+    noteText.customData = { role: "sequenceNoteText", noteId: n.id, shape: n.shape };
+    elements.push(noteText);
   }
 
   // Messages
@@ -568,12 +568,24 @@ function sequenceColor(color, fallback) {
   if (/^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(color)) return color;
   const named = color.replace(/^#/, "").toLowerCase();
   const palette = /** @type {Record<string, string>} */ ({
+    aqua: "#00ffff",
+    black: "#000000",
+    blue: "#0000ff",
+    darksalmon: "#e9967a",
+    deepskyblue: "#00bfff",
+    dodgerblue: "#1e90ff",
+    gold: "#ffd700",
+    green: "#008000",
     lightblue: "#dbeafe",
-    lightgreen: "#dcfce7",
-    lightyellow: "#fef9c3",
-    lightpink: "#fce7f3",
     lightgray: "#f1f5f9",
     lightgrey: "#f1f5f9",
+    lightgreen: "#dcfce7",
+    lightpink: "#fce7f3",
+    lightyellow: "#fef9c3",
+    pink: "#ffc0cb",
+    purple: "#800080",
+    red: "#ff0000",
+    white: "#ffffff",
   });
   return palette[named] || fallback;
 }
@@ -776,12 +788,14 @@ function renderActorHead(p, elements, { line, ellipse, text }, style) {
  * @returns {void}
  */
 function renderMessage(m, elements, { arrow, text }, style) {
+  const startX = m.startX || m.from.x;
+  const endX = m.endX || m.to.x;
   const a = arrow({
     points: [
-      { x: m.from.x, y: m.y },
-      { x: m.to.x, y: m.y },
+      { x: startX, y: m.y },
+      { x: endX, y: m.y + m.arrow.line.slant },
     ],
-    strokeColor: style.arrowColor,
+    strokeColor: sequenceColor(m.color, style.arrowColor),
     dashed: m.dashed,
     startArrowhead: m.startArrowhead ?? null,
     endArrowhead: m.endArrowhead ?? "arrow",
@@ -793,12 +807,19 @@ function renderMessage(m, elements, { arrow, text }, style) {
       creates: m.creates,
       destroys: m.destroys,
       lifecycle: m.lifecycle,
+      arrow: {
+        source: m.arrow.source,
+        direction: m.arrow.direction,
+        start: { head: m.arrow.start.head, anchor: m.arrow.start.anchor },
+        end: { head: m.arrow.end.head, anchor: m.arrow.end.anchor },
+        line: { style: m.arrow.line.style, color: m.arrow.line.color, slant: m.arrow.line.slant },
+      },
     };
     elements.push(a);
   }
   if (m.label || m.number) {
-    const x1 = Math.min(m.from.x, m.to.x);
-    const x2 = Math.max(m.from.x, m.to.x);
+    const x1 = Math.min(startX, endX);
+    const x2 = Math.max(startX, endX);
     const labelWidth = Math.min(x2 - x1, Math.max(20, m.labelWidth || x2 - x1));
     const labelHeight = m.labelHeight || FONT.sizeDescription * FONT.lineHeight;
     const label = text({
@@ -835,7 +856,7 @@ function renderSelfMessage(m, elements, { arrow, text }, style) {
       { x: x + off, y: m.y + 24 },
       { x, y: m.y + 24 },
     ],
-    strokeColor: style.arrowColor,
+    strokeColor: sequenceColor(m.color, style.arrowColor),
     dashed: m.dashed,
     startArrowhead: null,
     endArrowhead: m.endArrowhead ?? "arrow",
@@ -847,6 +868,13 @@ function renderSelfMessage(m, elements, { arrow, text }, style) {
       creates: m.creates,
       destroys: m.destroys,
       lifecycle: m.lifecycle,
+      arrow: {
+        source: m.arrow.source,
+        direction: m.arrow.direction,
+        start: { head: m.arrow.start.head, anchor: m.arrow.start.anchor },
+        end: { head: m.arrow.end.head, anchor: m.arrow.end.anchor },
+        line: { style: m.arrow.line.style, color: m.arrow.line.color, slant: m.arrow.line.slant },
+      },
     };
     elements.push(a);
   }

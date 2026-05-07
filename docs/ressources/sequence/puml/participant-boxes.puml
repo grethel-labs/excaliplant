@@ -1,0 +1,14 @@
+@startuml
+title Participant grouping boxes
+box "Internal Service" #LightBlue
+participant API
+participant Worker
+end box
+box "External" #LightGreen
+actor User
+end box
+User -> API: request
+API -> Worker: delegate
+Worker --> API: result
+API --> User: response
+@enduml

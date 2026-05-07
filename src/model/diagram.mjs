@@ -41,6 +41,54 @@ export const SHAPES = [
 ];
 
 /**
+ * Sequence-arrow endpoint head kinds. These are PlantUML-level semantics;
+ * renderers map them to the closest Excalidraw arrowhead primitive.
+ * @public
+ */
+export const SEQUENCE_ARROW_HEADS = [
+  "none",
+  "filled",
+  "open",
+  "circle",
+  "cross",
+  "partialTop",
+  "partialBottom",
+];
+
+/**
+ * Sequence-arrow endpoint anchors. Participant anchors attach to a lifeline;
+ * the others represent PlantUML incoming/outgoing boundary arrows (`[`/`]`)
+ * and short boundary arrows (`?`).
+ * @public
+ */
+export const SEQUENCE_ARROW_ANCHORS = [
+  "participant",
+  "diagramLeft",
+  "diagramRight",
+  "shortLeft",
+  "shortRight",
+];
+
+/**
+ * Sequence-arrow direction semantics.
+ * @public
+ */
+export const SEQUENCE_ARROW_DIRECTIONS = [
+  "right",
+  "left",
+  "bidirectional",
+  "self",
+  "incoming",
+  "outgoing",
+];
+
+/**
+ * Sequence-arrow line styles.
+ * @public
+ */
+export const SEQUENCE_ARROW_LINE_STYLES = ["solid", "dashed"];
+
+/**
  * A single component-style node in the diagram model.
  *
  * Boxes carry their own geometry once the layout pass has run; before
@@ -358,13 +406,16 @@ export class Participant {
    * @param {string} [spec.shape] participant | actor | boundary | control | entity | database | collections | queue.
    * @param {string} [spec.stereotype] Optional PlantUML `<<tag>>`.
    * @param {string} [spec.color] Optional PlantUML colour token.
+   * @param {number|null} [spec.order] Optional PlantUML `order` value.
    */
-  constructor({ id, title, shape = "participant", stereotype = "", color = "" }) {
+  constructor({ id, title, shape = "participant", stereotype = "", color = "", order = null }) {
     this.id = id;
     this.title = title;
     this.shape = shape; // participant | actor | boundary | control | entity | database | collections | queue
     this.stereotype = stereotype;
     this.color = color;
+    /** @type {number|null} Optional explicit PlantUML participant order. */
+    this.order = order;
     this.x = 0; // centre x of the head
     this.headY = 0;
     this.headWidth = 0;
@@ -383,6 +434,70 @@ export class Participant {
 }
 
 /**
+ * One endpoint of a sequence message arrow.
+ * @public
+ */
+export class SequenceArrowEndpoint {
+  /**
+   * @param {object} [spec]
+   * @param {string} [spec.head] PlantUML-level head kind: none | filled | open | circle | cross | partialTop | partialBottom.
+   * @param {string} [spec.anchor] participant | diagramLeft | diagramRight | shortLeft | shortRight.
+   * @param {string|null} [spec.excalidrawArrowhead] Closest Excalidraw arrowhead primitive.
+   */
+  constructor({ head = "none", anchor = "participant", excalidrawArrowhead = null } = {}) {
+    this.head = head;
+    this.anchor = anchor;
+    /** @type {string|null} */
+    this.excalidrawArrowhead = excalidrawArrowhead;
+  }
+}
+
+/**
+ * Visual line segment of a sequence message arrow.
+ * @public
+ */
+export class SequenceArrowLine {
+  /**
+   * @param {object} [spec]
+   * @param {string} [spec.style] solid | dashed.
+   * @param {string} [spec.color] Optional PlantUML arrow colour token.
+   * @param {number} [spec.slant] Optional PlantUML slanted-arrow offset.
+   */
+  constructor({ style = "solid", color = "", slant = 0 } = {}) {
+    this.style = style;
+    this.color = color;
+    this.slant = slant;
+  }
+  /** @returns {boolean} `true` when the line should render dashed. */
+  get dashed() {
+    return this.style === "dashed";
+  }
+}
+
+/**
+ * Object-oriented representation of a PlantUML sequence message arrow:
+ * start endpoint, line segment, and end endpoint.
+ * @public
+ */
+export class SequenceArrow {
+  /**
+   * @param {object} [spec]
+   * @param {SequenceArrowEndpoint|object} [spec.start] Start endpoint.
+   * @param {SequenceArrowEndpoint|object} [spec.end] End endpoint.
+   * @param {SequenceArrowLine|object} [spec.line] Line properties.
+   * @param {string} [spec.source] Original PlantUML arrow token.
+   * @param {string} [spec.direction] right | left | bidirectional | self | incoming | outgoing.
+   */
+  constructor({ start = {}, end = {}, line = {}, source = "", direction = "right" } = {}) {
+    this.start = start instanceof SequenceArrowEndpoint ? start : new SequenceArrowEndpoint(start);
+    this.end = end instanceof SequenceArrowEndpoint ? end : new SequenceArrowEndpoint(end);
+    this.line = line instanceof SequenceArrowLine ? line : new SequenceArrowLine(line);
+    this.source = source;
+    this.direction = direction;
+  }
+}
+
+/**
  * A message arrow exchanged between two {@link Participant}s.
  * @public
  */
@@ -397,6 +512,8 @@ export class Message {
    * @param {string} [spec.kind]      sync | async | reply | self.
    * @param {string|null} [spec.startArrowhead] Excalidraw arrowhead at the sender side.
    * @param {string|null} [spec.endArrowhead]   Excalidraw arrowhead at the receiver side.
+   * @param {SequenceArrow|object|null} [spec.arrow] Structured arrow semantics.
+   * @param {string} [spec.color] Optional PlantUML arrow colour token.
    */
   constructor({
     id,
@@ -407,15 +524,26 @@ export class Message {
     kind = "sync",
     startArrowhead = null,
     endArrowhead = "arrow",
+    arrow = null,
+    color = "",
   }) {
     this.id = id;
     this.from = from;
     this.to = to;
     this.label = label;
-    this.dashed = dashed;
+    this.arrow =
+      arrow instanceof SequenceArrow
+        ? arrow
+        : new SequenceArrow({
+            start: { excalidrawArrowhead: startArrowhead },
+            end: { excalidrawArrowhead: endArrowhead },
+            line: { style: dashed ? "dashed" : "solid", color },
+          });
+    this.dashed = this.arrow.line.dashed;
     this.kind = kind; // sync | async | reply | self
-    this.startArrowhead = startArrowhead;
-    this.endArrowhead = endArrowhead;
+    this.startArrowhead = this.arrow.start.excalidrawArrowhead;
+    this.endArrowhead = this.arrow.end.excalidrawArrowhead;
+    this.color = this.arrow.line.color;
     /** Optional autonumber prefix rendered with the label. */
     this.number = "";
     /** Whether this message creates the receiver lifeline (`**`). */
@@ -425,6 +553,10 @@ export class Message {
     /** Inline lifecycle marker: ++ | -- | ** | !! | "". */
     this.lifecycle = "";
     this.y = 0;
+    /** Absolute start x coordinate assigned by sequence layout. */
+    this.startX = 0;
+    /** Absolute end x coordinate assigned by sequence layout. */
+    this.endX = 0;
     /** Label text after layout-time wrapping. */
     this.wrappedLabel = label;
     /** Width of the wrapped label text box. */
@@ -438,7 +570,11 @@ export class Message {
   }
   /** @returns {boolean} `true` when sender and receiver are the same lifeline. */
   get isSelf() {
-    return this.from === this.to;
+    return (
+      this.from === this.to &&
+      this.arrow.start.anchor === "participant" &&
+      this.arrow.end.anchor === "participant"
+    );
   }
 }
 
@@ -455,13 +591,17 @@ export class SequenceNote {
    * @param {string} spec.side          Anchor side: left | right | over.
    * @param {Participant} spec.target   Primary attached lifeline.
    * @param {Participant|null} [spec.target2] Second lifeline for `over A,B` ranges.
+   * @param {string} [spec.shape] note | hnote | rnote.
+   * @param {string} [spec.color] Optional PlantUML note colour token.
    */
-  constructor({ id, text, side, target, target2 = null }) {
+  constructor({ id, text, side, target, target2 = null, shape = "note", color = "" }) {
     this.id = id;
     this.text = text;
     this.side = side; // left | right | over
     this.target = target; // Participant
     this.target2 = target2; // Participant or null (for "over A,B")
+    this.shape = shape;
+    this.color = color;
     this.x = 0;
     this.y = 0;
     this.width = 0;
@@ -513,14 +653,25 @@ export class SequenceActivation {
    * @param {number} [spec.endSeq] Declaration index where activation ends.
    * @param {string} [spec.color] Optional PlantUML activation colour.
    * @param {number} [spec.depth] Stack depth for nested activations.
+   * @param {Participant|null} [spec.caller] Lifeline that caused this activation, used by PlantUML `return`.
    */
-  constructor({ id, participant, startSeq, endSeq = startSeq, color = "", depth = 0 }) {
+  constructor({
+    id,
+    participant,
+    startSeq,
+    endSeq = startSeq,
+    color = "",
+    depth = 0,
+    caller = null,
+  }) {
     this.id = id;
     this.participant = participant;
     this.startSeq = startSeq;
     this.endSeq = endSeq;
     this.color = color;
     this.depth = depth;
+    /** @type {Participant|null} */
+    this.caller = caller;
     this.x = 0;
     this.y = 0;
     this.width = 0;
@@ -627,6 +778,7 @@ export class SequenceDiagram {
     this.references = [];
     /** @type {SequenceParticipantGroup[]} */
     this.participantGroups = [];
+    this.showFootbox = true;
     /**
      * Parsed sequence-level style hints from supported `skinparam sequence`
      * colours. Empty strings mean renderer defaults should be used.

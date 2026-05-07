@@ -22,6 +22,8 @@ const MESSAGE_GAP = 50;
 const MESSAGE_LABEL_SIDE_MARGIN = 12;
 const MESSAGE_LABEL_MIN_WIDTH = 48;
 const SELF_MESSAGE_LABEL_MAX_WIDTH = 220;
+const EXTERNAL_MESSAGE_OFFSET = 64;
+const SHORT_MESSAGE_OFFSET = 42;
 const SELF_HEIGHT = 36;
 const NOTE_PAD = 8;
 const NOTE_GAP = 14;
@@ -53,6 +55,14 @@ const FRAGMENT_MIN_HEIGHT = 62;
  * @public
  */
 export function layoutSequenceDiagram(diagram) {
+  const participantDeclarationOrder = new Map(diagram.participants.map((p, index) => [p, index]));
+  diagram.participants.sort((a, b) => {
+    const orderA = a.order ?? Number.POSITIVE_INFINITY;
+    const orderB = b.order ?? Number.POSITIVE_INFINITY;
+    if (orderA !== orderB) return orderA - orderB;
+    return (participantDeclarationOrder.get(a) ?? 0) - (participantDeclarationOrder.get(b) ?? 0);
+  });
+
   // 1. Size each participant head from its title.
   for (const p of diagram.participants) {
     const titleLines = String(p.title || "").split("\n");
@@ -73,6 +83,7 @@ export function layoutSequenceDiagram(diagram) {
   }
   const totalWidth = cursor - PARTICIPANT_GAP + SIDE_MARGIN;
 
+  layoutMessageEndpoints(diagram);
   sizeMessageLabels(diagram);
 
   const timelineTop = TOP_MARGIN + Math.max(...diagram.participants.map((p) => p.headHeight), 0);
@@ -193,7 +204,11 @@ export function layoutSequenceDiagram(diagram) {
     ...diagram.references.map((ref) => ref.x + ref.width + SIDE_MARGIN),
     ...diagram.participantGroups.map((group) => group.x + group.width + SIDE_MARGIN),
   );
-  diagram.width = Math.max(totalWidth, fragmentRight, decorationRight, 400);
+  const messageRight = Math.max(
+    0,
+    ...diagram.messages.map((message) => Math.max(message.startX, message.endX) + SIDE_MARGIN),
+  );
+  diagram.width = Math.max(totalWidth, fragmentRight, decorationRight, messageRight, 400);
   diagram.height = lifelineBottom + BOTTOM_MARGIN;
 
   return diagram;
@@ -321,6 +336,56 @@ function yForSeq(seqY, seq, fallback) {
 }
 
 /**
+ * Assign concrete x coordinates for message arrow endpoints. Normal arrows
+ * attach to lifelines; PlantUML boundary arrows (`[`/`]`) and short arrows
+ * (`?`) get deterministic offsets from the attached participant span.
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @returns {void}
+ */
+function layoutMessageEndpoints(diagram) {
+  if (!diagram.participants.length) return;
+  const left = Math.min(...diagram.participants.map((p) => p.x - p.headWidth / 2));
+  const right = Math.max(...diagram.participants.map((p) => p.x + p.headWidth / 2));
+  const diagramLeft = Math.max(8, left - EXTERNAL_MESSAGE_OFFSET);
+  const diagramRight = right + EXTERNAL_MESSAGE_OFFSET;
+  for (const message of diagram.messages) {
+    message.startX = sequenceEndpointX(
+      message.from,
+      message.arrow.start,
+      diagramLeft,
+      diagramRight,
+    );
+    message.endX = sequenceEndpointX(message.to, message.arrow.end, diagramLeft, diagramRight);
+    if (message.arrow.start.anchor === "shortLeft")
+      message.startX = message.to.x - SHORT_MESSAGE_OFFSET;
+    if (message.arrow.end.anchor === "shortRight")
+      message.endX = message.from.x + SHORT_MESSAGE_OFFSET;
+  }
+}
+
+/**
+ * @param {import("../model/diagram.mjs").Participant} participant
+ * @param {import("../model/diagram.mjs").SequenceArrowEndpoint} endpoint
+ * @param {number} diagramLeft
+ * @param {number} diagramRight
+ * @returns {number}
+ */
+function sequenceEndpointX(participant, endpoint, diagramLeft, diagramRight) {
+  switch (endpoint.anchor) {
+    case "diagramLeft":
+      return diagramLeft;
+    case "diagramRight":
+      return diagramRight;
+    case "shortLeft":
+      return participant.x - SHORT_MESSAGE_OFFSET;
+    case "shortRight":
+      return participant.x + SHORT_MESSAGE_OFFSET;
+    default:
+      return participant.x;
+  }
+}
+
+/**
  * Measure and cache wrapped message labels after participant x positions
  * are known, because normal message labels are constrained by arrow length.
  * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
@@ -360,7 +425,7 @@ function messageLabelText(message) {
  */
 function messageLabelMaxWidth(message) {
   if (message.isSelf) return SELF_MESSAGE_LABEL_MAX_WIDTH;
-  const arrowLength = Math.abs(message.to.x - message.from.x);
+  const arrowLength = Math.abs((message.endX || message.to.x) - (message.startX || message.from.x));
   return Math.max(MESSAGE_LABEL_MIN_WIDTH, arrowLength - MESSAGE_LABEL_SIDE_MARGIN * 2);
 }
 
@@ -447,8 +512,18 @@ function layoutFragments(diagram, lifelineTop, timelineBottom) {
       seq: m.seq ?? Infinity,
       top: m.y - Math.max(FONT.sizeDescription * FONT.lineHeight, m.labelHeight) - 8,
       bottom: m.y + (m.isSelf ? Math.max(SELF_HEIGHT, m.labelHeight + 8) : 8),
-      left: Math.min(participantLeft(m.from), participantLeft(m.to)),
-      right: Math.max(participantRight(m.from), participantRight(m.to)),
+      left: Math.min(
+        participantLeft(m.from),
+        participantLeft(m.to),
+        m.startX || m.from.x,
+        m.endX || m.to.x,
+      ),
+      right: Math.max(
+        participantRight(m.from),
+        participantRight(m.to),
+        m.startX || m.from.x,
+        m.endX || m.to.x,
+      ),
     })),
     ...diagram.notes.map((n) => ({
       seq: n.seq ?? Infinity,

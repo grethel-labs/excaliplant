@@ -1,0 +1,21 @@
+@startuml
+title Participant declarations
+participant Last order 30
+participant Middle order 20
+actor "External User" as User #LightBlue
+boundary Boundary
+control Control
+entity Entity
+database Database
+collections Collection
+queue Queue
+participant First <<service>> #LightGreen order 10
+User -> First: enters system
+First -> Boundary: validate
+Boundary -> Control: dispatch
+Control -> Entity: load
+Entity -> Database: query
+Database --> Collection: rows
+Collection --> Queue: enqueue
+Queue --> Last: notify
+@enduml

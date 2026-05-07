@@ -4,6 +4,7 @@
 import { stripQuotes, unescapeLabel } from "../../utils.mjs";
 
 const AUTONUMBER = /^autonumber(?:\s+(.*))?$/i;
+const RETURN = /^return(?:\s+(.*))?$/i;
 const ACTIVATE = /^activate\s+(\S+)(?:\s+(#[\w-]+))?$/i;
 const DEACTIVATE = /^deactivate\s+(\S+)$/i;
 const DESTROY = /^destroy\s+(\S+)$/i;
@@ -16,6 +17,7 @@ const DELAY = /^\.\.\.(?:\s*(.*?)\s*)?\.\.\.$|^\.\.\.$/;
 const SPACE = /^(?:\|\|\||\|\|(\d+)\|\|)$/;
 const REF_INLINE = /^ref\s+over\s+(\S+)(?:\s*,\s*(\S+))?\s*:\s*(.+)$/i;
 const REF_BLOCK = /^ref\s+over\s+(\S+)(?:\s*,\s*(\S+))?\s*$/i;
+const HIDE_FOOTBOX = /^hide\s+footbox$/i;
 
 /**
  * Miscellaneous PlantUML sequence constructs.
@@ -45,6 +47,16 @@ export const sequenceAdvancedPlugin = {
     const auto = line.match(AUTONUMBER);
     if (auto) {
       configureAutonumber(ctx, auto[1]?.trim() || "");
+      return true;
+    }
+
+    const ret = line.match(RETURN);
+    if (ret) {
+      return ctx.addReturnMessage(unescapeLabel(ret[1]?.trim() || ""));
+    }
+
+    if (HIDE_FOOTBOX.test(line)) {
+      ctx.setFootboxVisible(false);
       return true;
     }
 

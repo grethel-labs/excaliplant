@@ -263,24 +263,31 @@ _Source: [`src/model/diagram.mjs`](src/model/diagram.mjs)_
 
 ### Exports
 
-| Name                                                                 | Kind  | Visibility |
-| -------------------------------------------------------------------- | ----- | ---------- |
-| [`SIDES`](#sides-modeldiagram)                                       | const | public     |
-| [`SHAPES`](#shapes-modeldiagram)                                     | const | public     |
-| [`Box`](#box-modeldiagram)                                           | class | public     |
-| [`Subplane`](#subplane-modeldiagram)                                 | class | public     |
-| [`Plane`](#plane-modeldiagram)                                       | class | public     |
-| [`Connection`](#connection-modeldiagram)                             | class | public     |
-| [`Diagram`](#diagram-modeldiagram)                                   | class | public     |
-| [`Participant`](#participant-modeldiagram)                           | class | public     |
-| [`Message`](#message-modeldiagram)                                   | class | public     |
-| [`SequenceNote`](#sequencenote-modeldiagram)                         | class | public     |
-| [`SequenceFragment`](#sequencefragment-modeldiagram)                 | class | public     |
-| [`SequenceActivation`](#sequenceactivation-modeldiagram)             | class | public     |
-| [`SequenceMarker`](#sequencemarker-modeldiagram)                     | class | public     |
-| [`SequenceReference`](#sequencereference-modeldiagram)               | class | public     |
-| [`SequenceParticipantGroup`](#sequenceparticipantgroup-modeldiagram) | class | public     |
-| [`SequenceDiagram`](#sequencediagram-modeldiagram)                   | class | public     |
+| Name                                                                     | Kind  | Visibility |
+| ------------------------------------------------------------------------ | ----- | ---------- |
+| [`SIDES`](#sides-modeldiagram)                                           | const | public     |
+| [`SHAPES`](#shapes-modeldiagram)                                         | const | public     |
+| [`SEQUENCE_ARROW_HEADS`](#sequence_arrow_heads-modeldiagram)             | const | public     |
+| [`SEQUENCE_ARROW_ANCHORS`](#sequence_arrow_anchors-modeldiagram)         | const | public     |
+| [`SEQUENCE_ARROW_DIRECTIONS`](#sequence_arrow_directions-modeldiagram)   | const | public     |
+| [`SEQUENCE_ARROW_LINE_STYLES`](#sequence_arrow_line_styles-modeldiagram) | const | public     |
+| [`Box`](#box-modeldiagram)                                               | class | public     |
+| [`Subplane`](#subplane-modeldiagram)                                     | class | public     |
+| [`Plane`](#plane-modeldiagram)                                           | class | public     |
+| [`Connection`](#connection-modeldiagram)                                 | class | public     |
+| [`Diagram`](#diagram-modeldiagram)                                       | class | public     |
+| [`Participant`](#participant-modeldiagram)                               | class | public     |
+| [`SequenceArrowEndpoint`](#sequencearrowendpoint-modeldiagram)           | class | public     |
+| [`SequenceArrowLine`](#sequencearrowline-modeldiagram)                   | class | public     |
+| [`SequenceArrow`](#sequencearrow-modeldiagram)                           | class | public     |
+| [`Message`](#message-modeldiagram)                                       | class | public     |
+| [`SequenceNote`](#sequencenote-modeldiagram)                             | class | public     |
+| [`SequenceFragment`](#sequencefragment-modeldiagram)                     | class | public     |
+| [`SequenceActivation`](#sequenceactivation-modeldiagram)                 | class | public     |
+| [`SequenceMarker`](#sequencemarker-modeldiagram)                         | class | public     |
+| [`SequenceReference`](#sequencereference-modeldiagram)                   | class | public     |
+| [`SequenceParticipantGroup`](#sequenceparticipantgroup-modeldiagram)     | class | public     |
+| [`SequenceDiagram`](#sequencediagram-modeldiagram)                       | class | public     |
 
 #### <a id="sides-modeldiagram"></a>`SIDES`
 
@@ -299,6 +306,41 @@ const SHAPES;
 Logical box shapes the parser may attach to a {@link Box}. The renderer
 turns each into the corresponding Excalidraw primitive.
 
+#### <a id="sequence_arrow_heads-modeldiagram"></a>`SEQUENCE_ARROW_HEADS`
+
+```ts
+const SEQUENCE_ARROW_HEADS;
+```
+
+Sequence-arrow endpoint head kinds. These are PlantUML-level semantics;
+renderers map them to the closest Excalidraw arrowhead primitive.
+
+#### <a id="sequence_arrow_anchors-modeldiagram"></a>`SEQUENCE_ARROW_ANCHORS`
+
+```ts
+const SEQUENCE_ARROW_ANCHORS;
+```
+
+Sequence-arrow endpoint anchors. Participant anchors attach to a lifeline;
+the others represent PlantUML incoming/outgoing boundary arrows (`[`/`]`)
+and short boundary arrows (`?`).
+
+#### <a id="sequence_arrow_directions-modeldiagram"></a>`SEQUENCE_ARROW_DIRECTIONS`
+
+```ts
+const SEQUENCE_ARROW_DIRECTIONS;
+```
+
+Sequence-arrow direction semantics.
+
+#### <a id="sequence_arrow_line_styles-modeldiagram"></a>`SEQUENCE_ARROW_LINE_STYLES`
+
+```ts
+const SEQUENCE_ARROW_LINE_STYLES;
+```
+
+Sequence-arrow line styles.
+
 #### <a id="box-modeldiagram"></a>`Box`
 
 ```ts
@@ -315,14 +357,7 @@ layout, the geometry fields are zero.
 ##### `Box.constructor`
 
 ```ts
-constructor({
-  id,
-  title,
-  description = "",
-  shape = "rectangle",
-  stereotype = "",
-  members = [],
-});
+constructor({ id, title, description = "", shape = "rectangle", stereotype = "", members = [] });
 ```
 
 | Param  | Type     | Description |
@@ -529,12 +564,73 @@ One lifeline in a {@link SequenceDiagram}.
 ##### `Participant.constructor`
 
 ```ts
-constructor({ id, title, shape = "participant", stereotype = "", color = "" });
+constructor({ id, title, shape = "participant", stereotype = "", color = "", order = null });
 ```
 
 | Param  | Type     | Description |
 | ------ | -------- | ----------- |
 | `spec` | `object` | —           |
+
+#### <a id="sequencearrowendpoint-modeldiagram"></a>`SequenceArrowEndpoint`
+
+```ts
+class SequenceArrowEndpoint
+```
+
+One endpoint of a sequence message arrow.
+
+**Members**
+
+##### `SequenceArrowEndpoint.constructor`
+
+```ts
+constructor(({ head = "none", anchor = "participant", excalidrawArrowhead = null } = {}));
+```
+
+| Param               | Type     | Description |
+| ------------------- | -------- | ----------- |
+| `spec` _(optional)_ | `object` | —           |
+
+#### <a id="sequencearrowline-modeldiagram"></a>`SequenceArrowLine`
+
+```ts
+class SequenceArrowLine
+```
+
+Visual line segment of a sequence message arrow.
+
+**Members**
+
+##### `SequenceArrowLine.constructor`
+
+```ts
+constructor(({ style = "solid", color = "", slant = 0 } = {}));
+```
+
+| Param               | Type     | Description |
+| ------------------- | -------- | ----------- |
+| `spec` _(optional)_ | `object` | —           |
+
+#### <a id="sequencearrow-modeldiagram"></a>`SequenceArrow`
+
+```ts
+class SequenceArrow
+```
+
+Object-oriented representation of a PlantUML sequence message arrow:
+start endpoint, line segment, and end endpoint.
+
+**Members**
+
+##### `SequenceArrow.constructor`
+
+```ts
+constructor(({ start = {}, end = {}, line = {}, source = "", direction = "right" } = {}));
+```
+
+| Param               | Type     | Description |
+| ------------------- | -------- | ----------- |
+| `spec` _(optional)_ | `object` | —           |
 
 #### <a id="message-modeldiagram"></a>`Message`
 
@@ -558,6 +654,8 @@ constructor({
   kind = "sync",
   startArrowhead = null,
   endArrowhead = "arrow",
+  arrow = null,
+  color = "",
 });
 ```
 
@@ -579,7 +677,7 @@ Free-form note attached to one or two {@link Participant}s in a
 ##### `SequenceNote.constructor`
 
 ```ts
-constructor({ id, text, side, target, target2 = null });
+constructor({ id, text, side, target, target2 = null, shape = "note", color = "" });
 ```
 
 | Param  | Type     | Description |
@@ -621,14 +719,7 @@ Activation bar on a participant lifeline.
 ##### `SequenceActivation.constructor`
 
 ```ts
-constructor({
-  id,
-  participant,
-  startSeq,
-  endSeq = startSeq,
-  color = "",
-  depth = 0,
-});
+constructor({ id, participant, startSeq, endSeq = startSeq, color = "", depth = 0, caller = null });
 ```
 
 | Param  | Type     | Description |
@@ -1263,12 +1354,14 @@ _Source: [`src/parser/plugins/sequence/notes.mjs`](src/parser/plugins/sequence/n
 
 ### Exports
 
-| Name                                                                     | Kind  | Visibility  |
-| ------------------------------------------------------------------------ | ----- | ----------- |
-| [`noteSidePlugin`](#notesideplugin-parserpluginssequencenotes)           | const | unspecified |
-| [`noteOverPlugin`](#noteoverplugin-parserpluginssequencenotes)           | const | unspecified |
-| [`noteSideBlockPlugin`](#notesideblockplugin-parserpluginssequencenotes) | const | unspecified |
-| [`noteOverBlockPlugin`](#noteoverblockplugin-parserpluginssequencenotes) | const | unspecified |
+| Name                                                                         | Kind  | Visibility  |
+| ---------------------------------------------------------------------------- | ----- | ----------- |
+| [`noteSidePlugin`](#notesideplugin-parserpluginssequencenotes)               | const | unspecified |
+| [`noteOverPlugin`](#noteoverplugin-parserpluginssequencenotes)               | const | unspecified |
+| [`noteAcrossPlugin`](#noteacrossplugin-parserpluginssequencenotes)           | const | unspecified |
+| [`noteSideBlockPlugin`](#notesideblockplugin-parserpluginssequencenotes)     | const | unspecified |
+| [`noteOverBlockPlugin`](#noteoverblockplugin-parserpluginssequencenotes)     | const | unspecified |
+| [`noteAcrossBlockPlugin`](#noteacrossblockplugin-parserpluginssequencenotes) | const | unspecified |
 
 #### <a id="notesideplugin-parserpluginssequencenotes"></a>`noteSidePlugin`
 
@@ -1286,13 +1379,21 @@ const noteOverPlugin;
 
 Single-line `note over A[, B] : text`.
 
+#### <a id="noteacrossplugin-parserpluginssequencenotes"></a>`noteAcrossPlugin`
+
+```ts
+const noteAcrossPlugin;
+```
+
+Single-line `note across : text`.
+
 #### <a id="notesideblockplugin-parserpluginssequencenotes"></a>`noteSideBlockPlugin`
 
 ```ts
 const noteSideBlockPlugin;
 ```
 
-Multi-line side-note block, terminated by `end note`.
+Multi-line side-note block.
 
 #### <a id="noteoverblockplugin-parserpluginssequencenotes"></a>`noteOverBlockPlugin`
 
@@ -1300,7 +1401,15 @@ Multi-line side-note block, terminated by `end note`.
 const noteOverBlockPlugin;
 ```
 
-Multi-line `note over` block, terminated by `end note`.
+Multi-line `note over` block.
+
+#### <a id="noteacrossblockplugin-parserpluginssequencenotes"></a>`noteAcrossBlockPlugin`
+
+```ts
+const noteAcrossBlockPlugin;
+```
+
+Multi-line `note across` block.
 
 ---
 
@@ -1373,7 +1482,7 @@ function createSequenceContext();
 Construct the mutable parsing context shared by all sequence-diagram
 plugins during a single `parsePlantUml` invocation.
 
-**Returns:** `{ readonly result: import("../model/diagram.mjs").SequenceDiagram, diagram: import("../model/diagram.mjs").SequenceDiagram, setTitle(t: string): void, ensureParticipant(id: string): import("../model/diagram.mjs").Participant, declareParticipant(spec: object): import("../model/diagram.mjs").Participant, nextMessageId(): string, nextNoteId(): string, nextFragmentId(): string, nextActivationId(): string, nextMarkerId(): string, nextReferenceId(): string, nextParticipantGroupId(): string, currentSeq(): number, lastSeq(): number, addMessage(spec: object): import("../model/diagram.mjs").Message, addNote(spec: object): void, addMarker(kind: string, label?: string, size?: number): void, addReference(spec: object): void, startFragment(kind: string, label?: string): void, splitFragmentOperand(label?: string): boolean, endFragment(): boolean, startActivation(participant: import("../model/diagram.mjs").Participant, color?: string, seq?: number): void, endActivation(participant: import("../model/diagram.mjs").Participant, seq?: number): boolean, markCreated(participant: import("../model/diagram.mjs").Participant, seq?: number): void, markDestroyed(participant: import("../model/diagram.mjs").Participant, seq?: number): void, setAutonumber(enabled: boolean, start?: number, step?: number): void, setSequenceStyle(key: keyof import("../model/diagram.mjs").SequenceDiagram["style"], value: string): void, startParticipantGroup(label?: string, color?: string): void, endParticipantGroup(): boolean, }`
+**Returns:** `{ readonly result: import("../model/diagram.mjs").SequenceDiagram, diagram: import("../model/diagram.mjs").SequenceDiagram, setTitle(t: string): void, ensureParticipant(id: string): import("../model/diagram.mjs").Participant, declareParticipant(spec: object): import("../model/diagram.mjs").Participant, nextMessageId(): string, nextNoteId(): string, nextFragmentId(): string, nextActivationId(): string, nextMarkerId(): string, nextReferenceId(): string, nextParticipantGroupId(): string, currentSeq(): number, lastSeq(): number, addMessage(spec: object): import("../model/diagram.mjs").Message, addNote(spec: object): void, addMarker(kind: string, label?: string, size?: number): void, addReference(spec: object): void, startFragment(kind: string, label?: string): void, splitFragmentOperand(label?: string): boolean, endFragment(): boolean, startActivation(participant: import("../model/diagram.mjs").Participant, color?: string, seq?: number): void, endActivation(participant: import("../model/diagram.mjs").Participant, seq?: number): boolean, addReturnMessage(label?: string): boolean, markCreated(participant: import("../model/diagram.mjs").Participant, seq?: number): void, markDestroyed(participant: import("../model/diagram.mjs").Participant, seq?: number): void, setAutonumber(enabled: boolean, start?: number, step?: number): void, setSequenceStyle(key: keyof import("../model/diagram.mjs").SequenceDiagram["style"], value: string): void, setFootboxVisible(visible: boolean): void, startParticipantGroup(label?: string, color?: string): void, endParticipantGroup(): boolean, }`
 
 ---
 
