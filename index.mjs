@@ -46,6 +46,16 @@
  * each plugin handling one PlantUML construct.
  */
 
+/**
+ * @diagram model
+ *
+ * The model diagram is generated dynamically from exported classes in
+ * [`src/model/diagram.mjs`](./src/model/diagram.mjs). It shows how the
+ * reusable arrow classes sit underneath both component connections and
+ * sequence messages, so future model classes appear in the README without
+ * hand-maintained PlantUML.
+ */
+
 import { parsePlantUml } from "./src/parser/plantuml.mjs";
 import { layoutDiagram } from "./src/layout/elk_layout.mjs";
 import { exportDiagram } from "./src/render/excalidraw.mjs";
@@ -76,9 +86,18 @@ export {
   parseSimpleYaml,
 } from "./src/style/style.mjs";
 export {
+  ARROW_ANCHORS,
+  ARROW_DIRECTIONS,
+  ARROW_HEADS,
+  ARROW_LINE_STYLES,
+  ArrowEndpoint,
+  ArrowLabel,
+  ArrowLine,
   Box,
   Connection,
+  DEFAULT_ARROW_HEAD_SIZE,
   Diagram,
+  DiagramArrow,
   Plane,
   Subplane,
   Participant,

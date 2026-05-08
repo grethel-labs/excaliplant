@@ -29,8 +29,8 @@ export const messagePlugin = {
 
     const leftParticipant = parsed.left ? ctx.ensureParticipant(parsed.left.id) : null;
     const rightParticipant = parsed.right ? ctx.ensureParticipant(parsed.right.id) : null;
-    if (parsed.left?.title && leftParticipant) leftParticipant.title = parsed.left.title;
-    if (parsed.right?.title && rightParticipant) rightParticipant.title = parsed.right.title;
+    applyInlineParticipantTitle(leftParticipant, parsed.left?.title || "");
+    applyInlineParticipantTitle(rightParticipant, parsed.right?.title || "");
 
     /** @type {import("../../../model/diagram.mjs").Participant} */
     let src;
@@ -72,6 +72,7 @@ export const messagePlugin = {
       color: arrow.line.color,
     });
     msg.lifecycle = parsed.lifecycle;
+    msg.parallel = parsed.parallel;
     if (parsed.lifecycle === "++") {
       ctx.startActivation(dst, parsed.lifecycleColor || "", msg.seq, src);
     } else if (parsed.lifecycle === "--") {
@@ -86,6 +87,18 @@ export const messagePlugin = {
     return true;
   },
 };
+
+/**
+ * Message lines may implicitly declare participants, but they must not erase
+ * explicit declarations such as multiline participant blocks.
+ * @param {import("../../../model/diagram.mjs").Participant|null} participant Participant to update.
+ * @param {string} title Inline title parsed from the message endpoint.
+ * @returns {void}
+ */
+function applyInlineParticipantTitle(participant, title) {
+  if (!participant || !title) return;
+  if (participant.title === participant.id) participant.title = title;
+}
 
 /**
  * @param {SequenceArrow} arrow
@@ -109,10 +122,14 @@ function messageKind(arrow) {
  *   incoming: boolean,
  *   outgoing: boolean,
  *   reversed: boolean,
+ *   parallel: boolean,
  * }}
  */
 function parseSequenceMessageLine(line) {
-  const { body, label } = splitLabel(line);
+  let source = line.trim();
+  const parallel = source.startsWith("&");
+  if (parallel) source = source.slice(1).trimStart();
+  const { body, label } = splitLabel(source);
   const span = findArrowSpan(body);
   if (!span) return null;
 
@@ -122,13 +139,16 @@ function parseSequenceMessageLine(line) {
   const incoming = classified.startAnchor !== "participant" && !leftRaw;
   const outgoing = classified.endAnchor !== "participant" && !rightRaw;
 
-  let left = leftRaw ? parseParticipantToken(leftRaw) : null;
+  const leftInfo = leftRaw
+    ? parseLeftParticipant(leftRaw)
+    : { participant: null, endpointLabel: "" };
+  let left = leftInfo.participant;
   let rightInfo = rightRaw
     ? parseRightParticipant(rightRaw)
-    : { participant: null, lifecycle: "", color: "" };
+    : { participant: null, lifecycle: "", color: "", endpointLabel: "" };
 
   if (incoming && rightInfo.participant) left = null;
-  if (outgoing) rightInfo = { participant: null, lifecycle: "", color: "" };
+  if (outgoing) rightInfo = { participant: null, lifecycle: "", color: "", endpointLabel: "" };
 
   const arrow = new SequenceArrow({
     source: span.token,
@@ -137,11 +157,13 @@ function parseSequenceMessageLine(line) {
       head: classified.startHead,
       anchor: classified.startAnchor,
       excalidrawArrowhead: arrowheadFor(classified.startHead),
+      label: leftInfo.endpointLabel,
     },
     end: {
       head: classified.endHead,
       anchor: classified.endAnchor,
       excalidrawArrowhead: arrowheadFor(classified.endHead),
+      label: rightInfo.endpointLabel,
     },
     line: {
       style: classified.dashed ? "dashed" : "solid",
@@ -160,6 +182,7 @@ function parseSequenceMessageLine(line) {
     incoming,
     outgoing,
     reversed: classified.reversed,
+    parallel,
   };
 }
 
@@ -227,11 +250,21 @@ function looksLikeArrow(token) {
 
 /**
  * @param {string} raw
- * @returns {{participant:{id:string,title:string}|null,lifecycle:string,color:string}}
+ * @returns {{participant:{id:string,title:string}|null,lifecycle:string,color:string,endpointLabel:string}}
  */
 function parseRightParticipant(raw) {
-  const first = readToken(raw.trim());
-  if (!first) return { participant: null, lifecycle: "", color: "" };
+  let source = raw.trim();
+  let endpointLabel = "";
+  const possibleLabel = readToken(source);
+  if (possibleLabel?.token.startsWith('"') && possibleLabel.rest.trim()) {
+    const restFirst = readToken(possibleLabel.rest.trim());
+    if (!restFirst || !LIFECYCLE.has(restFirst.token)) {
+      endpointLabel = unescapeLabel(stripQuotes(possibleLabel.token));
+      source = possibleLabel.rest.trim();
+    }
+  }
+  const first = readToken(source);
+  if (!first) return { participant: null, lifecycle: "", color: "", endpointLabel };
   let rest = first.rest.trim();
   let lifecycle = "";
   let color = "";
@@ -248,7 +281,22 @@ function parseRightParticipant(raw) {
       color = parts[1]?.startsWith("#") ? parts[1] : "";
     }
   }
-  return { participant: parseParticipantToken(token), lifecycle, color };
+  return { participant: parseParticipantToken(token), lifecycle, color, endpointLabel };
+}
+
+/**
+ * @param {string} raw
+ * @returns {{participant:{id:string,title:string}|null,endpointLabel:string}}
+ */
+function parseLeftParticipant(raw) {
+  const endpoint = raw.match(/^(.*?)\s+"([^"]*)"$/);
+  if (!endpoint) return { participant: parseParticipantToken(raw), endpointLabel: "" };
+  const participantRaw = endpoint[1].trim();
+  if (!participantRaw) return { participant: parseParticipantToken(raw), endpointLabel: "" };
+  return {
+    participant: parseParticipantToken(participantRaw),
+    endpointLabel: unescapeLabel(endpoint[2]),
+  };
 }
 
 /**
@@ -363,9 +411,11 @@ function arrowheadFor(head) {
     case "filled":
       return "triangle";
     case "open":
-    case "partialTop":
-    case "partialBottom":
       return "arrow";
+    case "partialTop":
+      return "partial_top";
+    case "partialBottom":
+      return "partial_bottom";
     case "circle":
       return "circle_outline";
     case "cross":

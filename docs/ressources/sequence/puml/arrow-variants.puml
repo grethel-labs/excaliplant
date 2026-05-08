@@ -12,8 +12,11 @@ A ->x B: lost at end
 A -\ B: partial lower head
 A -/ B: partial upper head
 A -[#red]> B: red arrow
+A -(12)> B: slanted arrow
+A "source endpoint label with useful wrapping" -> "target endpoint label with useful wrapping" B: central label uses arrowhead-safe width budgeting
 [-> A: incoming from diagram edge
 A ->]: outgoing to diagram edge
 ?-> B: short incoming
 B ->?: short outgoing
+& A -> B: parallel teoz-style message is accepted with simplified geometry
 @enduml

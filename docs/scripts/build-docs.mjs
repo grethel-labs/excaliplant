@@ -23,6 +23,7 @@ import {
   buildModuleDiagramSource,
   buildSequenceDiagramSource,
   buildPluginDetailDiagramSource,
+  buildModelClassDiagramSource,
 } from "./self-diagrams.mjs";
 import { buildFileTree } from "./file-tree.mjs";
 import {
@@ -58,6 +59,11 @@ const ARTEFACTS = [
     id: "plugins",
     title: "Parser plugins",
     getSource: async () => (await buildPluginDetailDiagramSource()).puml,
+  },
+  {
+    id: "model",
+    title: "Model classes",
+    getSource: buildModelClassDiagramSource,
   },
 ];
 

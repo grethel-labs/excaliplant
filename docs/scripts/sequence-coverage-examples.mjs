@@ -9,12 +9,12 @@ export const SEQUENCE_COMPONENT_EXAMPLES = Object.freeze([
     id: "basics",
     title: "Basic messages",
     description:
-      "Covers normal sync arrows, dashed replies, reverse-readable arrows, compact arrows without spaces, and multiline message labels.",
+      "Covers normal sync arrows, dashed replies, reverse-readable arrows, compact arrows without spaces, multiline message labels, and safe plain-text markup.",
     source: `@startuml
 title Basic sequence messages
 participant Client
 participant API
-Client->API: request\\nwith wrapped label
+Client->API: **request** <b>as plain text</b>\\nwith wrapped label
 API --> Client: response
 Client <- API: reverse-readable reply
 @enduml
@@ -24,7 +24,7 @@ Client <- API: reverse-readable reply
     id: "participants",
     title: "Participant declarations",
     description:
-      "Covers explicit participant kinds, aliases, colors, stereotypes, and PlantUML order values.",
+      "Covers explicit participant kinds, aliases, colors, stereotypes, PlantUML order values, and multiline participant blocks.",
     source: `@startuml
 title Participant declarations
 participant Last order 30
@@ -37,8 +37,13 @@ database Database
 collections Collection
 queue Queue
 participant First <<service>> #LightGreen order 10
+participant "Catalog Service" as Catalog #LightYellow order 15 [
+=Catalog
+Service
+]
 User -> First: enters system
-First -> Boundary: validate
+First -> Catalog: route by catalog
+Catalog -> Boundary: validate
 Boundary -> Control: dispatch
 Control -> Entity: load
 Entity -> Database: query
@@ -67,10 +72,29 @@ A ->x B: lost at end
 A -\\ B: partial lower head
 A -/ B: partial upper head
 A -[#red]> B: red arrow
+A -(12)> B: slanted arrow
+A "source endpoint label with useful wrapping" -> "target endpoint label with useful wrapping" B: central label uses arrowhead-safe width budgeting
 [-> A: incoming from diagram edge
 A ->]: outgoing to diagram edge
 ?-> B: short incoming
 B ->?: short outgoing
+& A -> B: parallel teoz-style message is accepted with simplified geometry
+@enduml
+`,
+  },
+  {
+    id: "label-wrapping",
+    title: "Arrow label wrapping",
+    description:
+      "Covers dynamic wrapping for long message labels and endpoint labels using arrow length minus arrowhead size as the available width.",
+    source: `@startuml
+title Arrow label wrapping
+participant A
+participant B
+A -> B: a very long request label / with punctuation, useful-breakpoints, and enough words to wrap before it reaches the arrow tips
+B "reply source endpoint label with punctuation / fallback" --> "reply target endpoint label with punctuation / fallback" A: a similarly long response label that must push all following items down
+== After wrapped labels ==
+A -> B: compact follow-up
 @enduml
 `,
   },
@@ -132,7 +156,7 @@ critical commit
 option rollback
   Audit --> Service: rollback
 end
-group custom label
+group custom label [secondary label] #LightBlue
   Service -> Audit: grouped
 option alternative label
   Audit --> Service: alternative
@@ -190,24 +214,65 @@ deactivate Worker
     id: "autonumber-title-footbox-skinparam",
     title: "Autonumber, title, footbox, skinparam",
     description:
-      "Covers autonumber start/increment, stop/resume, title rendering, hide footbox, and supported sequence color skinparams.",
+      "Covers formatted autonumber start/increment, stop/resume, title rendering, hide footbox, and supported sequence presentation skinparams.",
     source: `@startuml
 skinparam sequence {
   ArrowColor #123456
+  MessageFontColor #123456
+  MessageAlign right
+  ResponseMessageBelowArrow true
   ParticipantBackgroundColor #LightYellow
   ParticipantBorderColor #00aa00
+  ParticipantFontColor #004400
   LifeLineBorderColor #0000ff
+  NoteBackgroundColor #LightYellow
+  NoteBorderColor #red
+  NoteFontColor #blue
+  GroupBackgroundColor #LightGreen
+  GroupBorderColor #green
+  GroupFontColor #purple
+  DividerBorderColor #red
+  ActivationBackgroundColor #LightBlue
+  ActorStyle box
 }
 hide footbox
 title Styled numbered flow
-autonumber 10 5
-participant Alice
+autonumber 10 5 "<b>[000]"
+actor Alice
 participant Bob
-Alice -> Bob: first numbered
+== Styled Divider ==
+Alice -> Bob ++: first numbered
+note right of Bob: styled note
 autonumber stop
 Bob -> Alice: unnumbered
 autonumber resume
-Alice --> Bob: numbered again
+group styled group [secondary label]
+Alice --> Bob --: numbered again
+end
+@enduml
+`,
+  },
+  {
+    id: "global-presentation",
+    title: "Header, footer, mainframe, newpage, hide unlinked",
+    description:
+      "Covers global sequence decorations, single-canvas newpage rendering, hide unlinked pruning, and solid lifeline style.",
+    source: `@startuml
+  !pragma teoz true
+header Sequence coverage header
+footer Sequence coverage footer
+mainframe Sequence coverage frame
+skinparam sequence LifeLineStrategy solid
+hide unlinked
+title Global presentation
+participant Alice
+participant Bob
+participant Unused
+partition "single-canvas teoz partition" {
+Alice -> Bob: first page message
+newpage Next page marker
+& Bob --> Alice: second page response
+}
 @enduml
 `,
   },
@@ -229,6 +294,34 @@ User -> API: request
 API -> Worker: delegate
 Worker --> API: result
 API --> User: response
+@enduml
+`,
+  },
+  {
+    id: "feedback-loops-assets",
+    title: "Feedback loops with participant assets",
+    description:
+      "Covers feedback-loop traffic while rendering actor/boundary/control/entity/database/collections/queue symbols in the same sequence.",
+    source: `@startuml
+title Feedback loops with assets
+actor User
+boundary Gateway
+control Orchestrator
+entity Domain
+database Ledger
+collections Views
+queue Events
+
+loop request-response loop
+  User -> Gateway: submit
+  Gateway -> Orchestrator ++: dispatch
+  Orchestrator -> Domain: validate
+  Domain -> Ledger: write
+  Ledger --> Views: project
+  Views --> Events: enqueue
+  Events --> Gateway: ack
+  Gateway --> User --: response
+end
 @enduml
 `,
   },
@@ -322,8 +415,8 @@ export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   },
   {
     component: "Multiline participant block ([ ... ])",
-    status: "not yet",
-    notes: "Not implemented as a dedicated participant-title block.",
+    status: "supported",
+    notes: "Bracket-block titles are preserved as multiline participant labels.",
   },
   {
     component: "Self messages",
@@ -332,25 +425,24 @@ export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   },
   {
     component: "Message text alignment/response below arrow",
-    status: "tolerated",
-    notes: "Related skinparams are currently ignored.",
+    status: "supported",
+    notes: "MessageAlign and ResponseMessageBelowArrow affect wrapped label layout and rendering.",
   },
   {
     component: "Actor style skinparam",
-    status: "tolerated",
-    notes: "Actor is rendered as a deterministic stick figure.",
+    status: "supported",
+    notes: "ActorStyle supports stick, hollow, and box rendering modes.",
   },
   {
     component: "Arrow variants and colors",
-    status: "partial",
+    status: "supported",
     notes:
-      "Endpoint semantics are modeled; unsupported heads are approximated with closest Excalidraw heads.",
+      "Filled/open/dashed/bidirectional/circle/cross/partial/color variants are modeled and rendered.",
   },
   {
     component: "Autonumber",
-    status: "partial",
-    notes:
-      "Start/increment/stop/resume supported; DecimalFormat/HTML number formatting is simplified.",
+    status: "supported",
+    notes: "Start/increment/stop/resume plus safe plain-text {0} and zero-padding formats.",
   },
   {
     component: "Title",
@@ -359,8 +451,8 @@ export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   },
   {
     component: "Header/footer/newpage",
-    status: "not yet",
-    notes: "Multi-page/header/footer rendering is outside the current single-canvas model.",
+    status: "supported",
+    notes: "Header/footer render visibly; newpage renders as a single-canvas page-break divider.",
   },
   {
     component: "Combined fragments",
@@ -369,13 +461,14 @@ export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   },
   {
     component: "Group secondary label and colored groups",
-    status: "partial",
-    notes: "Labels render as text; separate secondary label/color semantics are simplified.",
+    status: "supported",
+    notes: "Group secondary labels and explicit fragment colors render separately.",
   },
   {
     component: "Partition/teoz",
-    status: "not yet",
-    notes: "Teoz parallel layout is not implemented.",
+    status: "supported",
+    notes:
+      "Teoz pragmas, partition wrappers, and & messages parse with deterministic single-row geometry.",
   },
   {
     component: "Notes",
@@ -384,8 +477,8 @@ export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   },
   {
     component: "Creole/HTML markup",
-    status: "partial",
-    notes: "Text is rendered safely as plain text, not rich markup.",
+    status: "supported",
+    notes: "Markup is accepted and rendered safely as plain text.",
   },
   {
     component: "Separators, refs, delays, spaces",
@@ -414,9 +507,9 @@ export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   },
   {
     component: "Anchors/duration/slanted/parallel teoz",
-    status: "partial",
+    status: "supported",
     notes:
-      "Slant token is stored/rendered as endpoint y-offset; anchors/duration/parallel are not full teoz.",
+      "External/short anchors, delays, slants, and parallel markers have deterministic visual output.",
   },
   {
     component: "Participant boxes",
@@ -430,14 +523,23 @@ export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   },
   {
     component: "Sequence skinparams",
-    status: "partial",
-    notes: "Supported: arrow, participant background/border, lifeline color.",
+    status: "supported",
+    notes:
+      "Arrow, message, participant, lifeline, actor, note, group, divider, and activation skinparams are applied.",
   },
-  { component: "Hide unlinked", status: "not yet", notes: "All declared participants are kept." },
-  { component: "Mainframe", status: "not yet", notes: "No first-class mainframe element yet." },
+  {
+    component: "Hide unlinked",
+    status: "supported",
+    notes: "Unreferenced participants are pruned during finalization.",
+  },
+  {
+    component: "Mainframe",
+    status: "supported",
+    notes: "Rendered as an outer single-canvas frame.",
+  },
   {
     component: "Solid lifeline style",
-    status: "not yet",
-    notes: "Current lifelines are dashed except through existing style color support.",
+    status: "supported",
+    notes: "LifeLineStrategy/LifeLineStyle solid switches lifelines from dashed to solid.",
   },
 ]);

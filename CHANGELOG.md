@@ -6,13 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Sequence diagram visual polish: equal top/bottom margins for ref and marker
-  blocks, two-pass rendering with fragment/ref borders above lifelines,
-  activation y positioning, implicit activation bars, title z-order fixes,
-  divider as two-line separator, activation centering, and decoration nesting.
-
 ### Added
 
 - New `src/style/style.mjs` module with a single source of truth for

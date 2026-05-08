@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" aria-label="Arrowhead marker shapes">
+  <defs>
+    <symbol id="arrow" viewBox="0 0 10 10">
+      <path d="M0,0 L10,5 L0,10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="triangle" viewBox="0 0 10 10">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+    </symbol>
+    <symbol id="triangle_outline" viewBox="0 0 10 10">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fff" stroke="currentColor" />
+    </symbol>
+    <symbol id="diamond" viewBox="0 0 12 10">
+      <path d="M0,5 L6,0 L12,5 L6,10 z" fill="currentColor" />
+    </symbol>
+    <symbol id="diamond_outline" viewBox="0 0 12 10">
+      <path d="M0,5 L6,0 L12,5 L6,10 z" fill="#fff" stroke="currentColor" />
+    </symbol>
+    <symbol id="circle_outline" viewBox="0 0 10 10">
+      <path d="M5,5 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" fill="#fff" stroke="currentColor" />
+    </symbol>
+    <symbol id="dot" viewBox="0 0 10 10">
+      <path d="M5,5 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" fill="currentColor" />
+    </symbol>
+    <symbol id="bar" viewBox="0 0 10 10">
+      <path d="M5,0 L5,10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </symbol>
+    <symbol id="partial_top" viewBox="0 0 10 10">
+      <path d="M0,0 L10,5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </symbol>
+    <symbol id="partial_bottom" viewBox="0 0 10 10">
+      <path d="M0,10 L10,5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </symbol>
+  </defs>
+  <g color="#1f2933" transform="translate(8 8)">
+    <use href="#arrow" x="0" y="0" width="16" height="16" />
+    <use href="#triangle" x="22" y="0" width="16" height="16" />
+    <use href="#triangle_outline" x="44" y="0" width="16" height="16" />
+    <use href="#diamond" x="66" y="0" width="19" height="16" />
+    <use href="#diamond_outline" x="91" y="0" width="19" height="16" />
+    <use href="#circle_outline" x="0" y="34" width="16" height="16" />
+    <use href="#dot" x="22" y="34" width="16" height="16" />
+    <use href="#bar" x="44" y="34" width="16" height="16" />
+    <use href="#partial_top" x="66" y="34" width="16" height="16" />
+    <use href="#partial_bottom" x="88" y="34" width="16" height="16" />
+  </g>
+</svg>

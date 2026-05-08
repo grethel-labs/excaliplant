@@ -28,7 +28,7 @@ critical commit
 option rollback
   Audit --> Service: rollback
 end
-group custom label
+group custom label [secondary label] #LightBlue
   Service -> Audit: grouped
 option alternative label
   Audit --> Service: alternative

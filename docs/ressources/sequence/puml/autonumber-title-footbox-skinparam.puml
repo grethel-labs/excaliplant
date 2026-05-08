@@ -1,18 +1,35 @@
 @startuml
 skinparam sequence {
   ArrowColor #123456
+  MessageFontColor #123456
+  MessageAlign right
+  ResponseMessageBelowArrow true
   ParticipantBackgroundColor #LightYellow
   ParticipantBorderColor #00aa00
+  ParticipantFontColor #004400
   LifeLineBorderColor #0000ff
+  NoteBackgroundColor #LightYellow
+  NoteBorderColor #red
+  NoteFontColor #blue
+  GroupBackgroundColor #LightGreen
+  GroupBorderColor #green
+  GroupFontColor #purple
+  DividerBorderColor #red
+  ActivationBackgroundColor #LightBlue
+  ActorStyle box
 }
 hide footbox
 title Styled numbered flow
-autonumber 10 5
-participant Alice
+autonumber 10 5 "<b>[000]"
+actor Alice
 participant Bob
-Alice -> Bob: first numbered
+== Styled Divider ==
+Alice -> Bob ++: first numbered
+note right of Bob: styled note
 autonumber stop
 Bob -> Alice: unnumbered
 autonumber resume
-Alice --> Bob: numbered again
+group styled group [secondary label]
+Alice --> Bob --: numbered again
+end
 @enduml

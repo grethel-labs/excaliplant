@@ -17,7 +17,7 @@
 // no Excalidraw-internal version-specific arrow fields.
 
 import { Box, Plane, Subplane, SequenceDiagram } from "../model/diagram.mjs";
-import { FONT, measureWrapped, isOperationMember } from "../style/text.mjs";
+import { FONT, measureSmartWrapped, measureWrapped, isOperationMember } from "../style/text.mjs";
 import { getStyle } from "../style/style.mjs";
 import { SIZING } from "../layout/sizing.mjs";
 import { boxColor, planeColor } from "../style/colors.mjs";
@@ -314,6 +314,7 @@ export function exportDiagram(diagram, opts = {}) {
       const labelEls = renderEdgeLabel(conn);
       for (const el of labelEls) elements.push(el);
     }
+    for (const el of renderConnectionEndpointLabels(conn)) elements.push(el);
   }
 
   const appState = {
@@ -1473,6 +1474,45 @@ function renderEdgeLabel(conn) {
   label.angle = angle;
   label.customData = { role: "edgeLabelText" };
   return [chip, label];
+}
+
+/**
+ * Render optional endpoint labels (multiplicities or future arrow-tip text)
+ * near the first and last routed path points.
+ * @param {import("../model/diagram.mjs").Connection} conn Routed connection.
+ * @returns {ExcalElement[]} Text elements.
+ */
+function renderConnectionEndpointLabels(conn) {
+  if (!conn.path || conn.path.length < 2) return [];
+  const endpoints = [
+    { name: "start", point: conn.path[0], label: conn.arrow.start.label },
+    { name: "end", point: conn.path[conn.path.length - 1], label: conn.arrow.end.label },
+  ];
+  const out = [];
+  for (const endpoint of endpoints) {
+    if (!endpoint.label) continue;
+    const fontSize = FONT.sizeEdgeLabel;
+    const wrapped = measureSmartWrapped(endpoint.label, fontSize, 88);
+    const width = Math.max(20, wrapped.width + 4);
+    const height = Math.max(fontSize * FONT.lineHeight, wrapped.height);
+    const label = text({
+      x: endpoint.point.x - width / 2,
+      y: endpoint.point.y - height - 6,
+      width,
+      height,
+      value: wrapped.lines.join("\n"),
+      fontSize,
+      color: "#334155",
+      align: "center",
+    });
+    label.customData = {
+      role: "arrowEndpointLabel",
+      connectionId: conn.id,
+      endpoint: endpoint.name,
+    };
+    out.push(label);
+  }
+  return out;
 }
 
 /**

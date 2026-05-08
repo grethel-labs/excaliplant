@@ -26,7 +26,7 @@ export const ALWAYS_SKIP = [
   /^@startuml/,
   /^@enduml/,
   /^!/,
-  /^hide\s+(?!footbox\b)/i,
+  /^hide\s+(?!(?:footbox|unlinked)\b)/i,
   /^show\s/,
   /^scale\s/,
 ];

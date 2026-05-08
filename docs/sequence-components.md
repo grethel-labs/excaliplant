@@ -6,65 +6,65 @@ The goal is to keep PlantUML sequence syntax, the object-oriented sequence model
 
 ## Support Matrix
 
-| PlantUML component                          | Status    | Notes                                                                                             |
-| ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------- |
-| Basic messages (->, -->, <-, <--)           | supported | Compact and spaced forms are parsed.                                                              |
-| Participant declarations and kinds          | supported | participant, actor, boundary, control, entity, database, collections, queue.                      |
-| Aliases, colors, stereotypes, order         | supported | Participant order is applied during layout.                                                       |
-| Multiline participant block ([ ... ])       | not yet   | Not implemented as a dedicated participant-title block.                                           |
-| Self messages                               | supported | Rendered as loop arrows with wrapped labels.                                                      |
-| Message text alignment/response below arrow | tolerated | Related skinparams are currently ignored.                                                         |
-| Actor style skinparam                       | tolerated | Actor is rendered as a deterministic stick figure.                                                |
-| Arrow variants and colors                   | partial   | Endpoint semantics are modeled; unsupported heads are approximated with closest Excalidraw heads. |
-| Autonumber                                  | partial   | Start/increment/stop/resume supported; DecimalFormat/HTML number formatting is simplified.        |
-| Title                                       | supported | Single-line title supported and rendered topmost.                                                 |
-| Header/footer/newpage                       | not yet   | Multi-page/header/footer rendering is outside the current single-canvas model.                    |
-| Combined fragments                          | supported | opt, loop, alt/else, par/and, break, critical/option, group/option.                               |
-| Group secondary label and colored groups    | partial   | Labels render as text; separate secondary label/color semantics are simplified.                   |
-| Partition/teoz                              | not yet   | Teoz parallel layout is not implemented.                                                          |
-| Notes                                       | supported | left/right/over/across, block notes, colors, hnote/rnote metadata.                                |
-| Creole/HTML markup                          | partial   | Text is rendered safely as plain text, not rich markup.                                           |
-| Separators, refs, delays, spaces            | supported | Uniform timeline margins are applied.                                                             |
-| Activation/deactivation/destroy             | supported | Explicit and shortcut lifecycle markers render activation bars/destroy markers.                   |
-| Return                                      | supported | Return messages target the caller of the most recent activation.                                  |
-| Create                                      | supported | create and \*\* lifecycle creation are modeled.                                                   |
-| Incoming/outgoing/short arrows              | supported | [/] and ? anchors are modeled as boundary endpoints.                                              |
-| Anchors/duration/slanted/parallel teoz      | partial   | Slant token is stored/rendered as endpoint y-offset; anchors/duration/parallel are not full teoz. |
-| Participant boxes                           | supported | box/end box groups render behind participant heads.                                               |
-| Hide footbox                                | supported | hide footbox suppresses tail participant boxes.                                                   |
-| Sequence skinparams                         | partial   | Supported: arrow, participant background/border, lifeline color.                                  |
-| Hide unlinked                               | not yet   | All declared participants are kept.                                                               |
-| Mainframe                                   | not yet   | No first-class mainframe element yet.                                                             |
-| Solid lifeline style                        | not yet   | Current lifelines are dashed except through existing style color support.                         |
+| PlantUML component                          | Status    | Notes                                                                                                      |
+| ------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------- |
+| Basic messages (->, -->, <-, <--)           | supported | Compact and spaced forms are parsed.                                                                       |
+| Participant declarations and kinds          | supported | participant, actor, boundary, control, entity, database, collections, queue.                               |
+| Aliases, colors, stereotypes, order         | supported | Participant order is applied during layout.                                                                |
+| Multiline participant block ([ ... ])       | supported | Bracket-block titles are preserved as multiline participant labels.                                        |
+| Self messages                               | supported | Rendered as loop arrows with wrapped labels.                                                               |
+| Message text alignment/response below arrow | supported | MessageAlign and ResponseMessageBelowArrow affect wrapped label layout and rendering.                      |
+| Actor style skinparam                       | supported | ActorStyle supports stick, hollow, and box rendering modes.                                                |
+| Arrow variants and colors                   | supported | Filled/open/dashed/bidirectional/circle/cross/partial/color variants are modeled and rendered.             |
+| Autonumber                                  | supported | Start/increment/stop/resume plus safe plain-text {0} and zero-padding formats.                             |
+| Title                                       | supported | Single-line title supported and rendered topmost.                                                          |
+| Header/footer/newpage                       | supported | Header/footer render visibly; newpage renders as a single-canvas page-break divider.                       |
+| Combined fragments                          | supported | opt, loop, alt/else, par/and, break, critical/option, group/option.                                        |
+| Group secondary label and colored groups    | supported | Group secondary labels and explicit fragment colors render separately.                                     |
+| Partition/teoz                              | supported | Teoz pragmas, partition wrappers, and & messages parse with deterministic single-row geometry.             |
+| Notes                                       | supported | left/right/over/across, block notes, colors, hnote/rnote metadata.                                         |
+| Creole/HTML markup                          | supported | Markup is accepted and rendered safely as plain text.                                                      |
+| Separators, refs, delays, spaces            | supported | Uniform timeline margins are applied.                                                                      |
+| Activation/deactivation/destroy             | supported | Explicit and shortcut lifecycle markers render activation bars/destroy markers.                            |
+| Return                                      | supported | Return messages target the caller of the most recent activation.                                           |
+| Create                                      | supported | create and \*\* lifecycle creation are modeled.                                                            |
+| Incoming/outgoing/short arrows              | supported | [/] and ? anchors are modeled as boundary endpoints.                                                       |
+| Anchors/duration/slanted/parallel teoz      | supported | External/short anchors, delays, slants, and parallel markers have deterministic visual output.             |
+| Participant boxes                           | supported | box/end box groups render behind participant heads.                                                        |
+| Hide footbox                                | supported | hide footbox suppresses tail participant boxes.                                                            |
+| Sequence skinparams                         | supported | Arrow, message, participant, lifeline, actor, note, group, divider, and activation skinparams are applied. |
+| Hide unlinked                               | supported | Unreferenced participants are pruned during finalization.                                                  |
+| Mainframe                                   | supported | Rendered as an outer single-canvas frame.                                                                  |
+| Solid lifeline style                        | supported | LifeLineStrategy/LifeLineStyle solid switches lifelines from dashed to solid.                              |
 
 ## Rendered Examples
 
 ## Basic messages
 
-Covers normal sync arrows, dashed replies, reverse-readable arrows, compact arrows without spaces, and multiline message labels.
+Covers normal sync arrows, dashed replies, reverse-readable arrows, compact arrows without spaces, multiline message labels, and safe plain-text markup.
 
-PlantUML source: [docs/ressources/sequence/puml/basics.puml](docs/ressources/sequence/puml/basics.puml)
+PlantUML source: [ressources/sequence/puml/basics.puml](ressources/sequence/puml/basics.puml)
 
-```puml
+```java
 @startuml
 title Basic sequence messages
 participant Client
 participant API
-Client->API: request\nwith wrapped label
+Client->API: **request** <b>as plain text</b>\nwith wrapped label
 API --> Client: response
 Client <- API: reverse-readable reply
 @enduml
 ```
 
-![Basic messages](docs/ressources/sequence/svg/basics.svg)
+![Basic messages](ressources/sequence/svg/basics.svg)
 
 ## Participant declarations
 
-Covers explicit participant kinds, aliases, colors, stereotypes, and PlantUML order values.
+Covers explicit participant kinds, aliases, colors, stereotypes, PlantUML order values, and multiline participant blocks.
 
-PlantUML source: [docs/ressources/sequence/puml/participants.puml](docs/ressources/sequence/puml/participants.puml)
+PlantUML source: [ressources/sequence/puml/participants.puml](ressources/sequence/puml/participants.puml)
 
-```puml
+```java
 @startuml
 title Participant declarations
 participant Last order 30
@@ -77,8 +77,13 @@ database Database
 collections Collection
 queue Queue
 participant First <<service>> #LightGreen order 10
+participant "Catalog Service" as Catalog #LightYellow order 15 [
+=Catalog
+Service
+]
 User -> First: enters system
-First -> Boundary: validate
+First -> Catalog: route by catalog
+Catalog -> Boundary: validate
 Boundary -> Control: dispatch
 Control -> Entity: load
 Entity -> Database: query
@@ -88,15 +93,15 @@ Queue --> Last: notify
 @enduml
 ```
 
-![Participant declarations](docs/ressources/sequence/svg/participants.svg)
+![Participant declarations](ressources/sequence/svg/participants.svg)
 
 ## Arrow variants and endpoints
 
 Covers open, dashed, bidirectional, circle, cross/lost, partial, colored, incoming/outgoing, and short boundary arrows.
 
-PlantUML source: [docs/ressources/sequence/puml/arrow-variants.puml](docs/ressources/sequence/puml/arrow-variants.puml)
+PlantUML source: [ressources/sequence/puml/arrow-variants.puml](ressources/sequence/puml/arrow-variants.puml)
 
-```puml
+```java
 @startuml
 title Arrow variants and endpoints
 participant Alice as A
@@ -111,22 +116,45 @@ A ->x B: lost at end
 A -\ B: partial lower head
 A -/ B: partial upper head
 A -[#red]> B: red arrow
+A -(12)> B: slanted arrow
+A "source endpoint label with useful wrapping" -> "target endpoint label with useful wrapping" B: central label uses arrowhead-safe width budgeting
 [-> A: incoming from diagram edge
 A ->]: outgoing to diagram edge
 ?-> B: short incoming
 B ->?: short outgoing
+& A -> B: parallel teoz-style message is accepted with simplified geometry
 @enduml
 ```
 
-![Arrow variants and endpoints](docs/ressources/sequence/svg/arrow-variants.svg)
+![Arrow variants and endpoints](ressources/sequence/svg/arrow-variants.svg)
+
+## Arrow label wrapping
+
+Covers dynamic wrapping for long message labels and endpoint labels using arrow length minus arrowhead size as the available width.
+
+PlantUML source: [ressources/sequence/puml/label-wrapping.puml](ressources/sequence/puml/label-wrapping.puml)
+
+```java
+@startuml
+title Arrow label wrapping
+participant A
+participant B
+A -> B: a very long request label / with punctuation, useful-breakpoints, and enough words to wrap before it reaches the arrow tips
+B "reply source endpoint label with punctuation / fallback" --> "reply target endpoint label with punctuation / fallback" A: a similarly long response label that must push all following items down
+== After wrapped labels ==
+A -> B: compact follow-up
+@enduml
+```
+
+![Arrow label wrapping](ressources/sequence/svg/label-wrapping.svg)
 
 ## Notes
 
 Covers side notes, over notes, colored notes, hnote/rnote variants, note across, and block notes.
 
-PlantUML source: [docs/ressources/sequence/puml/notes.puml](docs/ressources/sequence/puml/notes.puml)
+PlantUML source: [ressources/sequence/puml/notes.puml](ressources/sequence/puml/notes.puml)
 
-```puml
+```java
 @startuml
 title Notes and note variants
 participant Alice
@@ -145,15 +173,15 @@ Bob -> Carol: continue
 @enduml
 ```
 
-![Notes](docs/ressources/sequence/svg/notes.svg)
+![Notes](ressources/sequence/svg/notes.svg)
 
 ## Combined fragments
 
 Covers opt, loop, alt/else, par/and, break, critical/option, group/option, nesting, operand labels, and uniform fragment margins.
 
-PlantUML source: [docs/ressources/sequence/puml/fragments.puml](docs/ressources/sequence/puml/fragments.puml)
+PlantUML source: [ressources/sequence/puml/fragments.puml](ressources/sequence/puml/fragments.puml)
 
-```puml
+```java
 @startuml
 title Combined fragments
 participant Client
@@ -184,7 +212,7 @@ critical commit
 option rollback
   Audit --> Service: rollback
 end
-group custom label
+group custom label [secondary label] #LightBlue
   Service -> Audit: grouped
 option alternative label
   Audit --> Service: alternative
@@ -192,15 +220,15 @@ end
 @enduml
 ```
 
-![Combined fragments](docs/ressources/sequence/svg/fragments.svg)
+![Combined fragments](ressources/sequence/svg/fragments.svg)
 
 ## Timeline decorations
 
 Covers dividers, delays, explicit vertical spaces, and ref frames with the same top/bottom spacing rhythm as fragments.
 
-PlantUML source: [docs/ressources/sequence/puml/timeline-decorations.puml](docs/ressources/sequence/puml/timeline-decorations.puml)
+PlantUML source: [ressources/sequence/puml/timeline-decorations.puml](ressources/sequence/puml/timeline-decorations.puml)
 
-```puml
+```java
 @startuml
 title Timeline decorations
 participant Alice
@@ -221,15 +249,15 @@ Alice -> Bob: final message
 @enduml
 ```
 
-![Timeline decorations](docs/ressources/sequence/svg/timeline-decorations.svg)
+![Timeline decorations](ressources/sequence/svg/timeline-decorations.svg)
 
 ## Lifecycle, activation, create, destroy, return
 
 Covers activate/deactivate/destroy, activation colors, create, shortcut ++/\*\*/!! syntax, and return messages.
 
-PlantUML source: [docs/ressources/sequence/puml/lifecycle.puml](docs/ressources/sequence/puml/lifecycle.puml)
+PlantUML source: [ressources/sequence/puml/lifecycle.puml](ressources/sequence/puml/lifecycle.puml)
 
-```puml
+```java
 @startuml
 title Lifecycle and return
 participant User
@@ -246,44 +274,89 @@ deactivate Worker
 @enduml
 ```
 
-![Lifecycle, activation, create, destroy, return](docs/ressources/sequence/svg/lifecycle.svg)
+![Lifecycle, activation, create, destroy, return](ressources/sequence/svg/lifecycle.svg)
 
 ## Autonumber, title, footbox, skinparam
 
-Covers autonumber start/increment, stop/resume, title rendering, hide footbox, and supported sequence color skinparams.
+Covers formatted autonumber start/increment, stop/resume, title rendering, hide footbox, and supported sequence presentation skinparams.
 
-PlantUML source: [docs/ressources/sequence/puml/autonumber-title-footbox-skinparam.puml](docs/ressources/sequence/puml/autonumber-title-footbox-skinparam.puml)
+PlantUML source: [ressources/sequence/puml/autonumber-title-footbox-skinparam.puml](ressources/sequence/puml/autonumber-title-footbox-skinparam.puml)
 
-```puml
+```java
 @startuml
 skinparam sequence {
   ArrowColor #123456
+  MessageFontColor #123456
+  MessageAlign right
+  ResponseMessageBelowArrow true
   ParticipantBackgroundColor #LightYellow
   ParticipantBorderColor #00aa00
+  ParticipantFontColor #004400
   LifeLineBorderColor #0000ff
+  NoteBackgroundColor #LightYellow
+  NoteBorderColor #red
+  NoteFontColor #blue
+  GroupBackgroundColor #LightGreen
+  GroupBorderColor #green
+  GroupFontColor #purple
+  DividerBorderColor #red
+  ActivationBackgroundColor #LightBlue
+  ActorStyle box
 }
 hide footbox
 title Styled numbered flow
-autonumber 10 5
-participant Alice
+autonumber 10 5 "<b>[000]"
+actor Alice
 participant Bob
-Alice -> Bob: first numbered
+== Styled Divider ==
+Alice -> Bob ++: first numbered
+note right of Bob: styled note
 autonumber stop
 Bob -> Alice: unnumbered
 autonumber resume
-Alice --> Bob: numbered again
+group styled group [secondary label]
+Alice --> Bob --: numbered again
+end
 @enduml
 ```
 
-![Autonumber, title, footbox, skinparam](docs/ressources/sequence/svg/autonumber-title-footbox-skinparam.svg)
+![Autonumber, title, footbox, skinparam](ressources/sequence/svg/autonumber-title-footbox-skinparam.svg)
+
+## Header, footer, mainframe, newpage, hide unlinked
+
+Covers global sequence decorations, single-canvas newpage rendering, hide unlinked pruning, and solid lifeline style.
+
+PlantUML source: [ressources/sequence/puml/global-presentation.puml](ressources/sequence/puml/global-presentation.puml)
+
+```java
+@startuml
+  !pragma teoz true
+header Sequence coverage header
+footer Sequence coverage footer
+mainframe Sequence coverage frame
+skinparam sequence LifeLineStrategy solid
+hide unlinked
+title Global presentation
+participant Alice
+participant Bob
+participant Unused
+partition "single-canvas teoz partition" {
+Alice -> Bob: first page message
+newpage Next page marker
+& Bob --> Alice: second page response
+}
+@enduml
+```
+
+![Header, footer, mainframe, newpage, hide unlinked](ressources/sequence/svg/global-presentation.svg)
 
 ## Participant boxes
 
 Covers PlantUML box/end box participant grouping with labels and background colors.
 
-PlantUML source: [docs/ressources/sequence/puml/participant-boxes.puml](docs/ressources/sequence/puml/participant-boxes.puml)
+PlantUML source: [ressources/sequence/puml/participant-boxes.puml](ressources/sequence/puml/participant-boxes.puml)
 
-```puml
+```java
 @startuml
 title Participant grouping boxes
 box "Internal Service" #LightBlue
@@ -300,15 +373,47 @@ API --> User: response
 @enduml
 ```
 
-![Participant boxes](docs/ressources/sequence/svg/participant-boxes.svg)
+![Participant boxes](ressources/sequence/svg/participant-boxes.svg)
+
+## Feedback loops with participant assets
+
+Covers feedback-loop traffic while rendering actor/boundary/control/entity/database/collections/queue symbols in the same sequence.
+
+PlantUML source: [ressources/sequence/puml/feedback-loops-assets.puml](ressources/sequence/puml/feedback-loops-assets.puml)
+
+```java
+@startuml
+title Feedback loops with assets
+actor User
+boundary Gateway
+control Orchestrator
+entity Domain
+database Ledger
+collections Views
+queue Events
+
+loop request-response loop
+  User -> Gateway: submit
+  Gateway -> Orchestrator ++: dispatch
+  Orchestrator -> Domain: validate
+  Domain -> Ledger: write
+  Ledger --> Views: project
+  Views --> Events: enqueue
+  Events --> Gateway: ack
+  Gateway --> User --: response
+end
+@enduml
+```
+
+![Feedback loops with participant assets](ressources/sequence/svg/feedback-loops-assets.svg)
 
 ## Combination: service flow
 
 End-to-end combination of participant boxes, arrows, activations, fragments, notes, refs, dividers, delays, and autonumber.
 
-PlantUML source: [docs/ressources/sequence/puml/combination-flow.puml](docs/ressources/sequence/puml/combination-flow.puml)
+PlantUML source: [ressources/sequence/puml/combination-flow.puml](ressources/sequence/puml/combination-flow.puml)
 
-```puml
+```java
 @startuml
 skinparam sequence ArrowColor #334155
 title Combined service flow
@@ -336,15 +441,15 @@ API --> User --: response
 @enduml
 ```
 
-![Combination: service flow](docs/ressources/sequence/svg/combination-flow.svg)
+![Combination: service flow](ressources/sequence/svg/combination-flow.svg)
 
 ## Combination: branching and cleanup
 
 Stress-style combination with nested fragments, lifecycle shortcuts, create/destroy, notes across, and external arrows.
 
-PlantUML source: [docs/ressources/sequence/puml/combination-errors.puml](docs/ressources/sequence/puml/combination-errors.puml)
+PlantUML source: [ressources/sequence/puml/combination-errors.puml](ressources/sequence/puml/combination-errors.puml)
 
-```puml
+```java
 @startuml
 title Combined branching and cleanup
 participant Client
@@ -370,4 +475,4 @@ Client ->]: outbound signal
 @enduml
 ```
 
-![Combination: branching and cleanup](docs/ressources/sequence/svg/combination-errors.svg)
+![Combination: branching and cleanup](ressources/sequence/svg/combination-errors.svg)

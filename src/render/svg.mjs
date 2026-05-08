@@ -415,7 +415,7 @@ const ARROWHEAD_GEOMETRY = {
     refXStart: 1,
     width: ARROWHEAD_PX,
     height: ARROWHEAD_PX,
-    path: "M0,0 L10,5 L0,10",
+    path: "M0.7,0.6 L9.4,5 L0.9,9.5",
     outline: false,
     open: true,
   },
@@ -425,7 +425,7 @@ const ARROWHEAD_GEOMETRY = {
     refXStart: 1,
     width: ARROWHEAD_PX,
     height: ARROWHEAD_PX,
-    path: "M0,0 L10,5 L0,10 z",
+    path: "M0.7,0.7 L9.4,5 L1.1,9.3 z",
     outline: false,
     open: false,
   },
@@ -435,7 +435,7 @@ const ARROWHEAD_GEOMETRY = {
     refXStart: 1,
     width: ARROWHEAD_PX + 2,
     height: ARROWHEAD_PX + 2,
-    path: "M0,0 L10,5 L0,10 z",
+    path: "M0.7,0.7 L9.4,5 L1.1,9.3 z",
     outline: true,
     open: false,
   },
@@ -445,7 +445,7 @@ const ARROWHEAD_GEOMETRY = {
     refXStart: 1,
     width: Math.round(ARROWHEAD_PX * 1.3),
     height: ARROWHEAD_PX,
-    path: "M0,5 L6,0 L12,5 L6,10 z",
+    path: "M0.8,5 L6.1,0.8 L11.5,5 L6,9.2 z",
     outline: false,
     open: false,
   },
@@ -455,9 +455,69 @@ const ARROWHEAD_GEOMETRY = {
     refXStart: 1,
     width: Math.round(ARROWHEAD_PX * 1.3),
     height: ARROWHEAD_PX,
-    path: "M0,5 L6,0 L12,5 L6,10 z",
+    path: "M0.8,5 L6.1,0.8 L11.5,5 L6,9.2 z",
     outline: true,
     open: false,
+  },
+  circle: {
+    viewBox: "0 0 10 10",
+    refXEnd: 9,
+    refXStart: 9,
+    width: ARROWHEAD_PX,
+    height: ARROWHEAD_PX,
+    path: "M5.1,5 m-3.9,0 a3.9,4.1 0 1,0 7.8,0 a3.9,4.1 0 1,0 -7.8,0",
+    outline: false,
+    open: false,
+  },
+  circle_outline: {
+    viewBox: "0 0 10 10",
+    refXEnd: 9,
+    refXStart: 9,
+    width: ARROWHEAD_PX,
+    height: ARROWHEAD_PX,
+    path: "M5.1,5 m-3.9,0 a3.9,4.1 0 1,0 7.8,0 a3.9,4.1 0 1,0 -7.8,0",
+    outline: true,
+    open: false,
+  },
+  dot: {
+    viewBox: "0 0 10 10",
+    refXEnd: 9,
+    refXStart: 9,
+    width: Math.round(ARROWHEAD_PX * 0.8),
+    height: Math.round(ARROWHEAD_PX * 0.8),
+    path: "M5.1,5 m-2.8,0 a2.8,3.1 0 1,0 5.6,0 a2.8,3.1 0 1,0 -5.6,0",
+    outline: false,
+    open: false,
+  },
+  bar: {
+    viewBox: "0 0 10 10",
+    refXEnd: 5,
+    refXStart: 5,
+    width: Math.round(ARROWHEAD_PX * 0.8),
+    height: ARROWHEAD_PX,
+    path: "M5.2,0.5 L4.8,9.5",
+    outline: false,
+    open: true,
+  },
+  partial_top: {
+    viewBox: "0 0 10 10",
+    refXEnd: 9,
+    refXStart: 9,
+    width: ARROWHEAD_PX,
+    height: ARROWHEAD_PX,
+    path: "M0.6,0.8 L9.5,5",
+    outline: false,
+    open: true,
+  },
+  partial_bottom: {
+    viewBox: "0 0 10 10",
+    refXEnd: 9,
+    refXStart: 9,
+    width: ARROWHEAD_PX,
+    height: ARROWHEAD_PX,
+    path: "M0.8,9.2 L9.4,5",
+    outline: false,
+    open: true,
   },
 };
 
@@ -480,7 +540,10 @@ function arrowheadMarkers(keys) {
     if (!geom) continue;
     const suffix = colorMarkerSuffix(color);
     const id = `m_${type}_${side}_${suffix}`;
-    const refX = side === "end" ? geom.refXEnd : geom.refXStart;
+    // Both start and end markers are anchored at the visual tip. With
+    // `auto-start-reverse`, using the base-side refX for start markers
+    // makes the arrowhead begin at the endpoint instead of pointing to it.
+    const refX = geom.refXEnd;
     const orient = side === "end" ? "auto" : "auto-start-reverse";
     const safeColor = escapeAttr(color);
     // Three fill/stroke modes:
@@ -490,8 +553,8 @@ function arrowheadMarkers(keys) {
     const fillStroke = geom.open
       ? `fill="none" stroke="${safeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`
       : geom.outline
-        ? `fill="#fff" stroke="${safeColor}"`
-        : `fill="${safeColor}"`;
+        ? `fill="#fff" stroke="${safeColor}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"`
+        : `fill="${safeColor}" stroke="${safeColor}" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"`;
     out.push(
       // markerUnits="userSpaceOnUse" makes width/height explicit pixel
       // values (ARROWHEAD_PX) independent of the element's stroke-width.

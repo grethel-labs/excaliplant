@@ -10,8 +10,13 @@ database Database
 collections Collection
 queue Queue
 participant First <<service>> #LightGreen order 10
+participant "Catalog Service" as Catalog #LightYellow order 15 [
+=Catalog
+Service
+]
 User -> First: enters system
-First -> Boundary: validate
+First -> Catalog: route by catalog
+Catalog -> Boundary: validate
 Boundary -> Control: dispatch
 Control -> Entity: load
 Entity -> Database: query

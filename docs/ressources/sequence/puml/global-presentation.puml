@@ -1,0 +1,17 @@
+@startuml
+  !pragma teoz true
+header Sequence coverage header
+footer Sequence coverage footer
+mainframe Sequence coverage frame
+skinparam sequence LifeLineStrategy solid
+hide unlinked
+title Global presentation
+participant Alice
+participant Bob
+participant Unused
+partition "single-canvas teoz partition" {
+Alice -> Bob: first page message
+newpage Next page marker
+& Bob --> Alice: second page response
+}
+@enduml

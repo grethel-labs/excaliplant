@@ -30,20 +30,15 @@ const FRAGMENT_COLORS = /** @type {Record<string, {stroke:string,fill:string,hea
     group: { stroke: "#475569", fill: "#f8fafc", header: "#475569" },
   })
 );
+const SELF_LOOP_HEIGHT = 24;
 
 /**
- * Render a SequenceDiagram (see `src/model/diagram.mjs`) into an
- * array of Excalidraw elements using the primitive factories
- * supplied by the parent renderer.
- *
- * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
- * @param {object} ctx
- * @param {string} ctx.sourceLabel
- * @param {Record<string, Function>} ctx.primitives
- *        Bag of primitive factories: `rect`, `text`, `arrow`,
- *        `ellipse`, `line` (provided by the parent renderer).
- * @returns {object}             An Excalidraw JSON document.
- * @internal
+ * Render a SequenceDiagram into an Excalidraw JSON document.
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram Sequence diagram.
+ * @param {object} ctx Render context.
+ * @param {string} ctx.sourceLabel Source label for app state.
+ * @param {Record<string, Function>} ctx.primitives Excalidraw primitive factories.
+ * @returns {object} Excalidraw JSON document.
  */
 export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
   const { rect, text, arrow, ellipse, line } = primitives;
@@ -51,38 +46,22 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
   const elements = [];
   const style = sequenceStyle(diagram.style);
 
-  // ─── Layering contract ────────────────────────────────────────────────────
-  // 1. Participant group boxes (back-most)
-  // 2. Fragment / ref fills   (coloured areas behind lifelines)
-  // 3. Participant heads       (cap tops of lifelines)
-  // 4. Lifelines               (dashed, pass through fills and heads)
-  // 5. Activation bars         (solid bars on lifelines)
-  // 6. Fragment / ref borders  (frames on top of lifelines — the key fix)
-  // 7. Markers (dividers)      (section separators)
-  // 8. Participant tail boxes  (mirror of heads at the bottom)
-  // 9. Notes / messages        (timeline content)
-  // 10. Title                  (always topmost)
-  // ─────────────────────────────────────────────────────────────────────────
-
   for (const group of diagram.participantGroups) {
-    renderParticipantGroup(group, elements, { rect, text });
+    renderParticipantGroup(group, elements, { rect, text }, style);
   }
 
-  // Pass 1 – fills only (behind lifelines so the dashed lifeline shows through).
   for (const fragment of diagram.fragments) {
-    renderFragmentFill(fragment, elements, { rect });
+    renderFragmentFill(fragment, elements, { rect }, style);
   }
   for (const ref of diagram.references) {
     renderReferenceFill(ref, elements, { rect });
   }
 
-  // Participant heads sit above fills.
   for (const p of diagram.participants) {
-    if (p.shape === "actor") renderActorHead(p, elements, { line, ellipse, text }, style);
+    if (p.shape === "actor") renderActorHead(p, elements, { rect, line, ellipse, text }, style);
     else renderParticipantHead(p, elements, { rect, text, ellipse, line }, style);
   }
 
-  // Lifelines intentionally enter the lower part of participant heads.
   for (const p of diagram.participants) {
     const lifelineStart =
       p.shape === "actor" ? p.headY + p.headHeight : p.headY + p.headHeight - LIFELINE_HEAD_OVERLAP;
@@ -92,31 +71,28 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
         { x: p.x, y: p.lifelineBottom },
       ],
       strokeColor: style.lifelineColor,
-      dashed: true,
+      dashed: style.lifelineStyle !== "solid",
       strokeWidth: 1,
     });
     lifeline.customData = { role: "sequenceLifeline", participantId: p.id };
     elements.push(lifeline);
   }
 
-  // Activation bars on top of lifelines.
   for (const activation of diagram.activations) {
-    renderActivation(activation, elements, { rect });
+    renderActivation(activation, elements, { rect }, style);
   }
 
-  // Pass 2 – borders + labels on top of lifelines (the overstand the user wants).
   for (const fragment of diagram.fragments) {
-    renderFragmentBorder(fragment, elements, { rect, text, line });
+    renderFragmentBorder(fragment, elements, { rect, text, line }, style);
   }
   for (const ref of diagram.references) {
     renderReferenceBorder(ref, elements, { rect, text });
   }
 
   for (const marker of diagram.markers) {
-    renderMarker(marker, elements, { rect, text, line });
+    renderMarker(marker, elements, { rect, text, line }, style);
   }
 
-  // Tail boxes mirror heads at the bottom and sit above lifelines.
   for (const p of diagram.participants) {
     if (diagram.showFootbox && p.shape !== "actor" && !p.destroyY) {
       const tail = /** @type {any} */ ({
@@ -128,15 +104,14 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
     }
   }
 
-  // Notes
   for (const n of diagram.notes) {
     const note = rect({
       x: n.x,
       y: n.y,
       width: n.width,
       height: n.height,
-      strokeColor: NOTE_STROKE,
-      backgroundColor: sequenceColor(n.color, NOTE_FILL),
+      strokeColor: style.noteBorderColor,
+      backgroundColor: sequenceColor(n.color || style.noteBackgroundColor, NOTE_FILL),
     });
     note.customData = { role: "sequenceNote", noteId: n.id, shape: n.shape };
     elements.push(note);
@@ -147,28 +122,24 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
       height: n.height - 16,
       value: n.text,
       fontSize: FONT.sizeDescription,
-      color: "#000",
+      color: style.noteFontColor,
     });
     noteText.customData = { role: "sequenceNoteText", noteId: n.id, shape: n.shape };
     elements.push(noteText);
   }
 
-  // Messages
   for (const m of diagram.messages) {
-    if (m.isSelf) {
-      renderSelfMessage(m, elements, { arrow, text }, style);
-    } else {
-      renderMessage(m, elements, { arrow, text }, style);
-    }
+    if (m.isSelf) renderSelfMessage(m, elements, { arrow, text }, style);
+    else renderMessage(m, elements, { arrow, text }, style);
   }
 
   for (const p of diagram.participants) {
     if (p.destroyY) renderDestroyMarker(p, elements, { line });
   }
 
-  // Title is rendered last so it is always the topmost element in
-  // Excalidraw's z-order — above group boxes, participant heads,
-  // lifelines, and activation bars.
+  renderSequenceFrame(diagram, elements, { rect, text });
+  renderHeaderFooter(diagram, elements, { text });
+
   if (diagram.title) {
     elements.push(
       text({
@@ -199,21 +170,98 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
 }
 
 /**
- * Render a participant grouping box declared by `box ... end box`.
- * @param {import("../model/diagram.mjs").SequenceParticipantGroup} group Group metadata.
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram Sequence diagram.
  * @param {any[]} elements Excalidraw element list.
  * @param {Record<string, Function>} prims Primitive factories.
  * @returns {void}
  */
-function renderParticipantGroup(group, elements, { rect, text }) {
+function renderHeaderFooter(diagram, elements, { text }) {
+  if (diagram.header) {
+    const headerHeight = blockHeight(diagram.header, FONT.sizeDescription);
+    const headerY = headerStartY(diagram);
+    const header = text({
+      x: 20,
+      y: headerY,
+      width: diagram.width - 40,
+      height: headerHeight,
+      value: diagram.header,
+      fontSize: FONT.sizeDescription,
+      color: HEAD_STROKE,
+      align: "center",
+    });
+    header.customData = { role: "sequenceHeader" };
+    elements.push(header);
+  }
+
+  if (diagram.footer) {
+    const footerHeight = blockHeight(diagram.footer, FONT.sizeDescription);
+    const footer = text({
+      x: 20,
+      y: Math.max(20, diagram.height - footerHeight - 20),
+      width: diagram.width - 40,
+      height: footerHeight,
+      value: diagram.footer,
+      fontSize: FONT.sizeDescription,
+      color: HEAD_STROKE,
+      align: "center",
+    });
+    footer.customData = { role: "sequenceFooter" };
+    elements.push(footer);
+  }
+}
+
+/**
+ * Render a PlantUML `mainframe` as a light outer frame around the single
+ * Excalidraw canvas.
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram Sequence diagram.
+ * @param {any[]} elements Excalidraw element list.
+ * @param {Record<string, Function>} prims Primitive factories.
+ * @returns {void}
+ */
+function renderSequenceFrame(diagram, elements, { rect, text }) {
+  if (!diagram.mainframe) return;
+  const frame = rect({
+    x: 8,
+    y: 8,
+    width: Math.max(80, diagram.width - 16),
+    height: Math.max(80, diagram.height - 16),
+    strokeColor: "#64748b",
+    backgroundColor: "transparent",
+  });
+  frame.roughness = 0;
+  frame.strokeWidth = 1;
+  frame.customData = { role: "sequenceMainframe" };
+  elements.push(frame);
+  const label = text({
+    x: 18,
+    y: 8,
+    width: Math.min(240, Math.max(80, diagram.width - 36)),
+    height: FONT.sizeDescription * FONT.lineHeight,
+    value: diagram.mainframe,
+    fontSize: FONT.sizeDescription,
+    color: "#334155",
+  });
+  label.customData = { role: "sequenceMainframeLabel" };
+  elements.push(label);
+}
+
+/**
+ * Render a participant grouping box declared by `box ... end box`.
+ * @param {import("../model/diagram.mjs").SequenceParticipantGroup} group Group metadata.
+ * @param {any[]} elements Excalidraw element list.
+ * @param {Record<string, Function>} prims Primitive factories.
+ * @param {{groupBackgroundColor:string,groupBorderColor:string,groupFontColor:string}} style Diagram style.
+ * @returns {void}
+ */
+function renderParticipantGroup(group, elements, { rect, text }, style) {
   if (!group.width || !group.height) return;
   const frame = rect({
     x: group.x,
     y: group.y,
     width: group.width,
     height: group.height,
-    strokeColor: "#94a3b8",
-    backgroundColor: sequenceColor(group.color, "#f8fafc"),
+    strokeColor: style.groupBorderColor,
+    backgroundColor: sequenceColor(group.color, style.groupBackgroundColor),
   });
   frame.roughness = 0;
   frame.strokeWidth = 1;
@@ -227,7 +275,7 @@ function renderParticipantGroup(group, elements, { rect, text }) {
       height: FONT.sizeDescription * FONT.lineHeight,
       value: group.label,
       fontSize: FONT.sizeDescription,
-      color: "#334155",
+      color: style.groupFontColor,
     });
     label.customData = { role: "sequenceParticipantGroupLabel", groupId: group.id };
     elements.push(label);
@@ -239,11 +287,12 @@ function renderParticipantGroup(group, elements, { rect, text }) {
  * @param {import("../model/diagram.mjs").SequenceMarker} marker Marker metadata.
  * @param {any[]} elements Excalidraw element list.
  * @param {Record<string, Function>} prims Primitive factories.
+ * @param {{dividerColor:string}} style Diagram style.
  * @returns {void}
  */
-function renderMarker(marker, elements, { rect, text, line }) {
+function renderMarker(marker, elements, { rect, text, line }, style) {
   if (marker.kind === "space") return;
-  if (marker.kind === "divider") {
+  if (marker.kind === "divider" || marker.kind === "pageBreak") {
     // Render as two horizontal solid lines (top + bottom) with the label
     // centred between them. Using lines rather than a filled rectangle keeps
     // the divider visually lightweight and avoids conflicts with activation
@@ -254,11 +303,14 @@ function renderMarker(marker, elements, { rect, text, line }) {
           { x: marker.x, y: lineY },
           { x: marker.x + marker.width, y: lineY },
         ],
-        strokeColor: DIVIDER_STROKE,
+        strokeColor: style.dividerColor,
         strokeWidth: 1,
       });
       divLine.roughness = 0;
-      divLine.customData = { role: "sequenceDivider", markerId: marker.id };
+      divLine.customData = {
+        role: marker.kind === "pageBreak" ? "sequencePageBreak" : "sequenceDivider",
+        markerId: marker.id,
+      };
       elements.push(divLine);
     }
     if (marker.label) {
@@ -270,10 +322,13 @@ function renderMarker(marker, elements, { rect, text, line }) {
         height: FONT.sizeDescription * FONT.lineHeight,
         value: marker.label,
         fontSize: FONT.sizeDescription,
-        color: DIVIDER_STROKE,
+        color: style.dividerColor,
         align: "center",
       });
-      label.customData = { role: "sequenceDividerText", markerId: marker.id };
+      label.customData = {
+        role: marker.kind === "pageBreak" ? "sequencePageBreakText" : "sequenceDividerText",
+        markerId: marker.id,
+      };
       elements.push(label);
     }
     return;
@@ -284,7 +339,7 @@ function renderMarker(marker, elements, { rect, text, line }) {
       { x: marker.x, y },
       { x: marker.x + marker.width, y },
     ],
-    strokeColor: DELAY_STROKE,
+    strokeColor: style.dividerColor || DELAY_STROKE,
     dashed: true,
     strokeWidth: 1,
   });
@@ -298,7 +353,7 @@ function renderMarker(marker, elements, { rect, text, line }) {
       height: FONT.sizeDescription * FONT.lineHeight,
       value: marker.label,
       fontSize: FONT.sizeDescription,
-      color: DELAY_STROKE,
+      color: style.dividerColor || DELAY_STROKE,
       align: "center",
     });
     label.customData = { role: "sequenceDelayText", markerId: marker.id };
@@ -393,11 +448,12 @@ function renderReferenceBorder(ref, elements, { rect, text }) {
  * @param {import("../model/diagram.mjs").SequenceFragment} fragment Fragment metadata.
  * @param {any[]} elements Excalidraw element list — mutated in place.
  * @param {Record<string, Function>} prims Primitive factories.
+ * @param {{groupBackgroundColor:string,groupBorderColor:string,groupFontColor:string}} style Diagram style.
  * @returns {void}
  */
-function renderFragmentFill(fragment, elements, { rect }) {
+function renderFragmentFill(fragment, elements, { rect }, style) {
   if (!fragment.width || !fragment.height) return;
-  const colors = fragmentColors(fragment.kind);
+  const colors = fragmentColors(fragment, style);
   const fill = rect({
     x: fragment.x,
     y: fragment.y,
@@ -419,11 +475,12 @@ function renderFragmentFill(fragment, elements, { rect }) {
  * @param {import("../model/diagram.mjs").SequenceFragment} fragment Fragment metadata.
  * @param {any[]} elements Excalidraw element list — mutated in place.
  * @param {Record<string, Function>} prims Primitive factories.
+ * @param {{groupBackgroundColor:string,groupBorderColor:string,groupFontColor:string}} style Diagram style.
  * @returns {void}
  */
-function renderFragmentBorder(fragment, elements, { rect, text, line }) {
+function renderFragmentBorder(fragment, elements, { rect, text, line }, style) {
   if (!fragment.width || !fragment.height) return;
-  const colors = fragmentColors(fragment.kind);
+  const colors = fragmentColors(fragment, style);
   const frame = rect({
     x: fragment.x,
     y: fragment.y,
@@ -467,6 +524,20 @@ function renderFragmentBorder(fragment, elements, { rect, text, line }) {
   headerText.customData = { role: "sequenceFragmentHeaderText", kind: fragment.kind };
   elements.push(headerText);
 
+  if (fragment.secondaryLabel) {
+    const secondaryText = text({
+      x: fragment.x + headerWidth + 8,
+      y: fragment.y + 3,
+      width: Math.max(40, fragment.width - headerWidth - 16),
+      height: FONT.sizeDescription * FONT.lineHeight,
+      value: fragment.secondaryLabel,
+      fontSize: FONT.sizeDescription,
+      color: colors.stroke,
+    });
+    secondaryText.customData = { role: "sequenceFragmentSecondaryText", kind: fragment.kind };
+    elements.push(secondaryText);
+  }
+
   for (const operand of fragment.operands.slice(1)) {
     const y = operand.y ?? fragment.y + 28;
     const separator = line({
@@ -497,23 +568,48 @@ function renderFragmentBorder(fragment, elements, { rect, text, line }) {
 }
 
 /**
- * @param {string} kind Fragment kind.
+ * @param {import("../model/diagram.mjs").SequenceFragment} fragment Fragment metadata.
+ * @param {{groupBackgroundColor:string,groupBorderColor:string,groupFontColor:string}} style Diagram style.
  * @returns {{stroke:string,fill:string,header:string}} Fragment colour set.
  */
-function fragmentColors(kind) {
-  return FRAGMENT_COLORS[kind] ?? FRAGMENT_COLORS.group;
+function fragmentColors(fragment, style) {
+  const base =
+    fragment.kind === "group"
+      ? {
+          stroke: style.groupBorderColor,
+          fill: style.groupBackgroundColor,
+          header: style.groupBorderColor,
+        }
+      : (FRAGMENT_COLORS[fragment.kind] ?? FRAGMENT_COLORS.group);
+  if (!fragment.color) return base;
+  const fill = sequenceColor(fragment.color, base.fill);
+  return { stroke: base.stroke, fill, header: base.header };
 }
 
 /**
  * @param {import("../model/diagram.mjs").SequenceDiagram["style"]} rawStyle Parsed style values.
- * @returns {{arrowColor:string,participantBackgroundColor:string,participantBorderColor:string,lifelineColor:string}}
+ * @returns {{arrowColor:string,messageFontColor:string,messageAlign:string,responseMessageBelowArrow:string,participantBackgroundColor:string,participantBorderColor:string,participantFontColor:string,lifelineColor:string,lifelineStyle:string,actorStyle:string,noteBackgroundColor:string,noteBorderColor:string,noteFontColor:string,groupBackgroundColor:string,groupBorderColor:string,groupFontColor:string,dividerColor:string,activationColor:string}}
  */
 function sequenceStyle(rawStyle) {
   return {
     arrowColor: sequenceColor(rawStyle.arrowColor, "#1f2933"),
+    messageFontColor: sequenceColor(rawStyle.messageFontColor, "#222"),
+    messageAlign: rawStyle.messageAlign || "center",
+    responseMessageBelowArrow: rawStyle.responseMessageBelowArrow === "true" ? "true" : "false",
     participantBackgroundColor: sequenceColor(rawStyle.participantBackgroundColor, ""),
     participantBorderColor: sequenceColor(rawStyle.participantBorderColor, ""),
+    participantFontColor: sequenceColor(rawStyle.participantFontColor, ""),
     lifelineColor: sequenceColor(rawStyle.lifelineColor, LIFELINE_STROKE),
+    lifelineStyle: rawStyle.lifelineStyle === "solid" ? "solid" : "dashed",
+    actorStyle: rawStyle.actorStyle || "stick",
+    noteBackgroundColor: sequenceColor(rawStyle.noteBackgroundColor, NOTE_FILL),
+    noteBorderColor: sequenceColor(rawStyle.noteBorderColor, NOTE_STROKE),
+    noteFontColor: sequenceColor(rawStyle.noteFontColor, "#000"),
+    groupBackgroundColor: sequenceColor(rawStyle.groupBackgroundColor, "#f8fafc"),
+    groupBorderColor: sequenceColor(rawStyle.groupBorderColor, "#94a3b8"),
+    groupFontColor: sequenceColor(rawStyle.groupFontColor, "#334155"),
+    dividerColor: sequenceColor(rawStyle.dividerColor, DIVIDER_STROKE),
+    activationColor: sequenceColor(rawStyle.activationColor, ACTIVATION_FILL),
   };
 }
 
@@ -595,10 +691,11 @@ function sequenceColor(color, fallback) {
  * @param {import("../model/diagram.mjs").SequenceActivation} activation Activation metadata.
  * @param {any[]} elements Excalidraw element list.
  * @param {Record<string, Function>} prims Primitive factories.
+ * @param {{activationColor:string}} style Diagram style.
  * @returns {void}
  */
-function renderActivation(activation, elements, { rect }) {
-  const fill = sequenceColor(activation.color, ACTIVATION_FILL);
+function renderActivation(activation, elements, { rect }, style) {
+  const fill = sequenceColor(activation.color, style.activationColor);
   const bar = rect({
     x: activation.x,
     y: activation.y,
@@ -650,10 +747,10 @@ function renderDestroyMarker(participant, elements, { line }) {
  * @param {import("../model/diagram.mjs").Participant} p Lifeline metadata (positioned).
  * @param {any[]} elements Excalidraw element list — mutated in place.
  * @param {Record<string, Function>} prims Primitive factories injected by the caller (`rect`, `text`).
- * @param {{participantBackgroundColor:string,participantBorderColor:string}} style Diagram style.
+ * @param {{participantBackgroundColor:string,participantBorderColor:string,participantFontColor:string}} style Diagram style.
  * @returns {void}
  */
-function renderParticipantHead(p, elements, { rect, text }, style) {
+function renderParticipantHead(p, elements, { rect, text, ellipse, line }, style) {
   const x = p.x - p.headWidth / 2;
   const colors = participantColors(p, style);
   const isTail = Boolean(/** @type {any} */ (p).isTail);
@@ -679,25 +776,289 @@ function renderParticipantHead(p, elements, { rect, text }, style) {
         height: FONT.sizeDescription * FONT.lineHeight,
         value: `«${p.stereotype}»`,
         fontSize: FONT.sizeDescription,
-        color: HEAD_STROKE,
+        color: style.participantFontColor || HEAD_STROKE,
         align: "center",
       }),
     );
   }
+  const symbolHeight = renderParticipantSymbol(
+    p,
+    elements,
+    { rect, ellipse, line },
+    colors,
+    isTail,
+  );
+  const contentTop = p.headY + 6 + (p.stereotype ? 14 : 0) + symbolHeight;
+  const contentBottom = p.headY + p.headHeight - 6;
+  const contentHeight = Math.max(FONT.sizeTitle * FONT.lineHeight, contentBottom - contentTop);
   const titleLines = String(p.title).split("\n").length;
   const th = FONT.sizeTitle * FONT.lineHeight * titleLines;
   elements.push(
     text({
       x,
-      y: p.headY + (p.headHeight - th) / 2 + (p.stereotype ? 6 : 0),
+      y: contentTop + (contentHeight - th) / 2,
       width: p.headWidth,
       height: th,
       value: p.title,
       fontSize: FONT.sizeTitle,
-      color: HEAD_STROKE,
+      color: style.participantFontColor || HEAD_STROKE,
       align: "center",
     }),
   );
+}
+
+/**
+ * Render a participant-type symbol in the head box for non-actor lifelines.
+ * @param {import("../model/diagram.mjs").Participant} p
+ * @param {any[]} elements
+ * @param {Record<string, Function>} prims
+ * @param {{stroke:string,fill:string}} colors
+ * @param {boolean} isTail
+ * @returns {number}
+ */
+function renderParticipantSymbol(p, elements, { rect, ellipse, line }, colors, isTail) {
+  if (isTail) return 0;
+  if (!["boundary", "control", "entity", "database", "collections", "queue"].includes(p.shape)) {
+    return 0;
+  }
+
+  const cx = p.x;
+  const top = p.headY + 6;
+  const stamp = (/** @type {any} */ el) => {
+    if (!el) return;
+    el.customData = {
+      role: "sequenceParticipantSymbol",
+      participantId: p.id,
+      shape: p.shape,
+    };
+    elements.push(el);
+  };
+
+  if (p.shape === "boundary") {
+    stamp(
+      ellipse({
+        x: cx - 8,
+        y: top,
+        width: 16,
+        height: 16,
+        strokeColor: colors.stroke,
+        backgroundColor: "transparent",
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx + 10, y: top + 1 },
+          { x: cx + 10, y: top + 15 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 2,
+      }),
+    );
+    return 18;
+  }
+
+  if (p.shape === "control") {
+    stamp(
+      ellipse({
+        x: cx - 8,
+        y: top,
+        width: 16,
+        height: 16,
+        strokeColor: colors.stroke,
+        backgroundColor: "transparent",
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx - 2, y: top + 8 },
+          { x: cx + 5, y: top + 8 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 2,
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx + 5, y: top + 8 },
+          { x: cx + 2, y: top + 5 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 2,
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx + 5, y: top + 8 },
+          { x: cx + 2, y: top + 11 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 2,
+      }),
+    );
+    return 18;
+  }
+
+  if (p.shape === "entity") {
+    stamp(
+      rect({
+        x: cx - 12,
+        y: top,
+        width: 24,
+        height: 16,
+        strokeColor: colors.stroke,
+        backgroundColor: "transparent",
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx - 12, y: top + 5 },
+          { x: cx + 12, y: top + 5 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 1.5,
+      }),
+    );
+    return 18;
+  }
+
+  if (p.shape === "database") {
+    stamp(
+      ellipse({
+        x: cx - 12,
+        y: top,
+        width: 24,
+        height: 8,
+        strokeColor: colors.stroke,
+        backgroundColor: "transparent",
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx - 12, y: top + 4 },
+          { x: cx - 12, y: top + 14 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 1.5,
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx + 12, y: top + 4 },
+          { x: cx + 12, y: top + 14 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 1.5,
+      }),
+    );
+    stamp(
+      ellipse({
+        x: cx - 12,
+        y: top + 10,
+        width: 24,
+        height: 8,
+        strokeColor: colors.stroke,
+        backgroundColor: "transparent",
+      }),
+    );
+    return 20;
+  }
+
+  if (p.shape === "collections") {
+    stamp(
+      rect({
+        x: cx - 12,
+        y: top + 2,
+        width: 18,
+        height: 12,
+        strokeColor: colors.stroke,
+        backgroundColor: "transparent",
+      }),
+    );
+    stamp(
+      rect({
+        x: cx - 7,
+        y: top,
+        width: 18,
+        height: 12,
+        strokeColor: colors.stroke,
+        backgroundColor: "transparent",
+      }),
+    );
+    return 18;
+  }
+
+  if (p.shape === "queue") {
+    stamp(
+      ellipse({
+        x: cx - 12,
+        y: top,
+        width: 24,
+        height: 8,
+        strokeColor: colors.stroke,
+        backgroundColor: "transparent",
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx - 12, y: top + 4 },
+          { x: cx + 12, y: top + 4 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 1.5,
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx - 2, y: top + 12 },
+          { x: cx + 6, y: top + 12 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 2,
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx + 6, y: top + 12 },
+          { x: cx + 3, y: top + 9 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 2,
+      }),
+    );
+    stamp(
+      line({
+        points: [
+          { x: cx + 6, y: top + 12 },
+          { x: cx + 3, y: top + 15 },
+        ],
+        strokeColor: colors.stroke,
+        strokeWidth: 2,
+      }),
+    );
+    return 20;
+  }
+
+  return 0;
+}
+
+/**
+ * @param {string} value
+ * @param {number} fontSize
+ * @returns {number}
+ */
+function blockHeight(value, fontSize) {
+  const lines = String(value || "").split("\n").length;
+  return lines * fontSize * FONT.lineHeight;
 }
 
 /** @internal */
@@ -705,28 +1066,42 @@ function renderParticipantHead(p, elements, { rect, text }, style) {
  * Render a stick-figure actor head and its lifeline.
  * @param {import("../model/diagram.mjs").Participant} p Lifeline metadata (positioned).
  * @param {any[]} elements Excalidraw element list — mutated in place.
- * @param {Record<string, Function>} prims Primitive factories (`line`, `ellipse`, `text`).
- * @param {{participantBackgroundColor:string,participantBorderColor:string}} style Diagram style.
+ * @param {Record<string, Function>} prims Primitive factories (`rect`, `line`, `ellipse`, `text`).
+ * @param {{actorStyle:string,participantBackgroundColor:string,participantBorderColor:string,participantFontColor:string}} style Diagram style.
  * @returns {void}
  */
-function renderActorHead(p, elements, { line, ellipse, text }, style) {
+function renderActorHead(p, elements, { rect, line, ellipse, text }, style) {
+  if (style.actorStyle === "box") {
+    renderParticipantHead(p, elements, { rect, text, ellipse, line }, style);
+    return;
+  }
   const cx = p.x;
   const top = p.headY + 4;
   const headD = 22;
   const bodyTop = top + headD;
   const bodyBottom = bodyTop + 22;
   const colors = participantColors(p, style);
-  elements.push(
+  const fill = style.actorStyle === "hollow" ? "#ffffff" : colors.fill;
+  const stamp = (/** @type {any} */ el) => {
+    if (!el) return;
+    el.customData = {
+      role: "sequenceParticipantSymbol",
+      participantId: p.id,
+      shape: "actor",
+    };
+    elements.push(el);
+  };
+  stamp(
     ellipse({
       x: cx - headD / 2,
       y: top,
       width: headD,
       height: headD,
       strokeColor: colors.stroke,
-      backgroundColor: colors.fill,
+      backgroundColor: fill,
     }),
   );
-  elements.push(
+  stamp(
     line({
       points: [
         { x: cx, y: bodyTop },
@@ -735,7 +1110,7 @@ function renderActorHead(p, elements, { line, ellipse, text }, style) {
       strokeColor: colors.stroke,
     }),
   );
-  elements.push(
+  stamp(
     line({
       points: [
         { x: cx - 12, y: bodyTop + 6 },
@@ -744,7 +1119,7 @@ function renderActorHead(p, elements, { line, ellipse, text }, style) {
       strokeColor: colors.stroke,
     }),
   );
-  elements.push(
+  stamp(
     line({
       points: [
         { x: cx, y: bodyBottom },
@@ -753,7 +1128,7 @@ function renderActorHead(p, elements, { line, ellipse, text }, style) {
       strokeColor: colors.stroke,
     }),
   );
-  elements.push(
+  stamp(
     line({
       points: [
         { x: cx, y: bodyBottom },
@@ -772,10 +1147,32 @@ function renderActorHead(p, elements, { line, ellipse, text }, style) {
       height: FONT.sizeTitle * FONT.lineHeight,
       value: p.title,
       fontSize: FONT.sizeTitle,
-      color: colors.stroke,
+      color: style.participantFontColor || colors.stroke,
       align: "center",
     }),
   );
+}
+
+/**
+ * @param {string} align Message text alignment.
+ * @param {number} x1 Left edge of the arrow span.
+ * @param {number} x2 Right edge of the arrow span.
+ * @param {number} width Label width.
+ * @returns {number} Label x position.
+ */
+function messageLabelX(align, x1, x2, width) {
+  if (align === "left") return x1;
+  if (align === "right") return x2 - width;
+  return (x1 + x2) / 2 - width / 2;
+}
+
+/**
+ * @param {{responseMessageBelowArrow:string}} style Diagram style.
+ * @param {import("../model/diagram.mjs").Message} message Message metadata.
+ * @returns {boolean} Whether the central label is rendered below the arrow.
+ */
+function messageLabelBelow(style, message) {
+  return style.responseMessageBelowArrow === "true" && message.kind === "reply" && !message.isSelf;
 }
 
 /** @internal */
@@ -784,12 +1181,12 @@ function renderActorHead(p, elements, { line, ellipse, text }, style) {
  * @param {import("../model/diagram.mjs").Message} m Message metadata.
  * @param {any[]} elements Excalidraw element list — mutated in place.
  * @param {Record<string, Function>} prims Primitive factories (`arrow`, `text`).
- * @param {{arrowColor:string}} style Diagram style.
+ * @param {{arrowColor:string,messageFontColor:string,messageAlign:string,responseMessageBelowArrow:string}} style Diagram style.
  * @returns {void}
  */
 function renderMessage(m, elements, { arrow, text }, style) {
-  const startX = m.startX || m.from.x;
-  const endX = m.endX || m.to.x;
+  const startX = m.startX ?? m.from.x;
+  const endX = m.endX ?? m.to.x;
   const a = arrow({
     points: [
       { x: startX, y: m.y },
@@ -810,8 +1207,19 @@ function renderMessage(m, elements, { arrow, text }, style) {
       arrow: {
         source: m.arrow.source,
         direction: m.arrow.direction,
-        start: { head: m.arrow.start.head, anchor: m.arrow.start.anchor },
-        end: { head: m.arrow.end.head, anchor: m.arrow.end.anchor },
+        parallel: m.parallel,
+        start: {
+          head: m.arrow.start.head,
+          anchor: m.arrow.start.anchor,
+          label: m.arrow.start.label,
+          size: m.arrow.start.size,
+        },
+        end: {
+          head: m.arrow.end.head,
+          anchor: m.arrow.end.anchor,
+          label: m.arrow.end.label,
+          size: m.arrow.end.size,
+        },
         line: { style: m.arrow.line.style, color: m.arrow.line.color, slant: m.arrow.line.slant },
       },
     };
@@ -822,19 +1230,23 @@ function renderMessage(m, elements, { arrow, text }, style) {
     const x2 = Math.max(startX, endX);
     const labelWidth = Math.min(x2 - x1, Math.max(20, m.labelWidth || x2 - x1));
     const labelHeight = m.labelHeight || FONT.sizeDescription * FONT.lineHeight;
+    const labelBelow = messageLabelBelow(style, m);
+    const labelX = messageLabelX(style.messageAlign, x1, x2, labelWidth);
     const label = text({
-      x: (x1 + x2) / 2 - labelWidth / 2,
-      y: m.y - labelHeight - 2,
+      x: labelX,
+      y: labelBelow ? Math.max(m.y, m.y + m.arrow.line.slant) + 4 : m.y - labelHeight - 2,
       width: labelWidth,
       height: labelHeight,
       value: m.wrappedLabel || messageLabelText(m),
       fontSize: m.labelFontSize || FONT.sizeDescription,
-      color: "#222",
-      align: "center",
+      color: style.messageFontColor,
+      align: style.messageAlign,
     });
     label.customData = { role: "sequenceMessageLabel", messageId: m.id };
     elements.push(label);
   }
+  renderEndpointLabel(m, "start", startX, elements, { text }, style);
+  renderEndpointLabel(m, "end", endX, elements, { text }, style);
 }
 
 /** @internal */
@@ -843,18 +1255,22 @@ function renderMessage(m, elements, { arrow, text }, style) {
  * @param {import("../model/diagram.mjs").Message} m Message metadata (m.from === m.to).
  * @param {any[]} elements Excalidraw element list — mutated in place.
  * @param {Record<string, Function>} prims Primitive factories (`arrow`, `text`).
- * @param {{arrowColor:string}} style Diagram style.
+ * @param {{arrowColor:string,messageFontColor:string}} style Diagram style.
  * @returns {void}
  */
 function renderSelfMessage(m, elements, { arrow, text }, style) {
-  const x = m.from.x;
+  const startX = m.startX ?? m.from.x;
+  const endX = m.endX ?? m.to.x;
   const off = 30;
+  const side = Math.max(startX, endX) <= m.from.x ? -1 : 1;
+  const midX = side < 0 ? Math.min(startX, endX) - off : Math.max(startX, endX) + off;
+  const bottomY = m.y + SELF_LOOP_HEIGHT;
   const a = arrow({
     points: [
-      { x, y: m.y },
-      { x: x + off, y: m.y },
-      { x: x + off, y: m.y + 24 },
-      { x, y: m.y + 24 },
+      { x: startX, y: m.y },
+      { x: midX, y: m.y },
+      { x: midX, y: bottomY },
+      { x: endX, y: bottomY },
     ],
     strokeColor: sequenceColor(m.color, style.arrowColor),
     dashed: m.dashed,
@@ -871,26 +1287,73 @@ function renderSelfMessage(m, elements, { arrow, text }, style) {
       arrow: {
         source: m.arrow.source,
         direction: m.arrow.direction,
-        start: { head: m.arrow.start.head, anchor: m.arrow.start.anchor },
-        end: { head: m.arrow.end.head, anchor: m.arrow.end.anchor },
+        parallel: m.parallel,
+        start: {
+          head: m.arrow.start.head,
+          anchor: m.arrow.start.anchor,
+          label: m.arrow.start.label,
+          size: m.arrow.start.size,
+        },
+        end: {
+          head: m.arrow.end.head,
+          anchor: m.arrow.end.anchor,
+          label: m.arrow.end.label,
+          size: m.arrow.end.size,
+        },
         line: { style: m.arrow.line.style, color: m.arrow.line.color, slant: m.arrow.line.slant },
       },
     };
     elements.push(a);
   }
   if (m.label || m.number) {
+    const labelWidth = m.labelWidth || 200;
     const label = text({
-      x: x + off + 6,
+      x: side < 0 ? midX - labelWidth - 6 : midX + 6,
       y: m.y + 4,
-      width: m.labelWidth || 200,
+      width: labelWidth,
       height: m.labelHeight || FONT.sizeDescription * FONT.lineHeight,
       value: m.wrappedLabel || messageLabelText(m),
       fontSize: m.labelFontSize || FONT.sizeDescription,
-      color: "#222",
+      color: style.messageFontColor,
     });
     label.customData = { role: "sequenceMessageLabel", messageId: m.id };
     elements.push(label);
   }
+  renderEndpointLabel(m, "start", startX, elements, { text }, style);
+  renderEndpointLabel(m, "end", endX, elements, { text }, style);
+}
+
+/**
+ * Render an optional label above an arrow endpoint.
+ * @param {import("../model/diagram.mjs").Message} message Message metadata.
+ * @param {"start"|"end"} endpointName Endpoint to render.
+ * @param {number} x Endpoint x coordinate.
+ * @param {any[]} elements Excalidraw element list.
+ * @param {Record<string, Function>} prims Primitive factories.
+ * @param {{messageFontColor:string}} style Diagram style.
+ * @returns {void}
+ */
+function renderEndpointLabel(message, endpointName, x, elements, { text }, style) {
+  const endpoint = message.arrow[endpointName];
+  if (!endpoint?.label) return;
+  const width = endpoint.labelWidth || 20;
+  const height = endpoint.labelHeight || FONT.sizeDescription * FONT.lineHeight;
+  const label = text({
+    x: x - width / 2,
+    y: message.y - height - 2,
+    width,
+    height,
+    value: endpoint.wrappedLabel || endpoint.label,
+    fontSize: endpoint.labelFontSize || FONT.sizeDescription,
+    color: style.messageFontColor,
+    align: "center",
+  });
+  label.customData = {
+    role: "sequenceMessageEndpointLabel",
+    messageId: message.id,
+    endpoint: endpointName,
+  };
+  elements.push(label);
 }
 
 /**
@@ -900,4 +1363,19 @@ function renderSelfMessage(m, elements, { arrow, text }, style) {
 function messageLabelText(message) {
   const label = String(message.label || "");
   return message.number ? `${message.number}${label ? ` ${label}` : ""}` : label;
+}
+
+const HEADER_BASE_Y = 48;
+const HEADER_MIN_Y = 12;
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @returns {number}
+ */
+function headerStartY(diagram) {
+  if (!diagram.header) return HEADER_BASE_Y;
+  const headerHeight = blockHeight(diagram.header, FONT.sizeDescription);
+  const singleLineHeight = FONT.sizeDescription * FONT.lineHeight;
+  const extra = Math.max(0, headerHeight - singleLineHeight);
+  return Math.max(HEADER_MIN_Y, HEADER_BASE_Y - extra);
 }

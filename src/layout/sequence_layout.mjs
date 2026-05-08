@@ -7,43 +7,44 @@
 // at participant.x; lifelines run vertically downward. Messages get a
 // y position assigned in declaration order.
 
-import { FONT, measureFitted, measureLine, measureWrapped } from "../style/text.mjs";
+import { FONT, measureLine, measureSmartFitted, measureSmartWrapped } from "../style/text.mjs";
+import { SEQUENCE_SPACING, arrowLabelBudget, timelineItemGap } from "./sequence_spacing.mjs";
 
 const HEAD_PAD_X = 18;
 const HEAD_PAD_Y = 10;
 const HEAD_MIN_W = 110;
 const HEAD_HEIGHT = 50;
 const ACTOR_HEAD_HEIGHT = 80; // taller for stickman
-const PARTICIPANT_GAP = 60;
-const TOP_MARGIN = 90;
-const SIDE_MARGIN = 40;
-const MESSAGE_FIRST_Y = 50; // distance from lifeline top to first arrow
-const MESSAGE_GAP = 50;
-const MESSAGE_LABEL_SIDE_MARGIN = 12;
-const MESSAGE_LABEL_MIN_WIDTH = 48;
-const SELF_MESSAGE_LABEL_MAX_WIDTH = 220;
-const EXTERNAL_MESSAGE_OFFSET = 64;
-const SHORT_MESSAGE_OFFSET = 42;
-const SELF_HEIGHT = 36;
-const NOTE_PAD = 8;
-const NOTE_GAP = 14;
-const REFERENCE_PAD_X = 14;
-const REFERENCE_PAD_Y = 12;
-const REFERENCE_MIN_HEIGHT = 54;
-const MARKER_GAP = 16;
-const DIVIDER_HEIGHT = 30;
-const DELAY_HEIGHT = 34;
-const ACTIVATION_WIDTH = 12;
-const DECORATION_INNER_MARGIN = 12;
-const PARTICIPANT_GROUP_PAD_X = 16;
-const PARTICIPANT_GROUP_PAD_Y = 14;
-const BOTTOM_MARGIN = 60;
-const FRAGMENT_SIDE_MARGIN = 24;
-const FRAGMENT_TOP_MARGIN = 30;
-const FRAGMENT_BOTTOM_MARGIN = 30;
-const FRAGMENT_NESTED_MARGIN = 14;
-const FRAGMENT_BOUNDARY_GAP = 58;
-const FRAGMENT_MIN_HEIGHT = 62;
+const PARTICIPANT_GAP = SEQUENCE_SPACING.participant.gap;
+const BASE_TOP_MARGIN = SEQUENCE_SPACING.page.top;
+const SIDE_MARGIN = SEQUENCE_SPACING.page.side;
+const MESSAGE_FIRST_Y = SEQUENCE_SPACING.message.firstOffset; // distance from lifeline top to first arrow
+const SELF_HEIGHT = SEQUENCE_SPACING.message.selfHeight;
+const SELF_LOOP_TURN_Y = 24;
+const NOTE_PAD = SEQUENCE_SPACING.note.pad;
+const NOTE_GAP = SEQUENCE_SPACING.note.sideGap;
+const REFERENCE_PAD_X = SEQUENCE_SPACING.reference.padX;
+const REFERENCE_PAD_Y = SEQUENCE_SPACING.reference.padY;
+const REFERENCE_MIN_HEIGHT = SEQUENCE_SPACING.reference.minHeight;
+const DIVIDER_HEIGHT = SEQUENCE_SPACING.marker.dividerHeight;
+const DELAY_HEIGHT = SEQUENCE_SPACING.marker.delayHeight;
+const ACTIVATION_WIDTH = SEQUENCE_SPACING.activation.width;
+const EXTERNAL_MESSAGE_OFFSET = SEQUENCE_SPACING.message.externalOffset;
+const SHORT_MESSAGE_OFFSET = SEQUENCE_SPACING.message.shortOffset;
+const DECORATION_INNER_MARGIN = SEQUENCE_SPACING.fragment.decorationInnerMargin;
+const PARTICIPANT_GROUP_PAD_X = SEQUENCE_SPACING.participant.groupPadX;
+const PARTICIPANT_GROUP_PAD_Y = SEQUENCE_SPACING.participant.groupPadY;
+const BOTTOM_MARGIN = SEQUENCE_SPACING.page.bottom;
+const FRAGMENT_SIDE_MARGIN = SEQUENCE_SPACING.fragment.sideMargin;
+const FRAGMENT_TOP_MARGIN = SEQUENCE_SPACING.fragment.topMargin;
+const FRAGMENT_BOTTOM_MARGIN = SEQUENCE_SPACING.fragment.bottomMargin;
+const FRAGMENT_NESTED_MARGIN = SEQUENCE_SPACING.fragment.nestedMargin;
+const FRAGMENT_BOUNDARY_GAP = SEQUENCE_SPACING.fragment.boundaryGap;
+const FRAGMENT_MIN_HEIGHT = SEQUENCE_SPACING.fragment.minHeight;
+const TITLE_Y = 16;
+const HEADER_BASE_Y = 48;
+const HEADER_MIN_Y = 12;
+const HEADER_CLEARANCE = 44;
 
 /**
  * Lay out a SequenceDiagram (see `src/model/diagram.mjs`) on a
@@ -63,6 +64,8 @@ export function layoutSequenceDiagram(diagram) {
     return (participantDeclarationOrder.get(a) ?? 0) - (participantDeclarationOrder.get(b) ?? 0);
   });
 
+  const topMargin = sequenceTopMargin(diagram);
+
   // 1. Size each participant head from its title.
   for (const p of diagram.participants) {
     const titleLines = String(p.title || "").split("\n");
@@ -71,22 +74,24 @@ export function layoutSequenceDiagram(diagram) {
       Math.max(...titleLines.map((l) => measureLine(l, FONT.sizeTitle).width)) + HEAD_PAD_X * 2,
     );
     p.headWidth = Math.ceil(w);
-    p.headHeight = p.shape === "actor" ? ACTOR_HEAD_HEIGHT : HEAD_HEIGHT;
+    p.headHeight =
+      p.shape === "actor" && diagram.style.actorStyle !== "box" ? ACTOR_HEAD_HEIGHT : HEAD_HEIGHT;
   }
 
   // 2. Lay out participants horizontally, centred on x.
   let cursor = SIDE_MARGIN;
   for (const p of diagram.participants) {
     p.x = cursor + p.headWidth / 2;
-    p.headY = TOP_MARGIN;
+    p.headY = topMargin;
     cursor += p.headWidth + PARTICIPANT_GAP;
   }
   const totalWidth = cursor - PARTICIPANT_GAP + SIDE_MARGIN;
 
+  assignActivationSides(diagram);
   layoutMessageEndpoints(diagram);
   sizeMessageLabels(diagram);
 
-  const timelineTop = TOP_MARGIN + Math.max(...diagram.participants.map((p) => p.headHeight), 0);
+  const timelineTop = topMargin + Math.max(...diagram.participants.map((p) => p.headHeight), 0);
   for (const p of diagram.participants) p.lifelineTop = p.headY;
   layoutParticipantGroups(diagram, timelineTop);
 
@@ -128,16 +133,17 @@ export function layoutSequenceDiagram(diagram) {
   let y = timelineTop + MESSAGE_FIRST_Y;
   for (const entry of timeline) {
     y += boundaryGapBefore(entry.seq);
+    y += timelineItemGap();
     if (entry.kind === "msg") {
       const m = /** @type {import("../model/diagram.mjs").Message} */ (entry.item);
-      if (!m.isSelf) {
-        y += Math.max(0, m.labelHeight - FONT.sizeDescription * FONT.lineHeight);
-      }
+      y += Math.max(0, m.labelBandHeight);
       m.y = y;
+      y += Math.max(0, m.labelBelowHeight || 0);
       // Record seqY AFTER the label-height delta so that activation bars
       // align with the actual arrow position, not the pre-delta y.
       if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
-      y += m.isSelf ? Math.max(SELF_HEIGHT, m.labelHeight + 8) + MESSAGE_GAP : MESSAGE_GAP;
+      y += m.isSelf ? Math.max(SELF_HEIGHT, m.labelHeight + 8) : 8;
+      y += timelineItemGap();
     } else if (entry.kind === "note") {
       const n = /** @type {import("../model/diagram.mjs").SequenceNote} */ (entry.item);
       if (n.side === "over" && n.target2) {
@@ -154,16 +160,18 @@ export function layoutSequenceDiagram(diagram) {
       }
       n.y = y;
       if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
-      y += n.height + NOTE_GAP;
+      y += n.height + timelineItemGap();
     } else if (entry.kind === "marker") {
       const marker = /** @type {import("../model/diagram.mjs").SequenceMarker} */ (entry.item);
       marker.x = SIDE_MARGIN;
       marker.width = Math.max(220, totalWidth - SIDE_MARGIN * 2);
-      marker.height = marker.kind === "space" ? Math.max(12, marker.size || 36) : marker.height;
-      y += FRAGMENT_TOP_MARGIN;
+      marker.height =
+        marker.kind === "space"
+          ? Math.max(12, marker.size || SEQUENCE_SPACING.marker.defaultSpace)
+          : marker.height;
       marker.y = y;
       if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
-      y += marker.height + FRAGMENT_BOTTOM_MARGIN;
+      y += marker.height + timelineItemGap();
     } else if (entry.kind === "ref") {
       const ref = /** @type {import("../model/diagram.mjs").SequenceReference} */ (entry.item);
       // Use participant head edges (not centres) plus FRAGMENT_SIDE_MARGIN so
@@ -178,10 +186,9 @@ export function layoutSequenceDiagram(diagram) {
       );
       ref.x = pLeft - FRAGMENT_SIDE_MARGIN;
       ref.width = Math.max(ref.width, pRight - pLeft + FRAGMENT_SIDE_MARGIN * 2);
-      y += FRAGMENT_TOP_MARGIN;
       ref.y = y;
       if (Number.isFinite(entry.seq)) seqY.set(entry.seq, y);
-      y += ref.height + FRAGMENT_BOTTOM_MARGIN;
+      y += ref.height + timelineItemGap();
     }
   }
 
@@ -189,9 +196,17 @@ export function layoutSequenceDiagram(diagram) {
   adjustDecorationBounds(diagram);
   layoutActivations(diagram, seqY, y);
 
-  const lifelineBottom = y + BOTTOM_MARGIN;
+  const contentBottom = Math.max(
+    y,
+    ...diagram.notes.map((note) => note.y + note.height),
+    ...diagram.markers.map((marker) => marker.y + marker.height),
+    ...diagram.references.map((ref) => ref.y + ref.height),
+    ...diagram.fragments.map((fragment) => fragment.y + fragment.height),
+    ...diagram.activations.map((activation) => activation.y + activation.height),
+  );
+  const lifelineBottom = contentBottom + BOTTOM_MARGIN;
   for (const p of diagram.participants) {
-    p.destroyY = p.destroyedSeq === null ? 0 : yForSeq(seqY, p.destroyedSeq, y);
+    p.destroyY = p.destroyedSeq === null ? 0 : yForSeq(seqY, p.destroyedSeq, contentBottom);
     p.lifelineBottom = p.destroyY || lifelineBottom;
   }
 
@@ -227,9 +242,11 @@ function sizeTimelineDecorations(diagram, totalWidth) {
     marker.height =
       marker.kind === "divider"
         ? DIVIDER_HEIGHT
-        : marker.kind === "delay"
-          ? DELAY_HEIGHT
-          : marker.size;
+        : marker.kind === "pageBreak"
+          ? DIVIDER_HEIGHT
+          : marker.kind === "delay"
+            ? DELAY_HEIGHT
+            : marker.size || SEQUENCE_SPACING.marker.defaultSpace;
   }
   for (const ref of diagram.references) {
     const maxWidth = Math.max(120, markerWidth - REFERENCE_PAD_X * 2);
@@ -255,7 +272,7 @@ function layoutParticipantGroups(diagram, timelineTop) {
     const left = Math.min(...participants.map((p) => p.x - p.headWidth / 2));
     const right = Math.max(...participants.map((p) => p.x + p.headWidth / 2));
     group.x = left - PARTICIPANT_GROUP_PAD_X;
-    group.y = TOP_MARGIN - PARTICIPANT_GROUP_PAD_Y - 18;
+    group.y = Math.max(BASE_TOP_MARGIN - PARTICIPANT_GROUP_PAD_Y - 18, headerBottomY(diagram) + 8);
     group.width = right - left + PARTICIPANT_GROUP_PAD_X * 2;
     group.height = timelineTop - group.y + 10;
   }
@@ -311,14 +328,20 @@ function adjustDecorationBounds(diagram) {
  * @returns {void}
  */
 function layoutActivations(diagram, seqY, timelineBottom) {
+  const messageBySeq = new Map(
+    diagram.messages
+      .filter((message) => Number.isFinite(message.seq))
+      .map((message) => [message.seq, message]),
+  );
   for (const activation of diagram.activations) {
-    const start = yForSeq(seqY, activation.startSeq, timelineBottom);
-    const end = yForSeq(seqY, activation.endSeq, timelineBottom);
-    activation.x =
-      activation.participant.x - ACTIVATION_WIDTH / 2 + activation.depth * (ACTIVATION_WIDTH / 2);
-    activation.y = start - 4;
+    const startMessage = messageBySeq.get(activation.startSeq) ?? null;
+    const endMessage = messageBySeq.get(activation.endSeq) ?? null;
+    const top = activationStartBoundaryY(seqY, activation, startMessage, timelineBottom);
+    const bottom = activationEndBoundaryY(seqY, activation, endMessage, timelineBottom);
+    activation.x = activationLeftX(activation);
+    activation.y = top;
     activation.width = ACTIVATION_WIDTH;
-    activation.height = Math.max(18, end - start + 8);
+    activation.height = Math.max(18, bottom - top);
   }
 }
 
@@ -360,7 +383,269 @@ function layoutMessageEndpoints(diagram) {
       message.startX = message.to.x - SHORT_MESSAGE_OFFSET;
     if (message.arrow.end.anchor === "shortRight")
       message.endX = message.from.x + SHORT_MESSAGE_OFFSET;
+    const fromActivation = activeActivationAtSeq(diagram, message.from, message.seq);
+    const toActivation = activeActivationAtSeq(diagram, message.to, message.seq);
+    if (message.isSelf) {
+      const isActivating = message.lifecycle === "++" || (message.creates && !message.destroys);
+      const isDeactivating =
+        message.lifecycle === "--" || message.destroys || message.kind === "reply";
+      const activationBefore = activeActivationAtSeq(diagram, message.from, message.seq - 1);
+      const activationAt = activeActivationAtSeq(diagram, message.from, message.seq);
+      const activationAfter = activeActivationAtSeq(diagram, message.from, message.seq + 1);
+      const side = selfMessageSide(activationBefore, activationAt, activationAfter);
+
+      if (message.arrow.start.anchor === "participant") {
+        if (isActivating && activationBefore) {
+          message.startX = activationSideEdgeX(activationBefore, side);
+        } else if (isDeactivating && activationAt) {
+          message.startX = activationSideEdgeX(activationAt, side);
+        } else if (activationAt) {
+          message.startX = activationSideEdgeX(activationAt, side);
+        } else {
+          message.startX = participantEdgeX(message.from, side);
+        }
+      }
+
+      if (message.arrow.end.anchor === "participant") {
+        if (isActivating && activationAt) {
+          message.endX = activationSideEdgeX(activationAt, side);
+        } else if (isDeactivating && activationAfter) {
+          message.endX = activationSideEdgeX(activationAfter, side);
+        } else if (activationAt) {
+          message.endX = activationSideEdgeX(activationAt, side);
+        } else {
+          message.endX = participantEdgeX(message.to, side);
+        }
+      }
+    } else {
+      if (fromActivation && message.arrow.start.anchor === "participant") {
+        message.startX = activationEdgeX(fromActivation, message.from, message.endX);
+      }
+      if (toActivation && message.arrow.end.anchor === "participant") {
+        message.endX = activationEdgeX(toActivation, message.to, message.startX);
+      }
+    }
   }
+}
+
+/**
+ * Resolve the side used by nested self-calls inside each activation.
+ * Root activations stay centered but still record a preferred child side.
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @returns {void}
+ */
+function assignActivationSides(diagram) {
+  const ordered = [...diagram.activations].sort(
+    (a, b) => a.depth - b.depth || a.startSeq - b.startSeq,
+  );
+  for (const activation of ordered) {
+    const parent = parentActivation(diagram, activation);
+    const preferred = preferredActivationSide(diagram, activation);
+    const inherited = parent ? activationLoopSide(parent) : 1;
+    activation.nestSide = preferred || inherited;
+    activation.side = activation.depth === 0 ? 0 : activation.nestSide;
+  }
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @returns {number}
+ */
+function sequenceTopMargin(diagram) {
+  return Math.max(BASE_TOP_MARGIN, headerBottomY(diagram) + HEADER_CLEARANCE);
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @returns {number}
+ */
+function headerBottomY(diagram) {
+  const titleHeight = diagram.title ? blockHeight(diagram.title, FONT.sizePlaneTitle) : 0;
+  const headerHeight = diagram.header ? blockHeight(diagram.header, FONT.sizeDescription) : 0;
+  const titleBottom = diagram.title ? TITLE_Y + titleHeight : 0;
+  const headerTop = headerStartY(diagram);
+  const headerBottom = diagram.header ? headerTop + headerHeight : 0;
+  return Math.max(titleBottom, headerBottom);
+}
+
+/**
+ * Keep the header's visual baseline stable by moving multiline header
+ * blocks upward instead of only pushing everything below further down.
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @returns {number}
+ */
+function headerStartY(diagram) {
+  if (!diagram.header) return HEADER_BASE_Y;
+  const headerHeight = blockHeight(diagram.header, FONT.sizeDescription);
+  const singleLineHeight = FONT.sizeDescription * FONT.lineHeight;
+  const extra = Math.max(0, headerHeight - singleLineHeight);
+  return Math.max(HEADER_MIN_Y, HEADER_BASE_Y - extra);
+}
+
+/**
+ * @param {string} value
+ * @param {number} fontSize
+ * @returns {number}
+ */
+function blockHeight(value, fontSize) {
+  const lines = String(value || "").split("\n").length;
+  return lines * fontSize * FONT.lineHeight;
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @param {import("../model/diagram.mjs").Participant} participant
+ * @param {number} seq
+ * @returns {import("../model/diagram.mjs").SequenceActivation|null}
+ */
+function activeActivationAtSeq(diagram, participant, seq) {
+  if (!Number.isFinite(seq)) return null;
+  let chosen = null;
+  for (const activation of diagram.activations) {
+    if (activation.participant !== participant) continue;
+    if (seq < activation.startSeq || seq > activation.endSeq) continue;
+    if (!chosen || activation.depth > chosen.depth) chosen = activation;
+  }
+  return chosen;
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @returns {import("../model/diagram.mjs").SequenceActivation|null}
+ */
+function parentActivation(diagram, activation) {
+  if (activation.depth <= 0) return null;
+  for (const candidate of diagram.activations) {
+    if (candidate === activation) continue;
+    if (candidate.participant !== activation.participant) continue;
+    if (candidate.depth !== activation.depth - 1) continue;
+    if (candidate.startSeq > activation.startSeq) continue;
+    if (candidate.endSeq < activation.startSeq) continue;
+    return candidate;
+  }
+  return null;
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @returns {-1|0|1}
+ */
+function preferredActivationSide(diagram, activation) {
+  for (const message of diagram.messages) {
+    if (message.seq < activation.startSeq || message.seq > activation.endSeq) continue;
+    if (message.from !== activation.participant) continue;
+    if (message.to === activation.participant) continue;
+    if (message.to.x > activation.participant.x) return 1;
+    if (message.to.x < activation.participant.x) return -1;
+  }
+  return 0;
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @returns {-1|1}
+ */
+function activationLoopSide(activation) {
+  return activation.side === -1 || activation.nestSide === -1 ? -1 : 1;
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @returns {number}
+ */
+function activationLeftX(activation) {
+  return (
+    activation.participant.x -
+    ACTIVATION_WIDTH / 2 +
+    activation.depth * activation.side * (ACTIVATION_WIDTH / 2)
+  );
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @returns {number}
+ */
+function activationRightX(activation) {
+  return activationLeftX(activation) + ACTIVATION_WIDTH;
+}
+
+/**
+ * @param {import("../model/diagram.mjs").Participant} participant
+ * @param {-1|1} side
+ * @returns {number}
+ */
+function participantEdgeX(participant, side) {
+  return side < 0 ? participant.x - ACTIVATION_WIDTH / 2 : participant.x + ACTIVATION_WIDTH / 2;
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @param {-1|1} side
+ * @returns {number}
+ */
+function activationSideEdgeX(activation, side) {
+  return side < 0 ? activationLeftX(activation) : activationRightX(activation);
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceActivation|null} activationBefore
+ * @param {import("../model/diagram.mjs").SequenceActivation|null} activationAt
+ * @param {import("../model/diagram.mjs").SequenceActivation|null} activationAfter
+ * @returns {-1|1}
+ */
+function selfMessageSide(activationBefore, activationAt, activationAfter) {
+  const activation = activationAt || activationBefore || activationAfter;
+  return activation ? activationLoopSide(activation) : 1;
+}
+
+/**
+ * @param {Map<number, number>} seqY
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @param {import("../model/diagram.mjs").Message|null} message
+ * @param {number} fallback
+ * @returns {number}
+ */
+function activationStartBoundaryY(seqY, activation, message, fallback) {
+  if (
+    message?.isSelf &&
+    message.from === activation.participant &&
+    (message.lifecycle === "++" || (message.creates && !message.destroys))
+  ) {
+    return message.y + SELF_LOOP_TURN_Y;
+  }
+  return yForSeq(seqY, activation.startSeq, fallback) - 4;
+}
+
+/**
+ * @param {Map<number, number>} seqY
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @param {import("../model/diagram.mjs").Message|null} message
+ * @param {number} fallback
+ * @returns {number}
+ */
+function activationEndBoundaryY(seqY, activation, message, fallback) {
+  if (
+    message?.isSelf &&
+    message.from === activation.participant &&
+    (message.lifecycle === "--" || message.destroys || message.kind === "reply")
+  ) {
+    return message.y;
+  }
+  return yForSeq(seqY, activation.endSeq, fallback) + 4;
+}
+
+/**
+ * @param {import("../model/diagram.mjs").SequenceActivation} activation
+ * @param {import("../model/diagram.mjs").Participant} participant
+ * @param {number} otherX
+ * @returns {number}
+ */
+function activationEdgeX(activation, participant, otherX) {
+  const left = activationLeftX(activation);
+  const right = activationRightX(activation);
+  return otherX >= participant.x ? right : left;
 }
 
 /**
@@ -399,17 +684,42 @@ function sizeMessageLabels(diagram) {
       message.labelWidth = 0;
       message.labelHeight = 0;
       message.labelFontSize = FONT.sizeDescription;
-      continue;
+    } else {
+      const maxWidth = messageLabelMaxWidth(message);
+      const wrapped = fitWrappedLabel(label, FONT.sizeDescription, maxWidth);
+      message.wrappedLabel = wrapped.lines.join("\n");
+      message.labelWidth = Math.max(20, wrapped.width);
+      message.labelHeight = Math.max(wrapped.fontSize * FONT.lineHeight, wrapped.height);
+      message.labelFontSize = wrapped.fontSize;
     }
-    const maxWidth = messageLabelMaxWidth(message);
-    const wrapped = fitWrappedLabel(label, FONT.sizeDescription, maxWidth);
-    message.wrappedLabel = wrapped.lines.join("\n");
-    message.labelWidth = Math.max(20, wrapped.width);
-    message.labelHeight = Math.max(wrapped.fontSize * FONT.lineHeight, wrapped.height);
-    message.labelFontSize = wrapped.fontSize;
+
+    sizeEndpointLabel(message.arrow.start, endpointLabelMaxWidth(message));
+    sizeEndpointLabel(message.arrow.end, endpointLabelMaxWidth(message));
+    const labelBelow = messageLabelBelow(diagram, message);
+    message.labelBandHeight = Math.max(
+      labelBelow ? 0 : message.labelHeight,
+      message.arrow.start.labelHeight,
+      message.arrow.end.labelHeight,
+    );
+    message.labelBelowHeight = labelBelow
+      ? message.labelHeight + SEQUENCE_SPACING.message.labelToArrowGap
+      : 0;
   }
 }
 
+/**
+ * @param {import("../model/diagram.mjs").SequenceDiagram} diagram Sequence diagram style holder.
+ * @param {import("../model/diagram.mjs").Message} message Message metadata.
+ * @returns {boolean} Whether the central label is rendered below the arrow.
+ */
+function messageLabelBelow(diagram, message) {
+  return (
+    diagram.style.responseMessageBelowArrow === "true" &&
+    message.kind === "reply" &&
+    !message.isSelf &&
+    Boolean(message.label || message.number)
+  );
+}
 /**
  * @param {import("../model/diagram.mjs").Message} message
  * @returns {string} Display label including autonumber prefix.
@@ -424,9 +734,45 @@ function messageLabelText(message) {
  * @returns {number} Label width limit in pixels.
  */
 function messageLabelMaxWidth(message) {
-  if (message.isSelf) return SELF_MESSAGE_LABEL_MAX_WIDTH;
-  const arrowLength = Math.abs((message.endX || message.to.x) - (message.startX || message.from.x));
-  return Math.max(MESSAGE_LABEL_MIN_WIDTH, arrowLength - MESSAGE_LABEL_SIDE_MARGIN * 2);
+  if (message.isSelf) return SEQUENCE_SPACING.message.selfLabelMaxWidth;
+  const arrowLength = Math.abs((message.endX ?? message.to.x) - (message.startX ?? message.from.x));
+  return Math.min(
+    SEQUENCE_SPACING.message.labelHardMaxWidth,
+    arrowLabelBudget(arrowLength, message.arrow.start, message.arrow.end),
+  );
+}
+
+/**
+ * @param {import("../model/diagram.mjs").Message} message
+ * @returns {number} Label width limit in pixels for endpoint labels.
+ */
+function endpointLabelMaxWidth(message) {
+  if (message.isSelf) return SEQUENCE_SPACING.message.endpointLabelMaxWidth;
+  const arrowLength = Math.abs((message.endX ?? message.to.x) - (message.startX ?? message.from.x));
+  return Math.min(
+    SEQUENCE_SPACING.message.endpointLabelMaxWidth,
+    arrowLabelBudget(arrowLength, message.arrow.start, message.arrow.end),
+  );
+}
+
+/**
+ * @param {import("../model/diagram.mjs").ArrowEndpoint} endpoint Endpoint metadata.
+ * @param {number} maxWidth Available width in px.
+ * @returns {void}
+ */
+function sizeEndpointLabel(endpoint, maxWidth) {
+  if (!endpoint.label) {
+    endpoint.wrappedLabel = "";
+    endpoint.labelWidth = 0;
+    endpoint.labelHeight = 0;
+    endpoint.labelFontSize = FONT.sizeDescription;
+    return;
+  }
+  const wrapped = fitWrappedLabel(endpoint.label, FONT.sizeDescription, maxWidth);
+  endpoint.wrappedLabel = wrapped.lines.join("\n");
+  endpoint.labelWidth = Math.max(20, wrapped.width);
+  endpoint.labelHeight = Math.max(wrapped.fontSize * FONT.lineHeight, wrapped.height);
+  endpoint.labelFontSize = wrapped.fontSize;
 }
 
 /**
@@ -441,14 +787,14 @@ function fitWrappedLabel(label, fontSize, maxWidth) {
   const segments = String(label).split("\n");
   let chosenFontSize = fontSize;
   for (const segment of segments) {
-    const fitted = measureFitted(segment, fontSize, maxWidth);
+    const fitted = measureSmartFitted(segment, fontSize, maxWidth);
     chosenFontSize = Math.min(chosenFontSize, fitted.fontSize);
   }
 
   /** @type {string[]} */
   const lines = [];
   for (const segment of segments) {
-    const wrapped = measureWrapped(segment, chosenFontSize, maxWidth);
+    const wrapped = measureSmartWrapped(segment, chosenFontSize, maxWidth);
     if (wrapped.lines.length === 0) lines.push("");
     else lines.push(...wrapped.lines);
   }
@@ -510,19 +856,20 @@ function layoutFragments(diagram, lifelineTop, timelineBottom) {
   const entries = [
     ...diagram.messages.map((m) => ({
       seq: m.seq ?? Infinity,
-      top: m.y - Math.max(FONT.sizeDescription * FONT.lineHeight, m.labelHeight) - 8,
-      bottom: m.y + (m.isSelf ? Math.max(SELF_HEIGHT, m.labelHeight + 8) : 8),
+      top: m.y - Math.max(FONT.sizeDescription * FONT.lineHeight, m.labelBandHeight) - 8,
+      bottom:
+        m.y + (m.isSelf ? Math.max(SELF_HEIGHT, m.labelHeight + 8) : 8) + (m.labelBelowHeight || 0),
       left: Math.min(
         participantLeft(m.from),
         participantLeft(m.to),
-        m.startX || m.from.x,
-        m.endX || m.to.x,
+        m.startX ?? m.from.x,
+        m.endX ?? m.to.x,
       ),
       right: Math.max(
         participantRight(m.from),
         participantRight(m.to),
-        m.startX || m.from.x,
-        m.endX || m.to.x,
+        m.startX ?? m.from.x,
+        m.endX ?? m.to.x,
       ),
     })),
     ...diagram.notes.map((n) => ({
@@ -556,7 +903,7 @@ function layoutFragments(diagram, lifelineTop, timelineBottom) {
     for (let i = entries.length - 1; i >= 0; i--) {
       if (entries[i].seq < seq) return entries[i].bottom;
     }
-    return firstTopAtOrAfter(seq) + MESSAGE_GAP;
+    return firstTopAtOrAfter(seq) + timelineItemGap();
   };
 
   /** @type {Map<import("../model/diagram.mjs").SequenceFragment, {left:number,top:number,right:number,bottom:number}>} */
@@ -566,11 +913,12 @@ function layoutFragments(diagram, lifelineTop, timelineBottom) {
     const contained = entries.filter(
       (entry) => entry.seq >= fragment.startSeq && entry.seq < fragment.endSeq,
     );
+    const isTerminal = !entries.some((entry) => entry.seq >= fragment.endSeq);
     const startY = contained[0]?.top ?? firstTopAtOrAfter(fragment.startSeq);
     const endY = Math.max(
       contained.reduce((bottom, entry) => Math.max(bottom, entry.bottom), -Infinity),
-      lastBottomBefore(fragment.endSeq),
-      startY + MESSAGE_GAP,
+      lastBottomBefore(fragment.endSeq) + (isTerminal ? timelineItemGap() : 0),
+      startY + timelineItemGap(),
     );
     const left = contained.length ? Math.min(...contained.map((entry) => entry.left)) : diagramLeft;
     const right = contained.length

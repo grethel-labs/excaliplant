@@ -9,6 +9,7 @@
 //   buildModuleDiagramSource()         → component diagram of src/
 //   buildSequenceDiagramSource()       → sequence of renderPlantUml(text)
 //   buildPluginDetailDiagramSource()   → each parser plugin as a box
+//   buildModelClassDiagramSource()     → class diagram of exported model classes
 
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -188,6 +189,36 @@ export async function buildPluginDetailDiagramSource() {
 }
 
 // ---------------------------------------------------------------------------
+// 4. Dynamic model class diagram
+// ---------------------------------------------------------------------------
+
+export async function buildModelClassDiagramSource() {
+  const modelPath = path.join(SRC, "model", "diagram.mjs");
+  const source = await readFile(modelPath, "utf8");
+  const classes = extractModelClasses(source);
+  const lines = ["@startuml", `title "excaliplant — model classes"`];
+  lines.push("skinparam classAttributeIconSize 0");
+  for (const cls of classes) {
+    lines.push(`class ${cls.name} {`);
+    for (const prop of cls.properties) lines.push(`  +${prop}`);
+    lines.push("}");
+  }
+  for (const cls of classes) {
+    if (cls.extendsName) lines.push(`${cls.extendsName} <|-- ${cls.name}`);
+  }
+  const names = new Set(classes.map((cls) => cls.name));
+  for (const cls of classes) {
+    for (const prop of cls.properties) {
+      const singular = prop.replace(/s$/, "");
+      const target = [...names].find((name) => name.toLowerCase() === singular.toLowerCase());
+      if (target && target !== cls.name) lines.push(`${cls.name} --> ${target} : ${prop}`);
+    }
+  }
+  lines.push("@enduml");
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
 
@@ -202,6 +233,19 @@ async function collectMjs(dir) {
   };
   await walk(dir);
   return out;
+}
+
+function extractModelClasses(source) {
+  const matches = [...source.matchAll(/export\s+class\s+(\w+)(?:\s+extends\s+(\w+))?/g)];
+  return matches.map((match, index) => {
+    const bodyStart = match.index ?? 0;
+    const bodyEnd = matches[index + 1]?.index ?? source.length;
+    const body = source.slice(bodyStart, bodyEnd);
+    const properties = [...new Set([...body.matchAll(/this\.(\w+)\s*=/g)].map((prop) => prop[1]))]
+      .filter((prop) => !prop.startsWith("_"))
+      .sort((a, b) => a.localeCompare(b));
+    return { name: match[1], extendsName: match[2] || "", properties };
+  });
 }
 
 function slug(s) {
