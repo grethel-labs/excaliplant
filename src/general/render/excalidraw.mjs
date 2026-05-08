@@ -703,34 +703,101 @@ function renderBox(box, parentColor, elements) {
   const color = boxRenderColor(box, parentColor);
   switch (box.shape) {
     case "actor":
-      return renderActor(box, color, elements);
+      renderActor(box, color, elements);
+      break;
     case "usecase":
-      return renderUsecase(box, color, elements);
+      renderUsecase(box, color, elements);
+      break;
     case "database":
     case "queue":
-      return renderDatabase(box, color, elements);
+      renderDatabase(box, color, elements);
+      break;
     case "cloud":
-      return renderCloud(box, color, elements);
+      renderCloud(box, color, elements);
+      break;
     case "interface":
       // An interface declaration with member content is part of a UML
       // class diagram, so render it as a two-compartment class box
       // rather than the standalone "lollipop" interface symbol.
       if ((box.members && box.members.length) || box.stereotype) {
-        return renderClass(box, color, elements);
+        renderClass(box, color, elements);
+        break;
       }
-      return renderInterface(box, color, elements);
+      renderInterface(box, color, elements);
+      break;
     case "entity":
-      return renderEntity(box, color, elements);
+      renderEntity(box, color, elements);
+      break;
     case "node":
-      return renderNodeShape(box, color, elements);
+      renderNodeShape(box, color, elements);
+      break;
     case "class":
-      return renderClass(box, color, elements);
+      renderClass(box, color, elements);
+      break;
     case "enum":
-      return renderClass(box, color, elements);
+      renderClass(box, color, elements);
+      break;
     case "note":
-      return renderNote(box, elements);
+      renderNote(box, elements);
+      break;
     default:
-      return renderRectangleShape(box, color, elements);
+      renderRectangleShape(box, color, elements);
+      break;
+  }
+  renderBoxPorts(box, color, elements);
+}
+
+/**
+ * Render component/class ports as small side markers.
+ * @param {Box} box Box whose ports are rendered.
+ * @param {ColorTriple} color Colour triple.
+ * @param {ExcalElement[]} elements Excalidraw element list.
+ * @returns {void}
+ */
+function renderBoxPorts(box, color, elements) {
+  const size = 10;
+  /** @type {Array<"top"|"right"|"bottom"|"left">} */
+  const sides = ["top", "right", "bottom", "left"];
+  for (const side of sides) {
+    const ports = box.ports?.[side] || [];
+    for (let index = 0; index < ports.length; index++) {
+      const port = ports[index];
+      const t = (index + 1) / (ports.length + 1);
+      let x = box.x;
+      let y = box.y;
+      if (side === "top") {
+        x = box.x + box.width * t - size / 2;
+        y = box.y - size / 2;
+      } else if (side === "right") {
+        x = box.x + box.width - size / 2;
+        y = box.y + box.height * t - size / 2;
+      } else if (side === "bottom") {
+        x = box.x + box.width * t - size / 2;
+        y = box.y + box.height - size / 2;
+      } else {
+        x = box.x - size / 2;
+        y = box.y + box.height * t - size / 2;
+      }
+      const marker = rect({
+        x,
+        y,
+        width: size,
+        height: size,
+        strokeColor: color.stroke,
+        backgroundColor: "#ffffff",
+      });
+      marker.roughness = 0;
+      marker.roundness = null;
+      marker.strokeWidth = 1.5;
+      marker.customData = {
+        role: "boxPort",
+        boxId: box.id,
+        portId: port.id,
+        side,
+        direction: port.direction || "port",
+      };
+      elements.push(marker);
+    }
   }
 }
 

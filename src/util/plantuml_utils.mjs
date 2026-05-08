@@ -216,12 +216,19 @@ export function normaliseShape(kw) {
     case "cloud":
       return "cloud";
     case "interface":
+    case "protocol":
+    case "circle":
       return "interface";
     case "entity":
       return "entity";
     case "class":
     case "annotation":
     case "record":
+    case "struct":
+    case "exception":
+    case "metaclass":
+    case "stereotype":
+    case "dataclass":
       return "class";
     case "enum":
       return "enum";
@@ -255,6 +262,11 @@ export function normaliseShape(kw) {
  * @public
  */
 export function classifyArrow(op) {
+  const styleText = [...op.matchAll(/\[([^\]]+)\]/g)]
+    .map((match) => match[1])
+    .join(",")
+    .toLowerCase();
+  op = op.replace(/\[[^\]]+\]/g, "");
   let directionHint = null;
   const dirMatch = op.match(/-(up|down|left|right)-/i);
   if (dirMatch) {
@@ -266,7 +278,7 @@ export function classifyArrow(op) {
   const startsWithLeft = op.startsWith("<");
   const endsWithRight = op.endsWith(">");
   const reversed = startsWithLeft && !endsWithRight;
-  const dashed = op.includes(".");
+  const dashed = op.includes(".") || /(?:^|,)dashed(?:,|$)/.test(styleText);
 
   if (op.includes("|>") || op.includes("<|")) {
     return {

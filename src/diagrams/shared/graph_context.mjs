@@ -22,6 +22,8 @@ import { planeColor, subplaneColor } from "../../general/style/colors.mjs";
  *   addBox(spec: object): import("../../general/model/diagram.mjs").Box,
  *   queueConnection(spec: object): void,
  *   queueNote(spec: object): void,
+ *   queueLinkNote(spec: object): void,
+ *   addPort(spec: object): void,
  *   nextNoteId(): string,
  *   finalize(): void,
  * }}
@@ -38,6 +40,8 @@ export function createComponentContext() {
   const pendingConnections = [];
   /** @type {any[]} */
   const pendingNotes = [];
+  /** @type {any[]} */
+  const pendingPorts = [];
   /** @type {Plane | null} */
   let floatingPlane = null;
 
@@ -150,6 +154,24 @@ export function createComponentContext() {
     queueNote(/** @type {any} */ spec) {
       pendingNotes.push(spec);
     },
+    /**
+     * Defer a `note on link` declaration until the most recent pending
+     * connection is resolved.
+     * @param {any} spec Plugin-specific link-note record.
+     */
+    queueLinkNote(/** @type {any} */ spec) {
+      const target = pendingConnections[pendingConnections.length - 1];
+      if (!target) return;
+      if (!target.linkNotes) target.linkNotes = [];
+      target.linkNotes.push(spec);
+    },
+    /**
+     * Defer a component port declaration until endpoint boxes are known.
+     * @param {any} spec Plugin-specific port record.
+     */
+    addPort(/** @type {any} */ spec) {
+      pendingPorts.push(spec);
+    },
     /** @returns {string} Fresh unique note id. */
     nextNoteId() {
       return `note_${noteCounter++}`;
@@ -177,6 +199,24 @@ export function createComponentContext() {
         ensureFloatingPlane().addBox(box);
         return box;
       };
+      const ensureBoxPort = (
+        /** @type {Box} */ box,
+        /** @type {string} */ portId,
+        /** @type {"top"|"right"|"bottom"|"left"} */ side,
+        /** @type {string} */ direction = "port",
+      ) => {
+        const list = box.ports[side];
+        const existing = list.find((port) => port.id === portId);
+        if (existing) return existing;
+        const port = { id: portId, title: portId, side, direction };
+        list.push(port);
+        return port;
+      };
+      for (const port of pendingPorts) {
+        const box = boxes.get(port.boxId);
+        if (!box) continue;
+        ensureBoxPort(box, port.portId, port.side || "right", port.direction || "port");
+      }
       // Resolve connections.
       for (const c of pendingConnections) {
         const fromBox = ensureEndpoint(c.fromId, !!c.fromShorthand, !!c.allowVivify);
@@ -186,24 +226,61 @@ export function createComponentContext() {
         const [startAh, endAh] = c.reversed
           ? [c.endArrowhead, c.startArrowhead]
           : [c.startArrowhead, c.endArrowhead];
+        const [startPort, endPort] = c.reversed
+          ? [c.toPort || "", c.fromPort || ""]
+          : [c.fromPort || "", c.toPort || ""];
         const [fromMul, toMul] = c.reversed
           ? [c.toMul || "", c.fromMul || ""]
           : [c.fromMul || "", c.toMul || ""];
-        diagram.addConnection(
-          new Connection({
-            id: `${c.fromId}->${c.toId}#${diagram.connections.length}`,
-            from,
-            to,
-            label: c.label,
-            kind: c.kind,
-            dashed: c.dashed,
-            startArrowhead: startAh,
-            endArrowhead: endAh,
-            directionHint: c.directionHint,
-            fromMul,
-            toMul,
-          }),
-        );
+        if (startPort) ensureBoxPort(from, startPort, "right", "out");
+        if (endPort) ensureBoxPort(to, endPort, "left", "in");
+        const connection = new Connection({
+          id: `${c.fromId}->${c.toId}#${diagram.connections.length}`,
+          from,
+          to,
+          label: c.label,
+          kind: c.kind,
+          dashed: c.dashed,
+          startArrowhead: startAh,
+          endArrowhead: endAh,
+          directionHint: c.directionHint,
+          fromMul,
+          toMul,
+        });
+        if (startPort) {
+          connection.arrow.start.anchor = "port";
+          connection.arrow.start.label = fromMul || startPort;
+        }
+        if (endPort) {
+          connection.arrow.end.anchor = "port";
+          connection.arrow.end.label = toMul || endPort;
+        }
+        diagram.addConnection(connection);
+        for (const linkNote of c.linkNotes || []) {
+          const noteBox = new Box({
+            id: linkNote.id,
+            title: "note",
+            description: linkNote.text,
+            shape: "note",
+          });
+          boxes.set(linkNote.id, noteBox);
+          const container = from.parent;
+          if (container instanceof Plane) container.addBox(noteBox);
+          else if (container instanceof Subplane) container.addBox(noteBox);
+          else ensureFloatingPlane().addBox(noteBox);
+          diagram.addConnection(
+            new Connection({
+              id: `${linkNote.id}~${connection.id}#${diagram.connections.length}`,
+              from: noteBox,
+              to,
+              label: "",
+              kind: "note",
+              dashed: true,
+              startArrowhead: null,
+              endArrowhead: null,
+            }),
+          );
+        }
       }
       // Resolve notes.
       for (const n of pendingNotes) {

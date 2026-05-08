@@ -12,7 +12,7 @@
 // without an explicit arrow line.
 //
 // This plugin only takes ownership of lines whose first non-modifier
-// token is one of `class | interface | enum`; other shape keywords
+// token is one of the PlantUML class-family keywords; other shape keywords
 // (`component`, `entity`, `database`, …) flow through to the generic
 // `shapeKeywordPlugin`, preserving existing behaviour.
 
@@ -21,7 +21,7 @@ import { slug, unescapeLabel, normaliseShape } from "../../../util/plantuml_util
 /**
  * Parsed pieces of a class-diagram declaration line.
  * @typedef {{
- *   shape: "class"|"interface"|"enum"|"annotation"|"record",
+ *   shape: "class"|"interface"|"enum"|"annotation"|"record"|"protocol"|"struct"|"exception"|"metaclass"|"stereotype"|"dataclass"|"circle",
  *   isAbstract: boolean,
  *   name: string,
  *   alias: string|null,
@@ -120,10 +120,12 @@ export function parseClassHeader(line) {
     isAbstract = true;
     rest = rest.slice(absM[0].length);
   }
-  const kwM = rest.match(/^(class|interface|enum|annotation|record)\s+/);
-  if (!kwM) return null;
-  const shape = /** @type {"class"|"interface"|"enum"|"annotation"|"record"} */ (kwM[1]);
-  rest = rest.slice(kwM[0].length).trimStart();
+  const kwM = rest.match(
+    /^(class|interface|enum|annotation|record|protocol|struct|exception|metaclass|stereotype|dataclass|circle)\s+/,
+  );
+  if (!kwM && !isAbstract) return null;
+  const shape = /** @type {ClassHeader["shape"]} */ (kwM?.[1] || "class");
+  if (kwM) rest = rest.slice(kwM[0].length).trimStart();
 
   // Name (quoted or bare identifier).
   let name = "";
@@ -133,7 +135,7 @@ export function parseClassHeader(line) {
     name = rest.slice(1, end);
     rest = rest.slice(end + 1).trimStart();
   } else {
-    const m = rest.match(/^[A-Za-z_][\w.]*/);
+    const m = rest.match(/^[A-Za-z_$][\w$]*(?:(?:\.|::)[A-Za-z_$][\w$]*)*/);
     if (!m) return null;
     name = m[0];
     rest = rest.slice(m[0].length);
@@ -318,13 +320,20 @@ function headerStereotype(hdr) {
   if (hdr.shape === "enum") return "enumeration";
   if (hdr.shape === "annotation") return "annotation";
   if (hdr.shape === "record") return "record";
+  if (hdr.shape === "protocol") return "protocol";
+  if (hdr.shape === "struct") return "struct";
+  if (hdr.shape === "exception") return "exception";
+  if (hdr.shape === "metaclass") return "metaclass";
+  if (hdr.shape === "stereotype") return "stereotype";
+  if (hdr.shape === "dataclass") return "dataclass";
+  if (hdr.shape === "circle") return "circle";
   if (hdr.isAbstract) return "abstract";
   return "";
 }
 
 /**
  * Class-diagram block plugin. Runs before the generic keyword-shape
- * plugin so `class | interface | enum | annotation | record [extends|implements] [{ … }]` is
+ * plugin so class-family declarations with `[extends|implements] [{ … }]` are
  * routed here, while everything else (`component`, `database`, …)
  * keeps flowing through {@link shapeKeywordPlugin}.
  * @type {import("../../../util/parser_engine.mjs").Plugin}

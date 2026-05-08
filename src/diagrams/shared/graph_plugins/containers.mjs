@@ -1,9 +1,9 @@
-// Container keywords: package | frame | folder | node | rectangle, plus
+// Container keywords: package | namespace | frame | folder | node | rectangle, plus
 // the bare `together { … }`. Recognised only when the line opens a brace.
 
 import { slug } from "../../../util/plantuml_utils.mjs";
 
-const CONTAINER_KEYWORDS = ["package", "frame", "folder", "node", "rectangle"];
+const CONTAINER_KEYWORDS = ["package", "namespace", "frame", "folder", "node", "rectangle"];
 const CONTAINER_OPEN_QUOTED = new RegExp(
   `^(${CONTAINER_KEYWORDS.join("|")})\\s+"([^"]+)"(?:\\s+as\\s+(\\S+))?\\s*\\{`,
 );

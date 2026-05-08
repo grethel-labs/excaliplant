@@ -16,11 +16,18 @@ export class ClassDiagramDocs extends BaseModuleDocs {
         "record",
         "annotation",
         "relationships",
+        "namespace-generics",
+        "notes-on-link",
         "styling",
         "security",
       ],
       generatedPages: [],
-      knownGaps: ["full-class-coverage"],
+      knownGaps: [
+        "association-class-rendering",
+        "hide-show-remove-filters",
+        "style-block-cascade",
+        "visibility-icons",
+      ],
     });
   }
 }

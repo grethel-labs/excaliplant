@@ -9,7 +9,7 @@ import { BaseModuleTests } from "../base/tests.mjs";
 export class ClassDiagramTests extends BaseModuleTests {
   constructor() {
     super({
-      unit: ["tests/edge_cases.test.mjs"],
+      unit: ["src/diagrams/class/tests/class_components.test.mjs", "tests/edge_cases.test.mjs"],
       integration: ["tests/plantuml.test.mjs", "tests/functional_more.test.mjs"],
       security: ["tests/security.test.mjs"],
     });

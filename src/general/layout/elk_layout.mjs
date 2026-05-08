@@ -157,7 +157,11 @@ function buildElkGraph(diagram) {
   /** @type {any} */
   const root = {
     id: "__root",
-    layoutOptions: ROOT_OPTIONS,
+    layoutOptions: {
+      ...ROOT_OPTIONS,
+      "elk.direction":
+        /** @type {any} */ (diagram).layoutDirection || ROOT_OPTIONS["elk.direction"],
+    },
     children: /** @type {any[]} */ ([]),
     edges: /** @type {any[]} */ ([]),
   };

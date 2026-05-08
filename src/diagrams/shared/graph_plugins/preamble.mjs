@@ -44,3 +44,17 @@ export const skinparamPlugin = {
     };
   },
 };
+
+/**
+ * Shared graph direction hints such as `left to right direction`.
+ * @type {import("../../../util/parser_engine.mjs").Plugin}
+ */
+export const directionPlugin = {
+  name: "component.direction",
+  tryLine(line, ctx) {
+    const m = line.match(/^(left\s+to\s+right|top\s+to\s+bottom)\s+direction$/i);
+    if (!m) return false;
+    ctx.diagram.layoutDirection = /^left/i.test(m[1]) ? "RIGHT" : "DOWN";
+    return true;
+  },
+};
