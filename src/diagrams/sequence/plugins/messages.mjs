@@ -84,6 +84,7 @@ export const messagePlugin = {
       msg.destroys = true;
       ctx.markDestroyed(dst, msg.seq);
     }
+    ctx.applyAutoactivation(msg, parsed.lifecycle);
     return true;
   },
 };

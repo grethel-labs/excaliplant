@@ -4,6 +4,7 @@
 import { stripQuotes, unescapeLabel } from "../../../util/plantuml_utils.mjs";
 
 const AUTONUMBER = /^autonumber(?:\s+(.*))?$/i;
+const AUTOACTIVATE = /^autoactivate\s+(on|off|true|false)$/i;
 const RETURN = /^return(?:\s+(.*))?$/i;
 const ACTIVATE = /^activate\s+(\S+)(?:\s+(#[\w-]+))?$/i;
 const DEACTIVATE = /^deactivate\s+(\S+)$/i;
@@ -69,6 +70,12 @@ export const sequenceAdvancedPlugin = {
     const auto = line.match(AUTONUMBER);
     if (auto) {
       configureAutonumber(ctx, auto[1]?.trim() || "");
+      return true;
+    }
+
+    const autoactivate = line.match(AUTOACTIVATE);
+    if (autoactivate) {
+      ctx.setAutoactivate(/^(on|true)$/i.test(autoactivate[1]));
       return true;
     }
 

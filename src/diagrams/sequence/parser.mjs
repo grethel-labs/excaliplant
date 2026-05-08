@@ -80,7 +80,9 @@ export function detectSequenceDiagram(text) {
     if (/^(participant|boundary|control|collections|queue)\b/.test(line)) return true;
     if (/^skinparam\s+sequence\b/i.test(line)) return true;
     if (/^(opt|loop|alt|par|break|critical|group)\b/.test(line)) return true;
-    if (/^(activate|deactivate|destroy|create|autonumber|ref|box)\b/.test(line)) return true;
+    if (/^(activate|deactivate|destroy|create|autonumber|autoactivate|ref|box)\b/.test(line)) {
+      return true;
+    }
     if (/^(header|footer|newpage|mainframe)\b/i.test(line)) return true;
     if (/^hide\s+(?:footbox|unlinked)\b/i.test(line)) return true;
     if (/^==.*==$/.test(line) || /^\.\.\./.test(line) || /^(?:\|\|\||\|\|\d+\|\|)$/.test(line)) {

@@ -360,6 +360,24 @@ test("sequence lifecycle supports return messages and hide footbox", () => {
   );
 });
 
+test("sequence autoactivate opens and closes activation bars from messages", () => {
+  const source = `@startuml
+autoactivate on
+participant Client
+participant Service
+Client -> Service : request
+Service --> Client : response
+autoactivate off
+Client -> Service : later
+@enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
+  assert.ok(diagram instanceof SequenceDiagram);
+  assert.equal(diagram.activations.length, 1);
+  assert.equal(diagram.activations[0].participant.id, "Service");
+  assert.equal(diagram.activations[0].startSeq, diagram.messages[0].seq);
+  assert.equal(diagram.activations[0].endSeq, diagram.messages[1].seq);
+});
+
 test("sequence lifecycle messages anchor at activation bar edges", () => {
   const src = `@startuml
 participant A

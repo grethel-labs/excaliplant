@@ -9,7 +9,7 @@ import { BaseModuleDocs } from "../base/docs.mjs";
 export class SequenceDiagramDocs extends BaseModuleDocs {
   constructor() {
     super({
-      examples: ["basic", "fragments", "lifecycle", "styling", "security"],
+      examples: ["basic", "fragments", "lifecycle", "autoactivate", "styling", "security"],
       generatedPages: ["docs/sequence-components.md"],
       knownGaps: [],
     });

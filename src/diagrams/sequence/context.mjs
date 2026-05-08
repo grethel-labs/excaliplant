@@ -48,6 +48,8 @@ import {
  *   markCreated(participant: import("../../general/model/diagram.mjs").Participant, seq?: number): void,
  *   markDestroyed(participant: import("../../general/model/diagram.mjs").Participant, seq?: number): void,
  *   setAutonumber(enabled: boolean, start?: number, step?: number, format?: string): void,
+ *   setAutoactivate(enabled: boolean): void,
+ *   applyAutoactivation(message: import("../../general/model/diagram.mjs").Message, lifecycle?: string): void,
  *   setSequenceStyle(key: keyof import("../../general/model/diagram.mjs").SequenceDiagram["style"], value: string): void,
  *   setFootboxVisible(visible: boolean): void,
  *   setHideUnlinked(visible: boolean): void,
@@ -70,6 +72,7 @@ export function createSequenceContext() {
   let autonumberNext = 1;
   let autonumberStep = 1;
   let autonumberFormat = "";
+  let autoactivateEnabled = false;
   /** @type {SequenceFragment[]} */
   const fragmentStack = [];
   /** @type {Map<string, SequenceActivation[]>} */
@@ -375,6 +378,19 @@ export function createSequenceContext() {
       if (Number.isFinite(start)) autonumberNext = start;
       if (Number.isFinite(step) && step !== 0) autonumberStep = step;
       autonumberFormat = format;
+    },
+    /** Toggle PlantUML `autoactivate`. */
+    setAutoactivate(/** @type {boolean} */ enabled) {
+      autoactivateEnabled = enabled;
+    },
+    /** Apply PlantUML autoactivation semantics to a just-added message. */
+    applyAutoactivation(/** @type {Message} */ message, /** @type {string} */ lifecycle = "") {
+      if (!autoactivateEnabled || lifecycle) return;
+      if (message.kind === "reply") {
+        ctx.endActivation(message.from, message.seq);
+        return;
+      }
+      ctx.startActivation(message.to, message.color || "", message.seq, message.from);
     },
     /** Open a participant grouping box. */
     startParticipantGroup(label = "", color = "") {
