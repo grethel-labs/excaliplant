@@ -16,7 +16,7 @@ import {
   setStyle,
   resetStyle,
 } from "../index.mjs";
-import { DEFAULT_COMPONENT_PLUGINS } from "../src/parser/plantuml.mjs";
+import { DEFAULT_COMPONENT_PLUGINS } from "../src/main/parser.mjs";
 import { writeOutput } from "./helpers/output.mjs";
 
 // ---------------------------------------------------------------------------
@@ -69,6 +69,32 @@ a --> b
   `);
   assert.equal(d.boxById("a").title, "A");
   assert.equal(d.connections.length, 1);
+});
+
+test("shared parser helpers collect block lines and parse titles", async () => {
+  const { collectBlockLines } = await import("../src/util/plantuml_utils.mjs");
+  const { createTitlePlugin } = await import("../src/diagrams/shared/common_plugins/title.mjs");
+  /** @type {string[][]} */
+  const completed = [];
+  const block = collectBlockLines(/^end$/i, (lines) => completed.push(lines));
+
+  block.onLine("first");
+  block.onLine("second");
+
+  assert.equal(block.tryEnd("not yet", {}), false);
+  assert.equal(block.tryEnd("end", {}), true);
+  assert.deepEqual(completed, [["first", "second"]]);
+
+  const titlePlugin = createTitlePlugin("test.title");
+  let parsedTitle = "";
+  const ctx = {
+    setTitle(title) {
+      parsedTitle = title;
+    },
+  };
+
+  assert.equal(titlePlugin.tryLine?.('title "Shared Title"', ctx), true);
+  assert.equal(parsedTitle, "Shared Title");
 });
 
 // ---------------------------------------------------------------------------
@@ -238,8 +264,8 @@ d -right-> a
 
 test("renderDiagram works with a hand-built model (no PlantUML)", async () => {
   const d = new Diagram();
-  const { Plane } = await import("../src/model/diagram.mjs");
-  const { planeColor } = await import("../src/style/colors.mjs");
+  const { Plane } = await import("../src/general/model/diagram.mjs");
+  const { planeColor } = await import("../src/general/style/colors.mjs");
   const plane = d.addPlane(
     new Plane({ id: "p", title: "P", color: planeColor("p"), kind: "package" }),
   );
@@ -937,7 +963,7 @@ test("class diagram: large fluffle diagram – long member signatures wrap insid
   // The sizing pass must wrap long method signatures (e.g. those with
   // generics and many parameters) at semantically meaningful break
   // points so members do not bleed past the right edge.
-  const { sizeDiagram } = await import("../src/layout/sizing.mjs");
+  const { sizeDiagram } = await import("../src/general/layout/sizing.mjs");
   const d = parsePlantUml(FLUFFLE_SRC);
   sizeDiagram(d);
   const fluffle = d.boxById("AbstractFluffle");
@@ -979,7 +1005,7 @@ test("class diagram: large fluffle diagram – arrows match source-box stroke co
   // __floating__ plane this is the per-box `planeColor(box.id)`
   // colour; the renderer used to fall back to the (invisible)
   // floating-plane colour, painting all arrows in a single drab tone.
-  const { planeColor } = await import("../src/style/colors.mjs");
+  const { planeColor } = await import("../src/general/style/colors.mjs");
   const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-arrows" });
 
   // Pick a known top-level connection: AbstractFluffle implements Magical.
@@ -997,7 +1023,7 @@ test("class diagram: SVG markers carry the source-box stroke colour", async () =
   // reference them by colour-suffixed ids so each arrowhead
   // (composition diamond, inheritance triangle, …) inherits the
   // colour of its arrow shaft.
-  const { excalidrawToSvg } = await import("../src/render/svg.mjs");
+  const { excalidrawToSvg } = await import("../src/general/render/svg.mjs");
   const src = `@startuml
 class A
 class B
@@ -1022,8 +1048,8 @@ A --|> B
 
 test("class diagram: large fluffle diagram – render does not crash", async () => {
   // Regression: rendering a large class diagram must not throw.
-  const { excalidrawToSvg } = await import("../src/render/svg.mjs");
-  const { svgToPng } = await import("../src/render/png.mjs");
+  const { excalidrawToSvg } = await import("../src/general/render/svg.mjs");
+  const { svgToPng } = await import("../src/general/render/png.mjs");
   resetStyle();
   const doc = await renderPlantUml(FLUFFLE_SRC, { sourceLabel: "fluffle-regression" });
   assert.equal(doc.type, "excalidraw");

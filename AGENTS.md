@@ -33,12 +33,17 @@ Respect the layer boundaries:
 
 Important files:
 
-- `src/parser/plantuml.mjs`: parser dispatch, default plugin lists, parse limits.
-- `src/parser/engine.mjs`: generic line engine and plugin contract.
-- `src/model/diagram.mjs`: public model classes.
-- `src/layout/elk_layout.mjs`, `src/layout/sequence_layout.mjs`: layout passes.
-- `src/render/excalidraw.mjs`, `src/render/svg.mjs`,
-  `src/render/canvas_svg.mjs`, `src/render/png.mjs`: renderers.
+- `src/diagrams/base/`: base diagram module and facet contracts.
+- `src/diagrams/{sequence,class,component}/`: concrete diagram modules.
+- `src/diagrams/shared/`: shared diagram-family code such as graph parsing.
+- `src/main/parser.mjs`: parser dispatch, default plugin lists, parse limits.
+- `src/main/pipeline.mjs`, `src/main/registry.mjs`: orchestration and registry.
+- `src/util/parser_engine.mjs`, `src/util/plantuml_utils.mjs`: generic parser engine and helpers.
+- `src/general/model/diagram.mjs`: public model classes.
+- `src/general/layout/elk_layout.mjs`, `src/diagrams/sequence/layout_engine.mjs`: layout passes.
+- `src/general/render/excalidraw.mjs`, `src/general/render/svg.mjs`,
+  `src/general/render/canvas_svg.mjs`, `src/general/render/png.mjs`: renderers.
+- `src/general/style/`, `src/general/platform/`: style and platform services.
 - `index.mjs`: public top-level API.
 
 ## Language and Style
@@ -66,28 +71,30 @@ Naming conventions:
 
 New PlantUML syntax should usually be implemented as a parser plugin:
 
-1. Add a focused plugin under `src/parser/plugins/component/` or
-   `src/parser/plugins/sequence/`.
-2. Implement `{ name, tryLine?, tryStart? }` according to `src/parser/engine.mjs`.
-3. Register it in `DEFAULT_COMPONENT_PLUGINS` or `DEFAULT_SEQUENCE_PLUGINS` in
-   `src/parser/plantuml.mjs`.
+1. Add a focused plugin under the owning diagram module, for example
+   `src/diagrams/sequence/plugins/` or a new `src/diagrams/<kind>/plugins/`.
+2. Implement `{ name, tryLine?, tryStart? }` according to `src/util/parser_engine.mjs`.
+3. Register it in the owning module parser contract such as
+   `src/diagrams/sequence/parser.mjs`, `src/diagrams/class/parser.mjs`, or
+   `src/diagrams/component/parser.mjs`.
 4. Add a regression test under `tests/`.
 
 Parser rules:
 
-- Keep `src/parser/engine.mjs` generic. New PlantUML constructs should not need
+- Keep `src/util/parser_engine.mjs` generic. New PlantUML constructs should not need
   engine changes.
 - Plugin order matters. Block plugins must run before generic regex plugins;
   greedy connection parsing belongs last.
 - A plugin should return `true` only when it is responsible for the line.
 - Block plugins return an object with `onLine` and `tryEnd`.
-- Use context helpers from `component_context.mjs` and `sequence_context.mjs`
+- Use context helpers from `src/diagrams/shared/graph_context.mjs` and
+  `src/diagrams/sequence/context.mjs`
   instead of mutating unrelated model internals.
 - Unknown lines are intentionally tolerant by default. Diagnostics use
   `unknownLines: "warn" | "strict"`.
 - Do not hand-roll quote/comment parsing when helpers exist. Prefer utilities
   such as `stripComment`, `stripQuotes`, `explodeBraces`, `unescapeLabel`,
-  `slug`, and `classifyArrow` from `src/parser/utils.mjs`.
+  `slug`, and `classifyArrow` from `src/util/plantuml_utils.mjs`.
 
 ## Model Work
 
@@ -105,21 +112,21 @@ Parser rules:
 
 ## Layout and Rendering
 
-- Component layout runs through ELK in `src/layout/elk_layout.mjs`; sizing lives
-  in `src/layout/sizing.mjs`.
+- Component/class layout runs through ELK in `src/general/layout/elk_layout.mjs`; sizing lives
+  in `src/general/layout/sizing.mjs`.
 - Sequence layout is deterministic and table-like in
-  `src/layout/sequence_layout.mjs`.
+  `src/diagrams/sequence/layout_engine.mjs`.
 - Renderers should not infer PlantUML syntax or perform late layout.
-- Text measurement/wrapping should use existing helpers from `src/style/text.mjs`.
+- Text measurement/wrapping should use existing helpers from `src/general/style/text.mjs`.
 - Excalidraw output must stay deterministic by default. Do not scatter
   `Math.random`; default IDs/seeds derive from `stableHash32` over
   `sourceLabel|diagram.title` and the seeded RNG helpers in
-  `src/render/rng.mjs`.
+  `src/general/render/rng.mjs`.
 - For new Excalidraw primitives, follow existing helpers such as `baseElement`,
   `rect`, `text`, `arrow`, `line`, and `ellipse`.
 - SVG output is an injection surface. Escape text and attributes with the
   existing SVG escape helpers.
-- Canvas SVG export in `src/render/canvas_svg.mjs` wraps plain SVG output in a
+- Canvas SVG export in `src/general/render/canvas_svg.mjs` wraps plain SVG output in a
   fixed-aspect canvas; keep its background escaping and width clamps intact.
 - Validate or clamp canvas/PNG sizes and other expensive rendering options.
 

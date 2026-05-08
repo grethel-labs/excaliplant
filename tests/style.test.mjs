@@ -140,7 +140,7 @@ test("auto-shrink reduces font size for unbreakable long titles", async () => {
   // Verify the wrap-and-shrink helper directly: a single very long
   // unbreakable token at 18 px is wider than 200 px, so the helper
   // must shrink the font size to fit.
-  const { measureFitted } = await import("../src/style/text.mjs");
+  const { measureFitted } = await import("../src/general/style/text.mjs");
   const fitted = measureFitted("VeryLongUnbreakableSingleWordTitleThatCannotWrap", 18, 200);
   assert.ok(fitted.fontSize < 18, `expected shrunken fontSize, got ${fitted.fontSize}`);
   assert.ok(fitted.fontSize >= DEFAULT_STYLE.text.minFontSize);
@@ -150,7 +150,7 @@ test("auto-shrink reduces font size for unbreakable long titles", async () => {
 test("auto-shrink can be disabled via style", async () => {
   resetStyle();
   setStyle({ text: { autoShrink: false } });
-  const { measureFitted } = await import("../src/style/text.mjs");
+  const { measureFitted } = await import("../src/general/style/text.mjs");
   const fitted = measureFitted("VeryLongUnbreakableSingleWordTitleThatCannotWrap", 18, 200);
   assert.equal(fitted.fontSize, 18);
   resetStyle();

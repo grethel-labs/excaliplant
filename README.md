@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.7.0** &nbsp;·&nbsp; 162 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.8.0** &nbsp;·&nbsp; 174 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -131,7 +131,7 @@ See the full [Sequence Diagram Component Coverage](./docs/sequence-components.md
 npm test
 ```
 
-Ships with **162 tests** across functional, edge-case,
+Ships with **174 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -151,9 +151,9 @@ JSDoc tags.
 _Sources: [PlantUML](docs/ressources/generated/puml/modules.puml) · [SVG](docs/ressources/generated/svg/modules.svg)_
 
 The module graph reflects how the source is laid out under
-[`src/`](./src/). Note in particular how the parser is split into a
-single tiny `engine` plus a stack of plugins under `parser/plugins/`,
-each plugin handling one PlantUML construct.
+[`src/`](./src/). Diagram-type behavior is collected in first-class
+module folders under `src/diagrams/`, orchestration lives under
+`src/main/`, and host capabilities live under `src/general/platform/`.
 
 ### renderPlantUml flow
 
@@ -171,7 +171,7 @@ The call graph for `renderPlantUml(text)` walks three subsystems:
    deterministic tabular layout.
 3. **renderer** walks the laid-out model and emits Excalidraw JSON.
    The same model can also be exported to SVG via
-   [`src/render/svg.mjs`](./src/render/svg.mjs) — used by the
+   [`src/general/render/svg.mjs`](./src/general/render/svg.mjs) — used by the
    documentation pipeline.
 
 ### Parser plugins
@@ -184,9 +184,9 @@ Each parser plugin is a tiny self-contained file that handles ONE
 PlantUML construct. The engine offers each input line to plugins
 in registration order; the first plugin that returns `true` wins.
 
-To add support for a new PlantUML keyword, drop a new file in
-`src/parser/plugins/` and append it to the default array in
-[`plantuml.mjs`](./src/parser/plantuml.mjs). No engine change required.
+To add support for a new PlantUML keyword, drop a new file in the
+owning diagram module folder and append it to that module's parser
+contract. No engine change required.
 
 ### Model classes
 
@@ -195,7 +195,7 @@ To add support for a new PlantUML keyword, drop a new file in
 _Sources: [PlantUML](docs/ressources/generated/puml/model.puml) · [SVG](docs/ressources/generated/svg/model.svg)_
 
 The model diagram is generated dynamically from exported classes in
-[`src/model/diagram.mjs`](./src/model/diagram.mjs). It shows how the
+[`src/general/model/diagram.mjs`](./src/general/model/diagram.mjs). It shows how the
 reusable arrow classes sit underneath both component connections and
 sequence messages, so future model classes appear in the README without
 hand-maintained PlantUML.
@@ -251,7 +251,8 @@ excaliplant
 │   ├── API.template.md.njk
 │   ├── README.template.md.njk
 │   ├── sequence-components.md
-│   └── sequence-components.template.md.njk
+│   ├── sequence-components.template.md.njk
+│   └── src-structure-refactor-plan.md
 ├── scripts
 │   ├── auto-patch-deps.mjs
 │   ├── bump-release-version.mjs
@@ -261,41 +262,100 @@ excaliplant
 │   ├── setup-merge-drivers.mjs
 │   └── smoke.mjs
 ├── src
-│   ├── layout
-│   │   ├── elk_layout.mjs
-│   │   ├── sequence_layout.mjs
-│   │   ├── sequence_spacing.mjs
-│   │   └── sizing.mjs
-│   ├── model
-│   │   └── diagram.mjs
-│   ├── parser
-│   │   ├── plugins
-│   │   │   ├── component
-│   │   │   └── sequence
-│   │   ├── component_context.mjs
-│   │   ├── engine.mjs
-│   │   ├── plantuml.mjs
-│   │   ├── sequence_context.mjs
-│   │   └── utils.mjs
-│   ├── render
-│   │   ├── canvas_svg.mjs
-│   │   ├── excalidraw.mjs
-│   │   ├── png.mjs
-│   │   ├── rng.mjs
-│   │   ├── schema.mjs
-│   │   ├── sequence_render.mjs
-│   │   └── svg.mjs
-│   └── style
-│       ├── colors.mjs
-│       ├── font.mjs
-│       ├── style.mjs
-│       └── text.mjs
+│   ├── diagrams
+│   │   ├── base
+│   │   │   ├── artifacts.mjs
+│   │   │   ├── assets.mjs
+│   │   │   ├── dependencies.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── index.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── renderer.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── class
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   ├── style.mjs
+│   │   │   └── tests.mjs
+│   │   ├── component
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── sequence
+│   │   │   ├── plugins
+│   │   │   ├── assets.mjs
+│   │   │   ├── context.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── layout_engine.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── render_excalidraw.mjs
+│   │   │   ├── security.mjs
+│   │   │   ├── spacing.mjs
+│   │   │   └── tests.mjs
+│   │   ├── shared
+│   │   │   ├── common_plugins
+│   │   │   ├── graph_plugins
+│   │   │   ├── graph_context.mjs
+│   │   │   ├── graph_parser.mjs
+│   │   │   └── graph_runtime.mjs
+│   │   └── index.mjs
+│   ├── general
+│   │   ├── layout
+│   │   │   ├── elk_layout.mjs
+│   │   │   └── sizing.mjs
+│   │   ├── model
+│   │   │   └── diagram.mjs
+│   │   ├── platform
+│   │   │   ├── asset_base.mjs
+│   │   │   ├── diagnostics.mjs
+│   │   │   ├── security_base.mjs
+│   │   │   └── services.mjs
+│   │   ├── render
+│   │   │   ├── canvas_svg.mjs
+│   │   │   ├── excalidraw.mjs
+│   │   │   ├── png.mjs
+│   │   │   ├── rng.mjs
+│   │   │   ├── schema.mjs
+│   │   │   └── svg.mjs
+│   │   └── style
+│   │       ├── colors.mjs
+│   │       ├── font.mjs
+│   │       ├── style.mjs
+│   │       └── text.mjs
+│   ├── main
+│   │   ├── builtin.mjs
+│   │   ├── dependencies.mjs
+│   │   ├── introspection.mjs
+│   │   ├── metadata.mjs
+│   │   ├── parser.mjs
+│   │   ├── pipeline.mjs
+│   │   └── registry.mjs
+│   └── util
+│       ├── parser_engine.mjs
+│       └── plantuml_utils.mjs
 ├── tests
 │   ├── helpers
 │   │   └── output.mjs
 │   ├── edge_cases.test.mjs
 │   ├── functional_more.test.mjs
 │   ├── merge_driver.test.mjs
+│   ├── modular_architecture.test.mjs
 │   ├── plantuml.test.mjs
 │   ├── security.test.mjs
 │   ├── self_introspection.test.mjs
@@ -325,6 +385,162 @@ generated by the same command from JSDoc.
 
 ## Module documentation
 
+### diagrams
+
+
+
+### diagrams/base
+
+
+
+### diagrams/base/artifacts
+
+
+
+### diagrams/base/assets
+
+
+
+### diagrams/base/dependencies
+
+
+
+### diagrams/base/docs
+
+
+
+### diagrams/base/layout
+
+
+
+### diagrams/base/module
+
+
+
+### diagrams/base/parser
+
+
+
+### diagrams/base/renderer
+
+
+
+### diagrams/base/security
+
+
+
+### diagrams/base/tests
+
+
+
+### diagrams/class/assets
+
+
+
+### diagrams/class/docs
+
+
+
+### diagrams/class/layout
+
+
+
+### diagrams/class/module
+
+
+
+### diagrams/class/parser
+
+
+
+### diagrams/class/render
+
+
+
+### diagrams/class/security
+
+
+
+### diagrams/class/style
+
+
+
+### diagrams/class/tests
+
+
+
+### diagrams/component/assets
+
+
+
+### diagrams/component/docs
+
+
+
+### diagrams/component/layout
+
+
+
+### diagrams/component/module
+
+
+
+### diagrams/component/parser
+
+
+
+### diagrams/component/render
+
+
+
+### diagrams/component/security
+
+
+
+### diagrams/component/tests
+
+
+
+### diagrams/sequence/assets
+
+
+
+### diagrams/sequence/docs
+
+
+
+### diagrams/sequence/layout
+
+
+
+### diagrams/sequence/module
+
+
+
+### diagrams/sequence/parser
+
+
+
+### diagrams/sequence/render
+
+
+
+### diagrams/sequence/security
+
+
+
+### diagrams/sequence/tests
+
+
+
+### diagrams/shared/graph_parser
+
+
+
+### diagrams/shared/graph_runtime
+
+
+
 ### layout
 
 Layout chooses positions for every shape and routes every edge.
@@ -337,6 +553,10 @@ Sequence diagrams skip ELK entirely — their layout is strictly
 tabular (lifelines on the X axis, time on the Y axis), so a
 deterministic ~90-line algorithm produces better, more compact
 results than a force-directed solver could.
+
+### main/builtin
+
+
 
 ### model
 
@@ -352,12 +572,48 @@ pipeline; the parser is just one possible source. Callers can
 also build a `Diagram` programmatically and feed it to
 `renderDiagram()`.
 
+### modules/dependencies
+
+
+
+### modules/introspection
+
+
+
+### modules/metadata
+
+
+
+### modules/pipeline
+
+
+
+### modules/registry
+
+
+
 ### parser/engine
 
 A ~50-line line-walker. The engine itself knows nothing about
 PlantUML syntax; that lives entirely in plugins. Block plugins
 (multi-line notes, class bodies) take exclusive ownership of
 subsequent lines until they release.
+
+### platform/asset-base
+
+
+
+### platform/diagnostics
+
+
+
+### platform/security-base
+
+
+
+### platform/services
+
+
 
 ### render
 
@@ -366,7 +622,7 @@ dedicated `renderXxx()` function that produces one or more
 Excalidraw primitive elements (rectangle, ellipse, line, arrow,
 text). The output document is a stand-alone `.excalidraw` file
 that any Excalidraw front-end can open. The companion module
-`src/render/svg.mjs` converts the same JSON to SVG for the
+`src/general/render/svg.mjs` converts the same JSON to SVG for the
 build-time documentation pipeline.
 
 ### sequence-spacing

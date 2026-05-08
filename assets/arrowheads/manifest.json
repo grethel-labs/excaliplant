@@ -1,6 +1,6 @@
 {
   "source": "assets/arrowheads/arrowheads.svg",
-  "generatedBy": "src/render/svg.mjs marker geometry",
+  "generatedBy": "src/general/render/svg.mjs marker geometry",
   "arrowheads": [
     "arrow",
     "triangle",

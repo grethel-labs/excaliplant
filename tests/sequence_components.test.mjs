@@ -11,8 +11,8 @@ import {
   SequenceDiagram,
 } from "../index.mjs";
 import { SEQUENCE_COMPONENT_EXAMPLES } from "../docs/scripts/sequence-coverage-examples.mjs";
-import { SEQUENCE_SPACING, arrowLabelBudget } from "../src/layout/sequence_spacing.mjs";
-import { FONT } from "../src/style/text.mjs";
+import { SEQUENCE_SPACING, arrowLabelBudget } from "../src/diagrams/sequence/spacing.mjs";
+import { FONT } from "../src/general/style/text.mjs";
 import { writeOutput } from "./helpers/output.mjs";
 
 const exampleById = new Map(SEQUENCE_COMPONENT_EXAMPLES.map((example) => [example.id, example]));

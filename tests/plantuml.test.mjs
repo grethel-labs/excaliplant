@@ -2,8 +2,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { renderPlantUml, parsePlantUml, SequenceDiagram } from "../index.mjs";
-import { excalidrawToSvg } from "../src/render/svg.mjs";
-import { svgToPng } from "../src/render/png.mjs";
+import { excalidrawToSvg } from "../src/general/render/svg.mjs";
+import { svgToPng } from "../src/general/render/png.mjs";
 import { writeOutput } from "./helpers/output.mjs";
 
 const SAMPLE = `

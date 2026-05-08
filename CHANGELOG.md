@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- New `src/style/style.mjs` module with a single source of truth for
+- New `src/general/style/style.mjs` module with a single source of truth for
   renderer styling. `getStyle()` / `setStyle()` / `resetStyle()` /
   `loadStyleFromFile()` are exported from the package root, the CLI
   exposes `excaliplant --style <file>`, and the `./style` subpath is
@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-shrink for box titles and descriptions: long unbreakable
   identifiers now reduce their font size (down to `text.minFontSize`)
   rather than overflowing. Disable via `text.autoShrink: false`. New
-  helper `measureFitted` is exported from `src/style/text.mjs`.
+  helper `measureFitted` is exported from `src/general/style/text.mjs`.
 - Edge-label chips now carry `customData.role` markers
   (`edgeLabelChip` / `edgeLabelText`) so renderers, tests, and
   third-party tools can identify them reliably.
@@ -62,6 +62,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [`assets/arrowheads/`](assets/arrowheads/), and the docs build now
   emits a self-updating model class diagram in the README architecture
   section.
+- Modular diagram architecture foundation: built-in sequence, class,
+  and component diagrams now run as separate diagram-type modules from
+  per-diagram module folders. The closed-world `DiagramModuleRegistry`
+  is separated from platform services, parsed models receive weak
+  module metadata, module-owned layout/render adapters are dispatched, and the
+  package exports module base classes, registry helpers, platform
+  introspection, `security-base`, `asset-base`, diagnostics, failure
+  boundaries, capability checks, and final Excalidraw artifact
+  validation.
+- Diagram modules now use concrete main classes (`SequenceDiagramModule`,
+  `ClassDiagramModule`, `ComponentDiagramModule`) composed from base
+  parser, layout, renderer, documentation, test, security, and asset
+  facets. The shared base contracts live in the `src/diagrams/base/`
+  module folder.
+- Source structure now foregrounds diagram modules under `src/diagrams/`,
+  main orchestration under `src/main/`, shared runtime under
+  `src/general/`, and low-level parser helpers under `src/util/`. Legacy
+  top-level implementation folders (`src/parser`, `src/layout`,
+  `src/render`, `src/model`, `src/modules`, `src/platform`, `src/style`)
+  were removed; package subpath exports now point directly at the new
+  primary files.
+- Shared parser helpers now cover reusable title-line parsing and block-line
+  accumulation for note-style block plugins.
 
 ### Changed
 
@@ -85,7 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   field, so connection arrows / lines and edge-label chips appear
   perfectly straight in the exported SVG / PNG (matching the existing
   `roughness: 0` Excalidraw JSON output).
-- `FONT` from `src/style/text.mjs` is now a live view of the active
+- `FONT` from `src/general/style/text.mjs` is now a live view of the active
   style document. Existing reads (`FONT.sizeTitle`, `FONT.family`,
   …) keep working; calls to `setStyle()` / `loadStyleFromFile()`
   immediately propagate to sizing and rendering.
@@ -125,7 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Long class / interface / enum member signatures now wrap at
     semantically meaningful break points (after `,` `(` `:`,
     before `|` `&` `)`) via the new `wrapMemberSignature` helper
-    in `src/style/text.mjs`, with continuation indent. Sizing
+    in `src/general/style/text.mjs`, with continuation indent. Sizing
     grows the box height accordingly so members no longer bleed
     past the right edge.
 - SVG start markers are now anchored at the visual tip, so backward
@@ -211,7 +234,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   attribute. Previously a string like `'" onload="alert(1)'` could
   break out of the attribute and inject arbitrary markup into the
   emitted SVG. The escape uses the same routine as the rest of
-  `src/render/svg.mjs` (`escapeAttr`, now exported) and now also
+  `src/general/render/svg.mjs` (`escapeAttr`, now exported) and now also
   escapes `>` for defence in depth.
 - `parsePlantUml` gains opt-in resource limits
   (`maxInputBytes`, `maxLines`, `maxNodes`, `maxEdges`) with sensible

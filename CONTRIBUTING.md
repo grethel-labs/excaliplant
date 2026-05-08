@@ -17,11 +17,12 @@ files with Prettier and runs the type checker.
 
 ## Adding parser support for a new PlantUML construct
 
-1. Drop a new plugin under `src/parser/plugins/` (component or
-   sequence). A plugin is `{ name, tryLine?, tryStart? }` — see
-   `src/parser/engine.mjs` for the contract.
-2. Register it in the corresponding default array in
-   `src/parser/plantuml.mjs`.
+1. Drop a new plugin under the owning diagram module, for example
+   `src/diagrams/sequence/plugins/` or `src/diagrams/<kind>/plugins/`.
+   A plugin is `{ name, tryLine?, tryStart? }` — see
+   `src/util/parser_engine.mjs` for the contract.
+2. Register it in the corresponding module parser contract under
+   `src/diagrams/<kind>/parser.mjs`.
 3. Add a regression test under `tests/`.
 
 The engine itself has no PlantUML-specific knowledge; you should
