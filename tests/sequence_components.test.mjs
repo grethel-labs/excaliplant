@@ -18,10 +18,8 @@ import { writeOutput } from "./helpers/output.mjs";
 const exampleById = new Map(SEQUENCE_COMPONENT_EXAMPLES.map((example) => [example.id, example]));
 
 test("generated sequence support matrix is one contiguous markdown table", async () => {
-  const markdown = await readFile(
-    new URL("../docs/sequence-components.md", import.meta.url),
-    "utf8",
-  );
+  const raw = await readFile(new URL("../docs/sequence-components.md", import.meta.url), "utf8");
+  const markdown = raw.replace(/\r\n/g, "\n");
   const matrix = markdown.match(/## Support Matrix\n\n(?<table>[\s\S]*?)\n\n## Rendered Examples/)
     ?.groups?.table;
   assert.ok(matrix, "support matrix section should exist");
