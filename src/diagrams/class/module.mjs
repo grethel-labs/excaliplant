@@ -22,9 +22,11 @@ export class ClassDiagramModule extends GraphModuleBase {
         parser: [
           "src/diagrams/class/parser.mjs",
           "src/diagrams/shared/graph_parser.mjs",
+          "src/diagrams/shared/graph_plugins/association_class.mjs",
           "src/diagrams/shared/graph_plugins/class_block.mjs",
           "src/diagrams/shared/graph_plugins/connections.mjs",
           "src/diagrams/shared/graph_plugins/containers.mjs",
+          "src/diagrams/shared/graph_plugins/filters.mjs",
           "src/diagrams/shared/graph_plugins/notes.mjs",
           "src/diagrams/shared/graph_plugins/ports.mjs",
           "src/diagrams/shared/graph_plugins/preamble.mjs",

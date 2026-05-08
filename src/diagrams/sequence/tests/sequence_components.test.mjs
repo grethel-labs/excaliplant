@@ -363,6 +363,30 @@ test("sequence lifecycle supports return messages and hide footbox", () => {
   );
 });
 
+test("sequence block headers and footers render as multiline presentation text", async () => {
+  const src = exampleById.get("global-presentation")?.source;
+  assert.ok(src);
+  const diagram = parsePlantUml(src, { unknownLines: "strict" });
+  assert.ok(diagram instanceof SequenceDiagram);
+  assert.equal(diagram.header, "Sequence coverage header\nwith a second line");
+  assert.equal(diagram.footer, "Sequence coverage footer\nwith audit marker");
+
+  const doc = await renderPlantUml(src, { sourceLabel: "test.sequence.block-header-footer" });
+  assert.ok(
+    doc.elements.some(
+      (element) =>
+        element.customData?.role === "sequenceHeader" &&
+        element.text.includes("with a second line"),
+    ),
+  );
+  assert.ok(
+    doc.elements.some(
+      (element) =>
+        element.customData?.role === "sequenceFooter" && element.text.includes("audit marker"),
+    ),
+  );
+});
+
 test("sequence autoactivate opens and closes activation bars from messages", () => {
   const source = `@startuml
 autoactivate on
@@ -649,8 +673,8 @@ test("sequence global presentation features render visible semantics", async () 
   assert.ok(src);
   const diagram = parsePlantUml(src, { unknownLines: "strict" });
   assert.ok(diagram instanceof SequenceDiagram);
-  assert.equal(diagram.header, "Sequence coverage header");
-  assert.equal(diagram.footer, "Sequence coverage footer");
+  assert.equal(diagram.header, "Sequence coverage header\nwith a second line");
+  assert.equal(diagram.footer, "Sequence coverage footer\nwith audit marker");
   assert.equal(diagram.mainframe, "Sequence coverage frame");
   assert.equal(diagram.hideUnlinked, true);
   assert.equal(diagram.participantById("Unused"), null);

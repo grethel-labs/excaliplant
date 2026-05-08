@@ -8,9 +8,11 @@ import {
   titlePlugin as componentTitlePlugin,
   closeBracePlugin,
   directionPlugin as componentDirectionPlugin,
+  presentationPlugin as componentPresentationPlugin,
   skinparamPlugin as componentSkinparamPlugin,
 } from "./graph_plugins/preamble.mjs";
 import { containerPlugin } from "./graph_plugins/containers.mjs";
+import { associationClassPlugin } from "./graph_plugins/association_class.mjs";
 import {
   bracketBoxPlugin,
   usecaseParensPlugin,
@@ -18,6 +20,7 @@ import {
 } from "./graph_plugins/shapes.mjs";
 import { classBlockPlugin } from "./graph_plugins/class_block.mjs";
 import { connectionPlugin } from "./graph_plugins/connections.mjs";
+import { graphFilterPlugin } from "./graph_plugins/filters.mjs";
 import { portPlugin } from "./graph_plugins/ports.mjs";
 import {
   noteOfPlugin,
@@ -31,11 +34,14 @@ export const DEFAULT_GRAPH_PLUGINS = Object.freeze([
   componentTitlePlugin,
   componentSkinparamPlugin,
   componentDirectionPlugin,
+  componentPresentationPlugin,
   closeBracePlugin,
+  graphFilterPlugin,
   noteOnLinkPlugin,
   noteBlockPlugin,
   noteOfPlugin,
   noteFreePlugin,
+  associationClassPlugin,
   classBlockPlugin,
   portPlugin,
   shapeKeywordPlugin,

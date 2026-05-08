@@ -4,6 +4,7 @@
 // a new construct, drop a new file in this folder and register it.
 
 import { createTitlePlugin } from "../common_plugins/title.mjs";
+import { collectBlockLines, unescapeLabel } from "../../../util/plantuml_utils.mjs";
 
 /**
  * `title …` line.
@@ -56,5 +57,43 @@ export const directionPlugin = {
     if (!m) return false;
     ctx.diagram.layoutDirection = /^left/i.test(m[1]) ? "RIGHT" : "DOWN";
     return true;
+  },
+};
+
+/**
+ * Shared graph presentation commands that are currently stored as
+ * metadata or tolerated for strict parsing.
+ * @type {import("../../../util/parser_engine.mjs").Plugin}
+ */
+export const presentationPlugin = {
+  name: "component.presentation",
+  tryLine(line, ctx) {
+    const caption = line.match(/^caption\s+(.+)$/i);
+    if (caption) {
+      ctx.diagram.caption = unescapeLabel(caption[1].trim());
+      return true;
+    }
+    const header = line.match(/^header\s+(.+)$/i);
+    if (header) {
+      ctx.diagram.header = unescapeLabel(header[1].trim());
+      return true;
+    }
+    const footer = line.match(/^footer\s+(.+)$/i);
+    if (footer) {
+      ctx.diagram.footer = unescapeLabel(footer[1].trim());
+      return true;
+    }
+    const mainframe = line.match(/^mainframe\s+(.+)$/i);
+    if (mainframe) {
+      ctx.diagram.mainframe = unescapeLabel(mainframe[1].trim());
+      return true;
+    }
+    return /^allowmixing\b/i.test(line);
+  },
+  tryStart(line) {
+    if (!/^legend\b/i.test(line)) return null;
+    return collectBlockLines(/^end\s+legend$/i, (lines, ctx) => {
+      ctx.diagram.legend = lines.join("\n");
+    });
   },
 };

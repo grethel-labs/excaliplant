@@ -76,4 +76,18 @@ note right of Order::fromJson : parses safely
 hide empty members
 @enduml`,
   },
+  {
+    id: "association-filters",
+    title: "Association classes and filters",
+    description: "Association-class shorthand and remove/hide/show commands stay strict-parseable.",
+    source: `@startuml
+class Student
+class Course
+class Obsolete
+(Student, Course) .. Enrollment : attends
+remove Obsolete
+hide empty members
+show empty members
+@enduml`,
+  },
 ]);

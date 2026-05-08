@@ -67,9 +67,11 @@ this document is the exhaustive view across every exported symbol in
 - [`diagrams/shared/common_plugins/title`](#diagramssharedcommon_pluginstitle)
 - [`diagrams/shared/graph_context`](#diagramssharedgraph_context)
 - [`diagrams/shared/graph_parser`](#diagramssharedgraph_parser)
+- [`diagrams/shared/graph_plugins/association_class`](#diagramssharedgraph_pluginsassociation_class)
 - [`diagrams/shared/graph_plugins/class_block`](#diagramssharedgraph_pluginsclass_block)
 - [`diagrams/shared/graph_plugins/connections`](#diagramssharedgraph_pluginsconnections)
 - [`diagrams/shared/graph_plugins/containers`](#diagramssharedgraph_pluginscontainers)
+- [`diagrams/shared/graph_plugins/filters`](#diagramssharedgraph_pluginsfilters)
 - [`diagrams/shared/graph_plugins/notes`](#diagramssharedgraph_pluginsnotes)
 - [`diagrams/shared/graph_plugins/ports`](#diagramssharedgraph_pluginsports)
 - [`diagrams/shared/graph_plugins/preamble`](#diagramssharedgraph_pluginspreamble)
@@ -2197,7 +2199,7 @@ during a single `parsePlantUml` invocation. The returned object
 exposes high-level helpers (`addBox`, `openContainer`, …) so that
 plugins never touch the model classes directly.
 
-**Returns:** `{ readonly result: import("../../general/model/diagram.mjs").Diagram, diagram: import("../../general/model/diagram.mjs").Diagram, boxes: Map<string, import("../../general/model/diagram.mjs").Box>, setTitle(t: string): void, openContainer(spec: { id: string, title: string, kind: string }): void, closeContainer(): void, addBox(spec: object): import("../../general/model/diagram.mjs").Box, queueConnection(spec: object): void, queueNote(spec: object): void, queueLinkNote(spec: object): void, addPort(spec: object): void, nextNoteId(): string, finalize(): void, }`
+**Returns:** `{ readonly result: import("../../general/model/diagram.mjs").Diagram, diagram: import("../../general/model/diagram.mjs").Diagram, boxes: Map<string, import("../../general/model/diagram.mjs").Box>, setTitle(t: string): void, openContainer(spec: { id: string, title: string, kind: string }): void, closeContainer(): void, addBox(spec: object): import("../../general/model/diagram.mjs").Box, queueConnection(spec: object): void, queueNote(spec: object): void, queueLinkNote(spec: object): void, addPort(spec: object): void, removeBox(id: string): void, queueFilter(spec: object): void, nextNoteId(): string, finalize(): void, }`
 
 ---
 
@@ -2225,6 +2227,30 @@ const DEFAULT_GRAPH_PLUGINS;
 ```ts
 const createGraphParseContext;
 ```
+
+---
+
+## `diagrams/shared/graph_plugins/association_class`
+
+_Source: [`src/diagrams/shared/graph_plugins/association_class.mjs`](src/diagrams/shared/graph_plugins/association_class.mjs)_
+
+### Exports
+
+| Name                                                                                             | Kind  | Visibility  |
+| ------------------------------------------------------------------------------------------------ | ----- | ----------- |
+| [`associationClassPlugin`](#associationclassplugin-diagramssharedgraph_pluginsassociation_class) | const | unspecified |
+
+#### <a id="associationclassplugin-diagramssharedgraph_pluginsassociation_class"></a>`associationClassPlugin`
+
+```ts
+const associationClassPlugin;
+```
+
+Parse PlantUML association-class declarations.
+
+The model has no edge-to-edge attachment yet, so the association
+class is represented as a class box connected to both association
+endpoints with dashed metadata edges.
 
 ---
 
@@ -2346,6 +2372,28 @@ opens a brace; the matching `}` is consumed by `closeBracePlugin`.
 
 ---
 
+## `diagrams/shared/graph_plugins/filters`
+
+_Source: [`src/diagrams/shared/graph_plugins/filters.mjs`](src/diagrams/shared/graph_plugins/filters.mjs)_
+
+### Exports
+
+| Name                                                                         | Kind  | Visibility  |
+| ---------------------------------------------------------------------------- | ----- | ----------- |
+| [`graphFilterPlugin`](#graphfilterplugin-diagramssharedgraph_pluginsfilters) | const | unspecified |
+
+#### <a id="graphfilterplugin-diagramssharedgraph_pluginsfilters"></a>`graphFilterPlugin`
+
+```ts
+const graphFilterPlugin;
+```
+
+PlantUML graph visibility commands. `remove <id>` affects the parsed
+model; `hide/show ...` forms are consumed so strict parsing stays
+compatible while rendering support can grow per command over time.
+
+---
+
 ## `diagrams/shared/graph_plugins/notes`
 
 _Source: [`src/diagrams/shared/graph_plugins/notes.mjs`](src/diagrams/shared/graph_plugins/notes.mjs)_
@@ -2422,12 +2470,13 @@ _Source: [`src/diagrams/shared/graph_plugins/preamble.mjs`](src/diagrams/shared/
 
 ### Exports
 
-| Name                                                                        | Kind  | Visibility  |
-| --------------------------------------------------------------------------- | ----- | ----------- |
-| [`titlePlugin`](#titleplugin-diagramssharedgraph_pluginspreamble)           | const | unspecified |
-| [`closeBracePlugin`](#closebraceplugin-diagramssharedgraph_pluginspreamble) | const | unspecified |
-| [`skinparamPlugin`](#skinparamplugin-diagramssharedgraph_pluginspreamble)   | const | unspecified |
-| [`directionPlugin`](#directionplugin-diagramssharedgraph_pluginspreamble)   | const | unspecified |
+| Name                                                                            | Kind  | Visibility  |
+| ------------------------------------------------------------------------------- | ----- | ----------- |
+| [`titlePlugin`](#titleplugin-diagramssharedgraph_pluginspreamble)               | const | unspecified |
+| [`closeBracePlugin`](#closebraceplugin-diagramssharedgraph_pluginspreamble)     | const | unspecified |
+| [`skinparamPlugin`](#skinparamplugin-diagramssharedgraph_pluginspreamble)       | const | unspecified |
+| [`directionPlugin`](#directionplugin-diagramssharedgraph_pluginspreamble)       | const | unspecified |
+| [`presentationPlugin`](#presentationplugin-diagramssharedgraph_pluginspreamble) | const | unspecified |
 
 #### <a id="titleplugin-diagramssharedgraph_pluginspreamble"></a>`titlePlugin`
 
@@ -2461,6 +2510,15 @@ const directionPlugin;
 ```
 
 Shared graph direction hints such as `left to right direction`.
+
+#### <a id="presentationplugin-diagramssharedgraph_pluginspreamble"></a>`presentationPlugin`
+
+```ts
+const presentationPlugin;
+```
+
+Shared graph presentation commands that are currently stored as
+metadata or tolerated for strict parsing.
 
 ---
 
@@ -5349,8 +5407,8 @@ recognised.
 | ---- | -------- | ------------------------------------------------------- |
 | `op` | `string` | Raw arrow operator as it appears between two endpoints. |
 
-**Returns:** `{ kind: "default"|"dependency"|"inheritance"|"realization"|"composition"|"aggregation", dashed: boolean, reversed: boolean, startArrowhead: string|null, endArrowhead: string|null, directionHint: string|null, } | null` — Structural breakdown of the operator, or `null` when unrecognised.
+**Returns:** `{ kind: "default"|"dependency"|"inheritance"|"realization"|"composition"|"aggregation", dashed: boolean, reversed: boolean, startArrowhead: string|null, endArrowhead: string|null, directionHint: string|null, hidden?: boolean, } | null` — Structural breakdown of the operator, or `null` when unrecognised.
 
 ---
 
-_Total: 90 modules._
+_Total: 92 modules._

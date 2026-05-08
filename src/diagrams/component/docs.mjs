@@ -17,6 +17,7 @@ export class ComponentDiagramDocs extends BaseModuleDocs {
         "artifact",
         "ports",
         "notes-on-link",
+        "presentation-hidden",
         "styling",
         "links",
         "security",
@@ -25,7 +26,7 @@ export class ComponentDiagramDocs extends BaseModuleDocs {
       knownGaps: [
         "component-body-port-blocks",
         "style-block-cascade",
-        "hidden-edges",
+        "hidden-edge-layout-constraints",
         "legend-header-footer-rendering",
       ],
     });

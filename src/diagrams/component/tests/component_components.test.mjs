@@ -85,3 +85,24 @@ test("component notes support note-on-link blocks", () => {
   assert.ok(notes.some((note) => note.description.includes("public entry point")));
   assert.ok(diagram.connections.some((connection) => connection.kind === "note"));
 });
+
+test("component presentation metadata parses and hidden arrows stay non-rendered", async () => {
+  const example = exampleById.get("presentation-hidden");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  assert.equal(diagram.title, "Component landscape");
+  assert.equal(diagram.caption, "Runtime view");
+  assert.equal(diagram.header, "Internal");
+  assert.equal(diagram.footer, "Confidential");
+  assert.equal(diagram.mainframe, "Component frame");
+  assert.match(diagram.legend, /Hidden edge/);
+  assert.equal(diagram.connections.length, 1);
+  assert.equal(diagram.connections[0].label, "reads");
+
+  const doc = await renderPlantUml(example.source, {
+    sourceLabel: "component/presentation-hidden",
+  });
+  const arrows = doc.elements.filter((element) => element.type === "arrow");
+  assert.equal(arrows.length, 1);
+});

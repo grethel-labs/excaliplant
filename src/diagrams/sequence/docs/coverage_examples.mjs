@@ -259,8 +259,14 @@ end
       "Covers global sequence decorations, single-canvas newpage rendering, hide unlinked pruning, and solid lifeline style.",
     source: `@startuml
   !pragma teoz true
-header Sequence coverage header
-footer Sequence coverage footer
+header
+Sequence coverage header
+with a second line
+endheader
+footer
+Sequence coverage footer
+with audit marker
+endfooter
 mainframe Sequence coverage frame
 skinparam sequence LifeLineStrategy solid
 hide unlinked
@@ -452,7 +458,8 @@ export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   {
     component: "Header/footer/newpage",
     status: "supported",
-    notes: "Header/footer render visibly; newpage renders as a single-canvas page-break divider.",
+    notes:
+      "Single-line and block header/footer render visibly; newpage renders as a single-canvas page-break divider.",
   },
   {
     component: "Combined fragments",

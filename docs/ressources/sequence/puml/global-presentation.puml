@@ -1,7 +1,13 @@
 @startuml
   !pragma teoz true
-header Sequence coverage header
-footer Sequence coverage footer
+header
+Sequence coverage header
+with a second line
+endheader
+footer
+Sequence coverage footer
+with audit marker
+endfooter
 mainframe Sequence coverage frame
 skinparam sequence LifeLineStrategy solid
 hide unlinked

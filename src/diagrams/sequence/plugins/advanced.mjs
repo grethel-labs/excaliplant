@@ -1,7 +1,7 @@
 // Additional sequence-diagram constructs: lifecycle, references,
 // participant grouping boxes, dividers, delays, spacing, and autonumber.
 
-import { stripQuotes, unescapeLabel } from "../../../util/plantuml_utils.mjs";
+import { collectBlockLines, stripQuotes, unescapeLabel } from "../../../util/plantuml_utils.mjs";
 
 const AUTONUMBER = /^autonumber(?:\s+(.*))?$/i;
 const AUTOACTIVATE = /^autoactivate\s+(on|off|true|false)$/i;
@@ -23,6 +23,8 @@ const SHOW_FOOTBOX = /^show\s+footbox$/i;
 const HIDE_UNLINKED = /^hide\s+unlinked$/i;
 const HEADER = /^header\s+(.+)$/i;
 const FOOTER = /^footer\s+(.+)$/i;
+const HEADER_BLOCK = /^header$/i;
+const FOOTER_BLOCK = /^footer$/i;
 const NEWPAGE = /^newpage(?:\s+(.*))?$/i;
 const MAINFRAME = /^mainframe\s+(.+)$/i;
 const PRAGMA_TEOZ = /^!pragma\s+teoz\b/i;
@@ -36,6 +38,16 @@ const PARTITION_END = /^end\s+partition$/i;
 export const sequenceAdvancedPlugin = {
   name: "sequence.advanced",
   tryStart(line, ctx) {
+    if (HEADER_BLOCK.test(line)) {
+      return collectBlockLines(/^end\s*header$/i, (lines, ctx2) => {
+        ctx2.setHeader(unescapeLabel(lines.join("\n")));
+      });
+    }
+    if (FOOTER_BLOCK.test(line)) {
+      return collectBlockLines(/^end\s*footer$/i, (lines, ctx2) => {
+        ctx2.setFooter(unescapeLabel(lines.join("\n")));
+      });
+    }
     const ref = line.match(REF_BLOCK);
     if (!ref) return null;
     const target = ctx.ensureParticipant(ref[1]);

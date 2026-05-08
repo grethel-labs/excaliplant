@@ -18,7 +18,7 @@ The goal is to keep PlantUML sequence syntax, the object-oriented sequence model
 | Arrow variants and colors                   | supported | Filled/open/dashed/bidirectional/circle/cross/partial/color variants are modeled and rendered.             |
 | Autonumber                                  | supported | Start/increment/stop/resume plus safe plain-text {0} and zero-padding formats.                             |
 | Title                                       | supported | Single-line title supported and rendered topmost.                                                          |
-| Header/footer/newpage                       | supported | Header/footer render visibly; newpage renders as a single-canvas page-break divider.                       |
+| Header/footer/newpage                       | supported | Single-line and block header/footer render visibly; newpage renders as a single-canvas page-break divider. |
 | Combined fragments                          | supported | opt, loop, alt/else, par/and, break, critical/option, group/option.                                        |
 | Group secondary label and colored groups    | supported | Group secondary labels and explicit fragment colors render separately.                                     |
 | Partition/teoz                              | supported | Teoz pragmas, partition wrappers, and & messages parse with deterministic single-row geometry.             |
@@ -331,8 +331,14 @@ PlantUML source: [ressources/sequence/puml/global-presentation.puml](ressources/
 ```java
 @startuml
   !pragma teoz true
-header Sequence coverage header
-footer Sequence coverage footer
+header
+Sequence coverage header
+with a second line
+endheader
+footer
+Sequence coverage footer
+with audit marker
+endfooter
 mainframe Sequence coverage frame
 skinparam sequence LifeLineStrategy solid
 hide unlinked

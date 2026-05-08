@@ -74,4 +74,25 @@ end note
 note right of api : public entry point
 @enduml`,
   },
+  {
+    id: "presentation-hidden",
+    title: "Presentation metadata and hidden edges",
+    description:
+      "Caption/header/footer/legend/mainframe/allowmixing commands parse, and hidden arrows do not render visible edges.",
+    source: `@startuml
+title Component landscape
+caption Runtime view
+header Internal
+footer Confidential
+mainframe Component frame
+allowmixing
+legend
+  Hidden edge keeps layout intent only.
+end legend
+component "API" as api
+database Cache
+api -[hidden]-> Cache
+api --> Cache : reads
+@enduml`,
+  },
 ]);

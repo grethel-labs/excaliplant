@@ -547,6 +547,20 @@ function arrowHeadKindFromExcalidraw(arrowhead) {
 export class Diagram {
   constructor() {
     this.title = "";
+    /** @type {boolean} Whether `hide empty members` was requested by graph syntax. */
+    this.hideEmptyMembers = false;
+    /** @type {string} Optional ELK direction override such as RIGHT or DOWN. */
+    this.layoutDirection = "";
+    /** @type {string} Optional graph caption metadata. */
+    this.caption = "";
+    /** @type {string} Optional graph header metadata. */
+    this.header = "";
+    /** @type {string} Optional graph footer metadata. */
+    this.footer = "";
+    /** @type {string} Optional graph legend metadata. */
+    this.legend = "";
+    /** @type {string} Optional graph mainframe metadata. */
+    this.mainframe = "";
     /** @type {Plane[]} */
     this.planes = [];
     /** @type {Connection[]} */

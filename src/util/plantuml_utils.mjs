@@ -22,14 +22,7 @@ export const TITLE_LINE = /^title\s+(.+)$/;
  * engine's `skip` array if needed.
  * @public
  */
-export const ALWAYS_SKIP = [
-  /^@startuml/,
-  /^@enduml/,
-  /^!/,
-  /^hide\s+(?!(?:footbox|unlinked)\b)/i,
-  /^show\s/,
-  /^scale\s/,
-];
+export const ALWAYS_SKIP = [/^@startuml/, /^@enduml/, /^!/, /^scale\s/];
 
 /**
  * Strip a trailing PlantUML line comment (`'…`), preserving any `'`
@@ -258,6 +251,7 @@ export function normaliseShape(kw) {
  *   startArrowhead: string|null,
  *   endArrowhead:   string|null,
  *   directionHint:  string|null,
+ *   hidden?: boolean,
  * } | null} Structural breakdown of the operator, or `null` when unrecognised.
  * @public
  */
@@ -279,6 +273,7 @@ export function classifyArrow(op) {
   const endsWithRight = op.endsWith(">");
   const reversed = startsWithLeft && !endsWithRight;
   const dashed = op.includes(".") || /(?:^|,)dashed(?:,|$)/.test(styleText);
+  const hidden = /(?:^|,)hidden(?:,|$)/.test(styleText);
 
   if (op.includes("|>") || op.includes("<|")) {
     return {
@@ -288,6 +283,7 @@ export function classifyArrow(op) {
       startArrowhead: null,
       endArrowhead: "triangle_outline",
       directionHint,
+      hidden,
     };
   }
   if (op.startsWith("*") || op.endsWith("*")) {
@@ -298,6 +294,7 @@ export function classifyArrow(op) {
       startArrowhead: "diamond",
       endArrowhead: null,
       directionHint,
+      hidden,
     };
   }
   if (op.startsWith("o") || op.endsWith("o")) {
@@ -308,6 +305,7 @@ export function classifyArrow(op) {
       startArrowhead: "diamond_outline",
       endArrowhead: null,
       directionHint,
+      hidden,
     };
   }
   if (!/[-.]/.test(op)) return null;
@@ -319,5 +317,6 @@ export function classifyArrow(op) {
     startArrowhead: bidir ? "arrow" : null,
     endArrowhead: endsWithRight || bidir ? "arrow" : reversed ? null : "arrow",
     directionHint,
+    hidden,
   };
 }

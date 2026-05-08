@@ -24,6 +24,8 @@ import { planeColor, subplaneColor } from "../../general/style/colors.mjs";
  *   queueNote(spec: object): void,
  *   queueLinkNote(spec: object): void,
  *   addPort(spec: object): void,
+ *   removeBox(id: string): void,
+ *   queueFilter(spec: object): void,
  *   nextNoteId(): string,
  *   finalize(): void,
  * }}
@@ -42,6 +44,10 @@ export function createComponentContext() {
   const pendingNotes = [];
   /** @type {any[]} */
   const pendingPorts = [];
+  /** @type {Set<string>} */
+  const removedIds = new Set();
+  /** @type {any[]} */
+  const pendingFilters = [];
   /** @type {Plane | null} */
   let floatingPlane = null;
 
@@ -172,12 +178,36 @@ export function createComponentContext() {
     addPort(/** @type {any} */ spec) {
       pendingPorts.push(spec);
     },
+    /**
+     * Remove a box and any connections that mention it. The actual
+     * pruning happens in finalize so removals can appear before or
+     * after declarations.
+     * @param {string} id Box id or alias.
+     */
+    removeBox(/** @type {string} */ id) {
+      removedIds.add(id);
+    },
+    /**
+     * Record a hide/show command for downstream behaviour.
+     * @param {any} spec Filter command record.
+     */
+    queueFilter(/** @type {any} */ spec) {
+      pendingFilters.push(spec);
+    },
     /** @returns {string} Fresh unique note id. */
     nextNoteId() {
       return `note_${noteCounter++}`;
     },
 
     finalize() {
+      for (const filter of pendingFilters) {
+        if (filter.command === "hide" && /^empty\s+members$/i.test(filter.target)) {
+          diagram.hideEmptyMembers = true;
+        }
+        if (filter.command === "show" && /^empty\s+members$/i.test(filter.target)) {
+          diagram.hideEmptyMembers = false;
+        }
+      }
       // Auto-vivify endpoints for connections that explicitly opted in
       // (currently: class-diagram inheritance/realisation edges queued
       // by `classBlockPlugin` for headers like
@@ -213,12 +243,15 @@ export function createComponentContext() {
         return port;
       };
       for (const port of pendingPorts) {
+        if (removedIds.has(port.boxId)) continue;
         const box = boxes.get(port.boxId);
         if (!box) continue;
         ensureBoxPort(box, port.portId, port.side || "right", port.direction || "port");
       }
       // Resolve connections.
       for (const c of pendingConnections) {
+        if (c.hidden) continue;
+        if (removedIds.has(c.fromId) || removedIds.has(c.toId)) continue;
         const fromBox = ensureEndpoint(c.fromId, !!c.fromShorthand, !!c.allowVivify);
         const toBox = ensureEndpoint(c.toId, !!c.toShorthand, !!c.allowVivify);
         if (!fromBox || !toBox || fromBox === toBox) continue;
@@ -284,6 +317,7 @@ export function createComponentContext() {
       }
       // Resolve notes.
       for (const n of pendingNotes) {
+        if (removedIds.has(n.targetId)) continue;
         const target = boxes.get(n.targetId);
         if (!target) continue;
         const noteBox = new Box({
@@ -309,6 +343,19 @@ export function createComponentContext() {
             endArrowhead: null,
           }),
         );
+      }
+      if (removedIds.size) {
+        for (const id of removedIds) boxes.delete(id);
+        for (const plane of diagram.planes) {
+          plane.children = plane.children.filter((child) => {
+            if (child instanceof Box) return !removedIds.has(child.id);
+            if (child instanceof Subplane) {
+              child.boxes = child.boxes.filter((box) => !removedIds.has(box.id));
+              return true;
+            }
+            return true;
+          });
+        }
       }
     },
   };

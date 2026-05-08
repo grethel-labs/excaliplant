@@ -79,3 +79,25 @@ test("class notes support note-on-link and member-qualified note targets", () =>
   assert.ok(notes.some((note) => note.description.includes("parses safely")));
   assert.ok(diagram.connections.some((connection) => connection.kind === "note"));
 });
+
+test("class association classes and remove filters are modeled", () => {
+  const example = exampleById.get("association-filters");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  assert.equal(diagram.boxById("Obsolete"), null);
+  const association = diagram.boxById("Enrollment");
+  assert.ok(association);
+  assert.equal(association.stereotype, "association");
+  assert.equal(diagram.hideEmptyMembers, false);
+
+  const associationEdges = diagram.connections.filter(
+    (connection) => connection.kind === "association-class",
+  );
+  assert.equal(associationEdges.length, 2);
+  assert.ok(associationEdges.every((connection) => connection.from.id === "Enrollment"));
+  assert.deepEqual(associationEdges.map((connection) => connection.to.id).sort(), [
+    "Course",
+    "Student",
+  ]);
+});
