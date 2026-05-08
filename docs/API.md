@@ -1415,7 +1415,7 @@ function createSequenceContext();
 Construct the mutable parsing context shared by all sequence-diagram
 plugins during a single `parsePlantUml` invocation.
 
-**Returns:** `{ readonly result: import("../../general/model/diagram.mjs").SequenceDiagram, diagram: import("../../general/model/diagram.mjs").SequenceDiagram, setTitle(t: string): void, setHeader(t: string): void, setFooter(t: string): void, setMainframe(t: string): void, ensureParticipant(id: string): import("../../general/model/diagram.mjs").Participant, declareParticipant(spec: object): import("../../general/model/diagram.mjs").Participant, nextMessageId(): string, nextNoteId(): string, nextFragmentId(): string, nextActivationId(): string, nextMarkerId(): string, nextReferenceId(): string, nextParticipantGroupId(): string, currentSeq(): number, lastSeq(): number, addMessage(spec: object): import("../../general/model/diagram.mjs").Message, addNote(spec: object): void, addMarker(kind: string, label?: string, size?: number): void, addReference(spec: object): void, startFragment(kind: string, label?: string, secondaryLabel?: string, color?: string): void, splitFragmentOperand(label?: string): boolean, endFragment(): boolean, startActivation(participant: import("../../general/model/diagram.mjs").Participant, color?: string, seq?: number, caller?: import("../../general/model/diagram.mjs").Participant|null): void, endActivation(participant: import("../../general/model/diagram.mjs").Participant, seq?: number): boolean, addReturnMessage(label?: string): boolean, markCreated(participant: import("../../general/model/diagram.mjs").Participant, seq?: number): void, markDestroyed(participant: import("../../general/model/diagram.mjs").Participant, seq?: number): void, setAutonumber(enabled: boolean, start?: number, step?: number, format?: string): void, setSequenceStyle(key: keyof import("../../general/model/diagram.mjs").SequenceDiagram["style"], value: string): void, setFootboxVisible(visible: boolean): void, setHideUnlinked(visible: boolean): void, startParticipantGroup(label?: string, color?: string): void, endParticipantGroup(): boolean, }`
+**Returns:** `{ readonly result: import("../../general/model/diagram.mjs").SequenceDiagram, diagram: import("../../general/model/diagram.mjs").SequenceDiagram, setTitle(t: string): void, setHeader(t: string): void, setFooter(t: string): void, setMainframe(t: string): void, ensureParticipant(id: string): import("../../general/model/diagram.mjs").Participant, declareParticipant(spec: object): import("../../general/model/diagram.mjs").Participant, nextMessageId(): string, nextNoteId(): string, nextFragmentId(): string, nextActivationId(): string, nextMarkerId(): string, nextReferenceId(): string, nextParticipantGroupId(): string, currentSeq(): number, lastSeq(): number, addMessage(spec: object): import("../../general/model/diagram.mjs").Message, addNote(spec: object): void, addMarker(kind: string, label?: string, size?: number): void, addReference(spec: object): void, startFragment(kind: string, label?: string, secondaryLabel?: string, color?: string): void, splitFragmentOperand(label?: string): boolean, endFragment(): boolean, startActivation(participant: import("../../general/model/diagram.mjs").Participant, color?: string, seq?: number, caller?: import("../../general/model/diagram.mjs").Participant|null): void, endActivation(participant: import("../../general/model/diagram.mjs").Participant, seq?: number): boolean, addReturnMessage(label?: string): boolean, markCreated(participant: import("../../general/model/diagram.mjs").Participant, seq?: number): void, markDestroyed(participant: import("../../general/model/diagram.mjs").Participant, seq?: number): void, setAutonumber(enabled: boolean, start?: number, step?: number, format?: string): void, setAutoactivate(enabled: boolean): void, applyAutoactivation(message: import("../../general/model/diagram.mjs").Message, lifecycle?: string): void, setSequenceStyle(key: keyof import("../../general/model/diagram.mjs").SequenceDiagram["style"], value: string): void, setFootboxVisible(visible: boolean): void, setHideUnlinked(visible: boolean): void, startParticipantGroup(label?: string, color?: string): void, endParticipantGroup(): boolean, }`
 
 ---
 
@@ -2084,7 +2084,7 @@ const classBlockPlugin;
 ```
 
 Class-diagram block plugin. Runs before the generic keyword-shape
-plugin so `class | interface | enum [extends|implements] [{ … }]` is
+plugin so `class | interface | enum | annotation | record [extends|implements] [{ … }]` is
 routed here, while everything else (`component`, `database`, …)
 keeps flowing through {@link shapeKeywordPlugin}.
 
@@ -2094,7 +2094,7 @@ keeps flowing through {@link shapeKeywordPlugin}.
 
 ```ts
 {
-  shape: "class"|"interface"|"enum",
+  shape: "class"|"interface"|"enum"|"annotation"|"record",
   isAbstract: boolean,
   name: string,
   alias: string|null,
@@ -2107,7 +2107,7 @@ keeps flowing through {@link shapeKeywordPlugin}.
 }
 ```
 
-shape: "class"|"interface"|"enum",
+shape: "class"|"interface"|"enum"|"annotation"|"record",
 isAbstract: boolean,
 name: string,
 alias: string|null,
