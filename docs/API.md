@@ -24,6 +24,7 @@ this document is the exhaustive view across every exported symbol in
 - [`diagrams/base/tests`](#diagramsbasetests)
 - [`diagrams/class/assets`](#diagramsclassassets)
 - [`diagrams/class/docs`](#diagramsclassdocs)
+- [`diagrams/class/docs/coverage_examples`](#diagramsclassdocscoverage_examples)
 - [`diagrams/class/layout`](#diagramsclasslayout)
 - [`diagrams/class/module`](#diagramsclassmodule)
 - [`diagrams/class/parser`](#diagramsclassparser)
@@ -31,14 +32,17 @@ this document is the exhaustive view across every exported symbol in
 - [`diagrams/class/security`](#diagramsclasssecurity)
 - [`diagrams/class/style`](#diagramsclassstyle)
 - [`diagrams/class/tests`](#diagramsclasstests)
+- [`diagrams/class/tests/output`](#diagramsclasstestsoutput)
 - [`diagrams/component/assets`](#diagramscomponentassets)
 - [`diagrams/component/docs`](#diagramscomponentdocs)
+- [`diagrams/component/docs/coverage_examples`](#diagramscomponentdocscoverage_examples)
 - [`diagrams/component/layout`](#diagramscomponentlayout)
 - [`diagrams/component/module`](#diagramscomponentmodule)
 - [`diagrams/component/parser`](#diagramscomponentparser)
 - [`diagrams/component/render`](#diagramscomponentrender)
 - [`diagrams/component/security`](#diagramscomponentsecurity)
 - [`diagrams/component/tests`](#diagramscomponenttests)
+- [`diagrams/component/tests/output`](#diagramscomponenttestsoutput)
 - [`diagrams/index`](#diagramsindex)
 - [`diagrams/sequence/assets`](#diagramssequenceassets)
 - [`diagrams/sequence/context`](#diagramssequencecontext)
@@ -67,6 +71,7 @@ this document is the exhaustive view across every exported symbol in
 - [`diagrams/shared/graph_plugins/connections`](#diagramssharedgraph_pluginsconnections)
 - [`diagrams/shared/graph_plugins/containers`](#diagramssharedgraph_pluginscontainers)
 - [`diagrams/shared/graph_plugins/notes`](#diagramssharedgraph_pluginsnotes)
+- [`diagrams/shared/graph_plugins/ports`](#diagramssharedgraph_pluginsports)
 - [`diagrams/shared/graph_plugins/preamble`](#diagramssharedgraph_pluginspreamble)
 - [`diagrams/shared/graph_plugins/shapes`](#diagramssharedgraph_pluginsshapes)
 - [`diagrams/shared/graph_runtime`](#diagramssharedgraph_runtime)
@@ -849,6 +854,26 @@ const classDiagramDocs;
 
 ---
 
+## `diagrams/class/docs/coverage_examples`
+
+_Source: [`src/diagrams/class/docs/coverage_examples.mjs`](src/diagrams/class/docs/coverage_examples.mjs)_
+
+Class-diagram coverage examples owned by the class module.
+
+### Exports
+
+| Name                                                                                       | Kind  | Visibility |
+| ------------------------------------------------------------------------------------------ | ----- | ---------- |
+| [`CLASS_COMPONENT_EXAMPLES`](#class_component_examples-diagramsclassdocscoverage_examples) | const | public     |
+
+#### <a id="class_component_examples-diagramsclassdocscoverage_examples"></a>`CLASS_COMPONENT_EXAMPLES`
+
+```ts
+const CLASS_COMPONENT_EXAMPLES;
+```
+
+---
+
 ## `diagrams/class/layout`
 
 _Source: [`src/diagrams/class/layout.mjs`](src/diagrams/class/layout.mjs)_
@@ -1081,6 +1106,42 @@ const classDiagramTests;
 
 ---
 
+## `diagrams/class/tests/output`
+
+_Source: [`src/diagrams/class/tests/output.mjs`](src/diagrams/class/tests/output.mjs)_
+
+### Exports
+
+| Name                                                                       | Kind     | Visibility  |
+| -------------------------------------------------------------------------- | -------- | ----------- |
+| [`CLASS_TEST_OUTPUT_DIR`](#class_test_output_dir-diagramsclasstestsoutput) | const    | unspecified |
+| [`writeClassOutput`](#writeclassoutput-diagramsclasstestsoutput)           | function | unspecified |
+
+#### <a id="class_test_output_dir-diagramsclasstestsoutput"></a>`CLASS_TEST_OUTPUT_DIR`
+
+```ts
+const CLASS_TEST_OUTPUT_DIR;
+```
+
+Absolute path to the Class module's generated test-review artefacts.
+
+#### <a id="writeclassoutput-diagramsclasstestsoutput"></a>`writeClassOutput`
+
+```ts
+function writeClassOutput(filename, content);
+```
+
+Write a Class-module test artefact to `src/diagrams/class/tests/output/`.
+
+**Parameters**
+
+| Name       | Type     | Description                                                   |
+| ---------- | -------- | ------------------------------------------------------------- | ----------- | ----------------- |
+| `filename` | `string` | File name or relative path below the module output directory. |
+| `content`  | `string  | Buffer                                                        | Uint8Array` | Content to write. |
+
+---
+
 ## `diagrams/component/assets`
 
 _Source: [`src/diagrams/component/assets.mjs`](src/diagrams/component/assets.mjs)_
@@ -1131,6 +1192,26 @@ class ComponentDiagramDocs extends BaseModuleDocs
 
 ```ts
 const componentDiagramDocs;
+```
+
+---
+
+## `diagrams/component/docs/coverage_examples`
+
+_Source: [`src/diagrams/component/docs/coverage_examples.mjs`](src/diagrams/component/docs/coverage_examples.mjs)_
+
+Component-diagram coverage examples owned by the component module.
+
+### Exports
+
+| Name                                                                                                   | Kind  | Visibility |
+| ------------------------------------------------------------------------------------------------------ | ----- | ---------- |
+| [`COMPONENT_COMPONENT_EXAMPLES`](#component_component_examples-diagramscomponentdocscoverage_examples) | const | public     |
+
+#### <a id="component_component_examples-diagramscomponentdocscoverage_examples"></a>`COMPONENT_COMPONENT_EXAMPLES`
+
+```ts
+const COMPONENT_COMPONENT_EXAMPLES;
 ```
 
 ---
@@ -1344,6 +1425,42 @@ class ComponentDiagramTests extends BaseModuleTests
 ```ts
 const componentDiagramTests;
 ```
+
+---
+
+## `diagrams/component/tests/output`
+
+_Source: [`src/diagrams/component/tests/output.mjs`](src/diagrams/component/tests/output.mjs)_
+
+### Exports
+
+| Name                                                                                   | Kind     | Visibility  |
+| -------------------------------------------------------------------------------------- | -------- | ----------- |
+| [`COMPONENT_TEST_OUTPUT_DIR`](#component_test_output_dir-diagramscomponenttestsoutput) | const    | unspecified |
+| [`writeComponentOutput`](#writecomponentoutput-diagramscomponenttestsoutput)           | function | unspecified |
+
+#### <a id="component_test_output_dir-diagramscomponenttestsoutput"></a>`COMPONENT_TEST_OUTPUT_DIR`
+
+```ts
+const COMPONENT_TEST_OUTPUT_DIR;
+```
+
+Absolute path to the Component module's generated test-review artefacts.
+
+#### <a id="writecomponentoutput-diagramscomponenttestsoutput"></a>`writeComponentOutput`
+
+```ts
+function writeComponentOutput(filename, content);
+```
+
+Write a Component-module test artefact to `src/diagrams/component/tests/output/`.
+
+**Parameters**
+
+| Name       | Type     | Description                                                   |
+| ---------- | -------- | ------------------------------------------------------------- | ----------- | ----------------- |
+| `filename` | `string` | File name or relative path below the module output directory. |
+| `content`  | `string  | Buffer                                                        | Uint8Array` | Content to write. |
 
 ---
 
@@ -2080,7 +2197,7 @@ during a single `parsePlantUml` invocation. The returned object
 exposes high-level helpers (`addBox`, `openContainer`, …) so that
 plugins never touch the model classes directly.
 
-**Returns:** `{ readonly result: import("../../general/model/diagram.mjs").Diagram, diagram: import("../../general/model/diagram.mjs").Diagram, boxes: Map<string, import("../../general/model/diagram.mjs").Box>, setTitle(t: string): void, openContainer(spec: { id: string, title: string, kind: string }): void, closeContainer(): void, addBox(spec: object): import("../../general/model/diagram.mjs").Box, queueConnection(spec: object): void, queueNote(spec: object): void, nextNoteId(): string, finalize(): void, }`
+**Returns:** `{ readonly result: import("../../general/model/diagram.mjs").Diagram, diagram: import("../../general/model/diagram.mjs").Diagram, boxes: Map<string, import("../../general/model/diagram.mjs").Box>, setTitle(t: string): void, openContainer(spec: { id: string, title: string, kind: string }): void, closeContainer(): void, addBox(spec: object): import("../../general/model/diagram.mjs").Box, queueConnection(spec: object): void, queueNote(spec: object): void, queueLinkNote(spec: object): void, addPort(spec: object): void, nextNoteId(): string, finalize(): void, }`
 
 ---
 
@@ -2149,7 +2266,7 @@ const classBlockPlugin;
 ```
 
 Class-diagram block plugin. Runs before the generic keyword-shape
-plugin so `class | interface | enum | annotation | record [extends|implements] [{ … }]` is
+plugin so class-family declarations with `[extends|implements] [{ … }]` are
 routed here, while everything else (`component`, `database`, …)
 keeps flowing through {@link shapeKeywordPlugin}.
 
@@ -2159,7 +2276,7 @@ keeps flowing through {@link shapeKeywordPlugin}.
 
 ```ts
 {
-  shape: "class"|"interface"|"enum"|"annotation"|"record",
+  shape: "class"|"interface"|"enum"|"annotation"|"record"|"protocol"|"struct"|"exception"|"metaclass"|"stereotype"|"dataclass"|"circle",
   isAbstract: boolean,
   name: string,
   alias: string|null,
@@ -2172,7 +2289,7 @@ keeps flowing through {@link shapeKeywordPlugin}.
 }
 ```
 
-shape: "class"|"interface"|"enum"|"annotation"|"record",
+shape: "class"|"interface"|"enum"|"annotation"|"record"|"protocol"|"struct"|"exception"|"metaclass"|"stereotype"|"dataclass"|"circle",
 isAbstract: boolean,
 name: string,
 alias: string|null,
@@ -2235,11 +2352,12 @@ _Source: [`src/diagrams/shared/graph_plugins/notes.mjs`](src/diagrams/shared/gra
 
 ### Exports
 
-| Name                                                                   | Kind  | Visibility  |
-| ---------------------------------------------------------------------- | ----- | ----------- |
-| [`noteOfPlugin`](#noteofplugin-diagramssharedgraph_pluginsnotes)       | const | unspecified |
-| [`noteFreePlugin`](#notefreeplugin-diagramssharedgraph_pluginsnotes)   | const | unspecified |
-| [`noteBlockPlugin`](#noteblockplugin-diagramssharedgraph_pluginsnotes) | const | unspecified |
+| Name                                                                     | Kind  | Visibility  |
+| ------------------------------------------------------------------------ | ----- | ----------- |
+| [`noteOfPlugin`](#noteofplugin-diagramssharedgraph_pluginsnotes)         | const | unspecified |
+| [`noteFreePlugin`](#notefreeplugin-diagramssharedgraph_pluginsnotes)     | const | unspecified |
+| [`noteBlockPlugin`](#noteblockplugin-diagramssharedgraph_pluginsnotes)   | const | unspecified |
+| [`noteOnLinkPlugin`](#noteonlinkplugin-diagramssharedgraph_pluginsnotes) | const | unspecified |
 
 #### <a id="noteofplugin-diagramssharedgraph_pluginsnotes"></a>`noteOfPlugin`
 
@@ -2265,6 +2383,37 @@ const noteBlockPlugin;
 
 Multi-line note block, terminated by `end note`.
 
+#### <a id="noteonlinkplugin-diagramssharedgraph_pluginsnotes"></a>`noteOnLinkPlugin`
+
+```ts
+const noteOnLinkPlugin;
+```
+
+Attach a note to the most recently parsed connection.
+
+---
+
+## `diagrams/shared/graph_plugins/ports`
+
+_Source: [`src/diagrams/shared/graph_plugins/ports.mjs`](src/diagrams/shared/graph_plugins/ports.mjs)_
+
+### Exports
+
+| Name                                                         | Kind  | Visibility  |
+| ------------------------------------------------------------ | ----- | ----------- |
+| [`portPlugin`](#portplugin-diagramssharedgraph_pluginsports) | const | unspecified |
+
+#### <a id="portplugin-diagramssharedgraph_pluginsports"></a>`portPlugin`
+
+```ts
+const portPlugin;
+```
+
+Component `port`, `portin` and `portout` declarations.
+
+The declaration must name the owning component with `Component::port`,
+matching the endpoint form accepted by the connection parser.
+
 ---
 
 ## `diagrams/shared/graph_plugins/preamble`
@@ -2278,6 +2427,7 @@ _Source: [`src/diagrams/shared/graph_plugins/preamble.mjs`](src/diagrams/shared/
 | [`titlePlugin`](#titleplugin-diagramssharedgraph_pluginspreamble)           | const | unspecified |
 | [`closeBracePlugin`](#closebraceplugin-diagramssharedgraph_pluginspreamble) | const | unspecified |
 | [`skinparamPlugin`](#skinparamplugin-diagramssharedgraph_pluginspreamble)   | const | unspecified |
+| [`directionPlugin`](#directionplugin-diagramssharedgraph_pluginspreamble)   | const | unspecified |
 
 #### <a id="titleplugin-diagramssharedgraph_pluginspreamble"></a>`titlePlugin`
 
@@ -2303,6 +2453,14 @@ const skinparamPlugin;
 
 Component diagrams currently tolerate PlantUML skinparams without applying
 them so strict parsing stays compatible with common style preambles.
+
+#### <a id="directionplugin-diagramssharedgraph_pluginspreamble"></a>`directionPlugin`
+
+```ts
+const directionPlugin;
+```
+
+Shared graph direction hints such as `left to right direction`.
 
 ---
 
@@ -5195,4 +5353,4 @@ recognised.
 
 ---
 
-_Total: 85 modules._
+_Total: 90 modules._

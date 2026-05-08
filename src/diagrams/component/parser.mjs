@@ -40,8 +40,9 @@ export function detectComponentDiagram(text) {
     const line = stripComment(raw).trim();
     if (!line) continue;
     if (/^skinparam\s+(?:component|package|node|frame|folder|database)\b/i.test(line)) return true;
+    if (/^(?:left\s+to\s+right|top\s+to\s+bottom)\s+direction$/i.test(line)) return true;
     if (
-      /^(?:component|package|node|frame|folder|cloud|database|queue|artifact|actor|usecase)\b/i.test(
+      /^(?:component|package|node|frame|folder|cloud|database|queue|artifact|actor|usecase|port|portin|portout)\b/i.test(
         line,
       )
     ) {

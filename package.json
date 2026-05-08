@@ -51,7 +51,7 @@
   },
   "scripts": {
     "pretest": "node scripts/clean-test-output.mjs",
-    "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/merge_driver.test.mjs tests/modular_architecture.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs tests/sequence_components.test.mjs tests/style.test.mjs",
+    "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/merge_driver.test.mjs tests/modular_architecture.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs tests/sequence_components.test.mjs tests/class_components.test.mjs tests/component_components.test.mjs tests/style.test.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "build:docs": "node docs/scripts/build-docs.mjs",
     "build:api": "node docs/scripts/build-docs.mjs",

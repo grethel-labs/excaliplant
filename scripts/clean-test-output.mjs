@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 const dirs = [
   join(fileURLToPath(import.meta.url), "../../tests/output"),
   join(fileURLToPath(import.meta.url), "../../src/diagrams/sequence/tests/output"),
+  join(fileURLToPath(import.meta.url), "../../src/diagrams/class/tests/output"),
+  join(fileURLToPath(import.meta.url), "../../src/diagrams/component/tests/output"),
 ];
 
 for (const dir of dirs) {

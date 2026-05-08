@@ -15,12 +15,19 @@ export class ComponentDiagramDocs extends BaseModuleDocs {
         "lollipop-interface",
         "queue",
         "artifact",
+        "ports",
+        "notes-on-link",
         "styling",
         "links",
         "security",
       ],
       generatedPages: [],
-      knownGaps: ["full-component-coverage"],
+      knownGaps: [
+        "component-body-port-blocks",
+        "style-block-cascade",
+        "hidden-edges",
+        "legend-header-footer-rendering",
+      ],
     });
   }
 }
