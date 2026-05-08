@@ -235,6 +235,25 @@ test("rich component diagram parses all shapes / arrows / notes", () => {
   assert.ok(noteConn);
 });
 
+test("component diagram parses lollipop shorthand, queue and artifact declarations", () => {
+  const diagram = parsePlantUml(`@startuml
+component "API" as api
+() "HTTP" as HTTP
+queue "Jobs" as jobs
+artifact "Client SDK" as sdk
+api ..> HTTP : exposes
+api --> jobs : publishes
+sdk --> api : calls
+@enduml`);
+
+  assert.equal(diagram.boxById("api").shape, "component");
+  assert.equal(diagram.boxById("HTTP").shape, "interface");
+  assert.equal(diagram.boxById("jobs").shape, "queue");
+  assert.equal(diagram.boxById("sdk").shape, "rectangle");
+  assert.equal(diagram.connections.length, 3);
+  assert.ok(diagram.connections.some((connection) => connection.label === "exposes"));
+});
+
 test("rich diagram renders to Excalidraw with mixed primitives", async () => {
   const doc = await renderPlantUml(RICH, { sourceLabel: "rich" });
   assert.equal(doc.type, "excalidraw");

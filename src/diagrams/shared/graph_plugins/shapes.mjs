@@ -1,6 +1,6 @@
 // Box / shape declarations: bracket shorthand, usecase parens, and the
 // keyword-prefixed forms (component / actor / database / cloud / interface
-// / entity / class / rectangle / boundary / control / node-without-brace
+// / entity / class / rectangle / boundary / control / queue / artifact / node-without-brace
 // / usecase).
 //
 // `class X { … }` is a special case: the brace introduces a member list
@@ -11,6 +11,7 @@ import { STEREOTYPE, slug, unescapeLabel, normaliseShape } from "../../../util/p
 
 const BOX_BRACKET = /^\[([^\]]+)\](?:\s*<<\s*[^>]+\s*>>)?(?:\s+as\s+(\S+))?(?:\s*:\s*(.+))?$/;
 const USECASE_PARENS = /^\(([^)]+)\)(?:\s+as\s+(\S+))?(?:\s*:\s*(.+))?$/;
+const INTERFACE_CIRCLE = /^\(\)\s+(?:"([^"]+)"|(\S+))(?:\s+as\s+(\S+))?(?:\s*:\s*(.+))?$/;
 
 const SHAPE_KEYWORDS = [
   "component",
@@ -25,6 +26,8 @@ const SHAPE_KEYWORDS = [
   "rectangle",
   "boundary",
   "control",
+  "queue",
+  "artifact",
 ];
 const SHAPE_LINE = new RegExp(
   `^(${SHAPE_KEYWORDS.join("|")})\\s+(?:"([^"]+)"|(\\S+))` +
@@ -63,6 +66,18 @@ export const bracketBoxPlugin = {
 export const usecaseParensPlugin = {
   name: "component.usecaseParens",
   tryLine(line, ctx) {
+    const circle = line.match(INTERFACE_CIRCLE);
+    if (circle) {
+      const [, qTitle, bareId, alias, description] = circle;
+      ctx.addBox({
+        id: alias || bareId || slug(qTitle),
+        title: unescapeLabel(qTitle || bareId || alias),
+        description: unescapeLabel(description?.trim() || ""),
+        shape: "interface",
+      });
+      return true;
+    }
+
     const m = line.match(USECASE_PARENS);
     if (!m) return false;
     const [, label, alias, description] = m;

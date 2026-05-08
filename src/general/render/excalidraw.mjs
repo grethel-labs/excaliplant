@@ -707,6 +707,7 @@ function renderBox(box, parentColor, elements) {
     case "usecase":
       return renderUsecase(box, color, elements);
     case "database":
+    case "queue":
       return renderDatabase(box, color, elements);
     case "cloud":
       return renderCloud(box, color, elements);

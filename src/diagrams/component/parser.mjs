@@ -41,7 +41,9 @@ export function detectComponentDiagram(text) {
     if (!line) continue;
     if (/^skinparam\s+(?:component|package|node|frame|folder|database)\b/i.test(line)) return true;
     if (
-      /^(?:component|package|node|frame|folder|cloud|database|queue|actor|usecase)\b/i.test(line)
+      /^(?:component|package|node|frame|folder|cloud|database|queue|artifact|actor|usecase)\b/i.test(
+        line,
+      )
     ) {
       return true;
     }

@@ -64,6 +64,19 @@ export function detectSequenceDiagram(text) {
   for (const raw of text.split(/\r?\n/)) {
     const line = stripComment(raw).trim();
     if (!line) continue;
+    if (
+      /^(?:component|package|frame|folder|cloud|node|usecase|artifact|rectangle)(?:\s|$)/i.test(
+        line,
+      ) ||
+      /^\[[^\]]+\]/.test(line) ||
+      /^\(\)\s+/.test(line)
+    ) {
+      return false;
+    }
+  }
+  for (const raw of text.split(/\r?\n/)) {
+    const line = stripComment(raw).trim();
+    if (!line) continue;
     if (/^(participant|boundary|control|collections|queue)\b/.test(line)) return true;
     if (/^skinparam\s+sequence\b/i.test(line)) return true;
     if (/^(opt|loop|alt|par|break|critical|group)\b/.test(line)) return true;

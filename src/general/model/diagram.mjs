@@ -31,6 +31,7 @@ export const SHAPES = [
   "actor",
   "usecase",
   "database",
+  "queue",
   "node",
   "cloud",
   "interface",

@@ -9,7 +9,16 @@ import { BaseModuleDocs } from "../base/docs.mjs";
 export class ComponentDiagramDocs extends BaseModuleDocs {
   constructor() {
     super({
-      examples: ["basic", "containers", "styling", "links", "security"],
+      examples: [
+        "basic",
+        "containers",
+        "lollipop-interface",
+        "queue",
+        "artifact",
+        "styling",
+        "links",
+        "security",
+      ],
       generatedPages: [],
       knownGaps: ["full-component-coverage"],
     });

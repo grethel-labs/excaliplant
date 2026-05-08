@@ -209,6 +209,8 @@ export function normaliseShape(kw) {
       return "usecase";
     case "database":
       return "database";
+    case "queue":
+      return "queue";
     case "node":
       return "node";
     case "cloud":
@@ -224,6 +226,7 @@ export function normaliseShape(kw) {
     case "enum":
       return "enum";
     case "rectangle":
+    case "artifact":
       return "rectangle";
     case "boundary":
       return "interface";
