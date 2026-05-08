@@ -28,6 +28,19 @@ const SHAPE_KEYWORDS = [
   "control",
   "queue",
   "artifact",
+  "agent",
+  "file",
+  "folder",
+  "storage",
+  "card",
+  "hexagon",
+  "stack",
+  "person",
+  "label",
+  "circle",
+  "frame",
+  "package",
+  "collections",
 ];
 const SHAPE_LINE = new RegExp(
   `^(${SHAPE_KEYWORDS.join("|")})\\s+(?:"([^"]+)"|(\\S+))` +

@@ -36,13 +36,22 @@ export const componentDiagramParser = new ComponentDiagramParser();
  * @returns {boolean}
  */
 export function detectComponentDiagram(text) {
+  // First check if this is a deployment diagram (has deployment-specific keywords)
+  const deploymentKeywords =
+    /^(?:agent|storage|card|hexagon|stack|person|label|file|portin|portout)\b/i;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = stripComment(raw).trim();
+    if (!line) continue;
+    if (deploymentKeywords.test(line)) return false;
+  }
+
   for (const raw of text.split(/\r?\n/)) {
     const line = stripComment(raw).trim();
     if (!line) continue;
     if (/^skinparam\s+(?:component|package|node|frame|folder|database)\b/i.test(line)) return true;
     if (/^(?:left\s+to\s+right|top\s+to\s+bottom)\s+direction$/i.test(line)) return true;
     if (
-      /^(?:component|package|node|frame|folder|cloud|database|queue|artifact|actor|usecase|port|portin|portout)\b/i.test(
+      /^(?:component|package|node|frame|folder|cloud|database|queue|artifact|actor|usecase|port)\b/i.test(
         line,
       )
     ) {

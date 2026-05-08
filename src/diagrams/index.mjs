@@ -68,14 +68,39 @@ export {
 } from "./component/render.mjs";
 export { ComponentDiagramSecurity, componentDiagramSecurity } from "./component/security.mjs";
 export { ComponentDiagramTests, componentDiagramTests } from "./component/tests.mjs";
+export { DeploymentDiagramModule, deploymentDiagramModule } from "./deployment/module.mjs";
+export { DeploymentDiagramAssets, deploymentDiagramAssets } from "./deployment/assets.mjs";
+export { DeploymentDiagramDocs, deploymentDiagramDocs } from "./deployment/docs.mjs";
+export {
+  DeploymentDiagramLayout,
+  layoutDeploymentDiagram,
+  deploymentDiagramLayout,
+} from "./deployment/layout.mjs";
+export {
+  DeploymentDiagramParser,
+  DEFAULT_DEPLOYMENT_PLUGINS,
+  createDeploymentParseContext,
+  detectDeploymentDiagram,
+  prepareDeploymentLines,
+  deploymentDiagramParser,
+} from "./deployment/parser.mjs";
+export {
+  DEPLOYMENT_RENDERERS,
+  DeploymentDiagramRenderer,
+  deploymentDiagramRenderer,
+} from "./deployment/render.mjs";
+export { DeploymentDiagramSecurity, deploymentDiagramSecurity } from "./deployment/security.mjs";
+export { DeploymentDiagramTests, deploymentDiagramTests } from "./deployment/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
 import { classDiagramModule } from "./class/module.mjs";
 import { componentDiagramModule } from "./component/module.mjs";
+import { deploymentDiagramModule } from "./deployment/module.mjs";
 
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   sequenceDiagramModule,
   classDiagramModule,
   componentDiagramModule,
+  deploymentDiagramModule,
 ]);

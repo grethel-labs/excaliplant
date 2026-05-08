@@ -232,6 +232,30 @@ export function normaliseShape(kw) {
       return "interface";
     case "control":
       return "interface";
+    case "agent":
+      return "agent";
+    case "file":
+      return "file";
+    case "folder":
+      return "folder";
+    case "storage":
+      return "storage";
+    case "card":
+      return "card";
+    case "hexagon":
+      return "hexagon";
+    case "stack":
+      return "stack";
+    case "person":
+      return "person";
+    case "label":
+      return "label";
+    case "frame":
+      return "frame";
+    case "package":
+      return "package";
+    case "collections":
+      return "collections";
     default:
       return "rectangle";
   }

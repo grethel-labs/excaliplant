@@ -56,6 +56,12 @@ export { DEFAULT_COMPONENT_PLUGINS } from "./builtin.mjs";
 export { DEFAULT_CLASS_PLUGINS } from "./builtin.mjs";
 
 /**
+ * Default plugin pipeline for deployment diagrams.
+ * @public
+ */
+export { DEFAULT_DEPLOYMENT_PLUGINS } from "./builtin.mjs";
+
+/**
  * Default plugin pipeline for sequence diagrams.
  * @public
  */

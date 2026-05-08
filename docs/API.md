@@ -43,6 +43,16 @@ this document is the exhaustive view across every exported symbol in
 - [`diagrams/component/security`](#diagramscomponentsecurity)
 - [`diagrams/component/tests`](#diagramscomponenttests)
 - [`diagrams/component/tests/output`](#diagramscomponenttestsoutput)
+- [`diagrams/deployment/assets`](#diagramsdeploymentassets)
+- [`diagrams/deployment/docs`](#diagramsdeploymentdocs)
+- [`diagrams/deployment/docs/coverage_examples`](#diagramsdeploymentdocscoverage_examples)
+- [`diagrams/deployment/layout`](#diagramsdeploymentlayout)
+- [`diagrams/deployment/module`](#diagramsdeploymentmodule)
+- [`diagrams/deployment/parser`](#diagramsdeploymentparser)
+- [`diagrams/deployment/render`](#diagramsdeploymentrender)
+- [`diagrams/deployment/security`](#diagramsdeploymentsecurity)
+- [`diagrams/deployment/tests`](#diagramsdeploymenttests)
+- [`diagrams/deployment/tests/output`](#diagramsdeploymenttestsoutput)
 - [`diagrams/index`](#diagramsindex)
 - [`diagrams/sequence/assets`](#diagramssequenceassets)
 - [`diagrams/sequence/context`](#diagramssequencecontext)
@@ -1463,6 +1473,328 @@ Write a Component-module test artefact to `src/diagrams/component/tests/output/`
 | ---------- | -------- | ------------------------------------------------------------- | ----------- | ----------------- |
 | `filename` | `string` | File name or relative path below the module output directory. |
 | `content`  | `string  | Buffer                                                        | Uint8Array` | Content to write. |
+
+---
+
+## `diagrams/deployment/assets`
+
+_Source: [`src/diagrams/deployment/assets.mjs`](src/diagrams/deployment/assets.mjs)_
+
+Deployment diagram asset contract.
+
+### Exports
+
+| Name                                                                           | Kind  | Visibility |
+| ------------------------------------------------------------------------------ | ----- | ---------- |
+| [`DeploymentDiagramAssets`](#deploymentdiagramassets-diagramsdeploymentassets) | class | public     |
+| [`deploymentDiagramAssets`](#deploymentdiagramassets-diagramsdeploymentassets) | const | public     |
+
+#### <a id="deploymentdiagramassets-diagramsdeploymentassets"></a>`DeploymentDiagramAssets`
+
+```ts
+class DeploymentDiagramAssets extends BaseModuleAssets
+```
+
+#### <a id="deploymentdiagramassets-diagramsdeploymentassets"></a>`deploymentDiagramAssets`
+
+```ts
+const deploymentDiagramAssets;
+```
+
+---
+
+## `diagrams/deployment/docs`
+
+_Source: [`src/diagrams/deployment/docs.mjs`](src/diagrams/deployment/docs.mjs)_
+
+Deployment diagram documentation contract.
+
+### Exports
+
+| Name                                                                     | Kind  | Visibility |
+| ------------------------------------------------------------------------ | ----- | ---------- |
+| [`DeploymentDiagramDocs`](#deploymentdiagramdocs-diagramsdeploymentdocs) | class | public     |
+| [`deploymentDiagramDocs`](#deploymentdiagramdocs-diagramsdeploymentdocs) | const | public     |
+
+#### <a id="deploymentdiagramdocs-diagramsdeploymentdocs"></a>`DeploymentDiagramDocs`
+
+```ts
+class DeploymentDiagramDocs extends BaseModuleDocs
+```
+
+#### <a id="deploymentdiagramdocs-diagramsdeploymentdocs"></a>`deploymentDiagramDocs`
+
+```ts
+const deploymentDiagramDocs;
+```
+
+---
+
+## `diagrams/deployment/docs/coverage_examples`
+
+_Source: [`src/diagrams/deployment/docs/coverage_examples.mjs`](src/diagrams/deployment/docs/coverage_examples.mjs)_
+
+### Exports
+
+| Name                                                                                                      | Kind  | Visibility  |
+| --------------------------------------------------------------------------------------------------------- | ----- | ----------- |
+| [`DEPLOYMENT_COMPONENT_EXAMPLES`](#deployment_component_examples-diagramsdeploymentdocscoverage_examples) | const | unspecified |
+
+#### <a id="deployment_component_examples-diagramsdeploymentdocscoverage_examples"></a>`DEPLOYMENT_COMPONENT_EXAMPLES`
+
+```ts
+const DEPLOYMENT_COMPONENT_EXAMPLES;
+```
+
+Renderable PlantUML examples for the deployment-diagram feature coverage page.
+
+---
+
+## `diagrams/deployment/layout`
+
+_Source: [`src/diagrams/deployment/layout.mjs`](src/diagrams/deployment/layout.mjs)_
+
+Deployment diagram layout adapter.
+
+### Exports
+
+| Name                                                                           | Kind  | Visibility |
+| ------------------------------------------------------------------------------ | ----- | ---------- |
+| [`layoutDeploymentDiagram`](#layoutdeploymentdiagram-diagramsdeploymentlayout) | const | public     |
+| [`DeploymentDiagramLayout`](#deploymentdiagramlayout-diagramsdeploymentlayout) | class | public     |
+| [`deploymentDiagramLayout`](#deploymentdiagramlayout-diagramsdeploymentlayout) | const | public     |
+
+#### <a id="layoutdeploymentdiagram-diagramsdeploymentlayout"></a>`layoutDeploymentDiagram`
+
+```ts
+const layoutDeploymentDiagram;
+```
+
+#### <a id="deploymentdiagramlayout-diagramsdeploymentlayout"></a>`DeploymentDiagramLayout`
+
+```ts
+class DeploymentDiagramLayout extends BaseModuleLayout
+```
+
+#### <a id="deploymentdiagramlayout-diagramsdeploymentlayout"></a>`deploymentDiagramLayout`
+
+```ts
+const deploymentDiagramLayout;
+```
+
+---
+
+## `diagrams/deployment/module`
+
+_Source: [`src/diagrams/deployment/module.mjs`](src/diagrams/deployment/module.mjs)_
+
+Built-in deployment diagram module.
+
+### Exports
+
+| Name                                                                           | Kind  | Visibility |
+| ------------------------------------------------------------------------------ | ----- | ---------- |
+| [`DeploymentDiagramModule`](#deploymentdiagrammodule-diagramsdeploymentmodule) | class | public     |
+| [`deploymentDiagramModule`](#deploymentdiagrammodule-diagramsdeploymentmodule) | const | public     |
+
+#### <a id="deploymentdiagrammodule-diagramsdeploymentmodule"></a>`DeploymentDiagramModule`
+
+```ts
+class DeploymentDiagramModule extends GraphModuleBase
+```
+
+#### <a id="deploymentdiagrammodule-diagramsdeploymentmodule"></a>`deploymentDiagramModule`
+
+```ts
+const deploymentDiagramModule;
+```
+
+---
+
+## `diagrams/deployment/parser`
+
+_Source: [`src/diagrams/deployment/parser.mjs`](src/diagrams/deployment/parser.mjs)_
+
+Deployment diagram parser contract.
+
+### Exports
+
+| Name                                                                                     | Kind     | Visibility  |
+| ---------------------------------------------------------------------------------------- | -------- | ----------- |
+| [`DEFAULT_DEPLOYMENT_PLUGINS`](#default_deployment_plugins-diagramsdeploymentparser)     | const    | public      |
+| [`createDeploymentParseContext`](#createdeploymentparsecontext-diagramsdeploymentparser) | const    | public      |
+| [`prepareDeploymentLines`](#preparedeploymentlines-diagramsdeploymentparser)             | const    | public      |
+| [`DeploymentDiagramParser`](#deploymentdiagramparser-diagramsdeploymentparser)           | class    | public      |
+| [`deploymentDiagramParser`](#deploymentdiagramparser-diagramsdeploymentparser)           | const    | public      |
+| [`detectDeploymentDiagram`](#detectdeploymentdiagram-diagramsdeploymentparser)           | function | unspecified |
+
+#### <a id="default_deployment_plugins-diagramsdeploymentparser"></a>`DEFAULT_DEPLOYMENT_PLUGINS`
+
+```ts
+const DEFAULT_DEPLOYMENT_PLUGINS;
+```
+
+#### <a id="createdeploymentparsecontext-diagramsdeploymentparser"></a>`createDeploymentParseContext`
+
+```ts
+const createDeploymentParseContext;
+```
+
+#### <a id="preparedeploymentlines-diagramsdeploymentparser"></a>`prepareDeploymentLines`
+
+```ts
+const prepareDeploymentLines;
+```
+
+#### <a id="deploymentdiagramparser-diagramsdeploymentparser"></a>`DeploymentDiagramParser`
+
+```ts
+class DeploymentDiagramParser extends BaseModuleParser
+```
+
+#### <a id="deploymentdiagramparser-diagramsdeploymentparser"></a>`deploymentDiagramParser`
+
+```ts
+const deploymentDiagramParser;
+```
+
+#### <a id="detectdeploymentdiagram-diagramsdeploymentparser"></a>`detectDeploymentDiagram`
+
+```ts
+function detectDeploymentDiagram(text);
+```
+
+**Parameters**
+
+| Name   | Type     | Description          |
+| ------ | -------- | -------------------- |
+| `text` | `string` | Raw PlantUML source. |
+
+**Returns:** `boolean`
+
+---
+
+## `diagrams/deployment/render`
+
+_Source: [`src/diagrams/deployment/render.mjs`](src/diagrams/deployment/render.mjs)_
+
+Deployment diagram renderer adapters.
+
+### Exports
+
+| Name                                                                               | Kind  | Visibility |
+| ---------------------------------------------------------------------------------- | ----- | ---------- |
+| [`DEPLOYMENT_RENDERERS`](#deployment_renderers-diagramsdeploymentrender)           | const | public     |
+| [`DeploymentDiagramRenderer`](#deploymentdiagramrenderer-diagramsdeploymentrender) | class | public     |
+| [`deploymentDiagramRenderer`](#deploymentdiagramrenderer-diagramsdeploymentrender) | const | public     |
+
+#### <a id="deployment_renderers-diagramsdeploymentrender"></a>`DEPLOYMENT_RENDERERS`
+
+```ts
+const DEPLOYMENT_RENDERERS;
+```
+
+#### <a id="deploymentdiagramrenderer-diagramsdeploymentrender"></a>`DeploymentDiagramRenderer`
+
+```ts
+class DeploymentDiagramRenderer extends BaseModuleRenderer
+```
+
+#### <a id="deploymentdiagramrenderer-diagramsdeploymentrender"></a>`deploymentDiagramRenderer`
+
+```ts
+const deploymentDiagramRenderer;
+```
+
+---
+
+## `diagrams/deployment/security`
+
+_Source: [`src/diagrams/deployment/security.mjs`](src/diagrams/deployment/security.mjs)_
+
+Deployment diagram security contract.
+
+### Exports
+
+| Name                                                                                 | Kind  | Visibility |
+| ------------------------------------------------------------------------------------ | ----- | ---------- |
+| [`DeploymentDiagramSecurity`](#deploymentdiagramsecurity-diagramsdeploymentsecurity) | class | public     |
+| [`deploymentDiagramSecurity`](#deploymentdiagramsecurity-diagramsdeploymentsecurity) | const | public     |
+
+#### <a id="deploymentdiagramsecurity-diagramsdeploymentsecurity"></a>`DeploymentDiagramSecurity`
+
+```ts
+class DeploymentDiagramSecurity extends BaseModuleSecurity
+```
+
+#### <a id="deploymentdiagramsecurity-diagramsdeploymentsecurity"></a>`deploymentDiagramSecurity`
+
+```ts
+const deploymentDiagramSecurity;
+```
+
+---
+
+## `diagrams/deployment/tests`
+
+_Source: [`src/diagrams/deployment/tests.mjs`](src/diagrams/deployment/tests.mjs)_
+
+Deployment diagram test contract.
+
+### Exports
+
+| Name                                                                        | Kind  | Visibility |
+| --------------------------------------------------------------------------- | ----- | ---------- |
+| [`DeploymentDiagramTests`](#deploymentdiagramtests-diagramsdeploymenttests) | class | public     |
+| [`deploymentDiagramTests`](#deploymentdiagramtests-diagramsdeploymenttests) | const | public     |
+
+#### <a id="deploymentdiagramtests-diagramsdeploymenttests"></a>`DeploymentDiagramTests`
+
+```ts
+class DeploymentDiagramTests extends BaseModuleTests
+```
+
+#### <a id="deploymentdiagramtests-diagramsdeploymenttests"></a>`deploymentDiagramTests`
+
+```ts
+const deploymentDiagramTests;
+```
+
+---
+
+## `diagrams/deployment/tests/output`
+
+_Source: [`src/diagrams/deployment/tests/output.mjs`](src/diagrams/deployment/tests/output.mjs)_
+
+### Exports
+
+| Name                                                                                      | Kind             | Visibility  |
+| ----------------------------------------------------------------------------------------- | ---------------- | ----------- |
+| [`DEPLOYMENT_TEST_OUTPUT_DIR`](#deployment_test_output_dir-diagramsdeploymenttestsoutput) | const            | unspecified |
+| [`writeDeploymentOutput`](#writedeploymentoutput-diagramsdeploymenttestsoutput)           | function (async) | unspecified |
+
+#### <a id="deployment_test_output_dir-diagramsdeploymenttestsoutput"></a>`DEPLOYMENT_TEST_OUTPUT_DIR`
+
+```ts
+const DEPLOYMENT_TEST_OUTPUT_DIR;
+```
+
+#### <a id="writedeploymentoutput-diagramsdeploymenttestsoutput"></a>`writeDeploymentOutput`
+
+```ts
+async function writeDeploymentOutput(filename, content);
+```
+
+Write a file to the deployment test output directory.
+
+**Parameters**
+
+| Name       | Type     | Description |
+| ---------- | -------- | ----------- |
+| `filename` | `string` | —           |
+| `content`  | `string` | —           |
+
+**Returns:** `Promise<void>`
 
 ---
 
@@ -5411,4 +5743,4 @@ recognised.
 
 ---
 
-_Total: 92 modules._
+_Total: 102 modules._

@@ -3,7 +3,24 @@
 
 import { slug } from "../../../util/plantuml_utils.mjs";
 
-const CONTAINER_KEYWORDS = ["package", "namespace", "frame", "folder", "node", "rectangle"];
+const CONTAINER_KEYWORDS = [
+  "package",
+  "namespace",
+  "frame",
+  "folder",
+  "node",
+  "rectangle",
+  "cloud",
+  "database",
+  "agent",
+  "storage",
+  "card",
+  "file",
+  "hexagon",
+  "stack",
+  "queue",
+  "artifact",
+];
 const CONTAINER_OPEN_QUOTED = new RegExp(
   `^(${CONTAINER_KEYWORDS.join("|")})\\s+"([^"]+)"(?:\\s+as\\s+(\\S+))?\\s*\\{`,
 );
