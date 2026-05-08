@@ -1,0 +1,17 @@
+{
+  "source": "assets/arrowheads/arrowheads.svg",
+  "generatedBy": "src/render/svg.mjs marker geometry",
+  "arrowheads": [
+    "arrow",
+    "triangle",
+    "triangle_outline",
+    "diamond",
+    "diamond_outline",
+    "circle",
+    "circle_outline",
+    "dot",
+    "bar",
+    "partial_top",
+    "partial_bottom"
+  ]
+}

@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.6.0** &nbsp;·&nbsp; 136 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.7.0** &nbsp;·&nbsp; 162 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -123,13 +123,15 @@ directly to output colours in block or compact form: `ArrowColor`,
 `ParticipantBackgroundColor`, `ParticipantBorderColor`, and
 `LifeLineBorderColor`.
 
+See the full [Sequence Diagram Component Coverage](./docs/sequence-components.md) for detailed examples and support matrix.
+
 ### Run the tests
 
 ```sh
 npm test
 ```
 
-Ships with **136 tests** across functional, edge-case,
+Ships with **162 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -186,6 +188,18 @@ To add support for a new PlantUML keyword, drop a new file in
 `src/parser/plugins/` and append it to the default array in
 [`plantuml.mjs`](./src/parser/plantuml.mjs). No engine change required.
 
+### Model classes
+
+![Model classes](docs/ressources/generated/svg/model.svg)
+
+_Sources: [PlantUML](docs/ressources/generated/puml/model.puml) · [SVG](docs/ressources/generated/svg/model.svg)_
+
+The model diagram is generated dynamically from exported classes in
+[`src/model/diagram.mjs`](./src/model/diagram.mjs). It shows how the
+reusable arrow classes sit underneath both component connections and
+sequence messages, so future model classes appear in the README without
+hand-maintained PlantUML.
+
 ## Pipeline
 
 ```text
@@ -209,6 +223,9 @@ PlantUML text
 ```text
 excaliplant
 ├── assets
+│   ├── arrowheads
+│   │   ├── arrowheads.svg
+│   │   └── manifest.json
 │   └── fonts
 │       ├── Excalifont-Regular.ttf
 │       ├── Excalifont-Regular.woff2
@@ -217,17 +234,24 @@ excaliplant
 │   └── excaliplant.mjs
 ├── docs
 │   ├── ressources
+│   │   └── sequence
+│   │       ├── puml
+│   │       └── svg
 │   ├── scripts
 │   │   ├── build-docs.mjs
+│   │   ├── build-sequence-coverage.mjs
 │   │   ├── check-build-manifest.mjs
 │   │   ├── config.mjs
 │   │   ├── extract-api.mjs
 │   │   ├── extract-docs.mjs
 │   │   ├── file-tree.mjs
-│   │   └── self-diagrams.mjs
+│   │   ├── self-diagrams.mjs
+│   │   └── sequence-coverage-examples.mjs
 │   ├── API.md
 │   ├── API.template.md.njk
-│   └── README.template.md.njk
+│   ├── README.template.md.njk
+│   ├── sequence-components.md
+│   └── sequence-components.template.md.njk
 ├── scripts
 │   ├── auto-patch-deps.mjs
 │   ├── bump-release-version.mjs
@@ -240,6 +264,7 @@ excaliplant
 │   ├── layout
 │   │   ├── elk_layout.mjs
 │   │   ├── sequence_layout.mjs
+│   │   ├── sequence_spacing.mjs
 │   │   └── sizing.mjs
 │   ├── model
 │   │   └── diagram.mjs
@@ -274,6 +299,7 @@ excaliplant
 │   ├── plantuml.test.mjs
 │   ├── security.test.mjs
 │   ├── self_introspection.test.mjs
+│   ├── sequence_components.test.mjs
 │   └── style.test.mjs
 ├── AGENTS.md
 ├── CHANGELOG.md
@@ -285,6 +311,7 @@ excaliplant
 ├── SECURITY.md
 ├── THIRD_PARTY_NOTICES.md
 ├── index.mjs
+├── lifecycle-test.svg
 ├── package.json
 ├── style.example.json
 ├── style.example.yaml
@@ -341,6 +368,15 @@ text). The output document is a stand-alone `.excalidraw` file
 that any Excalidraw front-end can open. The companion module
 `src/render/svg.mjs` converts the same JSON to SVG for the
 build-time documentation pipeline.
+
+### sequence-spacing
+
+Central spacing contract for sequence diagrams.
+
+Sequence layout has many visual item types (messages, notes, refs,
+dividers, fragments, lifecycle bars). They all reserve vertical space
+through this module so adding a new timeline item does not introduce a
+one-off top/bottom rhythm.
 
 ## License
 

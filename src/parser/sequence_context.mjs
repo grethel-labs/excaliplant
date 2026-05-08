@@ -10,6 +10,7 @@ import {
   SequenceMarker,
   SequenceReference,
   SequenceParticipantGroup,
+  SequenceArrow,
 } from "../model/diagram.mjs";
 
 /**
@@ -20,6 +21,9 @@ import {
  *   readonly result: import("../model/diagram.mjs").SequenceDiagram,
  *   diagram:         import("../model/diagram.mjs").SequenceDiagram,
  *   setTitle(t: string): void,
+ *   setHeader(t: string): void,
+ *   setFooter(t: string): void,
+ *   setMainframe(t: string): void,
  *   ensureParticipant(id: string): import("../model/diagram.mjs").Participant,
  *   declareParticipant(spec: object): import("../model/diagram.mjs").Participant,
  *   nextMessageId(): string,
@@ -35,15 +39,18 @@ import {
  *   addNote(spec: object): void,
  *   addMarker(kind: string, label?: string, size?: number): void,
  *   addReference(spec: object): void,
- *   startFragment(kind: string, label?: string): void,
+ *   startFragment(kind: string, label?: string, secondaryLabel?: string, color?: string): void,
  *   splitFragmentOperand(label?: string): boolean,
  *   endFragment(): boolean,
- *   startActivation(participant: import("../model/diagram.mjs").Participant, color?: string, seq?: number): void,
+ *   startActivation(participant: import("../model/diagram.mjs").Participant, color?: string, seq?: number, caller?: import("../model/diagram.mjs").Participant|null): void,
  *   endActivation(participant: import("../model/diagram.mjs").Participant, seq?: number): boolean,
+ *   addReturnMessage(label?: string): boolean,
  *   markCreated(participant: import("../model/diagram.mjs").Participant, seq?: number): void,
  *   markDestroyed(participant: import("../model/diagram.mjs").Participant, seq?: number): void,
- *   setAutonumber(enabled: boolean, start?: number, step?: number): void,
+ *   setAutonumber(enabled: boolean, start?: number, step?: number, format?: string): void,
  *   setSequenceStyle(key: keyof import("../model/diagram.mjs").SequenceDiagram["style"], value: string): void,
+ *   setFootboxVisible(visible: boolean): void,
+ *   setHideUnlinked(visible: boolean): void,
  *   startParticipantGroup(label?: string, color?: string): void,
  *   endParticipantGroup(): boolean,
  * }}
@@ -62,12 +69,15 @@ export function createSequenceContext() {
   let autonumberEnabled = false;
   let autonumberNext = 1;
   let autonumberStep = 1;
+  let autonumberFormat = "";
   /** @type {SequenceFragment[]} */
   const fragmentStack = [];
   /** @type {Map<string, SequenceActivation[]>} */
   const activationStacks = new Map();
   /** @type {SequenceParticipantGroup[]} */
   const participantGroupStack = [];
+  /** @type {Message|null} */
+  let lastMessage = null;
 
   /** @param {SequenceFragment} fragment */
   const closeCurrentOperand = (fragment) => {
@@ -89,6 +99,18 @@ export function createSequenceContext() {
     setTitle(/** @type {string} */ t) {
       diagram.title = t;
     },
+    /** @param {string} t Header text. */
+    setHeader(/** @type {string} */ t) {
+      diagram.header = t;
+    },
+    /** @param {string} t Footer text. */
+    setFooter(/** @type {string} */ t) {
+      diagram.footer = t;
+    },
+    /** @param {string} t Mainframe label. */
+    setMainframe(/** @type {string} */ t) {
+      diagram.mainframe = t;
+    },
 
     /**
      * Look up an existing participant or create one with the bare id
@@ -108,21 +130,29 @@ export function createSequenceContext() {
 
     /**
      * Explicitly declare a participant (`participant Foo as f`).
-     * @param {{id:string,title:string,shape?:string,stereotype?:string,color?:string}} spec Participant specification.
+     * @param {{id:string,title:string,shape?:string,stereotype?:string,color?:string,order?:number|null}} spec Participant specification.
      * @returns {Participant} The created or existing lifeline.
      */
     declareParticipant(
-      /** @type {{id:string,title:string,shape?:string,stereotype?:string,color?:string}} */ {
+      /** @type {{id:string,title:string,shape?:string,stereotype?:string,color?:string,order?:number|null}} */ {
         id,
         title,
         shape = "participant",
         stereotype = "",
         color = "",
+        order = null,
       },
     ) {
       const existing = diagram.participantById(id);
-      if (existing) return existing;
-      const p = new Participant({ id, title, shape, stereotype, color });
+      if (existing) {
+        existing.title = title || existing.title;
+        existing.shape = shape || existing.shape;
+        existing.stereotype = stereotype || existing.stereotype;
+        existing.color = color || existing.color;
+        if (order !== null) existing.order = order;
+        return existing;
+      }
+      const p = new Participant({ id, title, shape, stereotype, color, order });
       diagram.addParticipant(p);
       attachToCurrentParticipantGroup(p);
       return p;
@@ -172,11 +202,12 @@ export function createSequenceContext() {
     addMessage(/** @type {any} */ spec) {
       const msg = new Message({ id: ctx.nextMessageId(), ...spec });
       if (autonumberEnabled) {
-        msg.number = String(autonumberNext);
+        msg.number = formatAutonumber(autonumberNext, autonumberFormat);
         autonumberNext += autonumberStep;
       }
       msg.seq = timelineCounter++;
       diagram.addMessage(msg);
+      lastMessage = msg;
       return msg;
     },
     /**
@@ -216,12 +247,21 @@ export function createSequenceContext() {
      * Open a combined sequence fragment at the current timeline index.
      * @param {string} kind Fragment operator.
      * @param {string} [label] First operand label / guard.
+     * @param {string} [secondaryLabel] Optional PlantUML group secondary label.
+     * @param {string} [color] Optional PlantUML fragment/group colour.
      */
-    startFragment(/** @type {string} */ kind, /** @type {string} */ label = "") {
+    startFragment(
+      /** @type {string} */ kind,
+      /** @type {string} */ label = "",
+      /** @type {string} */ secondaryLabel = "",
+      /** @type {string} */ color = "",
+    ) {
       const fragment = new SequenceFragment({
         id: ctx.nextFragmentId(),
         kind,
         label,
+        secondaryLabel,
+        color,
         operands: [{ label, startSeq: timelineCounter, endSeq: timelineCounter }],
       });
       diagram.addFragment(fragment);
@@ -251,8 +291,9 @@ export function createSequenceContext() {
      * @param {import("../model/diagram.mjs").Participant} participant
      * @param {string} [color]
      * @param {number} [seq]
+     * @param {import("../model/diagram.mjs").Participant|null} [caller]
      */
-    startActivation(participant, color = "", seq = timelineCounter) {
+    startActivation(participant, color = "", seq = timelineCounter, caller = null) {
       const stack = activationStacks.get(participant.id) ?? [];
       const activation = new SequenceActivation({
         id: ctx.nextActivationId(),
@@ -260,6 +301,11 @@ export function createSequenceContext() {
         startSeq: Math.max(0, seq),
         color,
         depth: stack.length,
+        caller:
+          caller ||
+          (lastMessage && lastMessage.to === participant && lastMessage.from !== participant
+            ? lastMessage.from
+            : null),
       });
       stack.push(activation);
       activationStacks.set(participant.id, stack);
@@ -276,6 +322,31 @@ export function createSequenceContext() {
       const activation = stack?.pop();
       if (!activation) return false;
       activation.endSeq = Math.max(activation.startSeq, seq);
+      return true;
+    },
+    /** Add a reply message from the most recent activation to its caller. */
+    addReturnMessage(label = "") {
+      const open = [...activationStacks.values()]
+        .map((stack) => stack[stack.length - 1])
+        .filter(Boolean)
+        .sort((a, b) => (b?.startSeq ?? -1) - (a?.startSeq ?? -1))[0];
+      if (!open?.caller) return false;
+      const arrow = new SequenceArrow({
+        source: "return",
+        direction: open.participant === open.caller ? "self" : "left",
+        end: { head: "filled", excalidrawArrowhead: "triangle" },
+        line: { style: "dashed" },
+      });
+      const msg = ctx.addMessage({
+        from: open.participant,
+        to: open.caller,
+        label,
+        dashed: true,
+        kind: "reply",
+        endArrowhead: "triangle",
+        arrow,
+      });
+      ctx.endActivation(open.participant, msg.seq);
       return true;
     },
     /** Mark a participant as created at a declaration index. */
@@ -298,10 +369,12 @@ export function createSequenceContext() {
       /** @type {boolean} */ enabled,
       /** @type {number} */ start = autonumberNext,
       /** @type {number} */ step = autonumberStep,
+      /** @type {string} */ format = autonumberFormat,
     ) {
       autonumberEnabled = enabled;
       if (Number.isFinite(start)) autonumberNext = start;
       if (Number.isFinite(step) && step !== 0) autonumberStep = step;
+      autonumberFormat = format;
     },
     /** Open a participant grouping box. */
     startParticipantGroup(label = "", color = "") {
@@ -324,6 +397,14 @@ export function createSequenceContext() {
     setSequenceStyle(key, value) {
       diagram.style[key] = value;
     },
+    /** Toggle bottom participant footboxes. */
+    setFootboxVisible(/** @type {boolean} */ visible) {
+      diagram.showFootbox = visible;
+    },
+    /** Toggle PlantUML `hide unlinked`. */
+    setHideUnlinked(/** @type {boolean} */ visible) {
+      diagram.hideUnlinked = visible;
+    },
     /** Close unterminated fragments tolerantly at EOF. */
     finalize() {
       while (fragmentStack.length) ctx.endFragment();
@@ -334,6 +415,51 @@ export function createSequenceContext() {
         }
       }
       participantGroupStack.length = 0;
+      applyHideUnlinked();
+
+      // If no explicit ++/-- activations were declared, leave activation bars
+      // empty so diagrams without them stay visually clean.
+      if (!diagram.activations.length) return;
+
+      // For participants that have no explicit ++/-- activation bars, generate
+      // implicit bars from sync call → reply message pairs. This ensures all
+      // participants show activation bars consistently whenever any participant
+      // uses explicit activation markers.
+      const explicitIds = new Set(diagram.activations.map((a) => a.participant.id));
+      /** @type {Map<string, SequenceActivation[]>} */
+      const implicitStacks = new Map();
+      for (const msg of diagram.messages) {
+        if (msg.isSelf) continue;
+        if (msg.kind === "reply") {
+          const pid = msg.from.id;
+          if (explicitIds.has(pid)) continue;
+          const stack = implicitStacks.get(pid);
+          if (stack?.length) {
+            const act = stack.pop();
+            if (act) act.endSeq = Math.max(act.startSeq, msg.seq);
+          }
+        } else {
+          const pid = msg.to.id;
+          if (explicitIds.has(pid)) continue;
+          const stack = implicitStacks.get(pid) ?? [];
+          const act = new SequenceActivation({
+            id: `seqact_${activationCounter++}`,
+            participant: msg.to,
+            startSeq: msg.seq,
+            endSeq: msg.seq,
+            depth: stack.length,
+          });
+          stack.push(act);
+          implicitStacks.set(pid, stack);
+          diagram.addActivation(act);
+        }
+      }
+      // Close any implicit activations that had no matching reply.
+      for (const stack of implicitStacks.values()) {
+        for (const act of stack) {
+          act.endSeq = Math.max(act.startSeq, timelineCounter);
+        }
+      }
     },
   };
 
@@ -345,5 +471,54 @@ export function createSequenceContext() {
     group.participants.push(participant);
   }
 
+  function applyHideUnlinked() {
+    if (!diagram.hideUnlinked) return;
+    const linked = new Set();
+    for (const message of diagram.messages) {
+      linked.add(message.from.id);
+      linked.add(message.to.id);
+    }
+    for (const note of diagram.notes) {
+      linked.add(note.target.id);
+      if (note.target2) linked.add(note.target2.id);
+    }
+    for (const ref of diagram.references) {
+      linked.add(ref.target.id);
+      if (ref.target2) linked.add(ref.target2.id);
+    }
+    diagram.participants = diagram.participants.filter((participant) => linked.has(participant.id));
+    for (const group of diagram.participantGroups) {
+      group.participants = group.participants.filter((participant) => linked.has(participant.id));
+    }
+    diagram.participantGroups = diagram.participantGroups.filter(
+      (group) => group.participants.length,
+    );
+  }
+
   return ctx;
+}
+
+/**
+ * Apply the safe plain-text subset of PlantUML autonumber formatting.
+ * Supports `{0}` tokens and zero-padded DecimalFormat-style runs such as
+ * `[000]`; HTML tags are stripped before text is rendered.
+ * @param {number} value Current autonumber value.
+ * @param {string} format Optional PlantUML format string.
+ * @returns {string} Formatted message number.
+ */
+function formatAutonumber(value, format) {
+  if (!format) return String(value);
+  const plain = stripMarkup(format);
+  if (plain.includes("{0}")) return plain.replace(/\{0\}/g, String(value));
+  const zeroRun = plain.match(/0+/);
+  if (!zeroRun) return `${plain}${value}`;
+  return `${plain.slice(0, zeroRun.index)}${String(value).padStart(zeroRun[0].length, "0")}${plain.slice((zeroRun.index ?? 0) + zeroRun[0].length)}`;
+}
+
+/**
+ * @param {string} value Text that may contain PlantUML HTML-ish tags.
+ * @returns {string} Safe plain text.
+ */
+function stripMarkup(value) {
+  return value.replace(/<[^>]*>/g, "");
 }

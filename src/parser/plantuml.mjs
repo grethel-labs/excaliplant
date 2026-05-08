@@ -62,8 +62,10 @@ import { sequenceAdvancedPlugin } from "./plugins/sequence/advanced.mjs";
 import {
   noteSidePlugin,
   noteOverPlugin,
+  noteAcrossPlugin,
   noteSideBlockPlugin,
   noteOverBlockPlugin,
+  noteAcrossBlockPlugin,
 } from "./plugins/sequence/notes.mjs";
 
 /**
@@ -104,8 +106,10 @@ export const DEFAULT_SEQUENCE_PLUGINS = [
   participantPlugin,
   noteSideBlockPlugin,
   noteOverBlockPlugin,
+  noteAcrossBlockPlugin,
   noteSidePlugin,
   noteOverPlugin,
+  noteAcrossPlugin,
   sequenceAdvancedPlugin,
   fragmentPlugin,
   messagePlugin,
@@ -270,6 +274,8 @@ function looksLikeSequence(text) {
     if (/^skinparam\s+sequence\b/i.test(line)) return true;
     if (/^(opt|loop|alt|par|break|critical|group)\b/.test(line)) return true;
     if (/^(activate|deactivate|destroy|create|autonumber|ref|box)\b/.test(line)) return true;
+    if (/^(header|footer|newpage|mainframe)\b/i.test(line)) return true;
+    if (/^hide\s+(?:footbox|unlinked)\b/i.test(line)) return true;
     if (/^==.*==$/.test(line) || /^\.\.\./.test(line) || /^(?:\|\|\||\|\|\d+\|\|)$/.test(line)) {
       return true;
     }

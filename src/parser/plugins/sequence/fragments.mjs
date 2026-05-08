@@ -25,7 +25,8 @@ export const fragmentPlugin = {
   tryLine(line, ctx) {
     const start = line.match(FRAGMENT_START);
     if (start) {
-      ctx.startFragment(start[1].toLowerCase(), unescapeLabel(start[2]?.trim() || ""));
+      const spec = parseFragmentStart(start[1].toLowerCase(), start[2]?.trim() || "");
+      ctx.startFragment(spec.kind, spec.label, spec.secondaryLabel, spec.color);
       return true;
     }
     const split = line.match(FRAGMENT_SPLIT);
@@ -38,3 +39,29 @@ export const fragmentPlugin = {
     return false;
   },
 };
+
+/**
+ * @param {string} kind Fragment keyword.
+ * @param {string} raw Raw label suffix.
+ * @returns {{kind:string,label:string,secondaryLabel:string,color:string}}
+ */
+function parseFragmentStart(kind, raw) {
+  let label = raw.trim();
+  let color = "";
+  const colorMatch = label.match(/\s+(#[\w-]+)\s*$/);
+  if (colorMatch) {
+    color = colorMatch[1];
+    label = label.slice(0, colorMatch.index).trimEnd();
+  }
+
+  let secondaryLabel = "";
+  if (kind === "group") {
+    const secondary = label.match(/\s+\[([^\]]+)\]\s*$/);
+    if (secondary) {
+      secondaryLabel = unescapeLabel(secondary[1].trim());
+      label = label.slice(0, secondary.index).trimEnd();
+    }
+  }
+
+  return { kind, label: unescapeLabel(label), secondaryLabel, color };
+}

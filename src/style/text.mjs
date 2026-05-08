@@ -99,6 +99,109 @@ export function measureWrapped(text, fontSize, maxWidth) {
 }
 
 /**
+ * Wrap text at useful reading break points before falling back to hard
+ * cuts. This is intended for arrow labels and endpoint labels where the
+ * available width is driven by geometry rather than by a fixed box.
+ *
+ * Preferred breaks are whitespace and common punctuation (`/`, `.`, `-`,
+ * `_`, `,`, `:`, `;`, `)`, `]`). If a single token still cannot fit, the
+ * function hard-wraps it at the measured character budget so later layout
+ * can reserve the correct height instead of letting text bleed into the
+ * next timeline item.
+ *
+ * @param {string} text Text to wrap.
+ * @param {number} fontSize Font size used for measurement.
+ * @param {number} maxWidth Maximum line width in px.
+ * @returns {{ width:number, height:number, lines:string[] }} Wrapped text metrics.
+ * @public
+ */
+export function measureSmartWrapped(text, fontSize, maxWidth) {
+  const raw = String(text ?? "");
+  if (!raw) return { width: 0, height: 0, lines: [] };
+  const charsPerLine = Math.max(4, Math.floor(maxWidth / (fontSize * FONT.glyphRatio)));
+  /** @type {string[]} */
+  const lines = [];
+  for (const segment of raw.split("\n")) {
+    if (!segment) {
+      lines.push("");
+      continue;
+    }
+    wrapSegment(segment, charsPerLine, lines);
+  }
+  return {
+    width: Math.min(
+      maxWidth,
+      Math.max(0, ...lines.map((line) => measureLine(line, fontSize).width)),
+    ),
+    height: lines.length * fontSize * FONT.lineHeight,
+    lines,
+  };
+}
+
+/**
+ * Fit smart-wrapped text and shrink only when hard wrapping would still
+ * leave a line wider than `maxWidth` because of font metrics.
+ * @param {string} text Text to wrap.
+ * @param {number} fontSize Requested font size.
+ * @param {number} maxWidth Maximum line width in px.
+ * @param {object} [opts]
+ * @param {number} [opts.minFontSize] Minimum font size.
+ * @returns {{ fontSize:number, width:number, height:number, lines:string[] }} Metrics plus chosen font size.
+ * @public
+ */
+export function measureSmartFitted(text, fontSize, maxWidth, opts = {}) {
+  const style = /** @type {any} */ (getStyle());
+  const enabled = style.text?.autoShrink !== false;
+  const minSize = Math.max(
+    1,
+    opts.minFontSize ?? style.text?.minFontSize ?? style.font?.minSize ?? 8,
+  );
+  let fs = fontSize;
+  let wrapped = measureSmartWrapped(text, fs, maxWidth);
+  if (!enabled || !text) return { fontSize: fs, ...wrapped };
+  const rawMaxLineWidth = (/** @type {string[]} */ wrappedLines, /** @type {number} */ sz) =>
+    Math.max(0, ...wrappedLines.map((line) => measureLine(line, sz).width));
+  while (fs > minSize && rawMaxLineWidth(wrapped.lines, fs) > maxWidth + 0.5) {
+    fs -= 1;
+    wrapped = measureSmartWrapped(text, fs, maxWidth);
+  }
+  return { fontSize: fs, ...wrapped };
+}
+
+/**
+ * @param {string} segment Single-line text segment.
+ * @param {number} charsPerLine Character budget for the current font.
+ * @param {string[]} lines Output line array.
+ * @returns {void}
+ */
+function wrapSegment(segment, charsPerLine, lines) {
+  let remaining = segment.trim();
+  while (remaining.length > charsPerLine) {
+    const cut = bestTextCut(remaining, charsPerLine);
+    lines.push(remaining.slice(0, cut).trimEnd());
+    remaining = remaining.slice(cut).replace(/^\s+/, "");
+  }
+  lines.push(remaining);
+}
+
+/**
+ * @param {string} text Text segment longer than the budget.
+ * @param {number} budget Character budget.
+ * @returns {number} Best cut index.
+ */
+function bestTextCut(text, budget) {
+  const minUseful = Math.max(1, Math.floor(budget / 3));
+  const breakAfter = new Set([" ", "/", "\\", ".", "-", "_", ",", ":", ";", ")", "]"]);
+  const breakBefore = new Set(["(", "["]);
+  for (let i = Math.min(budget, text.length - 1); i >= minUseful; i--) {
+    const ch = text[i];
+    if (breakAfter.has(ch)) return i + 1;
+    if (breakBefore.has(ch)) return i;
+  }
+  return budget;
+}
+
+/**
  * Word-wrap `text` and shrink the font size when a single token would
  * still exceed `maxWidth` at the requested size. Returns the chosen
  * font size alongside the wrapped lines so the renderer can emit the

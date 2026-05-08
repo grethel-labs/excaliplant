@@ -18,10 +18,12 @@ import prettier from "prettier";
 import { renderPlantUml, excalidrawJsonToCanvasSvg, svgToPng } from "../../index.mjs";
 import { extractDocBlocks } from "./extract-docs.mjs";
 import { buildApiModel } from "./extract-api.mjs";
+import { buildSequenceCoverageDocs } from "./build-sequence-coverage.mjs";
 import {
   buildModuleDiagramSource,
   buildSequenceDiagramSource,
   buildPluginDetailDiagramSource,
+  buildModelClassDiagramSource,
 } from "./self-diagrams.mjs";
 import { buildFileTree } from "./file-tree.mjs";
 import {
@@ -57,6 +59,11 @@ const ARTEFACTS = [
     id: "plugins",
     title: "Parser plugins",
     getSource: async () => (await buildPluginDetailDiagramSource()).puml,
+  },
+  {
+    id: "model",
+    title: "Model classes",
+    getSource: buildModelClassDiagramSource,
   },
 ];
 
@@ -145,7 +152,13 @@ async function main() {
   // Without this step the build-manifest hash recorded here and the hash after
   // a subsequent `npm run format` would diverge, causing the manifest check to
   // fail even though no manual edits were made.
-  const apiRendered = await prettier.format(apiNormalised, {
+  const prettierConfig = (await prettier.resolveConfig(API_OUTPUT_FILE)) ?? {};
+  const apiPreformatted = await prettier.format(apiNormalised, {
+    ...prettierConfig,
+    filepath: API_OUTPUT_FILE,
+  });
+  const apiRendered = await prettier.format(apiPreformatted, {
+    ...prettierConfig,
     filepath: API_OUTPUT_FILE,
   });
   await writeFile(API_OUTPUT_FILE, apiRendered, "utf8");
@@ -154,11 +167,13 @@ async function main() {
     `  wrote docs/API.md (${apiModules.length} modules, ${apiSymbolCount} exported symbols)`,
   );
 
+  const sequenceCoverageFiles = await buildSequenceCoverageDocs();
+
   // Write a build manifest so CI can distinguish a legitimate local
   // `npm run build:docs` (manifest hashes match the files on disk)
   // from a manual edit to a generated file (hashes diverge). The CI
   // guard reads this manifest instead of refusing every change.
-  await writeBuildManifest(generated);
+  await writeBuildManifest(generated, sequenceCoverageFiles);
 }
 
 /**
@@ -177,9 +192,10 @@ async function sha256(absPath) {
  * to detect manual edits to README.md / generated artefacts.
  * @param {Array<{svg:string,png:string,puml:string}>} generated
  *        Records returned by the build loop (paths are repo-relative).
+ * @param {string[]} [extraFiles] Additional generated docs/resources.
  * @returns {Promise<void>}
  */
-async function writeBuildManifest(generated) {
+async function writeBuildManifest(generated, extraFiles = []) {
   /** @type {Record<string, string>} */
   const files = {};
   // Hash only the artefacts that are actually committed to the repo:
@@ -193,6 +209,9 @@ async function writeBuildManifest(generated) {
     for (const rel of [a.svg, a.png]) {
       files[rel] = await sha256(path.join(REPO_ROOT, rel));
     }
+  }
+  for (const rel of extraFiles) {
+    files[rel] = await sha256(path.join(REPO_ROOT, rel));
   }
   const manifestPath = path.join(REPO_ROOT, "docs", ".build-manifest.json");
   await writeFile(manifestPath, JSON.stringify({ version: 1, files }, null, 2) + "\n", "utf8");

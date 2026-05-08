@@ -1,0 +1,25 @@
+@startuml
+skinparam sequence ArrowColor #334155
+title Combined service flow
+autonumber
+box "Application" #LightBlue
+actor User
+participant API
+participant Worker
+end box
+database DB
+== Request ==
+User -> API ++: submit
+note right of API #LightYellow: validation happens here
+opt valid request
+  API -> Worker ++: dispatch
+  ref over Worker, DB: repository contract
+  Worker -> DB: load
+  ... db latency ...
+  DB --> Worker: rows
+  return worker done
+else invalid request
+  API --> User: validation error
+end
+API --> User --: response
+@enduml

@@ -1,0 +1,16 @@
+@startuml
+title Notes and note variants
+participant Alice
+participant Bob
+participant Carol
+Alice -> Bob: hello
+note left of Alice #aqua: side note
+note over Alice, Bob #LightYellow: over two participants
+hnote across: hnote across all participants
+rnote over Carol
+rectangle-style note
+with multiple lines
+endrnote
+/ note over Bob: aligned-note syntax is accepted
+Bob -> Carol: continue
+@enduml

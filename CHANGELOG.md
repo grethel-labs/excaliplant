@@ -45,6 +45,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [`docs/API.template.md.njk`](docs/API.template.md.njk) on every
   `npm run build:docs` run, so it can never drift from the README.
   The TypeDoc devDependency was removed.
+- Reusable arrow model classes (`DiagramArrow`, `ArrowEndpoint`,
+  `ArrowLine`, `ArrowLabel`) are now exported from the package root
+  and used by both sequence messages and component/class connections.
+- Sequence diagrams now support endpoint labels, long label wrapping
+  against arrowhead-safe budgets, `hide unlinked`, `header`,
+  `footer`, `mainframe`, single-canvas `newpage`, solid lifelines,
+  and simplified `&` parallel-message parsing.
+- Sequence diagrams now support multiline participant block titles,
+  message alignment / response-below-arrow skinparams, actor style
+  modes, group secondary labels and colours, safe formatted
+  autonumber output, Teoz pragmas / partition wrappers, and expanded
+  sequence skinparams for messages, notes, groups, dividers, and
+  activation bars.
+- SVG marker assets for all produced arrowhead forms are stored under
+  [`assets/arrowheads/`](assets/arrowheads/), and the docs build now
+  emits a self-updating model class diagram in the README architecture
+  section.
 
 ### Changed
 
@@ -72,6 +89,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   style document. Existing reads (`FONT.sizeTitle`, `FONT.family`,
   …) keep working; calls to `setStyle()` / `loadStyleFromFile()`
   immediately propagate to sizing and rendering.
+- Sequence-diagram timeline spacing is centralized in one spacing
+  contract so messages, notes, refs, markers, fragments, and wrapped
+  endpoint labels reserve symmetric top/bottom gaps consistently.
 
 ### Fixed
 
@@ -108,6 +128,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     in `src/style/text.mjs`, with continuation indent. Sizing
     grows the box height accordingly so members no longer bleed
     past the right edge.
+- SVG start markers are now anchored at the visual tip, so backward
+  and start-side arrowheads point at their endpoint instead of starting
+  there. Additional rendered heads include circles, dots, bars, and
+  partial top/bottom heads.
 
 ## [0.3.7] - 2026-05-04
 

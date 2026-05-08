@@ -4,6 +4,7 @@
 import { stripQuotes, unescapeLabel } from "../../utils.mjs";
 
 const AUTONUMBER = /^autonumber(?:\s+(.*))?$/i;
+const RETURN = /^return(?:\s+(.*))?$/i;
 const ACTIVATE = /^activate\s+(\S+)(?:\s+(#[\w-]+))?$/i;
 const DEACTIVATE = /^deactivate\s+(\S+)$/i;
 const DESTROY = /^destroy\s+(\S+)$/i;
@@ -16,6 +17,16 @@ const DELAY = /^\.\.\.(?:\s*(.*?)\s*)?\.\.\.$|^\.\.\.$/;
 const SPACE = /^(?:\|\|\||\|\|(\d+)\|\|)$/;
 const REF_INLINE = /^ref\s+over\s+(\S+)(?:\s*,\s*(\S+))?\s*:\s*(.+)$/i;
 const REF_BLOCK = /^ref\s+over\s+(\S+)(?:\s*,\s*(\S+))?\s*$/i;
+const HIDE_FOOTBOX = /^hide\s+footbox$/i;
+const SHOW_FOOTBOX = /^show\s+footbox$/i;
+const HIDE_UNLINKED = /^hide\s+unlinked$/i;
+const HEADER = /^header\s+(.+)$/i;
+const FOOTER = /^footer\s+(.+)$/i;
+const NEWPAGE = /^newpage(?:\s+(.*))?$/i;
+const MAINFRAME = /^mainframe\s+(.+)$/i;
+const PRAGMA_TEOZ = /^!pragma\s+teoz\b/i;
+const PARTITION_START = /^partition\b.*(?:\{)?$/i;
+const PARTITION_END = /^end\s+partition$/i;
 
 /**
  * Miscellaneous PlantUML sequence constructs.
@@ -42,9 +53,61 @@ export const sequenceAdvancedPlugin = {
     };
   },
   tryLine(line, ctx) {
+    if (PRAGMA_TEOZ.test(line)) return true;
+
+    if (PARTITION_START.test(line)) {
+      if (line.endsWith("{"))
+        ctx.__sequencePartitionDepth = (ctx.__sequencePartitionDepth || 0) + 1;
+      return true;
+    }
+    if (PARTITION_END.test(line)) return true;
+    if (line === "}" && ctx.__sequencePartitionDepth) {
+      ctx.__sequencePartitionDepth -= 1;
+      return true;
+    }
+
     const auto = line.match(AUTONUMBER);
     if (auto) {
       configureAutonumber(ctx, auto[1]?.trim() || "");
+      return true;
+    }
+
+    const ret = line.match(RETURN);
+    if (ret) {
+      return ctx.addReturnMessage(unescapeLabel(ret[1]?.trim() || ""));
+    }
+
+    if (HIDE_FOOTBOX.test(line)) {
+      ctx.setFootboxVisible(false);
+      return true;
+    }
+    if (SHOW_FOOTBOX.test(line)) {
+      ctx.setFootboxVisible(true);
+      return true;
+    }
+    if (HIDE_UNLINKED.test(line)) {
+      ctx.setHideUnlinked(true);
+      return true;
+    }
+
+    const header = line.match(HEADER);
+    if (header) {
+      ctx.setHeader(unescapeLabel(stripQuotes(header[1].trim())));
+      return true;
+    }
+    const footer = line.match(FOOTER);
+    if (footer) {
+      ctx.setFooter(unescapeLabel(stripQuotes(footer[1].trim())));
+      return true;
+    }
+    const mainframe = line.match(MAINFRAME);
+    if (mainframe) {
+      ctx.setMainframe(unescapeLabel(stripQuotes(mainframe[1].trim())));
+      return true;
+    }
+    const newpage = line.match(NEWPAGE);
+    if (newpage) {
+      ctx.addMarker("pageBreak", unescapeLabel(newpage[1]?.trim() || "newpage"));
       return true;
     }
 
@@ -138,6 +201,41 @@ function configureAutonumber(ctx, raw) {
     ctx.setAutonumber(false);
     return;
   }
-  const nums = raw.match(/-?\d+/g)?.map(Number) ?? [];
-  ctx.setAutonumber(true, nums[0] ?? 1, nums[1] ?? 1);
+  const tokens = readAutonumberTokens(raw);
+  const nums = tokens.filter((token) => /^-?\d+$/.test(token)).map(Number);
+  const formatToken = tokens.find((token) => token.startsWith('"'));
+  ctx.setAutonumber(
+    true,
+    nums[0],
+    nums[1],
+    formatToken ? unescapeLabel(stripQuotes(formatToken)) : "",
+  );
+}
+
+/**
+ * @param {string} raw Raw autonumber arguments.
+ * @returns {string[]} Whitespace-separated tokens, preserving quoted strings.
+ */
+function readAutonumberTokens(raw) {
+  /** @type {string[]} */
+  const tokens = [];
+  let i = 0;
+  while (i < raw.length) {
+    while (/\s/.test(raw[i] || "")) i++;
+    if (i >= raw.length) break;
+    if (raw[i] === '"') {
+      let end = i + 1;
+      while (end < raw.length) {
+        if (raw[end] === '"' && raw[end - 1] !== "\\") break;
+        end++;
+      }
+      tokens.push(raw.slice(i, Math.min(raw.length, end + 1)));
+      i = end + 1;
+      continue;
+    }
+    const start = i;
+    while (i < raw.length && !/\s/.test(raw[i])) i++;
+    tokens.push(raw.slice(start, i));
+  }
+  return tokens;
 }
