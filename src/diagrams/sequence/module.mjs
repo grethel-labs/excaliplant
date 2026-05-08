@@ -38,8 +38,16 @@ export class SequenceDiagramModule extends TimelineModuleBase {
         render: ["src/diagrams/sequence/render.mjs", "src/diagrams/sequence/render_excalidraw.mjs"],
         security: ["src/diagrams/sequence/security.mjs"],
         assets: ["src/diagrams/sequence/assets.mjs"],
-        docs: ["src/diagrams/sequence/docs.mjs", "docs/sequence-components.md"],
-        tests: ["src/diagrams/sequence/tests.mjs", "tests/sequence_components.test.mjs"],
+        docs: [
+          "src/diagrams/sequence/docs.mjs",
+          "src/diagrams/sequence/docs/coverage_examples.mjs",
+          "docs/sequence-components.md",
+        ],
+        tests: [
+          "src/diagrams/sequence/tests.mjs",
+          "src/diagrams/sequence/tests/output.mjs",
+          "src/diagrams/sequence/tests/sequence_components.test.mjs",
+        ],
       },
       startDirectives: ["@startuml"],
       parser: sequenceDiagramParser,

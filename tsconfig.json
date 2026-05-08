@@ -13,5 +13,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["index.mjs", "src/**/*.mjs"]
+  "include": ["index.mjs", "src/**/*.mjs"],
+  "exclude": ["src/**/tests/**/*.mjs"]
 }

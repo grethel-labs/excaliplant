@@ -1,10 +1,10 @@
 {
   "version": 1,
   "files": {
-    "README.md": "3a64097c86f499976e1c96cbf0a24b72876ab2592f4a37ab08c9d57393eaf2ab",
-    "docs/API.md": "84681f226981c781a7ff3542c9839c0e1bc35777b29c47bee05c426bb9a578f0",
-    "docs/ressources/generated/svg/modules.svg": "186156d6377963d48938bd8c92769cc5560ee012b5374de648bbb3b19904a0fb",
-    "docs/ressources/generated/png/modules.png": "423d2a6f0939867508661b335e2ca830a75fbd634f393bade33daf2ea84ad2dc",
+    "README.md": "ab7502ef8904ad00694f2743efa803e0ae52a3a0c6e5a44c525975769cbb5de3",
+    "docs/API.md": "00be7320f7076a101f8b5bef568bd27441a8da0ce932c3d97f7e1acea8902a38",
+    "docs/ressources/generated/svg/modules.svg": "9a2555a04ee1c79f16c47f2cefba6b34ee4304695ec90c22acc0b3359bb3c41e",
+    "docs/ressources/generated/png/modules.png": "a9178addd374e1da560ffa5f250632064aeb6750a5c22aeb6e10791e1dd3f311",
     "docs/ressources/generated/svg/sequence.svg": "b9efe75e2e75269655223be331f2efb17c7f63733fa416888a3d37a9a11211a2",
     "docs/ressources/generated/png/sequence.png": "d4889091e2088d9cd785979588ecd8e9faa9537861317e50055c1b3af14d27dc",
     "docs/ressources/generated/svg/plugins.svg": "0c16953684e8d8f066813d53fd78ac10b368879690692846e4a2e2fb8a3c48f0",
@@ -39,6 +39,6 @@
     "docs/ressources/sequence/svg/combination-flow.svg": "4bd54e64ab575b2007766dd4a610afeb73109d25bcd1668ca01444b8fe679931",
     "docs/ressources/sequence/puml/combination-errors.puml": "630a46c8b058110d83c4d2ba5f21db0c2d3ed7a9eac08d8a930ee0043ffbea3a",
     "docs/ressources/sequence/svg/combination-errors.svg": "e1acfbf5e671536ffa0225f55c445bcb33f547da22395eba6af6054466c471a3",
-    "docs/sequence-components.md": "e14041fa39b6b989559798d4f8ff65e9e034b9e125ef5ef5b0629c5cfc7a9e88"
+    "docs/sequence-components.md": "b43f74ce62dcfa97d2b57f3b8f8f6be716c5318df6a034d8ff1704f55ee1389f"
   }
 }

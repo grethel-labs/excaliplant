@@ -43,6 +43,7 @@ this document is the exhaustive view across every exported symbol in
 - [`diagrams/sequence/assets`](#diagramssequenceassets)
 - [`diagrams/sequence/context`](#diagramssequencecontext)
 - [`diagrams/sequence/docs`](#diagramssequencedocs)
+- [`diagrams/sequence/docs/coverage_examples`](#diagramssequencedocscoverage_examples)
 - [`diagrams/sequence/layout`](#diagramssequencelayout)
 - [`diagrams/sequence/layout_engine`](#diagramssequencelayout_engine)
 - [`diagrams/sequence/module`](#diagramssequencemodule)
@@ -58,6 +59,7 @@ this document is the exhaustive view across every exported symbol in
 - [`diagrams/sequence/security`](#diagramssequencesecurity)
 - [`diagrams/sequence/spacing`](#diagramssequencespacing)
 - [`diagrams/sequence/tests`](#diagramssequencetests)
+- [`diagrams/sequence/tests/output`](#diagramssequencetestsoutput)
 - [`diagrams/shared/common_plugins/title`](#diagramssharedcommon_pluginstitle)
 - [`diagrams/shared/graph_context`](#diagramssharedgraph_context)
 - [`diagrams/shared/graph_parser`](#diagramssharedgraph_parser)
@@ -1446,6 +1448,33 @@ const sequenceDiagramDocs;
 
 ---
 
+## `diagrams/sequence/docs/coverage_examples`
+
+_Source: [`src/diagrams/sequence/docs/coverage_examples.mjs`](src/diagrams/sequence/docs/coverage_examples.mjs)_
+
+### Exports
+
+| Name                                                                                                | Kind  | Visibility  |
+| --------------------------------------------------------------------------------------------------- | ----- | ----------- |
+| [`SEQUENCE_COMPONENT_EXAMPLES`](#sequence_component_examples-diagramssequencedocscoverage_examples) | const | unspecified |
+| [`SEQUENCE_SUPPORT_MATRIX`](#sequence_support_matrix-diagramssequencedocscoverage_examples)         | const | unspecified |
+
+#### <a id="sequence_component_examples-diagramssequencedocscoverage_examples"></a>`SEQUENCE_COMPONENT_EXAMPLES`
+
+```ts
+const SEQUENCE_COMPONENT_EXAMPLES;
+```
+
+Renderable PlantUML examples for the sequence-diagram feature coverage page.
+
+#### <a id="sequence_support_matrix-diagramssequencedocscoverage_examples"></a>`SEQUENCE_SUPPORT_MATRIX`
+
+```ts
+const SEQUENCE_SUPPORT_MATRIX;
+```
+
+---
+
 ## `diagrams/sequence/layout`
 
 _Source: [`src/diagrams/sequence/layout.mjs`](src/diagrams/sequence/layout.mjs)_
@@ -1962,6 +1991,42 @@ class SequenceDiagramTests extends BaseModuleTests
 ```ts
 const sequenceDiagramTests;
 ```
+
+---
+
+## `diagrams/sequence/tests/output`
+
+_Source: [`src/diagrams/sequence/tests/output.mjs`](src/diagrams/sequence/tests/output.mjs)_
+
+### Exports
+
+| Name                                                                                | Kind     | Visibility  |
+| ----------------------------------------------------------------------------------- | -------- | ----------- |
+| [`SEQUENCE_TEST_OUTPUT_DIR`](#sequence_test_output_dir-diagramssequencetestsoutput) | const    | unspecified |
+| [`writeSequenceOutput`](#writesequenceoutput-diagramssequencetestsoutput)           | function | unspecified |
+
+#### <a id="sequence_test_output_dir-diagramssequencetestsoutput"></a>`SEQUENCE_TEST_OUTPUT_DIR`
+
+```ts
+const SEQUENCE_TEST_OUTPUT_DIR;
+```
+
+Absolute path to the Sequence module's generated test-review artefacts.
+
+#### <a id="writesequenceoutput-diagramssequencetestsoutput"></a>`writeSequenceOutput`
+
+```ts
+function writeSequenceOutput(filename, content);
+```
+
+Write a Sequence-module test artefact to `src/diagrams/sequence/tests/output/`.
+
+**Parameters**
+
+| Name       | Type     | Description                                                   |
+| ---------- | -------- | ------------------------------------------------------------- | ----------- | ----------------- |
+| `filename` | `string` | File name or relative path below the module output directory. |
+| `content`  | `string  | Buffer                                                        | Uint8Array` | Content to write. |
 
 ---
 
@@ -5130,4 +5195,4 @@ recognised.
 
 ---
 
-_Total: 83 modules._
+_Total: 85 modules._

@@ -2,7 +2,7 @@
 
 /**
  * Renderable PlantUML examples for the sequence-diagram feature coverage page.
- * @type {Array<{id:string,title:string,description:string,source:string}>}
+ * @type {readonly {id:string,title:string,description:string,source:string}[]}
  */
 export const SEQUENCE_COMPONENT_EXAMPLES = Object.freeze([
   {
@@ -395,7 +395,7 @@ Client ->]: outbound signal
  * "partial" means the syntax is accepted/rendered with simplified semantics;
  * "tolerated" means the line is consumed or harmlessly ignored but not rendered
  * as a first-class visual feature yet.
- * @type {Array<{component:string,status:"supported"|"partial"|"tolerated"|"not yet",notes:string}>}
+ * @type {readonly {component:string,status:"supported"|"partial"|"tolerated"|"not yet",notes:string}[]}
  */
 export const SEQUENCE_SUPPORT_MATRIX = Object.freeze([
   {

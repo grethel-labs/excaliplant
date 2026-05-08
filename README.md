@@ -245,8 +245,7 @@ excaliplant
 │   │   ├── extract-api.mjs
 │   │   ├── extract-docs.mjs
 │   │   ├── file-tree.mjs
-│   │   ├── self-diagrams.mjs
-│   │   └── sequence-coverage-examples.mjs
+│   │   └── self-diagrams.mjs
 │   ├── API.md
 │   ├── API.template.md.njk
 │   ├── README.template.md.njk
@@ -295,7 +294,9 @@ excaliplant
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
 │   │   ├── sequence
+│   │   │   ├── docs
 │   │   │   ├── plugins
+│   │   │   ├── tests
 │   │   │   ├── assets.mjs
 │   │   │   ├── context.mjs
 │   │   │   ├── docs.mjs
