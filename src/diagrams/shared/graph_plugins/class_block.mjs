@@ -1,6 +1,7 @@
 // UML class-diagram declarations.
 //
-// Handles the `class` / `abstract class` / `interface` / `enum` family of
+// Handles the `class` / `abstract class` / `interface` / `enum` /
+// `annotation` / `record` family of
 // PlantUML lines, including the bits that the generic keyword-shape plugin
 // doesn't speak: generic type parameters, `extends`, `implements`, and the
 // `{abstract}` / `{static}` member modifier tags. Block forms enter
@@ -20,7 +21,7 @@ import { slug, unescapeLabel, normaliseShape } from "../../../util/plantuml_util
 /**
  * Parsed pieces of a class-diagram declaration line.
  * @typedef {{
- *   shape: "class"|"interface"|"enum",
+ *   shape: "class"|"interface"|"enum"|"annotation"|"record",
  *   isAbstract: boolean,
  *   name: string,
  *   alias: string|null,
@@ -119,9 +120,9 @@ export function parseClassHeader(line) {
     isAbstract = true;
     rest = rest.slice(absM[0].length);
   }
-  const kwM = rest.match(/^(class|interface|enum)\s+/);
+  const kwM = rest.match(/^(class|interface|enum|annotation|record)\s+/);
   if (!kwM) return null;
-  const shape = /** @type {"class"|"interface"|"enum"} */ (kwM[1]);
+  const shape = /** @type {"class"|"interface"|"enum"|"annotation"|"record"} */ (kwM[1]);
   rest = rest.slice(kwM[0].length).trimStart();
 
   // Name (quoted or bare identifier).
@@ -315,13 +316,15 @@ function headerStereotype(hdr) {
   if (hdr.stereotype) return hdr.stereotype;
   if (hdr.shape === "interface") return "interface";
   if (hdr.shape === "enum") return "enumeration";
+  if (hdr.shape === "annotation") return "annotation";
+  if (hdr.shape === "record") return "record";
   if (hdr.isAbstract) return "abstract";
   return "";
 }
 
 /**
  * Class-diagram block plugin. Runs before the generic keyword-shape
- * plugin so `class | interface | enum [extends|implements] [{ … }]` is
+ * plugin so `class | interface | enum | annotation | record [extends|implements] [{ … }]` is
  * routed here, while everything else (`component`, `database`, …)
  * keeps flowing through {@link shapeKeywordPlugin}.
  * @type {import("../../../util/parser_engine.mjs").Plugin}

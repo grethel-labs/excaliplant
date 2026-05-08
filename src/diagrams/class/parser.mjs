@@ -40,7 +40,7 @@ export function detectClassDiagram(text) {
     const line = stripComment(raw).trim();
     if (!line) continue;
     if (/^skinparam\s+class\b/i.test(line)) return true;
-    if (/^(?:abstract\s+class|class|interface|enum|annotation)\b/i.test(line)) return true;
+    if (/^(?:abstract\s+class|class|interface|enum|annotation|record)\b/i.test(line)) return true;
   }
   return false;
 }

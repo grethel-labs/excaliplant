@@ -97,6 +97,39 @@ class Account {
   assert.ok(ys[1] > ys[0], "operation separator should be below the title separator");
 });
 
+test("class diagram parses PlantUML record and annotation declarations", () => {
+  const diagram = parsePlantUml(`@startuml
+record "Audit Event" as AuditEvent extends DomainEvent implements Serializable {
+  +timestamp: Instant
+}
+annotation Auditable {
+  +value(): string
+}
+@enduml`);
+
+  const recordBox = diagram.boxById("AuditEvent");
+  assert.equal(recordBox.shape, "class");
+  assert.equal(recordBox.stereotype, "record");
+  assert.equal(recordBox.title, "Audit Event");
+  assert.equal(recordBox.members.length, 1);
+
+  const annotationBox = diagram.boxById("Auditable");
+  assert.equal(annotationBox.shape, "class");
+  assert.equal(annotationBox.stereotype, "annotation");
+  assert.equal(annotationBox.members[0], "+value(): string");
+
+  assert.ok(diagram.boxById("DomainEvent"));
+  assert.ok(diagram.boxById("Serializable"));
+  assert.equal(
+    diagram.connections.filter((connection) => connection.kind === "inheritance").length,
+    1,
+  );
+  assert.equal(
+    diagram.connections.filter((connection) => connection.kind === "realization").length,
+    1,
+  );
+});
+
 test("SVG renderer strokes rounded rectangle outlines", () => {
   const svg = excalidrawToSvg({
     type: "excalidraw",

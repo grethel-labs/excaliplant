@@ -218,6 +218,8 @@ export function normaliseShape(kw) {
     case "entity":
       return "entity";
     case "class":
+    case "annotation":
+    case "record":
       return "class";
     case "enum":
       return "enum";

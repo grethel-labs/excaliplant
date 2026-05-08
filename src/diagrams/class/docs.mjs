@@ -9,7 +9,16 @@ import { BaseModuleDocs } from "../base/docs.mjs";
 export class ClassDiagramDocs extends BaseModuleDocs {
   constructor() {
     super({
-      examples: ["basic", "interface", "enum", "relationships", "styling", "security"],
+      examples: [
+        "basic",
+        "interface",
+        "enum",
+        "record",
+        "annotation",
+        "relationships",
+        "styling",
+        "security",
+      ],
       generatedPages: [],
       knownGaps: ["full-class-coverage"],
     });
