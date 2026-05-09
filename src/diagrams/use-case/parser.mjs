@@ -11,7 +11,6 @@ import { useCaseRelationshipPlugin } from "./plugins/relationships.mjs";
 import { useCaseContainerPlugin } from "./plugins/containers.mjs";
 import { useCaseNotePlugin } from "./plugins/notes.mjs";
 import { connectionPlugin } from "../shared/graph_plugins/connections.mjs";
-import { graphFilterPlugin } from "../shared/graph_plugins/filters.mjs";
 import { createTitlePlugin } from "../shared/common_plugins/title.mjs";
 import { collectBlockLines, unescapeLabel } from "../../util/plantuml_utils.mjs";
 

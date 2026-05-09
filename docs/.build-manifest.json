@@ -3,8 +3,8 @@
   "files": {
     "README.md": "918718b5e5f6355efc2df5c3aefcd409ff01a7e84d7bd14b613266d4e0d7ecf8",
     "docs/API.md": "5f30f85de420846722a8ac254beffb4ef05ec827a2188b2924979be92660e8f0",
-    "docs/ressources/generated/svg/modules.svg": "3ba19f01babe1ed605e4b83b7540f7218d27c9b5933f75e415d93a693c57bc2b",
-    "docs/ressources/generated/png/modules.png": "1fdee132b2c5fee365085ba5843107cad892d6badf00e0fff44a38c740aa9e57",
+    "docs/ressources/generated/svg/modules.svg": "a962cb9f1965a0836a65388f265dcd7be6e4b88ea3aec67e94bbf7c48209736d",
+    "docs/ressources/generated/png/modules.png": "0c43150d45dac212db2e6a8f038c1a6043f3b37a194cc9e33d03746ee386f8ce",
     "docs/ressources/generated/svg/sequence.svg": "b9efe75e2e75269655223be331f2efb17c7f63733fa416888a3d37a9a11211a2",
     "docs/ressources/generated/png/sequence.png": "d4889091e2088d9cd785979588ecd8e9faa9537861317e50055c1b3af14d27dc",
     "docs/ressources/generated/svg/plugins.svg": "976865b7a18fa382659d244bec0ab6c36f728c201849ae9009936b12e9a73950",
