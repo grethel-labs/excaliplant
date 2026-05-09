@@ -39,7 +39,7 @@ test("module registry is closed-world and exposes built-in manifests", () => {
   assert.equal(defaultDiagramModuleRegistry.frozen, true);
   assert.deepEqual(
     defaultDiagramModuleRegistry.list().map((module) => module.kind),
-    ["sequence", "class", "component"],
+    ["sequence", "class", "component", "deployment"],
   );
   assert.throws(
     () => defaultDiagramModuleRegistry.register(componentDiagramModule),
@@ -211,7 +211,7 @@ test("platform introspection is manifest-driven", () => {
   const platform = describeDiagramPlatform();
   assert.deepEqual(
     platform.modules.map((module) => module.kind),
-    ["sequence", "class", "component"],
+    ["sequence", "class", "component", "deployment"],
   );
   assert.deepEqual(platform.diagramModules, platform.modules);
   assert.ok(platform.platformServices.some((service) => service.kind === "security-base"));
