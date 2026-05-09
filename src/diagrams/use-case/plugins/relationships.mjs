@@ -3,7 +3,7 @@
  * @module diagrams/use-case/plugins/relationships
  */
 
-import { stripComment, classifyArrow } from "../../../util/plantuml_utils.mjs";
+import { stripComment } from "../../../util/plantuml_utils.mjs";
 
 /**
  * Parse use-case relationship.
