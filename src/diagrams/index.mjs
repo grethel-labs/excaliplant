@@ -106,12 +106,32 @@ export {
 export { UseCaseDiagramRenderer, useCaseDiagramRenderer } from "./use-case/render.mjs";
 export { UseCaseDiagramSecurity, useCaseDiagramSecurity } from "./use-case/security.mjs";
 export { UseCaseDiagramTests, useCaseDiagramTests } from "./use-case/tests.mjs";
+export { ObjectDiagramModule, objectDiagramModule } from "./object/module.mjs";
+export { ObjectDiagramAssets, objectDiagramAssets } from "./object/assets.mjs";
+export { ObjectDiagramDocs, objectDiagramDocs } from "./object/docs.mjs";
+export { ObjectDiagramLayout, layoutObjectDiagram, objectDiagramLayout } from "./object/layout.mjs";
+export {
+  ObjectDiagramParser,
+  DEFAULT_OBJECT_PLUGINS,
+  createObjectParseContext,
+  detectObjectDiagram,
+  prepareObjectLines,
+  objectDiagramParser,
+} from "./object/parser.mjs";
+export {
+  OBJECT_RENDERERS,
+  ObjectDiagramRenderer,
+  objectDiagramRenderer,
+} from "./object/render.mjs";
+export { ObjectDiagramSecurity, objectDiagramSecurity } from "./object/security.mjs";
+export { ObjectDiagramTests, objectDiagramTests } from "./object/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
 import { classDiagramModule } from "./class/module.mjs";
 import { componentDiagramModule } from "./component/module.mjs";
 import { deploymentDiagramModule } from "./deployment/module.mjs";
 import { useCaseDiagramModule } from "./use-case/module.mjs";
+import { objectDiagramModule } from "./object/module.mjs";
 
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
@@ -120,4 +140,5 @@ export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   componentDiagramModule,
   deploymentDiagramModule,
   useCaseDiagramModule,
+  objectDiagramModule,
 ]);

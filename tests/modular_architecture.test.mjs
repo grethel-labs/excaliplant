@@ -15,6 +15,7 @@ import {
   ClassDiagramModule,
   ComponentDiagramModule,
   GraphModuleBase,
+  ObjectDiagramModule,
   SecurityError,
   SequenceDiagram,
   SequenceDiagramModule,
@@ -33,13 +34,14 @@ import {
   renderPlantUml,
   setDiagramModuleMetadata,
   sequenceDiagramModule,
+  objectDiagramModule,
 } from "../index.mjs";
 
 test("module registry is closed-world and exposes built-in manifests", () => {
   assert.equal(defaultDiagramModuleRegistry.frozen, true);
   assert.deepEqual(
     defaultDiagramModuleRegistry.list().map((module) => module.kind),
-    ["sequence", "class", "component", "deployment", "use-case"],
+    ["sequence", "class", "component", "deployment", "use-case", "object"],
   );
   assert.throws(
     () => defaultDiagramModuleRegistry.register(componentDiagramModule),
@@ -61,6 +63,10 @@ test("module registry is closed-world and exposes built-in manifests", () => {
   assert.equal(registry.detect("@startcomponent\ncomponent API\n@enduml")?.kind, "component");
   assert.equal(registry.detect("@startuml\n[A]\n@enduml")?.kind, "component");
   assert.equal(registry.detect("")?.kind, "component");
+  assert.equal(
+    defaultDiagramModuleRegistry.detect("@startobject\nobject User\n@endobject")?.kind,
+    "object",
+  );
 });
 
 test("built-in diagram modules are concrete classes composed from base facets", () => {
@@ -68,6 +74,7 @@ test("built-in diagram modules are concrete classes composed from base facets", 
     [sequenceDiagramModule, SequenceDiagramModule],
     [classDiagramModule, ClassDiagramModule],
     [componentDiagramModule, ComponentDiagramModule],
+    [objectDiagramModule, ObjectDiagramModule],
   ];
 
   for (const [module, ModuleClass] of expectations) {
@@ -211,7 +218,7 @@ test("platform introspection is manifest-driven", () => {
   const platform = describeDiagramPlatform();
   assert.deepEqual(
     platform.modules.map((module) => module.kind),
-    ["sequence", "class", "component", "deployment", "use-case"],
+    ["sequence", "class", "component", "deployment", "use-case", "object"],
   );
   assert.deepEqual(platform.diagramModules, platform.modules);
   assert.ok(platform.platformServices.some((service) => service.kind === "security-base"));
@@ -289,7 +296,7 @@ test("source layout foregrounds diagram modules and separates runtime concerns",
     "tests.mjs",
   ];
 
-  for (const diagramKind of ["sequence", "class", "component"]) {
+  for (const diagramKind of ["sequence", "class", "component", "object"]) {
     for (const facet of requiredFacets) {
       const facetPath = `src/diagrams/${diagramKind}/${facet}`;
       assert.equal(existsSync(path.join(process.cwd(), facetPath)), true, `missing ${facetPath}`);

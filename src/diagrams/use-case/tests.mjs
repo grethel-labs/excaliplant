@@ -9,8 +9,8 @@ import { BaseModuleTests } from "../base/tests.mjs";
 export class UseCaseDiagramTests extends BaseModuleTests {
   constructor() {
     super({
-      unit: [],
-      integration: [],
+      unit: ["src/diagrams/use-case/tests/usecase_components.test.mjs"],
+      integration: ["tests/usecase_components.test.mjs", "tests/plantuml.test.mjs"],
       security: [],
     });
   }

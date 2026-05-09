@@ -38,7 +38,11 @@ export class UseCaseDiagramModule extends GraphModuleBase {
         security: ["src/diagrams/use-case/security.mjs"],
         assets: ["src/diagrams/use-case/assets.mjs"],
         docs: ["src/diagrams/use-case/docs.mjs"],
-        tests: ["src/diagrams/use-case/tests.mjs", "tests/usecase_components.test.mjs"],
+        tests: [
+          "src/diagrams/use-case/tests.mjs",
+          "src/diagrams/use-case/tests/usecase_components.test.mjs",
+          "tests/usecase_components.test.mjs",
+        ],
       },
       genericFallback: true,
       startDirectives: ["@startuml", "@startusecase"],

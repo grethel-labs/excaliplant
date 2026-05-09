@@ -38,6 +38,9 @@ export const SHAPES = [
   "entity",
   "class",
   "enum",
+  "object",
+  "map",
+  "diamond",
   "note",
 ];
 
