@@ -3,7 +3,6 @@
  * @module diagrams/use-case/parser
  */
 
-import { stripComment } from "../../util/plantuml_utils.mjs";
 import { BaseModuleParser } from "../base/parser.mjs";
 import { createComponentContext } from "../shared/graph_context.mjs";
 import { actorPlugin } from "./plugins/actors.mjs";
