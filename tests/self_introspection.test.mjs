@@ -87,9 +87,14 @@ test("plugin-detail PlantUML enumerates every default plugin as a box", async ()
     assert.match(puml, new RegExp(`${kind} plugins`), `missing module package for ${kind}`);
   }
   // Each plugin should map to a box.
+  // Use same slug function as self-diagrams.mjs for consistency
+  const slug = (s) =>
+    String(s)
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
   for (const name of expectedPlugins) {
-    const slug = name.replace(/[.\\W]/g, "_");
-    assert.ok(diagram.boxById(slug), `missing box for plugin ${name}`);
+    const id = slug(name);
+    assert.ok(diagram.boxById(id), `missing box for plugin ${name}`);
   }
   const doc = await renderPlantUml(puml, { sourceLabel: "self.plugins" });
   assert.ok(doc.elements.length > 0);
