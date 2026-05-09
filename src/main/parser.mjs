@@ -34,7 +34,9 @@ import { runEngine } from "../util/parser_engine.mjs";
 import {
   DEFAULT_CLASS_PLUGINS,
   DEFAULT_COMPONENT_PLUGINS,
+  DEFAULT_OBJECT_PLUGINS,
   DEFAULT_SEQUENCE_PLUGINS,
+  DEFAULT_USE_CASE_PLUGINS,
   defaultDiagramModuleRegistry,
 } from "./builtin.mjs";
 import { ensureDiagramModuleRegistry } from "./registry.mjs";
@@ -60,6 +62,18 @@ export { DEFAULT_CLASS_PLUGINS } from "./builtin.mjs";
  * @public
  */
 export { DEFAULT_DEPLOYMENT_PLUGINS } from "./builtin.mjs";
+
+/**
+ * Default plugin pipeline for object diagrams.
+ * @public
+ */
+export { DEFAULT_OBJECT_PLUGINS } from "./builtin.mjs";
+
+/**
+ * Default plugin pipeline for use-case diagrams.
+ * @public
+ */
+export { DEFAULT_USE_CASE_PLUGINS } from "./builtin.mjs";
 
 /**
  * Default plugin pipeline for sequence diagrams.

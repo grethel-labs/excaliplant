@@ -732,10 +732,15 @@ function renderBox(box, parentColor, elements) {
       renderNodeShape(box, color, elements);
       break;
     case "class":
+    case "object":
+    case "map":
       renderClass(box, color, elements);
       break;
     case "enum":
       renderClass(box, color, elements);
+      break;
+    case "diamond":
+      renderDiamondShape(box, color, elements);
       break;
     case "note":
       renderNote(box, elements);
@@ -863,6 +868,31 @@ function renderRectangleShape(box, color, elements) {
       height: box.height,
       strokeColor: color.stroke,
       backgroundColor: color.fill,
+    }),
+  );
+  renderBoxText(box, color, elements);
+}
+
+/**
+ * Render a PlantUML object-diagram diamond node.
+ * @param {Box} box Box to draw.
+ * @param {ColorTriple} color Colour triple to apply.
+ * @param {ExcalElement[]} elements Excalidraw element list — mutated in place.
+ * @returns {void}
+ */
+function renderDiamondShape(box, color, elements) {
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  elements.push(
+    line({
+      points: [
+        { x: cx, y: box.y },
+        { x: box.x + box.width, y: cy },
+        { x: cx, y: box.y + box.height },
+        { x: box.x, y: cy },
+        { x: cx, y: box.y },
+      ],
+      strokeColor: color.stroke,
     }),
   );
   renderBoxText(box, color, elements);

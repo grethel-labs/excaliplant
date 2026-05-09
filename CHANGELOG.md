@@ -85,6 +85,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   primary files.
 - Shared parser helpers now cover reusable title-line parsing and block-line
   accumulation for note-style block plugins.
+- Built-in object diagrams now parse object declarations, aliases,
+  body/colon field rows, maps with row anchors, diamonds, notes, and
+  class-like relationships through a dedicated `object` diagram module.
 
 ### Changed
 

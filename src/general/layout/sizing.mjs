@@ -222,6 +222,8 @@ function sizeBox(box, width) {
       break;
     case "class":
     case "enum":
+    case "object":
+    case "map":
       if (box.members && box.members.length) {
         // Wrap each member signature at semantically meaningful break
         // points (commas, parentheses, etc.) so long method signatures
@@ -256,6 +258,9 @@ function sizeBox(box, width) {
           textHeight + totalLines * FONT.sizeDescription * FONT.lineHeight + 12 + separatorExtra,
         );
       }
+      break;
+    case "diamond":
+      shapeMin = Math.max(shapeMin, 72);
       break;
     case "note":
       shapeMin = Math.max(shapeMin, 50);
