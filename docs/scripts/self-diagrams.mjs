@@ -171,10 +171,14 @@ export async function buildPluginDetailDiagramSource() {
     const moduleId = slug(`${module.kind}_plugins`);
     lines.push(`package "${module.kind} plugins" as ${moduleId} {`);
     for (const plugin of module.parserPlugins()) {
-      const qualifiedName = `${module.kind}.${plugin.name}`;
+      // Use plugin.name directly if it already contains a dot (module prefix), otherwise add module prefix
+      const qualifiedName = plugin.name.includes(".")
+        ? plugin.name
+        : `${module.kind}.${plugin.name}`;
+      const displayName = plugin.name.includes(".") ? plugin.name.split(".").pop() : plugin.name;
       const id = slug(qualifiedName);
       expected.push(qualifiedName);
-      lines.push(`  [${plugin.name}] as ${id}`);
+      lines.push(`  [${displayName}] as ${id}`);
       lines.push(`  runEngine --> ${id}`);
     }
     lines.push(`}`);
