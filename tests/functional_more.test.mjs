@@ -8,14 +8,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Resvg } from "@resvg/resvg-js";
 import { parsePlantUml, renderPlantUml, Diagram, SequenceDiagram } from "../index.mjs";
-import { excalidrawJsonToCanvasSvg } from "../src/render/canvas_svg.mjs";
-import { svgToPng } from "../src/render/png.mjs";
-import { excalidrawToSvg } from "../src/render/svg.mjs";
+import { excalidrawJsonToCanvasSvg } from "../src/general/render/canvas_svg.mjs";
+import { svgToPng } from "../src/general/render/png.mjs";
+import { excalidrawToSvg } from "../src/general/render/svg.mjs";
 import {
   EXCALIFONT_FAMILY,
   EXCALIFONT_FONT_PATH,
   EXCALIFONT_RASTER_FONT_PATH,
-} from "../src/style/font.mjs";
+} from "../src/general/style/font.mjs";
 import { writeOutput } from "./helpers/output.mjs";
 
 // ---------------------------------------------------------------------------

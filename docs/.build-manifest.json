@@ -1,16 +1,16 @@
 {
   "version": 1,
   "files": {
-    "README.md": "45e151c434e368ff09cc679cc04ae877bdd7e671eb169c86c8ad6cfd97664a48",
-    "docs/API.md": "a5715b178d19e53b2c21691372aac0c7782c27805d0bedb16ff2a27972c77f81",
-    "docs/ressources/generated/svg/modules.svg": "cf71edc557a8ce0d14e7aa1a9d984e9eea117c0a950251b58559cced0a6163d4",
-    "docs/ressources/generated/png/modules.png": "aeab7f24396fbcaabec58c58a50d8dbbc063fc4f5723420b4d00acbf92847a0b",
+    "README.md": "b3bc3c67c386248ab50a877ec22c945ee55f5deac290b3e31269699ff1d34ecd",
+    "docs/API.md": "83f9baa86e35916be5271f1df381497bf5ac632fed44b7a69a022e19bb3e17dc",
+    "docs/ressources/generated/svg/modules.svg": "17bebd6a99f095a3dfbd1c142b134ccfb8aa851e331ed3bcaa7626d1441dfaf3",
+    "docs/ressources/generated/png/modules.png": "cd01deb4610bf7cc545a27e738f9edaf8c668e270d49415379d618531cf54cc0",
     "docs/ressources/generated/svg/sequence.svg": "b9efe75e2e75269655223be331f2efb17c7f63733fa416888a3d37a9a11211a2",
     "docs/ressources/generated/png/sequence.png": "d4889091e2088d9cd785979588ecd8e9faa9537861317e50055c1b3af14d27dc",
-    "docs/ressources/generated/svg/plugins.svg": "675b08524e2df6deb80445324da57a5fb9de8c368a781911620f724bc4deaefd",
-    "docs/ressources/generated/png/plugins.png": "560695d05c5917035107f1b0ef3d8bf552d0f73f6b281f207e974348da86cf3b",
-    "docs/ressources/generated/svg/model.svg": "55e7cd02e9b78a387b0d19a92da4a24367787e9aa43ec787d2d51752fdd9a34b",
-    "docs/ressources/generated/png/model.png": "8af23ad33c724bd29ad9ff6cc73b374ef9dde9232569998ea8718d21deb5312b",
+    "docs/ressources/generated/svg/plugins.svg": "874345cc779bf57bddde7cd6dc49b9ebd144df8b90683fb2525608e8a44fc847",
+    "docs/ressources/generated/png/plugins.png": "571e403b4fd0751c7d057d6ba99031fadc600ddca97b39c8f0920a6e020de751",
+    "docs/ressources/generated/svg/model.svg": "6db9a63fd6f752fae199e9eba37bb34cc40fdb2342d94ca75212e3c22f510d3a",
+    "docs/ressources/generated/png/model.png": "2388ada9bec8f86ea5f8ade222020944e5b2eb4fb608455887d8e43c0a8730c7",
     "docs/ressources/sequence/puml/basics.puml": "2809e9a6b7c84a4b07cd3e2f8c9c3f56ab37e504f73b14a1b91a843ec1fce8ae",
     "docs/ressources/sequence/svg/basics.svg": "d365dae43401f3693985b8826baea12d724ea259942b00a0832e7be21d3b9ccc",
     "docs/ressources/sequence/puml/participants.puml": "f16a16d4924dd0a306e4d919775730c0d8f4847a22a75cd5d69e30a4231653ce",
@@ -29,8 +29,8 @@
     "docs/ressources/sequence/svg/lifecycle.svg": "b28cafef6f24aa42b7487389638dcc9efc3ca2499d728475f318adb01f83ad0c",
     "docs/ressources/sequence/puml/autonumber-title-footbox-skinparam.puml": "b95cd666b73960a471d4c9c3c396bf3496f8d93de36a50b635d1fd79040c3b83",
     "docs/ressources/sequence/svg/autonumber-title-footbox-skinparam.svg": "287bdb2ca9f64693d7d37fac8fe6200be829caed2df77f4f518c5d33575f763b",
-    "docs/ressources/sequence/puml/global-presentation.puml": "d819f50f05fa123853525288c3616003d7d9dbf3649dded6ff6f6a9364193efd",
-    "docs/ressources/sequence/svg/global-presentation.svg": "71b6f1398d21789a3a601922743cb2d1ca8190ec7f60eff291eff2b3a6eb8d28",
+    "docs/ressources/sequence/puml/global-presentation.puml": "064e38559c45cacaceb7b5631a54cd0c3576a8268d7470319bcd069678c2e1bc",
+    "docs/ressources/sequence/svg/global-presentation.svg": "38e4d4f051b4b1df5725345cbd21343530e7a0a4512fad20210d5d6b8b1a0b61",
     "docs/ressources/sequence/puml/participant-boxes.puml": "2dbed16241ac37b0dfbef11e35e0168949b7a0cf709d0fba43f5b85e88bbbb09",
     "docs/ressources/sequence/svg/participant-boxes.svg": "c0eef74ea3552499607025a74cf64c56b6928bbc913697e67341426da8629f30",
     "docs/ressources/sequence/puml/feedback-loops-assets.puml": "307871aa7eb648e1293f905ad35ee7f18a1886c3d61352514a497589d9505df3",
@@ -39,6 +39,6 @@
     "docs/ressources/sequence/svg/combination-flow.svg": "4bd54e64ab575b2007766dd4a610afeb73109d25bcd1668ca01444b8fe679931",
     "docs/ressources/sequence/puml/combination-errors.puml": "630a46c8b058110d83c4d2ba5f21db0c2d3ed7a9eac08d8a930ee0043ffbea3a",
     "docs/ressources/sequence/svg/combination-errors.svg": "e1acfbf5e671536ffa0225f55c445bcb33f547da22395eba6af6054466c471a3",
-    "docs/sequence-components.md": "e14041fa39b6b989559798d4f8ff65e9e034b9e125ef5ef5b0629c5cfc7a9e88"
+    "docs/sequence-components.md": "555694c979d999ab815f73aaef4c6aed28afd19ce81c2a488444e8323921acd4"
   }
 }

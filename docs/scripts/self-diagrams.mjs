@@ -8,7 +8,7 @@
 //
 //   buildModuleDiagramSource()         → component diagram of src/
 //   buildSequenceDiagramSource()       → sequence of renderPlantUml(text)
-//   buildPluginDetailDiagramSource()   → each parser plugin as a box
+//   buildPluginDetailDiagramSource()   → each registered parser plugin as a box
 //   buildModelClassDiagramSource()     → class diagram of exported model classes
 
 import { readdir, readFile } from "node:fs/promises";
@@ -156,36 +156,32 @@ export function buildSequenceDiagramSource() {
 // ---------------------------------------------------------------------------
 
 export async function buildPluginDetailDiagramSource() {
-  const { DEFAULT_COMPONENT_PLUGINS, DEFAULT_SEQUENCE_PLUGINS } =
-    await import("../../src/parser/plantuml.mjs");
+  const { defaultDiagramModuleRegistry } = await import("../../src/main/builtin.mjs");
 
   const lines = ["@startuml", `title "excaliplant — parser plugins"`];
   const expected = [];
+  const expectedModules = [];
 
   lines.push(`package "engine" as engine {`);
   lines.push(`  [runEngine] as runEngine`);
   lines.push(`}`);
 
-  lines.push(`package "component plugins" as comp {`);
-  for (const p of DEFAULT_COMPONENT_PLUGINS) {
-    const id = slug(p.name);
-    expected.push(p.name);
-    lines.push(`  [${p.name}] as ${id}`);
-    lines.push(`  runEngine --> ${id}`);
+  for (const module of defaultDiagramModuleRegistry.list()) {
+    expectedModules.push(module.kind);
+    const moduleId = slug(`${module.kind}_plugins`);
+    lines.push(`package "${module.kind} plugins" as ${moduleId} {`);
+    for (const plugin of module.parserPlugins()) {
+      const qualifiedName = `${module.kind}.${plugin.name}`;
+      const id = slug(qualifiedName);
+      expected.push(qualifiedName);
+      lines.push(`  [${plugin.name}] as ${id}`);
+      lines.push(`  runEngine --> ${id}`);
+    }
+    lines.push(`}`);
   }
-  lines.push(`}`);
-
-  lines.push(`package "sequence plugins" as seq {`);
-  for (const p of DEFAULT_SEQUENCE_PLUGINS) {
-    const id = slug(p.name);
-    expected.push(p.name);
-    lines.push(`  [${p.name}] as ${id}`);
-    lines.push(`  runEngine --> ${id}`);
-  }
-  lines.push(`}`);
   lines.push("@enduml");
 
-  return { puml: lines.join("\n"), expectedPlugins: expected };
+  return { puml: lines.join("\n"), expectedPlugins: expected, expectedModules };
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +189,7 @@ export async function buildPluginDetailDiagramSource() {
 // ---------------------------------------------------------------------------
 
 export async function buildModelClassDiagramSource() {
-  const modelPath = path.join(SRC, "model", "diagram.mjs");
+  const modelPath = path.join(SRC, "general", "model", "diagram.mjs");
   const source = await readFile(modelPath, "utf8");
   const classes = extractModelClasses(source);
   const lines = ["@startuml", `title "excaliplant — model classes"`];

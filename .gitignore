@@ -13,5 +13,6 @@ node_modules/
 docs/ressources/generated/puml/
 docs/ressources/generated/excalidraw/
 tests/output/
+src/diagrams/*/tests/output/
 .vscode/
 docs/tickets/

@@ -5,6 +5,7 @@ node_modules/
 # Generated docs / artefacts (rebuilt by `npm run build`).
 docs/api/
 docs/ressources/generated/
+src/diagrams/*/tests/output/
 README.md
 
 # Vendored fonts / binary assets.

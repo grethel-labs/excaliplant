@@ -220,7 +220,7 @@ async function main() {
   }
 
   if (opts.styleFile) {
-    const { loadStyleFromFile } = await import("../src/style/style.mjs");
+    const { loadStyleFromFile } = await import("../src/general/style/style.mjs");
     loadStyleFromFile(opts.styleFile);
   }
 
@@ -229,7 +229,7 @@ async function main() {
   if (opts.rngSeed === "random") {
     rng = Math.random;
   } else if (opts.rngSeed != null) {
-    const { createSeededRng } = await import("../src/render/rng.mjs");
+    const { createSeededRng } = await import("../src/general/render/rng.mjs");
     rng = createSeededRng(Number(opts.rngSeed) >>> 0);
   }
 

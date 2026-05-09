@@ -28,7 +28,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import { parsePlantUml, renderPlantUml } from "../index.mjs";
-import { excalidrawToSvg } from "../src/render/svg.mjs";
+import { excalidrawToSvg } from "../src/general/render/svg.mjs";
 
 // ---------------------------------------------------------------------------
 // Prototype pollution
@@ -249,7 +249,7 @@ end note
 // ---------------------------------------------------------------------------
 
 test("security: svgToPng rejects non-integer / non-positive widths", async () => {
-  const { svgToPng } = await import("../src/render/png.mjs");
+  const { svgToPng } = await import("../src/general/render/png.mjs");
   const tinySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>`;
   for (const bad of [0, -1, 1.5, NaN, Infinity, "1000"]) {
     assert.throws(
@@ -264,7 +264,7 @@ test("security: svgToPng clamps absurd widths to MAX_PNG_WIDTH", async () => {
   // We don't actually rasterise here (would be slow); we just confirm
   // the bounds-check path doesn't throw for huge values that are still
   // integer-positive — they get clamped instead of blowing up resvg.
-  const { svgToPng } = await import("../src/render/png.mjs");
+  const { svgToPng } = await import("../src/general/render/png.mjs");
   const tinySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>`;
   // 100_000 is far above the 16_000 ceiling — must still succeed.
   const buf = svgToPng(tinySvg, { width: 100_000 });
@@ -272,7 +272,7 @@ test("security: svgToPng clamps absurd widths to MAX_PNG_WIDTH", async () => {
 });
 
 test("security: canvas SVG rejects non-integer widths", async () => {
-  const { excalidrawJsonToCanvasSvg } = await import("../src/render/canvas_svg.mjs");
+  const { excalidrawJsonToCanvasSvg } = await import("../src/general/render/canvas_svg.mjs");
   const doc = await renderPlantUml(`@startuml
 [a] --> [b]
 @enduml`);
@@ -329,7 +329,7 @@ test("security: CLI rejects out-of-range --width", async () => {
 // ---------------------------------------------------------------------------
 
 test("security: canvas SVG escapes attacker-controlled background", async () => {
-  const { excalidrawJsonToCanvasSvg } = await import("../src/render/canvas_svg.mjs");
+  const { excalidrawJsonToCanvasSvg } = await import("../src/general/render/canvas_svg.mjs");
   const doc = await renderPlantUml(`@startuml
 [a] --> [b]
 @enduml`);
@@ -346,7 +346,7 @@ test("security: canvas SVG escapes attacker-controlled background", async () => 
 });
 
 test("security: canvas SVG escapes background even on empty diagrams", async () => {
-  const { excalidrawJsonToCanvasSvg } = await import("../src/render/canvas_svg.mjs");
+  const { excalidrawJsonToCanvasSvg } = await import("../src/general/render/canvas_svg.mjs");
   const payload = '"><script>alert(1)</script>';
   const svg = excalidrawJsonToCanvasSvg(
     { type: "excalidraw", version: 2, source: "", elements: [], appState: {}, files: {} },

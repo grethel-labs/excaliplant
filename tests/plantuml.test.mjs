@@ -2,8 +2,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { renderPlantUml, parsePlantUml, SequenceDiagram } from "../index.mjs";
-import { excalidrawToSvg } from "../src/render/svg.mjs";
-import { svgToPng } from "../src/render/png.mjs";
+import { excalidrawToSvg } from "../src/general/render/svg.mjs";
+import { svgToPng } from "../src/general/render/png.mjs";
 import { writeOutput } from "./helpers/output.mjs";
 
 const SAMPLE = `
@@ -95,6 +95,39 @@ class Account {
   assert.equal(separators.length, 2);
   const ys = separators.map((line) => line.y + line.points[0][1]).sort((a, b) => a - b);
   assert.ok(ys[1] > ys[0], "operation separator should be below the title separator");
+});
+
+test("class diagram parses PlantUML record and annotation declarations", () => {
+  const diagram = parsePlantUml(`@startuml
+record "Audit Event" as AuditEvent extends DomainEvent implements Serializable {
+  +timestamp: Instant
+}
+annotation Auditable {
+  +value(): string
+}
+@enduml`);
+
+  const recordBox = diagram.boxById("AuditEvent");
+  assert.equal(recordBox.shape, "class");
+  assert.equal(recordBox.stereotype, "record");
+  assert.equal(recordBox.title, "Audit Event");
+  assert.equal(recordBox.members.length, 1);
+
+  const annotationBox = diagram.boxById("Auditable");
+  assert.equal(annotationBox.shape, "class");
+  assert.equal(annotationBox.stereotype, "annotation");
+  assert.equal(annotationBox.members[0], "+value(): string");
+
+  assert.ok(diagram.boxById("DomainEvent"));
+  assert.ok(diagram.boxById("Serializable"));
+  assert.equal(
+    diagram.connections.filter((connection) => connection.kind === "inheritance").length,
+    1,
+  );
+  assert.equal(
+    diagram.connections.filter((connection) => connection.kind === "realization").length,
+    1,
+  );
 });
 
 test("SVG renderer strokes rounded rectangle outlines", () => {
@@ -200,6 +233,25 @@ test("rich component diagram parses all shapes / arrows / notes", () => {
   assert.equal(noteBox.shape, "note");
   const noteConn = d.connections.find((c) => c.kind === "note");
   assert.ok(noteConn);
+});
+
+test("component diagram parses lollipop shorthand, queue and artifact declarations", () => {
+  const diagram = parsePlantUml(`@startuml
+component "API" as api
+() "HTTP" as HTTP
+queue "Jobs" as jobs
+artifact "Client SDK" as sdk
+api ..> HTTP : exposes
+api --> jobs : publishes
+sdk --> api : calls
+@enduml`);
+
+  assert.equal(diagram.boxById("api").shape, "component");
+  assert.equal(diagram.boxById("HTTP").shape, "interface");
+  assert.equal(diagram.boxById("jobs").shape, "queue");
+  assert.equal(diagram.boxById("sdk").shape, "rectangle");
+  assert.equal(diagram.connections.length, 3);
+  assert.ok(diagram.connections.some((connection) => connection.label === "exposes"));
 });
 
 test("rich diagram renders to Excalidraw with mixed primitives", async () => {

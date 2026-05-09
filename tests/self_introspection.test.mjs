@@ -13,8 +13,8 @@ import {
   buildSequenceDiagramSource,
   buildPluginDetailDiagramSource,
 } from "../docs/scripts/self-diagrams.mjs";
-import { excalidrawToSvg } from "../src/render/svg.mjs";
-import { svgToPng } from "../src/render/png.mjs";
+import { excalidrawToSvg } from "../src/general/render/svg.mjs";
+import { svgToPng } from "../src/general/render/png.mjs";
 import { writeOutput } from "./helpers/output.mjs";
 
 test("module-graph PlantUML for the project parses + renders", async () => {
@@ -81,8 +81,11 @@ test("renderPlantUml call-flow sequence diagram parses + renders", async () => {
 });
 
 test("plugin-detail PlantUML enumerates every default plugin as a box", async () => {
-  const { puml, expectedPlugins } = await buildPluginDetailDiagramSource();
+  const { puml, expectedPlugins, expectedModules } = await buildPluginDetailDiagramSource();
   const diagram = parsePlantUml(puml);
+  for (const kind of expectedModules) {
+    assert.match(puml, new RegExp(`${kind} plugins`), `missing module package for ${kind}`);
+  }
   // Each plugin should map to a box.
   for (const name of expectedPlugins) {
     const slug = name.replace(/[.\\W]/g, "_");

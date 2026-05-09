@@ -11,7 +11,7 @@ import { REPO_ROOT, repoRel } from "./config.mjs";
 import {
   SEQUENCE_COMPONENT_EXAMPLES,
   SEQUENCE_SUPPORT_MATRIX,
-} from "./sequence-coverage-examples.mjs";
+} from "../../src/diagrams/sequence/docs/coverage_examples.mjs";
 
 const SEQUENCE_DOC = path.join(REPO_ROOT, "docs", "sequence-components.md");
 const SEQUENCE_TEMPLATE = path.join(REPO_ROOT, "docs", "sequence-components.template.md.njk");

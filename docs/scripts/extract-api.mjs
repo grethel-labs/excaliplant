@@ -222,7 +222,7 @@ function extractTypedefDescription(body) {
 }
 
 /**
- * Convert a name like `src/render/svg.mjs` into a friendly module id.
+ * Convert a name like `src/general/render/svg.mjs` into a friendly module id.
  * `index.mjs` becomes the package root entry.
  *
  * @param {string} rel Repo-relative path.

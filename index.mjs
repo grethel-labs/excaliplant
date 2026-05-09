@@ -33,7 +33,7 @@
  *    deterministic tabular layout.
  * 3. **renderer** walks the laid-out model and emits Excalidraw JSON.
  *    The same model can also be exported to SVG via
- *    [`src/render/svg.mjs`](./src/render/svg.mjs) — used by the
+ *    [`src/general/render/svg.mjs`](./src/general/render/svg.mjs) — used by the
  *    documentation pipeline.
  */
 
@@ -41,40 +41,122 @@
  * @diagram modules
  *
  * The module graph reflects how the source is laid out under
- * [`src/`](./src/). Note in particular how the parser is split into a
- * single tiny `engine` plus a stack of plugins under `parser/plugins/`,
- * each plugin handling one PlantUML construct.
+ * [`src/`](./src/). Diagram-type behavior is collected in first-class
+ * module folders under `src/diagrams/`, orchestration lives under
+ * `src/main/`, and host capabilities live under `src/general/platform/`.
  */
 
 /**
  * @diagram model
  *
  * The model diagram is generated dynamically from exported classes in
- * [`src/model/diagram.mjs`](./src/model/diagram.mjs). It shows how the
+ * [`src/general/model/diagram.mjs`](./src/general/model/diagram.mjs). It shows how the
  * reusable arrow classes sit underneath both component connections and
  * sequence messages, so future model classes appear in the README without
  * hand-maintained PlantUML.
  */
 
-import { parsePlantUml } from "./src/parser/plantuml.mjs";
-import { layoutDiagram } from "./src/layout/elk_layout.mjs";
-import { exportDiagram } from "./src/render/excalidraw.mjs";
-import { excalidrawToSvg } from "./src/render/svg.mjs";
-import { excalidrawJsonToCanvasSvg } from "./src/render/canvas_svg.mjs";
-import { svgToPng } from "./src/render/png.mjs";
+import { parsePlantUml } from "./src/main/parser.mjs";
+import { layoutDiagram } from "./src/general/layout/elk_layout.mjs";
+import { exportDiagram } from "./src/general/render/excalidraw.mjs";
+import { layoutDiagramWithModule, exportDiagramWithModule } from "./src/main/pipeline.mjs";
+import { excalidrawToSvg } from "./src/general/render/svg.mjs";
+import { excalidrawJsonToCanvasSvg } from "./src/general/render/canvas_svg.mjs";
+import { svgToPng } from "./src/general/render/png.mjs";
 
-export { parsePlantUml, DEFAULT_PARSE_LIMITS } from "./src/parser/plantuml.mjs";
-export { layoutDiagram } from "./src/layout/elk_layout.mjs";
-export { exportDiagram } from "./src/render/excalidraw.mjs";
-export { excalidrawToSvg } from "./src/render/svg.mjs";
+export { parsePlantUml, DEFAULT_PARSE_LIMITS } from "./src/main/parser.mjs";
+export { layoutDiagram } from "./src/general/layout/elk_layout.mjs";
+export { exportDiagram } from "./src/general/render/excalidraw.mjs";
+export { layoutDiagramWithModule, exportDiagramWithModule } from "./src/main/pipeline.mjs";
+export {
+  BaseDiagramModule,
+  BaseModuleAssets,
+  BaseModuleDocs,
+  BaseModuleLayout,
+  BaseModuleParser,
+  BaseModuleRenderer,
+  BaseModuleSecurity,
+  BaseModuleTests,
+  DataModuleBase,
+  ExternalBridgeModuleBase,
+  GraphModuleBase,
+  TimelineModuleBase,
+  TreeModuleBase,
+} from "./src/diagrams/base/index.mjs";
+export { DiagramModuleRegistry, validateDiagramModule } from "./src/main/registry.mjs";
+export {
+  BUILTIN_DIAGRAM_MODULES,
+  ClassDiagramAssets,
+  ClassDiagramDocs,
+  ClassDiagramLayout,
+  ClassDiagramModule,
+  ClassDiagramParser,
+  ClassDiagramRenderer,
+  ClassDiagramSecurity,
+  ClassDiagramTests,
+  ComponentDiagramAssets,
+  ComponentDiagramDocs,
+  ComponentDiagramLayout,
+  ComponentDiagramModule,
+  ComponentDiagramParser,
+  ComponentDiagramRenderer,
+  ComponentDiagramSecurity,
+  ComponentDiagramTests,
+  classDiagramModule,
+  componentDiagramModule,
+  DEFAULT_CLASS_PLUGINS,
+  DEFAULT_COMPONENT_PLUGINS,
+  DEFAULT_SEQUENCE_PLUGINS,
+  defaultDiagramModuleRegistry,
+  SequenceDiagramAssets,
+  SequenceDiagramDocs,
+  SequenceDiagramLayout,
+  SequenceDiagramModule,
+  SequenceDiagramParser,
+  SequenceDiagramRenderer,
+  SequenceDiagramSecurity,
+  SequenceDiagramTests,
+  sequenceDiagramModule,
+} from "./src/main/builtin.mjs";
+export {
+  resolveModuleDependencies,
+  validateRegistryDependencies,
+} from "./src/main/dependencies.mjs";
+export {
+  getDiagramModuleKind,
+  getDiagramModuleMetadata,
+  setDiagramModuleMetadata,
+} from "./src/main/metadata.mjs";
+export { describeDiagramPlatform } from "./src/main/introspection.mjs";
+export {
+  DEFAULT_ALLOWED_LINK_PROTOCOLS,
+  DEFAULT_FAILURE_POLICY,
+  DEFAULT_MODULE_SECURITY_PROFILE,
+  FailureBoundary,
+  SecurityError,
+  createModuleSecurityProfile,
+  createSecurityBase,
+  escapeAttribute,
+  escapeText,
+} from "./src/general/platform/security_base.mjs";
+export { createDiagnostic, isFatalDiagnostic } from "./src/general/platform/diagnostics.mjs";
+export { createAssetBase, normalizeAssetManifest } from "./src/general/platform/asset_base.mjs";
+export {
+  DEFAULT_PLATFORM_SERVICE_MANIFESTS,
+  PlatformServiceRegistry,
+  defaultPlatformServiceRegistry,
+  satisfiesVersion,
+  validatePlatformService,
+} from "./src/general/platform/services.mjs";
+export { excalidrawToSvg } from "./src/general/render/svg.mjs";
 export {
   excalidrawJsonToCanvasSvg,
   DEFAULT_CANVAS_WIDTH,
   DEFAULT_ASPECT_RATIO,
-} from "./src/render/canvas_svg.mjs";
-export { svgToPng } from "./src/render/png.mjs";
-export { EXCALIDRAW_SCHEMA, ROUNDNESS } from "./src/render/schema.mjs";
-export { createSeededRng, stableHash32 } from "./src/render/rng.mjs";
+} from "./src/general/render/canvas_svg.mjs";
+export { svgToPng } from "./src/general/render/png.mjs";
+export { EXCALIDRAW_SCHEMA, ROUNDNESS } from "./src/general/render/schema.mjs";
+export { createSeededRng, stableHash32 } from "./src/general/render/rng.mjs";
 export {
   DEFAULT_STYLE,
   EXCALIDRAW_FONT_FAMILY,
@@ -84,7 +166,7 @@ export {
   loadStyleFromFile,
   resolveFontFamilyId,
   parseSimpleYaml,
-} from "./src/style/style.mjs";
+} from "./src/general/style/style.mjs";
 export {
   ARROW_ANCHORS,
   ARROW_DIRECTIONS,
@@ -117,7 +199,7 @@ export {
   SEQUENCE_ARROW_HEADS,
   SEQUENCE_ARROW_LINE_STYLES,
   SHAPES,
-} from "./src/model/diagram.mjs";
+} from "./src/general/model/diagram.mjs";
 
 /**
  * Chainable result returned by `renderPlantUml` / `renderDiagram`.
@@ -191,13 +273,13 @@ export class RenderResult {
  * the Excalidraw JSON, or call `.toSvg()` / `.toPng()` on it to get
  * the rasterised diagram in one chained call.
  *
- * @param {string} plantuml  PlantUML text (see src/parser/plantuml.mjs
+ * @param {string} plantuml  PlantUML text (see src/main/parser.mjs
  *                           for the supported subset).
  * @param {object} [opts]
  * @param {string} [opts.sourceLabel]  Forwarded to the renderer's
  *                                     appState.name.
  * @param {() => number} [opts.rng]    Optional deterministic RNG.
- * @param {Partial<import("./src/parser/plantuml.mjs").DEFAULT_PARSE_LIMITS>} [opts.limits]
+ * @param {Partial<import("./src/main/parser.mjs").DEFAULT_PARSE_LIMITS>} [opts.limits]
  *   Optional resource limits forwarded to {@link parsePlantUml}.
  * @returns {RenderResult}             Thenable wrapping the Excalidraw
  *                                     JSON document.
@@ -206,8 +288,8 @@ export function renderPlantUml(plantuml, opts = {}) {
   return new RenderResult(
     (async () => {
       const diagram = parsePlantUml(plantuml, { limits: opts.limits });
-      await layoutDiagram(diagram);
-      return exportDiagram(diagram, {
+      await layoutDiagramWithModule(diagram);
+      return exportDiagramWithModule(diagram, {
         sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
         rng: opts.rng,
       });
@@ -219,8 +301,8 @@ export function renderPlantUml(plantuml, opts = {}) {
  * Render an already-built Diagram model. Useful for callers that want
  * to bypass the PlantUML parser and feed shapes programmatically.
  *
- * @param {import("./src/model/diagram.mjs").Diagram
- *        | import("./src/model/diagram.mjs").SequenceDiagram} diagram
+ * @param {import("./src/general/model/diagram.mjs").Diagram
+ *        | import("./src/general/model/diagram.mjs").SequenceDiagram} diagram
  * @param {object} [opts]
  * @param {string} [opts.sourceLabel]
  * @param {() => number} [opts.rng]
@@ -229,8 +311,8 @@ export function renderPlantUml(plantuml, opts = {}) {
 export function renderDiagram(diagram, opts = {}) {
   return new RenderResult(
     (async () => {
-      await layoutDiagram(diagram);
-      return exportDiagram(diagram, {
+      await layoutDiagramWithModule(/** @type {object} */ (diagram));
+      return exportDiagramWithModule(/** @type {object} */ (diagram), {
         sourceLabel: opts.sourceLabel ?? diagram.title ?? "",
         rng: opts.rng,
       });
