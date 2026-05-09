@@ -8,7 +8,7 @@ import { stripComment } from "../../../util/plantuml_utils.mjs";
 /**
  * Parse note declaration.
  * @param {string} line
- * @returns {object|null}
+ * @returns {{type: "anchored", position: string, target: string}|{type: "floating", text: string, id: string}|null}
  */
 function parseNote(line) {
   // Match: note right of Actor
@@ -41,26 +41,26 @@ export const useCaseNotePlugin = {
   /**
    * Try to parse a note line.
    * @param {string} line
-   * @param {object} context
+   * @param {ReturnType<import("../../shared/graph_context.mjs").createComponentContext>} ctx
    * @returns {boolean}
    */
-  tryLine(line, context) {
+  tryLine(line, ctx) {
     const cleanLine = stripComment(line).trim();
     if (!cleanLine) return false;
 
     const note = parseNote(cleanLine);
     if (note) {
       if (note.type === "anchored") {
-        context.queueNote({
-          target: note.target,
+        ctx.queueNote({
+          targetId: note.target,
           text: "",
-          position: note.position,
+          side: note.position,
         });
       } else {
-        context.queueNote({
+        ctx.addBox({
           id: note.id,
-          text: note.text,
-          floating: true,
+          title: note.text,
+          shape: "note",
         });
       }
       return true;

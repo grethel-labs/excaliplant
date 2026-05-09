@@ -9,7 +9,7 @@ import { BaseModuleRenderer } from "../base/renderer.mjs";
 export class UseCaseDiagramRenderer extends BaseModuleRenderer {
   constructor() {
     super({
-      renderStrategy: "excalidraw",
+      renderers: {},
     });
   }
 }

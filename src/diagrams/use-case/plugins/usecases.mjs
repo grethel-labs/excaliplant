@@ -3,12 +3,12 @@
  * @module diagrams/use-case/plugins/usecases
  */
 
-import { stripComment, stripQuotes, slug } from "../../../util/plantuml_utils.mjs";
+import { stripComment, slug } from "../../../util/plantuml_utils.mjs";
 
 /**
  * Parse usecase with parentheses notation (Use Case Name).
  * @param {string} line
- * @returns {object|null}
+ * @returns {{type: string, id: string, title: string}|null}
  */
 function parseParenthesisUsecase(line) {
   // Match (Use Case Name) or (Use Case Name) as Alias
@@ -22,14 +22,13 @@ function parseParenthesisUsecase(line) {
     type: "usecase",
     id: alias,
     title: name,
-    isBusiness: name.endsWith("/"),
   };
 }
 
 /**
  * Parse usecase keyword declaration.
  * @param {string} line
- * @returns {object|null}
+ * @returns {{type: string, id: string, title: string}|null}
  */
 function parseKeywordUsecase(line) {
   // Match: usecase "Name" as Alias or usecase (Name) as Alias
@@ -43,7 +42,6 @@ function parseKeywordUsecase(line) {
     type: "usecase",
     id: alias,
     title: name,
-    isBusiness: name.endsWith("/"),
   };
 }
 
@@ -54,38 +52,32 @@ export const usecasePlugin = {
   /**
    * Try to parse a usecase line.
    * @param {string} line
-   * @param {object} context
+   * @param {ReturnType<import("../../shared/graph_context.mjs").createComponentContext>} ctx
    * @returns {boolean}
    */
-  tryLine(line, context) {
+  tryLine(line, ctx) {
     const cleanLine = stripComment(line).trim();
     if (!cleanLine) return false;
 
     // Try parenthesis notation (Use Case)
     const parenUsecase = parseParenthesisUsecase(cleanLine);
     if (parenUsecase) {
-      const box = context.addBox({
+      ctx.addBox({
         id: parenUsecase.id,
         title: parenUsecase.title,
         shape: "usecase",
       });
-      if (box) {
-        box.isBusiness = parenUsecase.isBusiness;
-      }
       return true;
     }
 
     // Try keyword usecase
     const keywordUsecase = parseKeywordUsecase(cleanLine);
     if (keywordUsecase) {
-      const box = context.addBox({
+      ctx.addBox({
         id: keywordUsecase.id,
         title: keywordUsecase.title,
         shape: "usecase",
       });
-      if (box) {
-        box.isBusiness = keywordUsecase.isBusiness;
-      }
       return true;
     }
 

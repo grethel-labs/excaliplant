@@ -9,7 +9,7 @@ import { stripComment, classifyArrow } from "../../../util/plantuml_utils.mjs";
  * Parse use-case relationship.
  * Supports: -->, ..>, <|--, :> (include), .> (extend)
  * @param {string} line
- * @returns {object|null}
+ * @returns {{from: string, to: string, type: string, label: string, dashed: boolean}|null}
  */
 function parseRelationship(line) {
   // Match: Actor --> Usecase : label
@@ -73,21 +73,21 @@ export const useCaseRelationshipPlugin = {
   /**
    * Try to parse a relationship line.
    * @param {string} line
-   * @param {object} context
+   * @param {ReturnType<import("../../shared/graph_context.mjs").createComponentContext>} ctx
    * @returns {boolean}
    */
-  tryLine(line, context) {
+  tryLine(line, ctx) {
     const cleanLine = stripComment(line).trim();
     if (!cleanLine) return false;
 
     const relationship = parseRelationship(cleanLine);
     if (relationship) {
-      context.queueConnection({
-        from: relationship.from,
-        to: relationship.to,
+      ctx.queueConnection({
+        fromId: relationship.from,
+        toId: relationship.to,
         label: relationship.label,
-        type: relationship.type,
         dashed: relationship.dashed,
+        directed: true,
       });
       return true;
     }

@@ -3,15 +3,12 @@
  * @module diagrams/use-case/plugins/actors
  */
 
-import { stripComment, stripQuotes, slug } from "../../../util/plantuml_utils.mjs";
-
-const ACTOR_KEYWORDS = ["actor"];
-const ACTOR_STYLE_KEYWORDS = ["actorStyle"];
+import { stripComment, slug } from "../../../util/plantuml_utils.mjs";
 
 /**
  * Parse actor declaration with colon notation :Actor Name:.
  * @param {string} line
- * @returns {object|null}
+ * @returns {{type: string, id: string, title: string}|null}
  */
 function parseColonActor(line) {
   // Match :Actor Name: or :Actor Name: as Alias
@@ -25,14 +22,13 @@ function parseColonActor(line) {
     type: "actor",
     id: alias,
     title: name,
-    isBusiness: name.endsWith("/"),
   };
 }
 
 /**
  * Parse actor keyword declaration.
  * @param {string} line
- * @returns {object|null}
+ * @returns {{type: string, id: string, title: string}|null}
  */
 function parseKeywordActor(line) {
   // Match: actor "Name" as Alias or actor :Name: as Alias
@@ -46,14 +42,13 @@ function parseKeywordActor(line) {
     type: "actor",
     id: alias,
     title: name,
-    isBusiness: name.endsWith("/"),
   };
 }
 
 /**
  * Parse actorStyle directive.
  * @param {string} line
- * @returns {object|null}
+ * @returns {{type: string, style: string}|null}
  */
 function parseActorStyle(line) {
   const match = line.match(/^skinparam\s+actorStyle\s+(\w+)$/i);
@@ -72,49 +67,39 @@ export const actorPlugin = {
   /**
    * Try to parse an actor line.
    * @param {string} line
-   * @param {object} context
+   * @param {ReturnType<import("../../shared/graph_context.mjs").createComponentContext>} ctx
    * @returns {boolean}
    */
-  tryLine(line, context) {
+  tryLine(line, ctx) {
     const cleanLine = stripComment(line).trim();
     if (!cleanLine) return false;
 
     // Try actorStyle first
     const style = parseActorStyle(cleanLine);
     if (style) {
-      if (context?.diagram) {
-        context.diagram.actorStyle = style.style;
-      }
+      // Store actor style in diagram metadata if needed
       return true;
     }
 
     // Try colon notation :Actor:
     const colonActor = parseColonActor(cleanLine);
     if (colonActor) {
-      const box = context.addBox({
+      ctx.addBox({
         id: colonActor.id,
         title: colonActor.title,
         shape: "actor",
       });
-      if (box) {
-        box.isBusiness = colonActor.isBusiness;
-        box.style = context.diagram?.actorStyle || "default";
-      }
       return true;
     }
 
     // Try keyword actor
     const keywordActor = parseKeywordActor(cleanLine);
     if (keywordActor) {
-      const box = context.addBox({
+      ctx.addBox({
         id: keywordActor.id,
         title: keywordActor.title,
         shape: "actor",
       });
-      if (box) {
-        box.isBusiness = keywordActor.isBusiness;
-        box.style = context.diagram?.actorStyle || "default";
-      }
       return true;
     }
 

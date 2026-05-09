@@ -5,12 +5,10 @@
 
 import { stripComment } from "../../../util/plantuml_utils.mjs";
 
-const CONTAINER_KEYWORDS = ["package", "rectangle"];
-
 /**
  * Parse container start.
  * @param {string} line
- * @returns {object|null}
+ * @returns {{type: string, name: string, id: string}|null}
  */
 function parseContainerStart(line) {
   // Match: package "Name" { or rectangle "Name" {
@@ -34,16 +32,16 @@ export const useCaseContainerPlugin = {
   /**
    * Try to parse container start.
    * @param {string} line
-   * @param {object} context
-   * @returns {object|null}
+   * @param {ReturnType<import("../../shared/graph_context.mjs").createComponentContext>} ctx
+   * @returns {{onLine: () => boolean, tryEnd: (endLine: string) => boolean}|null}
    */
-  tryStart(line, context) {
+  tryStart(line, ctx) {
     const cleanLine = stripComment(line).trim();
     if (!cleanLine) return null;
 
     const container = parseContainerStart(cleanLine);
     if (container) {
-      context.openContainer({
+      ctx.openContainer({
         id: container.id,
         title: container.name,
         kind: container.type,
@@ -52,7 +50,7 @@ export const useCaseContainerPlugin = {
         onLine: () => true,
         tryEnd: (endLine) => {
           if (endLine.trim() === "}") {
-            context.closeContainer();
+            ctx.closeContainer();
             return true;
           }
           return false;

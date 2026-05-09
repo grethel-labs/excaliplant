@@ -8,7 +8,11 @@ import { BaseModuleTests } from "../base/tests.mjs";
 /** @public */
 export class UseCaseDiagramTests extends BaseModuleTests {
   constructor() {
-    super({});
+    super({
+      unit: [],
+      integration: [],
+      security: [],
+    });
   }
 }
 
