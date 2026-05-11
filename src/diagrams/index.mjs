@@ -140,6 +140,18 @@ export {
 export { STATE_RENDERERS, StateDiagramRenderer, stateDiagramRenderer } from "./state/render.mjs";
 export { StateDiagramSecurity, stateDiagramSecurity } from "./state/security.mjs";
 export { StateDiagramTests, stateDiagramTests } from "./state/tests.mjs";
+export { ActivityDiagramModule, activityDiagramModule } from "./activity/module.mjs";
+export { ActivityDiagramAssets } from "./activity/assets.mjs";
+export { ActivityDiagramDocs } from "./activity/docs.mjs";
+export { ActivityDiagramLayout } from "./activity/layout.mjs";
+export {
+  ActivityDiagramParser,
+  DEFAULT_ACTIVITY_PLUGINS,
+  detectActivityDiagram,
+} from "./activity/parser.mjs";
+export { ActivityDiagramRenderer } from "./activity/render.mjs";
+export { ActivityDiagramSecurity } from "./activity/security.mjs";
+export { ActivityDiagramTests } from "./activity/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
 import { classDiagramModule } from "./class/module.mjs";
@@ -148,6 +160,7 @@ import { deploymentDiagramModule } from "./deployment/module.mjs";
 import { useCaseDiagramModule } from "./use-case/module.mjs";
 import { objectDiagramModule } from "./object/module.mjs";
 import { stateDiagramModule } from "./state/module.mjs";
+import { activityDiagramModule } from "./activity/module.mjs";
 
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
@@ -158,4 +171,5 @@ export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   useCaseDiagramModule,
   objectDiagramModule,
   stateDiagramModule,
+  activityDiagramModule,
 ]);
