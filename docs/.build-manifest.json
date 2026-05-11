@@ -1,8 +1,8 @@
 {
   "version": 1,
   "files": {
-    "README.md": "99980fe4104922474d4e9ad73b5fcf1179e2000e12cf395a14be1632c00a54f3",
-    "docs/API.md": "76c93f202a5065bc585a07c5cf71aa156a1fa642d0e81da24b15cbc04ec43d29",
+    "README.md": "78395c91195aa488509d4e64a17e3bd3ba77738f0b54f18d8691c806b81e9042",
+    "docs/API.md": "2bfe32c65f11fc759cb4737e87d3395966dcfaa8b0378b1e77a770a81f904f46",
     "docs/ressources/generated/svg/modules.svg": "73affebe7935629de8723ffba133f482cadb0f693ae66c388d8e0f96acbbf611",
     "docs/ressources/generated/png/modules.png": "6974c1772388df7bc7229b8601afe9e9a4528684fb8194d69f19d4cfc5f57bc8",
     "docs/ressources/generated/svg/sequence.svg": "b9efe75e2e75269655223be331f2efb17c7f63733fa416888a3d37a9a11211a2",
