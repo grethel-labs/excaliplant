@@ -14,6 +14,7 @@ const dirs = [
   join(fileURLToPath(import.meta.url), "../../src/diagrams/deployment/tests/output"),
   join(fileURLToPath(import.meta.url), "../../src/diagrams/use-case/tests/output"),
   join(fileURLToPath(import.meta.url), "../../src/diagrams/object/tests/output"),
+  join(fileURLToPath(import.meta.url), "../../src/diagrams/state/tests/output"),
 ];
 
 for (const dir of dirs) {

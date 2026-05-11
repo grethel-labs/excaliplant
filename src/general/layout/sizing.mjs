@@ -265,6 +265,48 @@ function sizeBox(box, width) {
     case "note":
       shapeMin = Math.max(shapeMin, 50);
       break;
+    case "state":
+      // State diagrams use similar sizing to class/object
+      if (box.members && box.members.length) {
+        const wrappedMembers = [];
+        let totalLines = 0;
+        for (const member of box.members) {
+          const segments = String(member).split("\n");
+          const lines = [];
+          for (const seg of segments) {
+            const w = wrapMemberSignature(seg, FONT.sizeDescription, innerWidth);
+            if (w.lines.length === 0) lines.push("");
+            else lines.push(...w.lines);
+          }
+          wrappedMembers.push(lines);
+          totalLines += Math.max(1, lines.length);
+        }
+        box._wrappedMembers = wrappedMembers;
+        shapeMin = Math.max(
+          shapeMin,
+          textHeight + totalLines * FONT.sizeDescription * FONT.lineHeight + 12,
+        );
+      }
+      break;
+    case "start":
+    case "end":
+      // Start/end pseudostates are small circles
+      shapeMin = Math.max(shapeMin, 40);
+      break;
+    case "choice":
+      // Choice pseudostate is a diamond
+      shapeMin = Math.max(shapeMin, 60);
+      break;
+    case "fork":
+    case "join":
+      // Fork/join are bars
+      shapeMin = Math.max(shapeMin, 20);
+      break;
+    case "history":
+    case "history_deep":
+      // History states are small circles with H
+      shapeMin = Math.max(shapeMin, 48);
+      break;
   }
 
   box.height = Math.max(shapeMin, textHeight, connectionsHeight);

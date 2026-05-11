@@ -19,6 +19,7 @@ import {
   SecurityError,
   SequenceDiagram,
   SequenceDiagramModule,
+  StateDiagramModule,
   classDiagramModule,
   componentDiagramModule,
   createModuleSecurityProfile,
@@ -35,13 +36,14 @@ import {
   setDiagramModuleMetadata,
   sequenceDiagramModule,
   objectDiagramModule,
+  stateDiagramModule,
 } from "../index.mjs";
 
 test("module registry is closed-world and exposes built-in manifests", () => {
   assert.equal(defaultDiagramModuleRegistry.frozen, true);
   assert.deepEqual(
     defaultDiagramModuleRegistry.list().map((module) => module.kind),
-    ["sequence", "class", "component", "deployment", "use-case", "object"],
+    ["sequence", "class", "component", "deployment", "use-case", "object", "state"],
   );
   assert.throws(
     () => defaultDiagramModuleRegistry.register(componentDiagramModule),
@@ -67,6 +69,10 @@ test("module registry is closed-world and exposes built-in manifests", () => {
     defaultDiagramModuleRegistry.detect("@startobject\nobject User\n@endobject")?.kind,
     "object",
   );
+  assert.equal(
+    defaultDiagramModuleRegistry.detect("@startstate\nstate Idle\n@endstate")?.kind,
+    "state",
+  );
 });
 
 test("built-in diagram modules are concrete classes composed from base facets", () => {
@@ -75,6 +81,7 @@ test("built-in diagram modules are concrete classes composed from base facets", 
     [classDiagramModule, ClassDiagramModule],
     [componentDiagramModule, ComponentDiagramModule],
     [objectDiagramModule, ObjectDiagramModule],
+    [stateDiagramModule, StateDiagramModule],
   ];
 
   for (const [module, ModuleClass] of expectations) {
@@ -218,7 +225,7 @@ test("platform introspection is manifest-driven", () => {
   const platform = describeDiagramPlatform();
   assert.deepEqual(
     platform.modules.map((module) => module.kind),
-    ["sequence", "class", "component", "deployment", "use-case", "object"],
+    ["sequence", "class", "component", "deployment", "use-case", "object", "state"],
   );
   assert.deepEqual(platform.diagramModules, platform.modules);
   assert.ok(platform.platformServices.some((service) => service.kind === "security-base"));
@@ -296,7 +303,7 @@ test("source layout foregrounds diagram modules and separates runtime concerns",
     "tests.mjs",
   ];
 
-  for (const diagramKind of ["sequence", "class", "component", "object"]) {
+  for (const diagramKind of ["sequence", "class", "component", "object", "state"]) {
     for (const facet of requiredFacets) {
       const facetPath = `src/diagrams/${diagramKind}/${facet}`;
       assert.equal(existsSync(path.join(process.cwd(), facetPath)), true, `missing ${facetPath}`);

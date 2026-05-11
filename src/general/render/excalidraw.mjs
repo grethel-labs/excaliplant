@@ -745,6 +745,24 @@ function renderBox(box, parentColor, elements) {
     case "note":
       renderNote(box, elements);
       break;
+    case "state":
+      renderStateShape(box, color, elements);
+      break;
+    case "start":
+    case "end":
+      renderStartEndShape(box, color, elements);
+      break;
+    case "choice":
+      renderChoiceShape(box, color, elements);
+      break;
+    case "fork":
+    case "join":
+      renderForkJoinShape(box, color, elements);
+      break;
+    case "history":
+    case "history_deep":
+      renderHistoryShape(box, color, elements);
+      break;
     default:
       renderRectangleShape(box, color, elements);
       break;
@@ -896,6 +914,165 @@ function renderDiamondShape(box, color, elements) {
     }),
   );
   renderBoxText(box, color, elements);
+}
+
+/**
+ * Render a UML state shape (rounded rectangle with optional compartments).
+ * @param {Box} box Box (shape == `state`).
+ * @param {{ stroke: string, fill: string, titleFill: string }} color
+ * @param {ExcalElement[]} elements
+ * @internal
+ */
+function renderStateShape(box, color, elements) {
+  // State is rendered as a rounded rectangle
+  const r = rect({
+    x: box.x,
+    y: box.y,
+    width: box.width,
+    height: box.height,
+    strokeColor: color.stroke,
+    backgroundColor: color.fill,
+  });
+  r.roundness = { type: ROUNDNESS.proportional, value: 0.2 };
+  elements.push(r);
+  renderBoxText(box, color, elements);
+}
+
+/**
+ * Render start/end pseudostate (filled circle for start, bullseye for end).
+ * @param {Box} box Box (shape == `start` or `end`).
+ * @param {{ stroke: string, fill: string }} color
+ * @param {object[]} elements
+ * @internal
+ */
+function renderStartEndShape(box, color, elements) {
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const radius = Math.min(box.width, box.height) / 2 - 2;
+
+  if (box.shape === "start") {
+    // Start state: filled black circle
+    elements.push(
+      ellipse({
+        x: cx - radius,
+        y: cy - radius,
+        width: radius * 2,
+        height: radius * 2,
+        strokeColor: color.stroke,
+        backgroundColor: "#000000",
+      }),
+    );
+  } else {
+    // End state: bullseye (outer circle + inner filled circle)
+    elements.push(
+      ellipse({
+        x: cx - radius,
+        y: cy - radius,
+        width: radius * 2,
+        height: radius * 2,
+        strokeColor: color.stroke,
+        backgroundColor: "#ffffff",
+      }),
+    );
+    const innerRadius = radius * 0.5;
+    elements.push(
+      ellipse({
+        x: cx - innerRadius,
+        y: cy - innerRadius,
+        width: innerRadius * 2,
+        height: innerRadius * 2,
+        strokeColor: color.stroke,
+        backgroundColor: "#000000",
+      }),
+    );
+  }
+}
+
+/**
+ * Render choice pseudostate (small diamond).
+ * @param {Box} box Box (shape == `choice`).
+ * @param {{ stroke: string, fill: string }} color
+ * @param {object[]} elements
+ * @internal
+ */
+function renderChoiceShape(box, color, elements) {
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const size = Math.min(box.width, box.height) / 2 - 2;
+
+  elements.push(
+    line({
+      points: [
+        { x: cx, y: cy - size },
+        { x: cx + size, y: cy },
+        { x: cx, y: cy + size },
+        { x: cx - size, y: cy },
+        { x: cx, y: cy - size },
+      ],
+      strokeColor: color.stroke,
+    }),
+  );
+}
+
+/**
+ * Render fork/join pseudostate (horizontal or vertical bar).
+ * @param {Box} box Box (shape == `fork` or `join`).
+ * @param {{ stroke: string, fill: string }} color
+ * @param {object[]} elements
+ * @internal
+ */
+function renderForkJoinShape(box, color, elements) {
+  // Fork/join are rendered as thick bars
+  const r = rect({
+    x: box.x,
+    y: box.y,
+    width: box.width,
+    height: box.height,
+    strokeColor: color.stroke,
+    backgroundColor: "#000000",
+  });
+  r.strokeWidth = 3;
+  elements.push(r);
+}
+
+/**
+ * Render history pseudostate (circle with H).
+ * @param {Box} box Box (shape == `history` or `history_deep`).
+ * @param {{ stroke: string, fill: string }} color
+ * @param {object[]} elements
+ * @internal
+ */
+function renderHistoryShape(box, color, elements) {
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const radius = Math.min(box.width, box.height) / 2 - 2;
+
+  // Outer circle
+  elements.push(
+    ellipse({
+      x: cx - radius,
+      y: cy - radius,
+      width: radius * 2,
+      height: radius * 2,
+      strokeColor: color.stroke,
+      backgroundColor: "#ffffff",
+    }),
+  );
+
+  // H or H* text
+  const label = box.shape === "history_deep" ? "H*" : "H";
+  elements.push(
+    text({
+      x: box.x + 4,
+      y: box.y + 4,
+      width: box.width - 8,
+      height: box.height - 8,
+      value: label,
+      fontSize: FONT.sizeDescription,
+      color: color.stroke,
+      align: "center",
+    }),
+  );
 }
 
 /**

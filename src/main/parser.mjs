@@ -36,6 +36,7 @@ import {
   DEFAULT_COMPONENT_PLUGINS,
   DEFAULT_OBJECT_PLUGINS,
   DEFAULT_SEQUENCE_PLUGINS,
+  DEFAULT_STATE_PLUGINS,
   DEFAULT_USE_CASE_PLUGINS,
   defaultDiagramModuleRegistry,
 } from "./builtin.mjs";
@@ -80,6 +81,12 @@ export { DEFAULT_USE_CASE_PLUGINS } from "./builtin.mjs";
  * @public
  */
 export { DEFAULT_SEQUENCE_PLUGINS } from "./builtin.mjs";
+
+/**
+ * Default plugin pipeline for state diagrams.
+ * @public
+ */
+export { DEFAULT_STATE_PLUGINS } from "./builtin.mjs";
 
 const PARSE_SECURITY_BASE = createSecurityBase();
 

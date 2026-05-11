@@ -42,6 +42,14 @@ export const SHAPES = [
   "map",
   "diamond",
   "note",
+  "state",
+  "start",
+  "end",
+  "choice",
+  "fork",
+  "join",
+  "history",
+  "history_deep",
 ];
 
 /**
