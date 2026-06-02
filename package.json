@@ -97,7 +97,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.9.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.7",
     "nunjucks": "^3.2.4",
