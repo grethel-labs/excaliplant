@@ -147,7 +147,7 @@ jobs:
           console.error(`Release bump: ${labelToBump.get(selectedLabel)} (${selectedLabel})`);
           NODE
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
