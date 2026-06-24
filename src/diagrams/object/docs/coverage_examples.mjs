@@ -47,4 +47,78 @@ Order *-- LineItem : contains
 Order --> Aggregation
 @endobject`,
   },
+  {
+    id: "official-definition-relations",
+    title: "Official object definitions and relations",
+    description:
+      "Object declarations, aliases, undeclared relationship endpoints, multiplicities and labels.",
+    source: `@startuml
+object firstObject
+object "My Second Object" as o2
+object Object01
+object Object02
+object Object03
+object Object04
+
+Object01 <|-- Object02
+Object03 *-- Object04
+Object05 o-- "4" Object06
+Object07 .. Object08 : some labels
+@enduml`,
+  },
+  {
+    id: "official-associated-objects",
+    title: "Associated objects",
+    description: "Diamond association object pattern from the PlantUML object reference.",
+    source: `@startuml
+object o1
+object o2
+diamond dia
+object o3
+o1 --> dia
+o2 --> dia
+dia --> o3
+@enduml`,
+  },
+  {
+    id: "official-map-table",
+    title: "Map table and associative arrays",
+    description: "Map aliases, associative rows, row-to-object links and Map::row references.",
+    source: `@startuml
+object London
+object Washington
+object Berlin
+object NewYork
+map "Map **Country => CapitalCity**" as CapitalCity {
+  UK *-> London
+  USA *--> Washington
+  Germany *---> Berlin
+}
+NewYork --> CapitalCity::USA
+@enduml`,
+  },
+  {
+    id: "official-pert-json",
+    title: "PERT maps and JSON display",
+    description: "PERT-style empty maps, directional object links and JSON display blocks.",
+    source: `@startuml
+left to right direction
+title PERT: Project Name
+map Kick.Off {
+}
+map task.1 {
+  Start => End
+}
+map task.2 {
+  Start => End
+}
+Kick.Off --> task.1 : Label 1
+Kick.Off --> task.2 : Label 2
+json JSON {
+  "fruit":"Apple",
+  "size":"Large",
+  "color": ["Red", "Green"]
+}
+@enduml`,
+  },
 ]);

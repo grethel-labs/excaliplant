@@ -3,7 +3,7 @@
  * @module diagrams/use-case/plugins/containers
  */
 
-import { stripComment } from "../../../util/plantuml_utils.mjs";
+import { slug, stripComment, stripQuotes } from "../../../util/plantuml_utils.mjs";
 
 /**
  * Parse container start.
@@ -12,16 +12,16 @@ import { stripComment } from "../../../util/plantuml_utils.mjs";
  */
 function parseContainerStart(line) {
   // Match: package "Name" { or rectangle "Name" {
-  const match = line.match(/^(package|rectangle)\s+(?:"([^"]+)"|(\w+))\s*\{\s*$/i);
+  const match = line.match(/^(package|rectangle)\s+(?:"([^"]+)"|([^{]+?))\s*\{\s*$/i);
   if (!match) return null;
 
-  const name = match[2] || match[3];
+  const name = stripQuotes((match[2] || match[3]).trim());
   const type = match[1].toLowerCase();
 
   return {
     type,
     name,
-    id: name.toLowerCase().replace(/\s+/g, "_"),
+    id: slug(name),
   };
 }
 
@@ -33,11 +33,11 @@ export const useCaseContainerPlugin = {
    * Try to parse container start.
    * @param {string} line
    * @param {ReturnType<import("../../shared/graph_context.mjs").createComponentContext>} ctx
-   * @returns {{onLine: () => boolean, tryEnd: (endLine: string) => boolean}|null}
+   * @returns {boolean}
    */
-  tryStart(line, ctx) {
+  tryLine(line, ctx) {
     const cleanLine = stripComment(line).trim();
-    if (!cleanLine) return null;
+    if (!cleanLine) return false;
 
     const container = parseContainerStart(cleanLine);
     if (container) {
@@ -46,18 +46,9 @@ export const useCaseContainerPlugin = {
         title: container.name,
         kind: container.type,
       });
-      return {
-        onLine: () => true,
-        tryEnd: (endLine) => {
-          if (endLine.trim() === "}") {
-            ctx.closeContainer();
-            return true;
-          }
-          return false;
-        },
-      };
+      return true;
     }
 
-    return null;
+    return false;
   },
 };

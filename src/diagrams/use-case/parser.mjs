@@ -9,10 +9,15 @@ import { actorPlugin } from "./plugins/actors.mjs";
 import { usecasePlugin } from "./plugins/usecases.mjs";
 import { useCaseRelationshipPlugin } from "./plugins/relationships.mjs";
 import { useCaseContainerPlugin } from "./plugins/containers.mjs";
-import { useCaseNotePlugin } from "./plugins/notes.mjs";
 import { connectionPlugin } from "../shared/graph_plugins/connections.mjs";
+import {
+  noteBlockPlugin,
+  noteFreePlugin,
+  noteOfPlugin,
+  noteOnLinkPlugin,
+} from "../shared/graph_plugins/notes.mjs";
 import { createTitlePlugin } from "../shared/common_plugins/title.mjs";
-import { collectBlockLines, unescapeLabel } from "../../util/plantuml_utils.mjs";
+import { collectBlockLines, normalisePlantUmlText } from "../../util/plantuml_utils.mjs";
 
 /**
  * `title …` line for use-case diagrams.
@@ -76,22 +81,22 @@ const useCasePresentationPlugin = {
   tryLine(line, ctx) {
     const caption = line.match(/^caption\s+(.+)$/i);
     if (caption) {
-      ctx.diagram.caption = unescapeLabel(caption[1].trim());
+      ctx.diagram.caption = normalisePlantUmlText(caption[1].trim());
       return true;
     }
     const header = line.match(/^header\s+(.+)$/i);
     if (header) {
-      ctx.diagram.header = unescapeLabel(header[1].trim());
+      ctx.diagram.header = normalisePlantUmlText(header[1].trim());
       return true;
     }
     const footer = line.match(/^footer\s+(.+)$/i);
     if (footer) {
-      ctx.diagram.footer = unescapeLabel(footer[1].trim());
+      ctx.diagram.footer = normalisePlantUmlText(footer[1].trim());
       return true;
     }
     const mainframe = line.match(/^mainframe\s+(.+)$/i);
     if (mainframe) {
-      ctx.diagram.mainframe = unescapeLabel(mainframe[1].trim());
+      ctx.diagram.mainframe = normalisePlantUmlText(mainframe[1].trim());
       return true;
     }
     return /^allowmixing\b/i.test(line);
@@ -99,7 +104,7 @@ const useCasePresentationPlugin = {
   tryStart(line) {
     if (!/^legend\b/i.test(line)) return null;
     return collectBlockLines(/^end\s+legend$/i, (lines, ctx) => {
-      ctx.diagram.legend = lines.join("\n");
+      ctx.diagram.legend = normalisePlantUmlText(lines.join("\n"));
     });
   },
 };
@@ -134,13 +139,26 @@ export function detectUseCaseDiagram(source) {
   const trimmed = source.trim();
   if (/^@startusecase\b/m.test(trimmed)) return true;
   if (!/^@startuml\b/m.test(trimmed)) return false;
+  if (
+    /^(?:start|stop|end|kill|detach)$/im.test(trimmed) ||
+    /^(?:fork|split|repeat|while|if|switch)\b/im.test(trimmed) ||
+    /^:.*;\s*(?:<<[^>]+>>)?$/im.test(trimmed) ||
+    /^\|(?:#[^|]+)?[^|]+\|$/m.test(trimmed) ||
+    /^\(\*\)\s*--?>/m.test(trimmed) ||
+    /^--?>/m.test(trimmed)
+  ) {
+    return false;
+  }
 
   // Check for use-case specific patterns
   const useCasePatterns = [
-    /\(:[^)]+\)/, // (Use case) notation
-    /:actor:/i, // :Actor: notation
+    /^:([^:]+):\/?\s+[-.o*<|>]+/im, // :Actor: --> (Use)
+    /^"[^"]+"\s+as\s+\([^)]+\)/m, // "Use" as (Alias)
+    /^\([^)]+\)\/?(?:\s+as\s+\([^)]+\))?/m, // (Use case) notation
+    /^:[^:]+:\/?(?:\s+as\s+\w+)?/im, // :Actor: notation
     /\bactor\b/i, // actor keyword
-    /\busecase\b/i, // usecase keyword
+    /\bactor\//i, // business actor keyword
+    /\busecase\/?\b/i, // usecase keyword
     /\(First usecase\)/i, // Common use-case example
     /\bactorStyle\b/i, // actorStyle skinparam
   ];
@@ -159,7 +177,10 @@ export const DEFAULT_USE_CASE_PLUGINS = Object.freeze([
   actorPlugin,
   usecasePlugin,
   useCaseContainerPlugin,
-  useCaseNotePlugin,
+  noteOfPlugin,
+  noteFreePlugin,
+  noteBlockPlugin,
+  noteOnLinkPlugin,
   useCaseRelationshipPlugin,
   connectionPlugin,
 ]);

@@ -1,550 +1,373 @@
 /**
- * Activity diagram syntax parser plugins.
+ * Activity diagram parser plugin.
  * @module diagrams/activity/plugins/syntax
  */
 
-import { stripComment } from "../../../util/plantuml_utils.mjs";
+import { Box, Connection, Diagram, Plane } from "../../../general/model/diagram.mjs";
+import {
+  extractPlantUmlLink,
+  normalisePlantUmlText,
+  sanitizePlantUmlColor,
+  slug,
+  stripQuotes,
+} from "../../../util/plantuml_utils.mjs";
+import { planeColor } from "../../../general/style/colors.mjs";
+
+const CONTROL_WORDS =
+  /^(?:start|stop|end|kill|detach|break|fork(?:\s+again)?|end\s+(?:fork|merge|split)|split(?:\s+again)?|else(?:\s*\(.+?\))?|elseif\b.*|endif|case\b.*|endswitch|repeat(?:\s+while\b.*)?|while\b.*|endwhile\b.*|backward\b.*|label\b.*|goto\b.*|\}|\{)$/i;
 
 /**
- * Activity node types.
- * @enum {string}
+ * @typedef {{from:string,to:string,label?:string,dashed?:boolean,hidden?:boolean}} ActivityEdge
  */
-export const ActivityNodeType = {
-  START: "start",
-  STOP: "stop",
-  END: "end",
-  ACTION: "action",
-  DECISION: "decision",
-  SWITCH: "switch",
-  WHILE: "while",
-  REPEAT: "repeat",
-  FORK: "fork",
-  SPLIT: "split",
-  CONNECTOR: "connector",
-  SWIMLANE: "swimlane",
-  PARTITION: "partition",
-  NOTE: "note",
-  KILL: "kill",
-  DETACH: "detach",
-  LABEL: "label",
-};
 
 /**
- * Parse action text with optional styling.
- * @param {string} text - Raw action text
- * @returns {{text: string, style?: object}}
+ * @typedef {{
+ *   id?: string,
+ *   title: string,
+ *   shape?: string,
+ *   stereotype?: string,
+ *   members?: string[],
+ *   link?: string,
+ *   tooltip?: string,
+ *   connect?: boolean,
+ *   activate?: boolean,
+ *   edgeLabel?: string,
+ *   dashed?: boolean,
+ * }} ActivityNodeSpec
  */
-function parseActionText(text) {
-  // Handle color prefix like #HotPink:action text
-  const colorMatch = text.match(/^#(\w+):(.*)$/);
-  if (colorMatch) {
-    return {
-      text: colorMatch[2].trim(),
-      style: { backgroundColor: colorMatch[1] },
-    };
-  }
-  return { text: text.trim() };
+
+/**
+ * @returns {any}
+ * @public
+ */
+export function createActivityParseContext() {
+  const diagram = new Diagram();
+  diagram.kind = "activity";
+  const plane = new Plane({ id: "activity", title: "", color: planeColor("activity") });
+  diagram.addPlane(plane);
+  const boxes = new Map();
+  /** @type {ActivityEdge[]} */
+  const edges = [];
+  let nodeCounter = 0;
+  /** @type {string|null} */
+  let lastId = null;
+
+  const addBox = (
+    /** @type {ActivityNodeSpec} */ {
+      id = `activity_${nodeCounter++}`,
+      title,
+      shape = "state",
+      stereotype = "",
+      members = [],
+      link = "",
+      tooltip = "",
+      connect = true,
+      activate = true,
+      edgeLabel = "",
+      dashed = false,
+    },
+  ) => {
+    const box = new Box({ id, title, shape, stereotype, members, link, tooltip });
+    boxes.set(id, box);
+    plane.addBox(box);
+    if (connect && lastId && lastId !== id)
+      edges.push({ from: lastId, to: id, label: edgeLabel, dashed });
+    if (activate) lastId = id;
+    return box;
+  };
+
+  return {
+    get result() {
+      return diagram;
+    },
+    diagram,
+    boxes,
+    get nodeCount() {
+      return nodeCounter;
+    },
+    addNode(/** @type {ActivityNodeSpec} */ spec) {
+      return addBox(spec);
+    },
+    connectTo(
+      /** @type {string} */ id,
+      /** @type {string} */ label = "",
+      /** @type {boolean} */ dashed = false,
+    ) {
+      if (lastId && lastId !== id) edges.push({ from: lastId, to: id, label, dashed });
+      lastId = id;
+    },
+    finalize() {
+      for (const edge of edges) {
+        if (edge.hidden) continue;
+        const from = boxes.get(edge.from);
+        const to = boxes.get(edge.to);
+        if (!from || !to || from === to) continue;
+        diagram.addConnection(
+          new Connection({
+            id: `${edge.from}->${edge.to}#${diagram.connections.length}`,
+            from,
+            to,
+            label: edge.label || "",
+            dashed: !!edge.dashed,
+            kind: edge.dashed ? "dependency" : "default",
+            endArrowhead: "arrow",
+          }),
+        );
+      }
+    },
+  };
 }
 
 /**
- * Plugin for activity start/stop/end keywords.
- * @type {object}
+ * Join multiline `:action ... ;` blocks before the generic line engine runs.
+ * @param {string[]} lines
+ * @returns {string[]}
+ * @public
  */
-export const activityControlPlugin = {
-  name: "activity.control",
-  /** @type {(line: string, ctx: any) => boolean} */
-  tryLine: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return false;
-
-    const lower = clean.toLowerCase();
-
-    if (lower === "start") {
-      ctx.addNode({ type: ActivityNodeType.START, id: "start" });
-      return true;
+export function prepareActivityLines(lines) {
+  /** @type {string[]} */
+  const out = [];
+  let action = "";
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (action) {
+      action += `\n${line}`;
+      if (/;\s*(?:<<[^>]+>>)?\s*$/.test(line)) {
+        out.push(action);
+        action = "";
+      }
+      continue;
     }
-
-    if (lower === "stop" || lower === "end") {
-      ctx.addNode({ type: ActivityNodeType.STOP, id: lower });
-      return true;
+    if (line.startsWith(":") && !/;\s*(?:<<[^>]+>>)?\s*$/.test(line)) {
+      action = line;
+      continue;
     }
-
-    if (lower === "kill") {
-      ctx.addNode({ type: ActivityNodeType.KILL, id: `kill_${ctx.nodeCount}` });
-      return true;
-    }
-
-    if (lower === "detach") {
-      ctx.addNode({ type: ActivityNodeType.DETACH, id: `detach_${ctx.nodeCount}` });
-      return true;
-    }
-
-    return false;
-  },
-};
+    out.push(raw);
+  }
+  if (action) out.push(action);
+  return out;
+}
 
 /**
- * Plugin for activity actions (:action; syntax).
- * @type {object}
+ * @param {string} raw
+ * @returns {{text:string,link:string,tooltip:string}}
  */
-export const activityActionPlugin = {
-  name: "activity.action",
-  /** @type {(line: string, ctx: any) => boolean} */
-  tryLine: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return false;
-
-    // Match :action; syntax (including multiline)
-    const match = clean.match(/^:(.+);$/s);
-    if (!match) return false;
-
-    const parsed = parseActionText(match[1]);
-    /** @type {any} */
-    const node = {
-      type: ActivityNodeType.ACTION,
-      id: `action_${ctx.nodeCount}`,
-      text: parsed.text,
-    };
-
-    if (parsed.style) {
-      node.style = parsed.style;
-    }
-
-    // Check for stereotypes like <<object>>
-    const stereoMatch = parsed.text.match(/(.+?)\s*<<(\w+)>>\s*$/);
-    if (stereoMatch) {
-      node.text = stereoMatch[1].trim();
-      node.stereotype = stereoMatch[2];
-    }
-
-    ctx.addNode(node);
-    return true;
-  },
-};
+function parseLabel(raw) {
+  return extractPlantUmlLink(normalisePlantUmlText(stripQuotes(raw.trim())));
+}
 
 /**
- * Plugin for simple list actions (- Action or * Action).
- * @type {object}
+ * @param {string} raw
+ * @returns {string}
  */
-export const activityListActionPlugin = {
-  name: "activity.list_action",
-  /** @type {(line: string, ctx: any) => boolean} */
-  tryLine: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return false;
+function endpointId(raw) {
+  const clean = raw.trim();
+  if (clean === "(*)") return "activity_end";
+  if (clean.startsWith("(") && clean.endsWith(")")) return `connector_${slug(clean.slice(1, -1))}`;
+  if (clean.startsWith('"') && clean.endsWith('"')) return `action_${slug(stripQuotes(clean))}`;
+  return slug(clean);
+}
 
-    // Match - Action or * Action with optional nesting
-    const match = clean.match(/^([-*]+)\s+(.+)$/);
-    if (!match) return false;
-
-    const level = match[1].length;
-    const text = match[2];
-
+/**
+ * @param {any} ctx
+ * @param {string} raw
+ * @returns {string}
+ */
+function ensureLegacyEndpoint(ctx, raw) {
+  const clean = raw.trim();
+  const id = endpointId(clean);
+  if (ctx.boxes.has(id)) return id;
+  if (clean === "(*)") {
+    ctx.addNode({ id, title: "", shape: "end", connect: false, activate: false });
+    return id;
+  }
+  if (clean.startsWith("(") && clean.endsWith(")")) {
+    const name = clean.slice(1, -1);
     ctx.addNode({
-      type: ActivityNodeType.ACTION,
-      id: `action_${ctx.nodeCount}`,
-      text,
-      level,
+      id,
+      title: normalisePlantUmlText(name),
+      shape: "interface",
+      connect: false,
+      activate: false,
     });
-    return true;
-  },
-};
+    return id;
+  }
+  const parsed = parseLabel(clean);
+  ctx.addNode({
+    id,
+    title: parsed.text,
+    shape: "state",
+    link: parsed.link,
+    tooltip: parsed.tooltip,
+    connect: false,
+    activate: false,
+  });
+  return id;
+}
 
 /**
- * Plugin for if/then/else/elseif/endif conditions.
- * @type {object}
+ * @param {string} op
+ * @returns {{label:string,dashed:boolean,hidden:boolean}}
  */
-export const activityIfPlugin = {
-  name: "activity.if",
-  /** @type {(line: string, ctx: any) => object|null} */
-  tryStart: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return null;
-
-    // Match if (condition) then (label)
-    const ifMatch = clean.match(/^if\s*\((.+?)\)\s*then\s*(?:\((.+?)\))?/i);
-    if (ifMatch) {
-      const condition = ifMatch[1].trim();
-      const thenLabel = ifMatch[2] || "yes";
-
-      return {
-        type: "if",
-        condition,
-        thenLabel,
-        elseLabel: "no",
-        elseifs: [],
-        onLine: () => false,
-        tryEnd: (/** @type {string} */ l) => {
-          const c = stripComment(l).trim().toLowerCase();
-          return c === "endif" ? { end: true } : null;
-        },
-      };
-    }
-
-    return null;
-  },
-};
+function parseArrow(op) {
+  const label = op.match(/\[([^\]]+)]/)?.[1] || "";
+  return {
+    label: normalisePlantUmlText(label),
+    dashed: /dashed|dotted|\.\./i.test(op),
+    hidden: /hidden/i.test(op),
+  };
+}
 
 /**
- * Plugin for switch/case/endswitch.
- * @type {object}
- */
-export const activitySwitchPlugin = {
-  name: "activity.switch",
-  /** @type {(line: string, ctx: any) => object|null} */
-  tryStart: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return null;
-
-    const switchMatch = clean.match(/^switch\s*\((.+?)\)/i);
-    if (switchMatch) {
-      return {
-        type: "switch",
-        expression: switchMatch[1].trim(),
-        cases: [],
-        onLine: () => false,
-        tryEnd: (/** @type {string} */ l) => {
-          const c = stripComment(l).trim().toLowerCase();
-          return c === "endswitch" ? { end: true } : null;
-        },
-      };
-    }
-
-    return null;
-  },
-};
-
-/**
- * Plugin for while loops.
- * @type {object}
- */
-export const activityWhilePlugin = {
-  name: "activity.while",
-  /** @type {(line: string, ctx: any) => object|null} */
-  tryStart: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return null;
-
-    const whileMatch = clean.match(/^while\s*\((.+?)\)/i);
-    if (whileMatch) {
-      return {
-        type: "while",
-        condition: whileMatch[1].trim(),
-        onLine: () => false,
-        tryEnd: (/** @type {string} */ l) => {
-          const c = stripComment(l).trim().toLowerCase();
-          return c === "endwhile" ? { end: true } : null;
-        },
-      };
-    }
-
-    return null;
-  },
-};
-
-/**
- * Plugin for repeat loops.
- * @type {object}
- */
-export const activityRepeatPlugin = {
-  name: "activity.repeat",
-  /** @type {(line: string, ctx: any) => object|null} */
-  tryStart: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return null;
-
-    const lower = clean.toLowerCase();
-
-    if (lower === "repeat") {
-      return {
-        type: "repeat",
-        onLine: () => false,
-        tryEnd: (/** @type {string} */ l) => {
-          const c = stripComment(l).trim();
-          const m = c.match(/^repeat\s+while\s*\((.+?)\)/i);
-          if (m) {
-            return { end: true, condition: m[1].trim() };
-          }
-          return null;
-        },
-      };
-    }
-
-    return null;
-  },
-};
-
-/**
- * Plugin for fork/end fork.
- * @type {object}
- */
-export const activityForkPlugin = {
-  name: "activity.fork",
-  /** @type {(line: string, ctx: any) => object|null} */
-  tryStart: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return null;
-
-    const lower = clean.toLowerCase();
-
-    if (lower === "fork") {
-      return {
-        type: "fork",
-        branches: [[]],
-        onLine: () => false,
-        tryEnd: (/** @type {string} */ l) => {
-          const c = stripComment(l).trim().toLowerCase();
-          return c === "end fork" ? { end: true } : null;
-        },
-      };
-    }
-
-    return null;
-  },
-};
-
-/**
- * Plugin for split/end split.
- * @type {object}
- */
-export const activitySplitPlugin = {
-  name: "activity.split",
-  /** @type {(line: string, ctx: any) => object|null} */
-  tryStart: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return null;
-
-    const lower = clean.toLowerCase();
-
-    if (lower === "split") {
-      return {
-        type: "split",
-        branches: [[]],
-        onLine: () => false,
-        tryEnd: (/** @type {string} */ l) => {
-          const c = stripComment(l).trim().toLowerCase();
-          return c === "end split" ? { end: true } : null;
-        },
-      };
-    }
-
-    return null;
-  },
-};
-
-/**
- * Plugin for swimlanes.
- * @type {object}
- */
-export const activitySwimlanePlugin = {
-  name: "activity.swimlane",
-  /** @type {(line: string, ctx: any) => boolean} */
-  tryLine: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return false;
-
-    // Match |SwimlaneName| or |#Color|SwimlaneName|
-    const swimlaneMatch = clean.match(/^\|(?:#(\w+))?\|?([^|]*)\|\s*$/);
-    if (swimlaneMatch) {
-      const color = swimlaneMatch[1];
-      const name = swimlaneMatch[2].trim();
-
-      ctx.addNode({
-        type: ActivityNodeType.SWIMLANE,
-        id: `swimlane_${ctx.nodeCount}`,
-        name,
-        color,
-      });
-      return true;
-    }
-
-    return false;
-  },
-};
-
-/**
- * Plugin for partitions.
- * @type {object}
- */
-export const activityPartitionPlugin = {
-  name: "activity.partition",
-  /** @type {(line: string, ctx: any) => object|null} */
-  tryStart: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return null;
-
-    const partitionMatch = clean.match(/^partition\s+"([^"]+)"\s*\{/i);
-    if (partitionMatch) {
-      return {
-        type: "partition",
-        name: partitionMatch[1],
-        onLine: () => false,
-        tryEnd: (/** @type {string} */ l) => {
-          const c = stripComment(l).trim();
-          return c === "}" ? { end: true } : null;
-        },
-      };
-    }
-
-    return null;
-  },
-};
-
-/**
- * Plugin for connectors (labels in parentheses).
- * @type {object}
- */
-export const activityConnectorPlugin = {
-  name: "activity.connector",
-  /** @type {(line: string, ctx: any) => boolean} */
-  tryLine: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return false;
-
-    // Match (ConnectorName)
-    const connectorMatch = clean.match(/^\((\w+)\)$/);
-    if (connectorMatch) {
-      ctx.addNode({
-        type: ActivityNodeType.CONNECTOR,
-        id: connectorMatch[1],
-        name: connectorMatch[1],
-      });
-      return true;
-    }
-
-    return false;
-  },
-};
-
-/**
- * Plugin for goto/label.
- * @type {object}
- */
-export const activityGotoPlugin = {
-  name: "activity.goto",
-  /** @type {(line: string, ctx: any) => boolean} */
-  tryLine: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return false;
-
-    const lower = clean.toLowerCase();
-
-    // Match label Name
-    const labelMatch = clean.match(/^label\s+(\w+)/i);
-    if (labelMatch) {
-      ctx.addNode({
-        type: ActivityNodeType.LABEL,
-        id: labelMatch[1],
-        name: labelMatch[1],
-      });
-      return true;
-    }
-
-    // Match goto Name
-    const gotoMatch = clean.match(/^goto\s+(\w+)/i);
-    if (gotoMatch) {
-      ctx.addNode({
-        type: ActivityNodeType.ACTION,
-        id: `goto_${ctx.nodeCount}`,
-        text: `goto ${gotoMatch[1]}`,
-        gotoTarget: gotoMatch[1],
-      });
-      return true;
-    }
-
-    return false;
-  },
-};
-
-/**
- * Plugin for break statement.
- * @type {object}
- */
-export const activityBreakPlugin = {
-  name: "activity.break",
-  /** @type {(line: string, ctx: any) => boolean} */
-  tryLine: (line, ctx) => {
-    const clean = stripComment(line).trim().toLowerCase();
-    if (clean === "break") {
-      ctx.addNode({
-        type: ActivityNodeType.ACTION,
-        id: `break_${ctx.nodeCount}`,
-        text: "break",
-        isBreak: true,
-      });
-      return true;
-    }
-    return false;
-  },
-};
-
-/**
- * Plugin for notes.
- * @type {object}
- */
-export const activityNotePlugin = {
-  name: "activity.note",
-  /** @type {(line: string, ctx: any) => object|null} */
-  tryStart: (line, ctx) => {
-    const clean = stripComment(line).trim();
-    if (!clean) return null;
-
-    // Floating note: note left/right/top/bottom: text
-    const floatingMatch = clean.match(/^note\s+(left|right|top|bottom)\s*:(.+)/i);
-    if (floatingMatch) {
-      return {
-        type: "note",
-        position: floatingMatch[1],
-        text: floatingMatch[2].trim(),
-        floating: true,
-        onLine: () => false,
-        tryEnd: () => null, // Single line note
-      };
-    }
-
-    // Multiline note: note left/right/top/bottom
-    const multilineMatch = clean.match(/^note\s+(left|right|top|bottom)$/i);
-    if (multilineMatch) {
-      return {
-        type: "note",
-        position: multilineMatch[1],
-        lines: [],
-        floating: true,
-        onLine: () => false,
-        tryEnd: (/** @type {string} */ l) => {
-          const c = stripComment(l).trim().toLowerCase();
-          return c === "end note" ? { end: true } : null;
-        },
-      };
-    }
-
-    return null;
-  },
-};
-
-/**
- * Main activity syntax plugin combining all sub-plugins.
- * @type {object}
+ * @type {import("../../../util/parser_engine.mjs").Plugin}
  */
 export const activitySyntaxPlugin = {
   name: "activity.syntax",
-  plugins: [
-    activityControlPlugin,
-    activityActionPlugin,
-    activityListActionPlugin,
-    activityIfPlugin,
-    activitySwitchPlugin,
-    activityWhilePlugin,
-    activityRepeatPlugin,
-    activityForkPlugin,
-    activitySplitPlugin,
-    activitySwimlanePlugin,
-    activityPartitionPlugin,
-    activityConnectorPlugin,
-    activityGotoPlugin,
-    activityBreakPlugin,
-    activityNotePlugin,
-  ],
+  tryLine(line, ctx) {
+    const clean = line.trim();
+    if (!clean) return false;
+
+    const presentation = clean.match(/^(title|caption)\s+(.+)$/i);
+    if (presentation) {
+      ctx.diagram[presentation[1].toLowerCase()] = normalisePlantUmlText(presentation[2]);
+      return true;
+    }
+    if (/^skinparam\b/i.test(clean) || /^!pragma\b/i.test(clean) || /^<style>\s*$/i.test(clean)) {
+      return true;
+    }
+    if (/^<\/style>\s*$/i.test(clean)) return true;
+    if (/^(left\s+to\s+right|top\s+to\s+bottom)\s+direction$/i.test(clean)) {
+      ctx.diagram.layoutDirection = /^left/i.test(clean) ? "RIGHT" : "DOWN";
+      return true;
+    }
+
+    const legacy = clean.match(
+      /^(?:(\(\*\)|\([^)]+\)|"[^"]+"|[\w.]+)\s+)?([-.<>]+(?:\[[^\]]+])?[-.<>]*)(?:\s+(\(\*\)|\([^)]+\)|"[^"]+"|[\w.]+))?$/i,
+    );
+    if (legacy && (legacy[1] || legacy[3])) {
+      const arrow = parseArrow(legacy[2]);
+      if (legacy[1]) ctx.connectTo(ensureLegacyEndpoint(ctx, legacy[1]));
+      if (legacy[3]) ctx.connectTo(ensureLegacyEndpoint(ctx, legacy[3]), arrow.label, arrow.dashed);
+      return true;
+    }
+
+    const action = clean.match(/^:(.+);\s*(?:<<([^>]+)>>)?$/s);
+    if (action) {
+      const parsed = parseLabel(action[1]);
+      const stereo = action[2]?.trim() || "";
+      const color = sanitizePlantUmlColor(stereo.replace(/^#/, ""));
+      ctx.addNode({
+        title: parsed.text,
+        shape: "state",
+        stereotype: stereo && !color ? stereo : "",
+        link: parsed.link,
+        tooltip: parsed.tooltip,
+      });
+      return true;
+    }
+
+    const list = clean.match(/^([-*]+)\s+(.+)$/);
+    if (list) {
+      ctx.addNode({ title: normalisePlantUmlText(list[2]), shape: "state" });
+      return true;
+    }
+
+    const startStop = clean.toLowerCase();
+    if (startStop === "start") {
+      ctx.addNode({ id: "activity_start", title: "", shape: "start" });
+      return true;
+    }
+    if (
+      startStop === "stop" ||
+      startStop === "end" ||
+      startStop === "kill" ||
+      startStop === "detach"
+    ) {
+      ctx.addNode({ id: `${startStop}_${ctx.nodeCount}`, title: "", shape: "end" });
+      return true;
+    }
+
+    const branch = clean.match(/^(if|elseif|while|switch|repeat\s+while)\s*\((.+?)\)/i);
+    if (branch) {
+      ctx.addNode({ title: normalisePlantUmlText(branch[2]), shape: "choice" });
+      return true;
+    }
+    if (/^(else|case)\b/i.test(clean)) {
+      const label = clean.match(/\((.+?)\)/)?.[1] || clean.split(/\s+/)[0];
+      ctx.addNode({ title: normalisePlantUmlText(label), shape: "choice" });
+      return true;
+    }
+    if (/^(endif|endswitch|endwhile|repeat|backward\b)/i.test(clean)) {
+      if (/^repeat$/i.test(clean)) ctx.addNode({ title: "repeat", shape: "choice" });
+      return true;
+    }
+
+    if (/^(fork|split)\b/i.test(clean)) {
+      ctx.addNode({ title: clean.toLowerCase(), shape: "fork" });
+      return true;
+    }
+    if (/^(fork again|split again|end fork|end merge|end split)\b/i.test(clean)) {
+      ctx.addNode({ title: clean.toLowerCase(), shape: "join" });
+      return true;
+    }
+
+    const swimlane = clean.match(/^\|(?:#([A-Za-z0-9_#]+))?([^|]+)\|$/);
+    if (swimlane) {
+      ctx.addNode({
+        title: normalisePlantUmlText(swimlane[2]),
+        shape: "state",
+        stereotype: "swimlane",
+      });
+      return true;
+    }
+
+    const container = clean.match(
+      /^(partition|group|package|rectangle|card)\s+(?:#[^\s]+\s+)?(?:"([^"]+)"|([^{]+?))\s*\{$/i,
+    );
+    if (container) {
+      ctx.addNode({
+        title: normalisePlantUmlText(container[2] || container[3] || container[1]),
+        shape: "state",
+        stereotype: container[1].toLowerCase(),
+      });
+      return true;
+    }
+    if (clean === "}") return true;
+
+    const connector = clean.match(/^(?:#[A-Za-z0-9_#]+:)?\(([^)]+)\)$/);
+    if (connector) {
+      ctx.addNode({
+        id: `connector_${slug(connector[1])}`,
+        title: normalisePlantUmlText(connector[1]),
+        shape: "interface",
+      });
+      return true;
+    }
+
+    const noteLine = clean.match(
+      /^(?:floating\s+)?note\s+(?:left|right|top|bottom)?\s*:?\s*(.*)$/i,
+    );
+    if (noteLine) {
+      const text = noteLine[1] || "note";
+      ctx.addNode({ title: "note", shape: "note", members: [normalisePlantUmlText(text)] });
+      return true;
+    }
+    if (/^end\s+note$/i.test(clean)) return true;
+
+    const label = clean.match(/^label\s+(\S+)/i);
+    if (label) {
+      ctx.addNode({ id: `label_${slug(label[1])}`, title: label[1], shape: "interface" });
+      return true;
+    }
+    const go = clean.match(/^goto\s+(\S+)/i);
+    if (go) {
+      ctx.addNode({ title: `goto ${go[1]}`, shape: "state" });
+      return true;
+    }
+
+    if (CONTROL_WORDS.test(clean)) return true;
+    return false;
+  },
 };
 
 export default activitySyntaxPlugin;

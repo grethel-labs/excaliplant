@@ -16,12 +16,12 @@
 // (`component`, `entity`, `database`, …) flow through to the generic
 // `shapeKeywordPlugin`, preserving existing behaviour.
 
-import { slug, unescapeLabel, normaliseShape } from "../../../util/plantuml_utils.mjs";
+import { slug, normalisePlantUmlText, normaliseShape } from "../../../util/plantuml_utils.mjs";
 
 /**
  * Parsed pieces of a class-diagram declaration line.
  * @typedef {{
- *   shape: "class"|"interface"|"enum"|"annotation"|"record"|"protocol"|"struct"|"exception"|"metaclass"|"stereotype"|"dataclass"|"circle",
+ *   shape: "class"|"interface"|"enum"|"annotation"|"record"|"protocol"|"struct"|"exception"|"metaclass"|"stereotype"|"dataclass"|"circle"|"entity",
  *   isAbstract: boolean,
  *   name: string,
  *   alias: string|null,
@@ -114,6 +114,7 @@ function bareParentName(parent) {
  */
 export function parseClassHeader(line) {
   let rest = line.trim();
+  rest = rest.replace(/^[+#~-]\s*/, "");
   let isAbstract = false;
   const absM = rest.match(/^abstract\s+/);
   if (absM) {
@@ -121,7 +122,7 @@ export function parseClassHeader(line) {
     rest = rest.slice(absM[0].length);
   }
   const kwM = rest.match(
-    /^(class|interface|enum|annotation|record|protocol|struct|exception|metaclass|stereotype|dataclass|circle)\s+/,
+    /^(class|interface|enum|annotation|record|protocol|struct|exception|metaclass|stereotype|dataclass|circle|entity)\s+/,
   );
   if (!kwM && !isAbstract) return null;
   const shape = /** @type {ClassHeader["shape"]} */ (kwM?.[1] || "class");
@@ -152,9 +153,15 @@ export function parseClassHeader(line) {
 
   // Optional `as alias`.
   let alias = null;
-  const asM = rest.match(/^as\s+(\S+)\s*/);
+  const asM = rest.match(/^as\s+("[^"]+"|\S+)\s*/);
   if (asM) {
-    alias = asM[1];
+    const rawAlias = asM[1];
+    if (rawAlias.startsWith('"') && rawAlias.endsWith('"') && /^[A-Za-z_$][\w$.]*$/.test(name)) {
+      alias = name;
+      name = rawAlias.slice(1, -1);
+    } else {
+      alias = rawAlias.startsWith('"') && rawAlias.endsWith('"') ? rawAlias.slice(1, -1) : rawAlias;
+    }
     rest = rest.slice(asM[0].length);
   }
   // Optional <<stereotype>> (may also follow extends/implements; loop below).
@@ -178,6 +185,12 @@ export function parseClassHeader(line) {
   while (progress) {
     progress = false;
     if (eatStereo()) {
+      progress = true;
+      continue;
+    }
+    const color = rest.match(/^#[^\s{]+(?:\s+|$)/);
+    if (color) {
+      rest = rest.slice(color[0].length).trimStart();
       progress = true;
       continue;
     }
@@ -303,7 +316,7 @@ function queueInheritance(hdr, childId, ctx) {
  * @returns {string}
  */
 function headerTitle(hdr) {
-  return unescapeLabel(hdr.name + (hdr.generics || ""));
+  return normalisePlantUmlText(hdr.name + (hdr.generics || ""));
 }
 
 /**
@@ -327,6 +340,7 @@ function headerStereotype(hdr) {
   if (hdr.shape === "stereotype") return "stereotype";
   if (hdr.shape === "dataclass") return "dataclass";
   if (hdr.shape === "circle") return "circle";
+  if (hdr.shape === "entity") return "entity";
   if (hdr.isAbstract) return "abstract";
   return "";
 }
@@ -351,7 +365,7 @@ export const classBlockPlugin = {
     const box = ctx.addBox({
       id,
       title: headerTitle(hdr),
-      description: hdr.description,
+      description: normalisePlantUmlText(hdr.description),
       shape: normaliseShape(hdr.shape),
       stereotype: headerStereotype(hdr),
       members: [],
@@ -365,7 +379,7 @@ export const classBlockPlugin = {
         // member lines verbatim — the renderer prints them as-is so
         // visibility prefixes (`+`, `-`, `#`, `~`) and modifier tags
         // (`{static}`, `{abstract}`) survive.
-        if (memberLine !== "") collected.push(memberLine);
+        if (memberLine !== "") collected.push(normalisePlantUmlText(memberLine));
       },
       tryEnd(memberLine) {
         if (memberLine !== "}") return false;
@@ -381,7 +395,7 @@ export const classBlockPlugin = {
     ctx.addBox({
       id,
       title: headerTitle(hdr),
-      description: hdr.description,
+      description: normalisePlantUmlText(hdr.description),
       shape: normaliseShape(hdr.shape),
       stereotype: headerStereotype(hdr),
     });

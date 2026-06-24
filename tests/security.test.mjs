@@ -153,6 +153,121 @@ test("security: SVG output is parseable as XML", async () => {
   assert.equal(opens, closes, "unbalanced <text> tags");
 });
 
+test("security: SVG output escapes presentation metadata", async () => {
+  const payload = `</text><script>alert(1)</script><text>`;
+  const doc = await renderPlantUml(`@startuml
+title ${payload}
+caption ${payload}
+legend
+  ${payload}
+end legend
+[A] as a
+@enduml`);
+  const svg = excalidrawToSvg(doc);
+
+  assert.equal(/<script[\s>]/i.test(svg), false, "raw <script> in presentation SVG");
+  assert.equal(/&lt;\/?text/i.test(svg), false, "escaped text tag from presentation payload");
+  assert.match(svg, /alert\(1\)/, "presentation text content was lost");
+});
+
+test("security: unsafe PlantUML link protocols are not emitted as Excalidraw links", async () => {
+  const doc = await renderPlantUml(`@startuml
+component "[[javascript:alert(1){bad} Unsafe]]" as unsafe
+[A] as a
+unsafe --> a : [[javascript:alert(2) Bad edge]]
+url of a is [[javascript:alert(3){bad}]]
+@enduml`);
+
+  const linked = doc.elements.filter((element) => element.link);
+  assert.equal(linked.length, 0);
+  assert.ok(doc.elements.some((element) => element.type === "text" && element.text === "Unsafe"));
+  assert.ok(
+    doc.elements.some(
+      (element) => element.type === "text" && element.text.replace(/\s+/g, " ") === "Bad edge",
+    ),
+  );
+});
+
+test("security: unsafe PlantUML sequence style values are ignored", async () => {
+  const src = `@startuml
+skinparam sequence ArrowColor javascript:alert(1)
+skinparam sequence MessageFontColor url(javascript:alert(2))
+<style>
+sequenceDiagram {
+  participant {
+    BackgroundColor: url(javascript:alert(3));
+    FontColor: #ff0000;
+  }
+  arrow {
+    LineColor: expression(alert(4));
+  }
+}
+</style>
+participant Alice
+participant Bob
+Alice -> Bob : hello
+@enduml`;
+  const diagram = parsePlantUml(src, { unknownLines: "strict" });
+  assert.equal(diagram.style.arrowColor, "");
+  assert.equal(diagram.style.messageFontColor, "");
+  assert.equal(diagram.style.participantBackgroundColor, "");
+  assert.equal(diagram.style.participantFontColor, "#ff0000");
+
+  const doc = await renderPlantUml(src, { sourceLabel: "unsafe-sequence-style" });
+  const json = JSON.stringify(doc);
+  assert.equal(/javascript:|expression\(/i.test(json), false);
+});
+
+test("security: unsafe PlantUML graph style values are ignored", async () => {
+  const src = `@startuml
+skinparam componentBackgroundColor url(javascript:alert(1))
+skinparam arrowColor expression(alert(2))
+<style>
+component {
+  FontColor: javascript:alert(3);
+  LineColor: #ff0000;
+}
+note {
+  BackgroundColor: url(https://example.invalid/x);
+}
+arrow {
+  FontColor: expression(alert(4));
+}
+</style>
+[A] as a
+[B] as b
+a --> b : go
+note right of a : hi
+@enduml`;
+  const diagram = parsePlantUml(src, { unknownLines: "strict" });
+  assert.equal(diagram.style.boxBackgroundColor, "");
+  assert.equal(diagram.style.arrowColor, "");
+  assert.equal(diagram.style.boxFontColor, "");
+  assert.equal(diagram.style.boxBorderColor, "#ff0000");
+  assert.equal(diagram.style.noteBackgroundColor, "");
+  assert.equal(diagram.style.edgeFontColor, "");
+
+  const doc = await renderPlantUml(src, { sourceLabel: "unsafe-graph-style" });
+  const json = JSON.stringify(doc);
+  assert.equal(/javascript:|expression\(|url\(/i.test(json), false);
+});
+
+test("security: unsafe PlantUML note links are not emitted as Excalidraw links", async () => {
+  const doc = await renderPlantUml(`@startuml
+[A] as a
+note right of a : [[javascript:alert(1){bad} Unsafe note]]
+participant Alice
+note right of Alice : [[javascript:alert(2){bad} Unsafe sequence note]]
+@enduml`);
+
+  assert.equal(doc.elements.filter((element) => element.link).length, 0);
+  assert.ok(
+    doc.elements.some(
+      (element) => element.type === "text" && /Unsafe/.test(element.text.replace(/\s+/g, " ")),
+    ),
+  );
+});
+
 // ---------------------------------------------------------------------------
 // Excalidraw JSON safety
 // ---------------------------------------------------------------------------
@@ -176,6 +291,24 @@ test("security: backslashes and quotes in labels do not break JSON", async () =>
   const json = JSON.stringify(doc);
   // And reparse cleanly.
   JSON.parse(json);
+});
+
+test("security: legacy HTML-like PlantUML text markup degrades without raw tags", async () => {
+  const doc = await renderPlantUml(`@startuml
+title <script>alert(1)</script><img:https://example.invalid/a.png>
+[<b>Safe</b> <script>alert(2)</script>] as a
+note right of a : <code>x()</code> <img:file:///etc/passwd>
+@enduml`);
+
+  const visibleText = doc.elements
+    .filter((element) => element.type === "text")
+    .map((element) => element.text)
+    .join("\n");
+
+  assert.equal(/<\/?(?:script|img|code|b)\b/i.test(visibleText), false);
+  assert.match(visibleText, /Safe/);
+  assert.match(visibleText, /alert\(1\)/);
+  assert.match(visibleText, /x\(\)/);
 });
 
 // ---------------------------------------------------------------------------
@@ -393,6 +526,20 @@ test("security: parsePlantUml enforces maxNodes for sequence activations", () =>
 test("security: parsePlantUml strict mode reports unknown lines", () => {
   const src = `@startuml\n[a] --> [b]\n¯\\_(ツ)_/¯ banana\n@enduml`;
   assert.throws(() => parsePlantUml(src, { unknownLines: "strict" }), /unknown line/);
+});
+
+test("security: unterminated PlantUML block comments do not activate commented text", () => {
+  const src = `@startuml
+[a]
+/' everything below is a comment
+¯\\_(ツ)_/¯ banana
+[evil] --> [a]
+@enduml`;
+  const d = parsePlantUml(src, { unknownLines: "strict" });
+
+  assert.ok(d.boxById("a"));
+  assert.equal(d.boxById("evil"), null);
+  assert.equal(d.connections.length, 0);
 });
 
 // ---------------------------------------------------------------------------

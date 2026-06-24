@@ -101,3 +101,80 @@ test("class association classes and remove filters are modeled", () => {
     "Student",
   ]);
 });
+
+test("class official declarative elements parse aliases, stereotypes and visibility prefixes", () => {
+  const example = exampleById.get("official-declarative-elements");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  assert.equal(diagram.kind, "class");
+  assert.equal(diagram.hideEmptyMembers, true);
+  assert.equal(diagram.boxById("PrivateClass").title, "private Class");
+  assert.equal(diagram.boxById("class2").title, "It works this way too");
+  assert.equal(diagram.boxById("entity").shape, "entity");
+  assert.equal(diagram.boxById("protocol").stereotype, "protocol");
+  assert.equal(diagram.boxById("struct").stereotype, "struct");
+  assert.equal(diagram.boxById("class_stereo").stereotype, "stereotype");
+});
+
+test("class official relation lines auto-create endpoints and qualified associations", () => {
+  const example = exampleById.get("official-class-relations");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  for (const id of [
+    "Class01",
+    "Class02",
+    "Class03",
+    "Class04",
+    "Class05",
+    "Class06",
+    "Class07",
+    "Class08",
+    "Class09",
+    "Class10",
+    "Class11",
+    "Class12",
+    "Class13",
+    "Class14",
+    "Class15",
+    "Class16",
+    "Shop",
+    "Customer",
+  ]) {
+    assert.ok(diagram.boxById(id), `${id} should be auto-declared`);
+  }
+
+  assert.ok(diagram.connections.some((connection) => connection.kind === "inheritance"));
+  assert.ok(diagram.connections.some((connection) => connection.kind === "composition"));
+  assert.ok(diagram.connections.some((connection) => connection.kind === "aggregation"));
+  assert.ok(diagram.connections.some((connection) => connection.kind === "realization"));
+  assert.ok(diagram.connections.some((connection) => connection.kind === "dependency"));
+
+  const qualified = diagram.connections.find((connection) => connection.from.id === "Shop");
+  assert.ok(qualified);
+  assert.equal(qualified.arrow.start.anchor, "port");
+  assert.equal(qualified.arrow.start.label, "customerId: long");
+  assert.equal(qualified.toMul, "customer\n1");
+});
+
+test("class official member and JSON display syntax is modeled", () => {
+  const example = exampleById.get("official-members-json");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  assert.deepEqual(diagram.boxById("Object").members, ["equals()"]);
+  assert.deepEqual(diagram.boxById("ArrayList").members, ["Object[] elementData"]);
+  assert.ok(diagram.boxById("Dummy").members.includes("{static} String id"));
+  assert.ok(diagram.boxById("Dummy").members.includes("{abstract} void methods()"));
+  assert.ok(diagram.boxById("Dummy").members.includes("getters"));
+
+  const json = diagram.boxById("JSON");
+  assert.equal(json.shape, "map");
+  assert.ok(json.members.some((member) => member.includes('"fruit":"Apple"')));
+
+  const memberConnection = diagram.connections.find((connection) => connection.from.id === "Dummy");
+  assert.ok(memberConnection);
+  assert.equal(memberConnection.arrow.start.anchor, "port");
+  assert.equal(memberConnection.arrow.start.label, "id");
+});

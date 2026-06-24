@@ -88,6 +88,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Built-in object diagrams now parse object declarations, aliases,
   body/colon field rows, maps with row anchors, diamonds, notes, and
   class-like relationships through a dedicated `object` diagram module.
+- Shared PlantUML preamble support now strips inline and block comments
+  before diagram detection, accepts typed `@start...` / `@end...`
+  directives, common layout controls, and `<style>...</style>` blocks
+  in strict mode, renders graph
+  `title` / `caption` / `header` / `footer` / `legend` / `mainframe`
+  presentation metadata, and preserves safe PlantUML links/tooltips on
+  graph box labels, `url of` directives, graph edge labels, graph notes,
+  sequence message labels, and sequence notes as Excalidraw metadata.
+- PlantUML Creole and legacy HTML-like text markup now degrades to readable
+  plain text across graph, use-case, object, and sequence labels/notes,
+  including emphasis, headings, lists, table rows, Unicode notation,
+  Emoji/OpenIconic placeholders, code tags, and unsafe tag stripping.
+- Sequence diagrams now sanitize supported `skinparam sequence ...` colours
+  and map a safe subset of CSS-like `<style>` selectors for participants,
+  arrows, notes, groups, lifelines, dividers, and activation bars.
+- Graph diagrams now sanitize supported colour skinparams and a safe subset
+  of CSS-like `<style>` selectors for diagram backgrounds, component-style
+  boxes, arrows, edge labels, notes, and containers while preserving existing
+  class-diagram type/source-colour behaviour.
+- Sequence diagrams now preserve reverse quoted alias declarations such as
+  `participant L as "Long Name"` and message-created aliases such as
+  `"Long Name" as L`, and `autonumber resume <step> "<format>"` resumes from
+  the next pending number instead of resetting the counter.
+- Use-case diagrams now recognize the official shorthand-heavy syntax:
+  parenthesized usecases with parenthesized aliases, reverse
+  `usecase Alias as "Description"` declarations, quoted actor/usecase aliases,
+  business actor/usecase `/` notation, nested `package` / `rectangle`
+  boundaries, notes attached to usecases, direction hints, and inline
+  relationship style blocks such as `#line:red;line.bold;text:red`.
+- Class diagrams now cover more of the official PlantUML class syntax:
+  class-family declarations (`annotation`, `entity`, `protocol`, `struct`,
+  `dataclass`, and related aliases), visibility-prefixed class declarations,
+  reverse quoted aliases, implicit relationship endpoints, colon member rows,
+  member-qualified arrows, qualified associations, JSON/object display blocks,
+  stereotype/wildcard/remove filters, and safe gradient colour fallbacks.
+- Object diagrams now cover the official PlantUML object syntax more fully:
+  object aliases, implicit object relationship endpoints, association-object
+  diamonds, field/body rows, map and associative-array tables, map row ports,
+  PERT-style maps, JSON display blocks, and underlined object titles in the
+  generated Excalidraw output.
+- Activity diagrams now parse and render a practical PlantUML activity core:
+  beta `:action;` flows, multiline actions, start/stop/end/kill/detach,
+  if/else/switch/while/repeat/fork/split controls, swimlanes, partitions,
+  notes, connectors, goto/label, simple list actions, SDL-style stereotypes,
+  and legacy `(*) --> "Activity"` arrows with labels.
+- Component diagrams now cover more official PlantUML syntax: bracketed
+  `component [Label] as Alias` declarations, relation-only optional interface
+  endpoints, JSON display blocks, bare `port` / `portin` / `portout` nodes, and
+  implicit component endpoints for official basic relationship examples.
+- Deployment diagrams now cover official element declarations, long
+  bracketed descriptions for deployment nodes, JSON display blocks, additional
+  deployment shapes such as `process` and `action`, and implicit node endpoints
+  for deployment relationship examples.
+- State diagrams now cover official state syntax more fully: simple and
+  composite states, aliases, start/end and history pseudostates, choice/fork/join
+  stereotypes, state descriptions, nested transitions, concurrent region
+  separators, inline colours, notes, JSON display blocks, and strict-tolerant
+  scale/layout/hide-empty-description controls.
+- Timing diagrams now have a dedicated timeline module with deterministic
+  layout/rendering for `robust`, `concise`, `binary`, `clock`, `analog`, and
+  `rectangle` participants, aliases, state lists, absolute/relative/anchored
+  times, state changes, binary/clock waveforms, analog values, messages,
+  duration constraints, highlights, notes, scale/axis controls, hidden
+  footbox/resource directives, separators, and safe text/colour handling.
 
 ### Changed
 

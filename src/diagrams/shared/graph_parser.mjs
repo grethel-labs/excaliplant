@@ -10,6 +10,8 @@ import {
   directionPlugin as componentDirectionPlugin,
   presentationPlugin as componentPresentationPlugin,
   skinparamPlugin as componentSkinparamPlugin,
+  styleBlockPlugin as componentStyleBlockPlugin,
+  urlOfPlugin as componentUrlOfPlugin,
 } from "./graph_plugins/preamble.mjs";
 import { containerPlugin } from "./graph_plugins/containers.mjs";
 import { associationClassPlugin } from "./graph_plugins/association_class.mjs";
@@ -33,7 +35,9 @@ import {
 export const DEFAULT_GRAPH_PLUGINS = Object.freeze([
   componentTitlePlugin,
   componentSkinparamPlugin,
+  componentStyleBlockPlugin,
   componentDirectionPlugin,
+  componentUrlOfPlugin,
   componentPresentationPlugin,
   closeBracePlugin,
   graphFilterPlugin,

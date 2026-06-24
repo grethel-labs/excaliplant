@@ -1,4 +1,4 @@
-import { TITLE_LINE, stripQuotes } from "../../../util/plantuml_utils.mjs";
+import { TITLE_LINE, normalisePlantUmlText, stripQuotes } from "../../../util/plantuml_utils.mjs";
 
 /**
  * Create a `title ...` parser plugin for any diagram context that exposes
@@ -14,7 +14,7 @@ export function createTitlePlugin(name) {
     tryLine(line, ctx) {
       const match = line.match(TITLE_LINE);
       if (!match) return false;
-      ctx.setTitle(stripQuotes(match[1].trim()));
+      ctx.setTitle(normalisePlantUmlText(stripQuotes(match[1].trim())));
       return true;
     },
   };

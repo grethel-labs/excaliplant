@@ -1,7 +1,7 @@
 // Shared graph visibility/filter commands.
 
-const REMOVE_LINE = /^remove\s+(\S+)$/i;
-const HIDE_SHOW_LINE = /^(hide|show)\s+(.+)$/i;
+const REMOVE_LINE = /^remove\s+(.+)$/i;
+const HIDE_SHOW_LINE = /^(hide|show|restore)\s+(.+)$/i;
 
 /**
  * PlantUML graph visibility commands. `remove <id>` affects the parsed
@@ -14,7 +14,7 @@ export const graphFilterPlugin = {
   tryLine(line, ctx) {
     const remove = line.match(REMOVE_LINE);
     if (remove) {
-      ctx.removeBox(remove[1]);
+      ctx.queueFilter({ command: "remove", target: remove[1].trim() });
       return true;
     }
     const hideShow = line.match(HIDE_SHOW_LINE);

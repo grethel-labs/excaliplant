@@ -22,7 +22,15 @@ export const TITLE_LINE = /^title\s+(.+)$/;
  * engine's `skip` array if needed.
  * @public
  */
-export const ALWAYS_SKIP = [/^@startuml/, /^@enduml/, /^!/, /^scale\s/];
+export const ALWAYS_SKIP = [
+  /^@start[a-z0-9_]*\b/i,
+  /^@end[a-z0-9_]*\b/i,
+  /^!/,
+  /^scale\b/i,
+  /^zoom\b/i,
+  /^page\b/i,
+  /^split\b/i,
+];
 
 /**
  * Strip a trailing PlantUML line comment (`'…`), preserving any `'`
@@ -51,6 +59,60 @@ export function stripComment(line) {
     }
   }
   return line;
+}
+
+/**
+ * Strip PlantUML block comments (`/' ... '/`) across a full source.
+ *
+ * Block comment markers are recognized only outside double-quoted string
+ * literals. Unterminated block comments consume the rest of the source, which
+ * matches PlantUML's comment intent and keeps strict parsing from interpreting
+ * commented attacker-controlled text as active syntax.
+ *
+ * @param {string[]} lines Raw, line-split PlantUML source.
+ * @returns {string[]} New line array with block-comment contents removed.
+ * @public
+ */
+export function stripBlockComments(lines) {
+  /** @type {string[]} */
+  const out = [];
+  let inBlockComment = false;
+
+  for (const raw of lines) {
+    let line = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      const next = raw[i + 1];
+
+      if (inBlockComment) {
+        if (ch === "'" && next === "/") {
+          inBlockComment = false;
+          i++;
+        }
+        continue;
+      }
+
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+        line += ch;
+        continue;
+      }
+
+      if (!inQuotes && ch === "/" && next === "'") {
+        inBlockComment = true;
+        i++;
+        continue;
+      }
+
+      line += ch;
+    }
+
+    out.push(line);
+  }
+
+  return out;
 }
 
 /**
@@ -100,6 +162,309 @@ export function unescapeLabel(s) {
 }
 
 /**
+ * Convert PlantUML Creole and legacy HTML-like text to safe readable
+ * plain text. This intentionally does not preserve rich styling; it keeps
+ * the visible content deterministic for Excalidraw/SVG/PNG while stripping
+ * known formatting tags and notation.
+ *
+ * @param {string|null|undefined} value Raw PlantUML text.
+ * @returns {string} Plain display text.
+ * @public
+ */
+export function normalisePlantUmlText(value) {
+  let text = unescapeLabel(value);
+  text = decodePlantUmlUnicode(text);
+  text = text.replace(/<:([#\w-]+:)?([a-z0-9_+-]+):>/gi, ":$2:");
+  text = text.replace(/<&([a-z0-9_+-]+)>/gi, "$1");
+  text = text.replace(/<\/?(?:b|i|u|s|w|plain|code)\b[^>]*>/gi, "");
+  text = text.replace(/<\/?(?:color|back|size|font)\b(?::[^>]*)?>/gi, "");
+  text = text.replace(/<\/?(?:script|style|img|svg|text)\b[^>]*>/gi, "");
+  text = text.replace(/\{scale[:=][^}]+}/gi, "");
+  text = text.replace(/(^|\n)\s*(={1,6})\s*([^\n=].*?)(?:\s*\2)?(?=\n|$)/g, "$1$3");
+  text = text.replace(/(^|\n)([ \t]*)([*#]+)\s+/g, (_m, br, indent, marker) => {
+    const depth = Math.max(0, marker.length - 1);
+    return `${br}${indent}${"  ".repeat(depth)}- `;
+  });
+  text = text.replace(/(^|\n)([ \t]*)\|_\s*/g, "$1$2- ");
+  text = text
+    .split("\n")
+    .map((line) => normalisePlantUmlTextLine(line))
+    .join("\n");
+  text = text.replace(/~([*_/"'`~\\\-[\]{}<>|#=:])/g, "$1");
+  for (let i = 0; i < 4; i++) {
+    const next = text
+      .replace(/\*\*([^*\n](?:.*?[^*])?)\*\*/g, "$1")
+      .replace(/\/\/([^/\n](?:.*?[^/])?)\/\//g, "$1")
+      .replace(/""([^"\n](?:.*?[^"])?)""/g, "$1")
+      .replace(/--([^\n-](?:.*?[^\n-])?)--/g, "$1")
+      .replace(/__([^_\n](?:.*?[^_])?)__/g, "$1")
+      .replace(/~~([^~\n](?:.*?[^~])?)~~/g, "$1");
+    if (next === text) break;
+    text = next;
+  }
+  return text;
+}
+
+/**
+ * @param {string} line
+ * @returns {string}
+ */
+function normalisePlantUmlTextLine(line) {
+  const trimmed = line.trim();
+  if (/^(?:-{4,}|={4,}|_{4,})$/.test(trimmed)) return "";
+  const titledLine = trimmed.match(/^(?:={2,}|-{2,}|_{2,}|\.\.)(.*?)(?:={2,}|-{2,}|_{2,}|\.\.)$/);
+  if (titledLine && titledLine[1].trim()) return titledLine[1].trim();
+  if (!/^\s*(?:<#[^>]+>)?\|/i.test(line)) {
+    return line;
+  }
+  return line
+    .split("|")
+    .map((cell) =>
+      cell
+        .trim()
+        .replace(/^<#[^>]+>/i, "")
+        .replace(/^=/, "")
+        .trim(),
+    )
+    .filter(Boolean)
+    .join(" | ");
+}
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+function decodePlantUmlUnicode(text) {
+  return text
+    .replace(/<U\+([0-9a-f]{1,6})>/gi, (_m, hex) => codePointToString(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_m, dec) => codePointToString(Number.parseInt(dec, 10)));
+}
+
+/**
+ * @param {number} codePoint
+ * @returns {string}
+ */
+function codePointToString(codePoint) {
+  if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff) return "";
+  try {
+    return String.fromCodePoint(codePoint);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Extract the first PlantUML link marker from a text label.
+ *
+ * Supported forms:
+ * - `[[https://example.invalid]]`
+ * - `[[https://example.invalid Label]]`
+ * - `[[https://example.invalid{Tooltip} Label]]`
+ * - `[[{Tooltip} Label]]`
+ *
+ * The returned `text` replaces the marker with its display label while
+ * preserving surrounding text. Unsafe URLs are dropped from `link` but kept
+ * readable as display text.
+ *
+ * @param {string|null|undefined} value Raw label text.
+ * @returns {{text:string,link:string,tooltip:string}} Plain label plus optional safe link metadata.
+ * @public
+ */
+export function extractPlantUmlLink(value) {
+  const source = String(value ?? "");
+  const marker = findLinkMarker(source);
+  if (!marker) return { text: source, link: "", tooltip: "" };
+  const parsed = parseLinkContent(marker.content);
+  const display = parsed.label || parsed.href || parsed.tooltip || "";
+  return {
+    text: `${source.slice(0, marker.start)}${display}${source.slice(marker.end)}`,
+    link: sanitizePlantUmlLink(parsed.href),
+    tooltip: parsed.tooltip,
+  };
+}
+
+const PLANTUML_COLOR_NAMES = new Set([
+  "antiquewhite",
+  "aqua",
+  "black",
+  "blue",
+  "cornflowerblue",
+  "darksalmon",
+  "deepskyblue",
+  "dodgerblue",
+  "gold",
+  "green",
+  "greenyellow",
+  "lightblue",
+  "lightgray",
+  "lightgrey",
+  "lightgreen",
+  "lightgoldenrodyellow",
+  "lightpink",
+  "lightyellow",
+  "pink",
+  "purple",
+  "red",
+  "wheat",
+  "white",
+]);
+
+/**
+ * Validate the small PlantUML colour token subset this project renders.
+ * Allows hex colours and a fixed set of known named colours, with or
+ * without PlantUML's optional leading `#` for names.
+ *
+ * @param {string|null|undefined} value Raw PlantUML colour token.
+ * @returns {string} Safe token to store in the model, or empty when denied.
+ * @public
+ */
+export function sanitizePlantUmlColor(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const gradient = splitPlantUmlGradient(raw);
+  if (gradient) return sanitizePlantUmlColor(gradient[0]);
+  if (/^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(raw)) return raw;
+  if (/^[0-9a-f]{6}$/i.test(raw)) return `#${raw}`;
+  const named = raw.replace(/^#/, "").toLowerCase();
+  return PLANTUML_COLOR_NAMES.has(named) ? raw : "";
+}
+
+/**
+ * PlantUML allows gradient fills as two colours separated by a direction
+ * marker (`|`, `/`, `\` or `-`). The renderer currently stores a single safe
+ * colour, so callers use the first valid stop as a deterministic fallback.
+ * Hyphen is ambiguous with named colours; split it only when both sides look
+ * like concrete colour tokens.
+ * @param {string} raw
+ * @returns {[string, string]|null}
+ */
+function splitPlantUmlGradient(raw) {
+  const simple = raw.match(/^(.+?)([|/\\])(.+)$/);
+  if (simple) return [simple[1].trim(), simple[3].trim()];
+  const hyphen = raw.match(/^([#A-Za-z0-9]+)-([#A-Za-z0-9]+)$/);
+  if (!hyphen) return null;
+  return [hyphen[1].trim(), hyphen[2].trim()];
+}
+
+/**
+ * @param {string} source
+ * @returns {{start:number,end:number,content:string}|null}
+ */
+function findLinkMarker(source) {
+  const start = source.indexOf("[[");
+  if (start < 0) return null;
+  const triple = source[start + 2] === "[";
+  const openLength = triple ? 3 : 2;
+  const close = triple ? "]]]" : "]]";
+  const end = source.indexOf(close, start + openLength);
+  if (end < 0) return null;
+  return {
+    start,
+    end: end + close.length,
+    content: source.slice(start + openLength, end).trim(),
+  };
+}
+
+/**
+ * @param {string} content Link marker body without surrounding brackets.
+ * @returns {{href:string,tooltip:string,label:string}}
+ */
+function parseLinkContent(content) {
+  let rest = content.trim();
+  let href = "";
+  let tooltip = "";
+
+  if (rest.startsWith("{")) {
+    const tip = readBalancedBrace(rest, 0);
+    if (tip) {
+      tooltip = tip.value;
+      rest = rest.slice(tip.end).trim();
+    }
+  } else if (rest.startsWith('"')) {
+    const quoted = readQuoted(rest, 0);
+    if (quoted) {
+      href = quoted.value;
+      rest = rest.slice(quoted.end).trim();
+    }
+  } else {
+    let end = 0;
+    while (end < rest.length && !/\s/.test(rest[end]) && rest[end] !== "{") end++;
+    href = rest.slice(0, end);
+    rest = rest.slice(end).trim();
+  }
+
+  if (!tooltip && rest.startsWith("{")) {
+    const tip = readBalancedBrace(rest, 0);
+    if (tip) {
+      tooltip = tip.value;
+      rest = rest.slice(tip.end).trim();
+    }
+  }
+
+  return { href, tooltip, label: rest.trim() };
+}
+
+/**
+ * @param {string} value
+ * @param {number} start
+ * @returns {{value:string,end:number}|null}
+ */
+function readQuoted(value, start) {
+  if (value[start] !== '"') return null;
+  let out = "";
+  for (let i = start + 1; i < value.length; i++) {
+    if (value[i] === '"' && value[i - 1] !== "\\") return { value: out, end: i + 1 };
+    out += value[i];
+  }
+  return null;
+}
+
+/**
+ * @param {string} value
+ * @param {number} start
+ * @returns {{value:string,end:number}|null}
+ */
+function readBalancedBrace(value, start) {
+  if (value[start] !== "{") return null;
+  let depth = 0;
+  let out = "";
+  for (let i = start; i < value.length; i++) {
+    const ch = value[i];
+    if (ch === "{") {
+      if (depth > 0) out += ch;
+      depth++;
+      continue;
+    }
+    if (ch === "}") {
+      depth--;
+      if (depth === 0) return { value: out, end: i + 1 };
+      out += ch;
+      continue;
+    }
+    out += ch;
+  }
+  return null;
+}
+
+/**
+ * @param {string} raw Raw URL token.
+ * @returns {string} Safe Excalidraw link value, or empty when denied.
+ */
+function sanitizePlantUmlLink(raw) {
+  const href = String(raw || "").trim();
+  if (!href) return "";
+  let parsed;
+  try {
+    parsed = new URL(href, "https://plantuml.invalid/");
+  } catch {
+    return "";
+  }
+  const isRelative = !/^[a-z][a-z0-9+.-]*:/i.test(href);
+  if (isRelative) return href;
+  return /^(?:https?:|mailto:)$/i.test(parsed.protocol) ? href : "";
+}
+
+/**
  * Collect lines for parser block plugins until `endPattern` matches.
  *
  * @param {RegExp} endPattern Regex that recognizes the terminating line.
@@ -137,11 +502,27 @@ export function explodeBraces(lines) {
   for (const raw of lines) {
     let buf = "";
     let inStr = false;
+    let inLink = false;
     for (let i = 0; i < raw.length; i++) {
       const c = raw[i];
+      const next = raw[i + 1];
       if (c === '"') {
         inStr = !inStr;
         buf += c;
+        continue;
+      }
+      if (!inStr && !inLink && c === "[" && next === "[") {
+        inLink = true;
+        buf += c;
+        continue;
+      }
+      if (inLink) {
+        buf += c;
+        if (c === "]" && next === "]") {
+          buf += next;
+          i++;
+          inLink = false;
+        }
         continue;
       }
       // Preserve PlantUML class-diagram modifier tags (`{abstract}`,
@@ -248,6 +629,10 @@ export function normaliseShape(kw) {
       return "stack";
     case "person":
       return "person";
+    case "process":
+      return "component";
+    case "action":
+      return "state";
     case "label":
       return "label";
     case "frame":

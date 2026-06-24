@@ -3,45 +3,78 @@
  * @module diagrams/use-case/plugins/usecases
  */
 
-import { stripComment, slug } from "../../../util/plantuml_utils.mjs";
+import {
+  normalisePlantUmlText,
+  stripComment,
+  stripQuotes,
+  slug,
+  unescapeLabel,
+} from "../../../util/plantuml_utils.mjs";
 
 /**
  * Parse usecase with parentheses notation (Use Case Name).
  * @param {string} line
- * @returns {{type: string, id: string, title: string}|null}
+ * @returns {{type: string, id: string, title: string, stereotype: string}|null}
  */
 function parseParenthesisUsecase(line) {
   // Match (Use Case Name) or (Use Case Name) as Alias
-  const match = line.match(/^\(([^)]+)\)(?:\s+as\s+(\w+))?$/);
+  const match = line.match(
+    /^\(([^)]+)\)\/?(?:\s+as\s+(?:\(([^)]+)\)|(\w+)))?(?:\s*<<\s*([^>]+?)\s*>>)?(?:\s+#[^;]+(?:;.*)?)?$/,
+  );
   if (!match) return null;
 
-  const name = match[1].trim();
-  const alias = match[2] || slug(name);
+  const name = unescapeLabel(match[1].trim());
+  const alias = match[2] || match[3] || slug(name);
 
   return {
     type: "usecase",
     id: alias,
-    title: name,
+    title: normalisePlantUmlText(name),
+    stereotype: match[4] || "",
   };
 }
 
 /**
  * Parse usecase keyword declaration.
  * @param {string} line
- * @returns {{type: string, id: string, title: string}|null}
+ * @returns {{type: string, id: string, title: string, stereotype: string}|null}
  */
 function parseKeywordUsecase(line) {
-  // Match: usecase "Name" as Alias or usecase (Name) as Alias
-  const match = line.match(/^usecase\s+(?:\(([^)]+)\)|"([^"]+)"|(\w+))(?:\s+as\s+(\w+))?$/i);
+  // Match: usecase "Name" as Alias, usecase Alias as "Description", usecase/ Business
+  const match = line.match(
+    /^usecase\/?\s+(?:\(([^)]+)\)|"([^"]+)"|([^\s<#]+))(?:\s+as\s+(?:\(([^)]+)\)|"([^"]+)"|(\w+)))?(?:\s*<<\s*([^>]+?)\s*>>)?(?:\s+#[^;]+(?:;.*)?)?$/i,
+  );
   if (!match) return null;
 
-  const name = (match[1] || match[2] || match[3]).trim();
-  const alias = match[4] || slug(name);
+  const left = unescapeLabel((match[1] || match[2] || match[3]).trim());
+  const right = match[4] || match[5] || match[6] || "";
+  const rightIsDescription = Boolean(match[5]);
+  const name = rightIsDescription ? unescapeLabel(stripQuotes(right)) : left;
+  const alias = rightIsDescription ? left : right || slug(left);
 
   return {
     type: "usecase",
     id: alias,
-    title: name,
+    title: normalisePlantUmlText(name),
+    stereotype: match[7] || "",
+  };
+}
+
+/**
+ * Parse quoted usecase shorthand: `"Use the application" as (Use)`.
+ * @param {string} line
+ * @returns {{type: string, id: string, title: string, stereotype: string}|null}
+ */
+function parseQuotedUsecase(line) {
+  const match = line.match(
+    /^"([^"]+)"\s+as\s+\(([^)]+)\)(?:\s*<<\s*([^>]+?)\s*>>)?(?:\s+#[^;]+(?:;.*)?)?$/,
+  );
+  if (!match) return null;
+  return {
+    type: "usecase",
+    id: match[2],
+    title: normalisePlantUmlText(unescapeLabel(stripQuotes(match[1]))),
+    stereotype: match[3] || "",
   };
 }
 
@@ -66,6 +99,18 @@ export const usecasePlugin = {
         id: parenUsecase.id,
         title: parenUsecase.title,
         shape: "usecase",
+        stereotype: parenUsecase.stereotype,
+      });
+      return true;
+    }
+
+    const quotedUsecase = parseQuotedUsecase(cleanLine);
+    if (quotedUsecase) {
+      ctx.addBox({
+        id: quotedUsecase.id,
+        title: quotedUsecase.title,
+        shape: "usecase",
+        stereotype: quotedUsecase.stereotype,
       });
       return true;
     }
@@ -77,6 +122,7 @@ export const usecasePlugin = {
         id: keywordUsecase.id,
         title: keywordUsecase.title,
         shape: "usecase",
+        stereotype: keywordUsecase.stereotype,
       });
       return true;
     }

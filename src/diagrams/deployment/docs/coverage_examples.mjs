@@ -77,4 +77,61 @@ node Runtime
 Runtime --> Metadata
 @enduml`,
   },
+  {
+    id: "official-elements",
+    title: "Official deployment elements",
+    description:
+      "Official deployment element declarations across actor, agent, artifact, cloud, database, folder, frame, node, package, queue, rectangle, stack and storage.",
+    source: `@startuml
+actor actor
+agent agent
+artifact artifact
+cloud cloud
+component component
+database database
+folder folder
+frame frame
+node node
+package package
+queue queue
+rectangle rectangle
+stack stack
+storage storage
+@enduml`,
+  },
+  {
+    id: "official-long-descriptions",
+    title: "Official long descriptions",
+    description: "Bracketed long descriptions for deployment elements.",
+    source: `@startuml
+folder folder [
+This is a <b>folder
+----
+You can use separator
+====
+of different kind
+]
+
+node node [
+This is a <b>node
+----
+You can use separator
+]
+@enduml`,
+  },
+  {
+    id: "official-json",
+    title: "Official JSON display",
+    description: "JSON data display mixed with deployment elements.",
+    source: `@startuml
+allowmixing
+node Runtime
+json JSON {
+  "fruit":"Apple",
+  "size":"Large",
+  "color": ["Red", "Green"]
+}
+Runtime --> JSON
+@enduml`,
+  },
 ]);

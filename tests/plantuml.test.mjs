@@ -78,6 +78,217 @@ test("renderPlantUml produces a well-formed Excalidraw doc", async () => {
   writeOutput("smoke.png", svgToPng(svg, { width: 900 }));
 });
 
+test("graph presentation metadata renders as visible Excalidraw elements", async () => {
+  const doc = await renderPlantUml(
+    `@startuml
+title Runtime Overview
+header Generated header
+caption Runtime caption
+footer Generated footer
+mainframe Runtime frame
+legend right
+  primary service
+  fallback service
+end legend
+[API] as api
+[DB] as db
+api --> db
+@enduml`,
+    { sourceLabel: "graph-presentation" },
+  );
+
+  const byRole = new Map(
+    doc.elements
+      .filter((element) => element.customData?.role)
+      .map((element) => [element.customData.role, element]),
+  );
+  assert.equal(byRole.get("diagramTitle")?.text, "Runtime Overview");
+  assert.equal(byRole.get("diagramHeader")?.text, "Generated header");
+  assert.equal(byRole.get("diagramCaption")?.text, "Runtime caption");
+  assert.equal(byRole.get("diagramFooter")?.text, "Generated footer");
+  assert.equal(byRole.get("diagramMainframeLabel")?.text, "Runtime frame");
+  assert.match(byRole.get("diagramLegend")?.text || "", /fallback service/);
+});
+
+test("sequence caption and legend render as visible Excalidraw elements", async () => {
+  const doc = await renderPlantUml(
+    `@startuml
+participant Alice
+participant Bob
+caption Sequence caption
+legend right
+  async request
+  sync response
+end legend
+Alice -> Bob : hello
+@enduml`,
+    { sourceLabel: "sequence-presentation" },
+  );
+
+  const caption = doc.elements.find((element) => element.customData?.role === "sequenceCaption");
+  const legend = doc.elements.find((element) => element.customData?.role === "sequenceLegend");
+  assert.equal(caption?.text, "Sequence caption");
+  assert.match(legend?.text || "", /sync response/);
+});
+
+test("PlantUML links on graph boxes and edge labels become safe Excalidraw metadata", async () => {
+  const doc = await renderPlantUml(
+    `@startuml
+component "[[https://example.invalid/api{Open API docs} API]]" as api
+[DB] as db
+api --> db : [[https://example.invalid/sql{SQL docs} SQL]]
+@enduml`,
+    { sourceLabel: "graph-links" },
+  );
+
+  const apiTitle = doc.elements.find(
+    (element) => element.type === "text" && element.text === "API",
+  );
+  const edgeLabel = doc.elements.find(
+    (element) => element.customData?.role === "edgeLabelText" && element.text === "SQL",
+  );
+  assert.equal(apiTitle?.link, "https://example.invalid/api");
+  assert.equal(apiTitle?.customData?.tooltip, "Open API docs");
+  assert.equal(edgeLabel?.link, "https://example.invalid/sql");
+  assert.equal(edgeLabel?.customData?.tooltip, "SQL docs");
+});
+
+test("PlantUML url-of directives attach safe Excalidraw metadata to graph boxes", async () => {
+  const doc = await renderPlantUml(
+    `@startuml
+[Dog] as Dog
+url of Dog is [[https://example.invalid/dog{Dog docs}]]
+@enduml`,
+    { sourceLabel: "graph-url-of" },
+  );
+
+  const dogTitle = doc.elements.find(
+    (element) => element.type === "text" && element.text === "Dog",
+  );
+  assert.equal(dogTitle?.link, "https://example.invalid/dog");
+  assert.equal(dogTitle?.customData?.tooltip, "Dog docs");
+});
+
+test("graph skinparams and style blocks render safe Excalidraw colors", async () => {
+  const doc = await renderPlantUml(
+    `@startuml
+skinparam backgroundColor #f8fafc
+skinparam componentBackgroundColor #fef9c3
+skinparam componentBorderColor #00aa00
+skinparam componentFontColor #111827
+skinparam arrowColor #123456
+skinparam LineTextColor #7c2d12
+skinparam noteBackgroundColor #dbeafe
+skinparam noteBorderColor #1d4ed8
+skinparam noteFontColor #0f172a
+<style>
+package {
+  BackgroundColor: #e0f2fe;
+  LineColor: #0369a1;
+  FontColor: #082f49;
+}
+</style>
+package "Services" as services {
+  [API] as api
+  [DB] as db
+}
+api --> db : SQL
+note right of api : cached
+@enduml`,
+    { sourceLabel: "graph-safe-style" },
+  );
+
+  assert.equal(doc.appState.viewBackgroundColor, "#f8fafc");
+  assert.ok(
+    doc.elements.some(
+      (element) =>
+        element.type === "rectangle" &&
+        element.backgroundColor === "#e0f2fe" &&
+        element.strokeColor === "#0369a1",
+    ),
+  );
+  assert.ok(
+    doc.elements.some(
+      (element) =>
+        element.type === "rectangle" &&
+        element.backgroundColor === "#fef9c3" &&
+        element.strokeColor === "#00aa00",
+    ),
+  );
+  assert.ok(
+    doc.elements.some((element) => element.type === "arrow" && element.strokeColor === "#123456"),
+  );
+  assert.ok(
+    doc.elements.some(
+      (element) =>
+        element.customData?.role === "edgeLabelText" && element.strokeColor === "#7c2d12",
+    ),
+  );
+  assert.ok(
+    doc.elements.some(
+      (element) =>
+        element.customData?.role === "noteText" &&
+        element.text === "cached" &&
+        element.strokeColor === "#0f172a",
+    ),
+  );
+  assert.ok(
+    doc.elements.some(
+      (element) =>
+        element.type === "rectangle" &&
+        element.backgroundColor === "#dbeafe" &&
+        element.strokeColor === "#1d4ed8",
+    ),
+  );
+});
+
+test("PlantUML links on sequence message labels become safe Excalidraw metadata", async () => {
+  const doc = await renderPlantUml(
+    `@startuml
+participant Alice
+participant Bob
+Alice -> Bob : [[https://example.invalid/start{Start docs} start]]
+@enduml`,
+    { sourceLabel: "sequence-links" },
+  );
+
+  const label = doc.elements.find((element) => element.customData?.role === "sequenceMessageLabel");
+  assert.equal(label?.text, "start");
+  assert.equal(label?.link, "https://example.invalid/start");
+  assert.equal(label?.customData?.tooltip, "Start docs");
+});
+
+test("PlantUML links on graph and sequence notes become safe Excalidraw metadata", async () => {
+  const graphDoc = await renderPlantUml(
+    `@startuml
+[API] as api
+note right of api
+  See [[https://example.invalid/note{Note docs} note docs]]
+end note
+@enduml`,
+    { sourceLabel: "graph-note-links" },
+  );
+  const graphNote = graphDoc.elements.find(
+    (element) => element.customData?.role === "noteText" && /note docs/.test(element.text),
+  );
+  assert.equal(graphNote?.link, "https://example.invalid/note");
+  assert.equal(graphNote?.customData?.tooltip, "Note docs");
+
+  const sequenceDoc = await renderPlantUml(
+    `@startuml
+participant Alice
+note right of Alice : [[https://example.invalid/seq-note{Sequence note} details]]
+@enduml`,
+    { sourceLabel: "sequence-note-links" },
+  );
+  const sequenceNote = sequenceDoc.elements.find(
+    (element) => element.customData?.role === "sequenceNoteText",
+  );
+  assert.equal(sequenceNote?.text, "details");
+  assert.equal(sequenceNote?.link, "https://example.invalid/seq-note");
+  assert.equal(sequenceNote?.customData?.tooltip, "Sequence note");
+});
+
 test("class boxes separate attributes from operations", async () => {
   const doc = await renderPlantUml(
     `@startuml

@@ -71,6 +71,293 @@ a --> b
   assert.equal(d.connections.length, 1);
 });
 
+test("PlantUML block comments are stripped before strict parsing", () => {
+  const d = parsePlantUml(
+    `
+@startuml
+/' case 1 '/ [A] as a
+/'
+  [Ignored] as ignored
+  ignored --> a
+'/
+[B] as b
+a --> b
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.equal(d.boxById("a").title, "A");
+  assert.equal(d.boxById("b").title, "B");
+  assert.equal(d.boxById("ignored"), null);
+  assert.equal(d.connections.length, 1);
+});
+
+test("PlantUML block comments are stripped before diagram detection", () => {
+  const d = parsePlantUml(
+    `
+@startuml
+/'
+  [Not a component diagram] as ignored
+'/
+participant Alice
+participant Bob
+Alice -> Bob : hi
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.ok(d instanceof SequenceDiagram);
+  assert.equal(d.messages.length, 1);
+  assert.equal(d.messages[0].label, "hi");
+});
+
+test("PlantUML block comment markers inside quoted text survive", () => {
+  const d = parsePlantUml(
+    `
+@startuml
+component "literal /' not a comment '/ label" as quoted
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.equal(d.boxById("quoted").title, "literal /' not a comment '/ label");
+});
+
+test("PlantUML typed start/end directives and layout controls are strict-tolerant", () => {
+  const d = parsePlantUml(
+    `
+@startcomponent
+scale 180*90
+zoom 2
+page 2x2
+split
+[A] as a
+@endcomponent
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.equal(d.boxById("a").title, "A");
+});
+
+test("PlantUML style blocks are strict-tolerant and apply safe graph colors", () => {
+  const graph = parsePlantUml(
+    `
+@startuml
+<style>
+component {
+  BackGroundColor: #ff0000;
+  LineColor: #00aa00;
+}
+arrow {
+  LineColor: #123456;
+}
+</style>
+[A] as a
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+  assert.equal(graph.boxById("a").title, "A");
+  assert.equal(graph.style.boxBackgroundColor, "#ff0000");
+  assert.equal(graph.style.boxBorderColor, "#00aa00");
+  assert.equal(graph.style.arrowColor, "#123456");
+
+  const sequence = parsePlantUml(
+    `
+@startuml
+<style>
+sequenceDiagram {
+  participant {
+    FontColor: javascript:alert(1);
+  }
+}
+</style>
+Alice -> Bob : hi
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+  assert.ok(sequence instanceof SequenceDiagram);
+  assert.equal(sequence.messages.length, 1);
+});
+
+test("graph PlantUML skinparams map safe color properties", () => {
+  const d = parsePlantUml(
+    `
+@startuml
+skinparam backgroundColor #ffffff
+skinparam componentBackgroundColor #fef9c3
+skinparam componentBorderColor #00aa00
+skinparam componentFontColor blue
+skinparam arrowColor #123456
+skinparam noteBackgroundColor #dbeafe
+skinparam noteBorderColor #1d4ed8
+skinparam noteFontColor #333333
+skinparam packageBackgroundColor #f8fafc
+skinparam packageBorderColor #64748b
+skinparam packageFontColor #0f172a
+package "Services" as services {
+  [API] as api
+  [DB] as db
+}
+api --> db : SQL
+note right of api : cached
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.equal(d.style.backgroundColor, "#ffffff");
+  assert.equal(d.style.boxBackgroundColor, "#fef9c3");
+  assert.equal(d.style.boxBorderColor, "#00aa00");
+  assert.equal(d.style.boxFontColor, "blue");
+  assert.equal(d.style.arrowColor, "#123456");
+  assert.equal(d.style.noteBackgroundColor, "#dbeafe");
+  assert.equal(d.style.noteBorderColor, "#1d4ed8");
+  assert.equal(d.style.noteFontColor, "#333333");
+  assert.equal(d.style.containerBackgroundColor, "#f8fafc");
+  assert.equal(d.style.containerBorderColor, "#64748b");
+  assert.equal(d.style.containerFontColor, "#0f172a");
+});
+
+test("sequence PlantUML style blocks map safe color properties", () => {
+  const d = parsePlantUml(
+    `
+@startuml
+<style>
+sequenceDiagram {
+  participant {
+    BackgroundColor: #LightYellow;
+    LineColor: #00aa00;
+    FontColor: blue;
+  }
+  arrow {
+    LineColor: #123456;
+    FontColor: red;
+  }
+  note {
+    BackgroundColor: lightblue;
+    FontColor: #333333;
+  }
+  group {
+    BorderColor: #LightGray;
+  }
+  lifeline {
+    LineColor: #0000ff;
+  }
+}
+</style>
+participant Alice
+participant Bob
+Alice -> Bob : hello
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.ok(d instanceof SequenceDiagram);
+  assert.equal(d.style.participantBackgroundColor, "#LightYellow");
+  assert.equal(d.style.participantBorderColor, "#00aa00");
+  assert.equal(d.style.participantFontColor, "blue");
+  assert.equal(d.style.arrowColor, "#123456");
+  assert.equal(d.style.messageFontColor, "red");
+  assert.equal(d.style.noteBackgroundColor, "lightblue");
+  assert.equal(d.style.noteFontColor, "#333333");
+  assert.equal(d.style.groupBorderColor, "#LightGray");
+  assert.equal(d.style.lifelineColor, "#0000ff");
+});
+
+test("PlantUML Creole and legacy text markup degrades to readable graph text", () => {
+  const d = parsePlantUml(
+    `
+@startuml
+title **Runtime** <U+221E> <&code> <:1f600:>
+component "Service **API**" as api : <b>Public</b> __HTTP__
+class Property {
+  <#transparent,#transparent>|<:link:>| id| iri| 1..1|
+  +**save**(): void
+}
+note right of api
+  = Heading
+  * First
+  ** Second
+  |<#yellow>| key | value |
+  <code>main()</code>
+end note
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.equal(d.title, "Runtime ∞ code :1f600:");
+  assert.equal(d.boxById("api").title, "Service API");
+  assert.equal(d.boxById("api").description, "Public HTTP");
+  assert.deepEqual(d.boxById("Property").members, [":link: | id | iri | 1..1", "+save(): void"]);
+  const note = d.planes[0].allBoxes.find((box) => box.shape === "note");
+  assert.match(note?.description || "", /Heading/);
+  assert.match(note?.description || "", /- First/);
+  assert.match(note?.description || "", /  - Second/);
+  assert.match(note?.description || "", /key \| value/);
+  assert.match(note?.description || "", /main\(\)/);
+});
+
+test("PlantUML Creole and legacy text markup degrades to readable sequence text", () => {
+  const d = parsePlantUml(
+    `
+@startuml
+participant "**Alice**" as A
+participant Bob
+box "<b>Group</b>"
+A -> Bob : //hello// <U+221E> <&code>
+alt **ok**
+else <i>fail</i>
+end
+note over A
+  = Heading
+  # Item
+end note
+end box
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.equal(d.participantById("A").title, "Alice");
+  assert.equal(d.participantGroups[0].label, "Group");
+  assert.equal(d.messages[0].label, "hello ∞ code");
+  assert.equal(d.fragments[0].label, "ok");
+  assert.equal(d.fragments[0].operands[1].label, "fail");
+  assert.match(d.notes[0].text, /Heading/);
+  assert.match(d.notes[0].text, /- Item/);
+});
+
+test("sequence caption and legend are preserved as presentation metadata", () => {
+  const d = parsePlantUml(
+    `
+@startuml
+participant Alice
+participant Bob
+caption "Flow caption"
+legend right
+  first line
+  second line
+end legend
+Alice -> Bob : hi
+@enduml
+  `,
+    { unknownLines: "strict" },
+  );
+
+  assert.ok(d instanceof SequenceDiagram);
+  assert.equal(d.caption, "Flow caption");
+  assert.equal(d.legend, "first line\nsecond line");
+  assert.equal(d.messages.length, 1);
+});
+
 test("shared parser helpers collect block lines and parse titles", async () => {
   const { collectBlockLines } = await import("../src/util/plantuml_utils.mjs");
   const { createTitlePlugin } = await import("../src/diagrams/shared/common_plugins/title.mjs");

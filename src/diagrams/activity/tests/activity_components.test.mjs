@@ -3,116 +3,46 @@
  * @module diagrams/activity/tests/activity_components
  */
 
-import { describe, it } from "node:test";
-import assert from "node:assert";
-import { parsePlantUml } from "../../../main/parser.mjs";
-import { layoutDiagram } from "../../../general/layout/elk_layout.mjs";
-import { exportDiagram } from "../../../general/render/excalidraw.mjs";
+import test from "node:test";
+import assert from "node:assert/strict";
 
-describe("Activity Diagram Parser", () => {
-  describe("Basic Actions", () => {
-    it("should parse start and stop", () => {
-      const puml = `@startuml
+import { parsePlantUml, renderPlantUml, SequenceDiagram } from "../../../../index.mjs";
+import { excalidrawToSvg } from "../../../general/render/svg.mjs";
+
+test("activity beta actions support start stop and multiline text", async () => {
+  const source = `@startuml
 start
 :Hello world;
+:This is on defined on
+several **lines**;
 stop
 @enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
 
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram, "Should produce a diagram");
-      assert.strictEqual(result.diagram.kind, "activity");
-    });
+  assert.ok(!(diagram instanceof SequenceDiagram));
+  assert.equal(diagram.kind, "activity");
+  assert.ok(diagram.allBoxes().some((box) => box.shape === "start"));
+  assert.ok(diagram.allBoxes().some((box) => box.shape === "end"));
+  assert.ok(diagram.allBoxes().some((box) => box.title.includes("several lines")));
+  assert.ok(diagram.connections.length >= 2);
 
-    it("should parse action with text", () => {
-      const puml = `@startuml
-start
-:This is an action;
-stop
-@enduml`;
+  const doc = await renderPlantUml(source, { sourceLabel: "activity/beta-actions" });
+  assert.ok(doc.elements.length > 0);
+  assert.match(excalidrawToSvg(doc), /Hello world/);
+});
 
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-
-    it("should parse multiline action", () => {
-      const puml = `@startuml
-start
-:This is on
-several lines;
-stop
-@enduml`;
-
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-  });
-
-  describe("Conditions", () => {
-    it("should parse if/then/else", () => {
-      const puml = `@startuml
+test("activity beta conditions loops and parallel controls parse strictly", () => {
+  const source = `@startuml
 start
 if (Graphviz installed?) then (yes)
   :process all diagrams;
 else (no)
-  :skip;
+  :process only sequence and activity diagrams;
 endif
-stop
-@enduml`;
-
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-
-    it("should parse switch/case", () => {
-      const puml = `@startuml
-start
-switch (mode?)
-case (A)
-  :A;
-case (B)
-  :B;
-endswitch
-stop
-@enduml`;
-
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-  });
-
-  describe("Loops", () => {
-    it("should parse while loop", () => {
-      const puml = `@startuml
-start
-while (queue?)
-  :consume;
-endwhile
-stop
-@enduml`;
-
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-
-    it("should parse repeat loop", () => {
-      const puml = `@startuml
-start
 repeat
   :read data;
   :generate diagrams;
-repeat while (more data?)
-stop
-@enduml`;
-
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-  });
-
-  describe("Parallel Flows", () => {
-    it("should parse fork", () => {
-      const puml = `@startuml
-start
+repeat while (more data?) is (yes) not (no)
 fork
   :Treatment 1;
 fork again
@@ -120,87 +50,75 @@ fork again
 end fork
 stop
 @enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
 
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
+  assert.ok(
+    diagram.allBoxes().some((box) => box.shape === "choice" && box.title.includes("Graphviz")),
+  );
+  assert.ok(diagram.allBoxes().some((box) => box.shape === "fork"));
+  assert.ok(diagram.allBoxes().some((box) => box.shape === "join"));
+  assert.ok(diagram.connections.length >= 8);
+});
 
-    it("should parse split", () => {
-      const puml = `@startuml
-start
-split
-  :A;
-split again
-  :B;
-end split
-stop
+test("activity legacy arrows and labels parse into deterministic flow", () => {
+  const source = `@startuml
+
+(*) --> "First Activity"
+-->[You can put also labels] "Second Activity"
+--> (*)
+
 @enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
 
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-  });
+  assert.equal(diagram.kind, "activity");
+  assert.ok(diagram.allBoxes().some((box) => box.title === "First Activity"));
+  assert.ok(diagram.allBoxes().some((box) => box.title === "Second Activity"));
+  assert.ok(
+    diagram.connections.some((connection) => connection.label === "You can put also labels"),
+  );
+  assert.ok(diagram.allBoxes().some((box) => box.shape === "end"));
+});
 
-  describe("Swimlanes", () => {
-    it("should parse swimlane", () => {
-      const puml = `@startuml
+test("activity partitions swimlanes notes connectors and goto parse strictly", async () => {
+  const source = `@startuml
 |Swimlane1|
 start
-:Action 1;
-|Swimlane2|
-:Action 2;
-stop
+partition #lightGreen "Input Interface" {
+  :read config file;
+  note right: Reads <b>safe</b> config
+  (A)
+}
+label retry
+goto retry
+detach
 @enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
 
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-  });
+  assert.ok(diagram.allBoxes().some((box) => box.stereotype === "swimlane"));
+  assert.ok(diagram.allBoxes().some((box) => box.stereotype === "partition"));
+  assert.ok(diagram.allBoxes().some((box) => box.shape === "note"));
+  assert.ok(diagram.allBoxes().some((box) => box.shape === "interface" && box.title === "A"));
 
-  describe("Notes", () => {
-    it("should parse floating note", () => {
-      const puml = `@startuml
-start
-:Action;
-floating note left: This is a note
-stop
-@enduml`;
-
-      const result = parsePlantUml(puml);
-      assert.ok(result.diagram);
-    });
-  });
+  const doc = await renderPlantUml(source, { sourceLabel: "activity/containers" });
+  const svg = excalidrawToSvg(doc);
+  assert.match(svg, /Input Interface/);
+  assert.doesNotMatch(svg, /<b>/);
 });
 
-describe("Activity Diagram Layout", () => {
-  it("should layout basic activity diagram", () => {
-    const puml = `@startuml
-start
-:Hello world;
-stop
+test("activity SDL stereotypes and simple list actions render", async () => {
+  const source = `@startuml
+* Action 1
+** Sub-Action 1.1
+:input shape; <<input>>
+:output shape; <<output>>
+kill
 @enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
 
-    const parseResult = parsePlantUml(puml);
-    assert.ok(parseResult.diagram);
+  assert.ok(diagram.allBoxes().some((box) => box.title === "Action 1"));
+  assert.ok(diagram.allBoxes().some((box) => box.stereotype === "input"));
+  assert.ok(diagram.allBoxes().some((box) => box.stereotype === "output"));
 
-    const layoutResult = layoutDiagram(parseResult.diagram);
-    assert.ok(layoutResult);
-  });
-});
-
-describe("Activity Diagram Renderer", () => {
-  it("should render basic activity diagram to Excalidraw", () => {
-    const puml = `@startuml
-start
-:Hello world;
-stop
-@enduml`;
-
-    const parseResult = parsePlantUml(puml);
-    const layoutResult = layoutDiagram(parseResult.diagram);
-    const exportResult = exportDiagram(layoutResult, { format: "excalidraw" });
-
-    assert.ok(exportResult.elements);
-    assert.ok(Array.isArray(exportResult.elements));
-  });
+  const doc = await renderPlantUml(source, { sourceLabel: "activity/sdl-list" });
+  assert.ok(doc.elements.length > 0);
 });

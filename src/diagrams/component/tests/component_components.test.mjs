@@ -106,3 +106,42 @@ test("component presentation metadata parses and hidden arrows stay non-rendered
   const arrows = doc.elements.filter((element) => element.type === "arrow");
   assert.equal(arrows.length, 1);
 });
+
+test("component official declarations and relation endpoints parse", () => {
+  const example = exampleById.get("official-components-relations");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  assert.equal(diagram.kind, "component");
+  assert.equal(diagram.boxById("Comp2").title, "Another component");
+  assert.equal(diagram.boxById("Comp3").shape, "component");
+  assert.equal(diagram.boxById("Comp4").title, "Last\ncomponent");
+  assert.equal(diagram.boxById("DataAccess").shape, "component");
+  assert.equal(diagram.boxById("HTTP").shape, "component");
+  assert.ok(diagram.connections.some((connection) => connection.to.id === "first_component"));
+  assert.ok(diagram.connections.some((connection) => connection.label === "use"));
+});
+
+test("component official JSON display and bare ports are modeled", async () => {
+  const example = exampleById.get("official-json-ports");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  const json = diagram.boxById("JSON");
+  assert.ok(json);
+  assert.equal(json.shape, "map");
+  assert.ok(json.members.some((member) => member.includes('"fruit":"Apple"')));
+
+  for (const id of ["p1", "p2", "p3"]) {
+    assert.equal(diagram.boxById(id).shape, "interface");
+  }
+  assert.equal(diagram.boxById("p2").stereotype, "in");
+  assert.equal(diagram.boxById("p3").stereotype, "out");
+  assert.ok(diagram.connections.some((connection) => connection.from.id === "C"));
+  assert.ok(diagram.connections.some((connection) => connection.from.id === "p1"));
+
+  const doc = await renderPlantUml(example.source, {
+    sourceLabel: "component/official-json-ports",
+  });
+  assert.ok(doc.elements.length > 0);
+});

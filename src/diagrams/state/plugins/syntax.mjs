@@ -3,10 +3,18 @@
  * @module diagrams/state/plugins/syntax
  */
 
-import { slug, stripQuotes, STEREOTYPE } from "../../../util/plantuml_utils.mjs";
+import {
+  classifyArrow,
+  normalisePlantUmlText,
+  slug,
+  stripQuotes,
+  STEREOTYPE,
+} from "../../../util/plantuml_utils.mjs";
 
-const STATE_HEADER = /^state\s+(.+?)(?:\s+as\s+([A-Za-z_][\w.-]*))?(\s*\{)?$/i;
+const STATE_HEADER = /^state\s+(.+?)(?:\s+as\s+([A-Za-z_][\w.-]*))?(?:\s+#[^\s{]+)?(\s*\{)?$/i;
 const STATE_DESCRIPTION = /^([A-Za-z_][\w.-]*)\s*:\s*(.+)$/;
+const STATE_TRANSITION =
+  /^(\[\*\]|\[H\*?]|\S+)\s+([-.*o<|>]+(?:\[[^\]]+\])?(?:up|down|left|right|UP|DOWN|LEFT|RIGHT)?[-.*o<|>]*)\s+(\[\*\]|\[H\*?]|\S+)(?:\s*:\s*(.+))?$/;
 const PSEUDOSTATE_PATTERN = /^\[\*\]|^\[H\]|^\[H\*\]/i;
 const CONCURRENT_SEPARATOR = /^\s*(--|\|\|)\s*$/;
 
@@ -29,6 +37,7 @@ function parseStateDeclaration(raw) {
     stereotype = stereotypeMatch[1].trim();
     body = body.replace(stereotypeMatch[0], "").trim();
   }
+  body = body.replace(/\s+#[^\s{]+$/u, "").trim();
 
   // Check for pseudostate stereotypes
   let kind = "state";
@@ -65,6 +74,53 @@ function parseStateDeclaration(raw) {
 }
 
 /**
+ * @param {Record<string, any>} ctx
+ * @param {string} raw
+ * @param {"from"|"to"} side
+ * @returns {{id:string,shorthand:boolean}}
+ */
+function stateEndpoint(ctx, raw, side) {
+  if (raw === "[*]") {
+    const id = side === "from" ? "state_start" : "state_end";
+    if (!ctx.boxes.has(id)) {
+      ctx.addBox({ id, title: "", shape: side === "from" ? "start" : "end" });
+    }
+    return { id, shorthand: false };
+  }
+  if (/^\[H\*?]$/i.test(raw)) {
+    const deep = /\*/.test(raw);
+    const id = deep ? "history_deep" : "history";
+    if (!ctx.boxes.has(id)) ctx.addBox({ id, title: deep ? "H*" : "H", shape: id });
+    return { id, shorthand: false };
+  }
+  return { id: stripQuotes(raw), shorthand: false };
+}
+
+/**
+ * @param {string} line
+ * @param {Record<string, any>} ctx
+ * @returns {boolean}
+ */
+function queueStateTransition(line, ctx) {
+  const match = line.match(STATE_TRANSITION);
+  if (!match) return false;
+  const [, rawFrom, op, rawTo, label] = match;
+  const arrow = classifyArrow(op);
+  if (!arrow) return false;
+  const from = stateEndpoint(ctx, rawFrom, "from");
+  const to = stateEndpoint(ctx, rawTo, "to");
+  ctx.queueConnection({
+    fromId: from.id,
+    toId: to.id,
+    fromShorthand: false,
+    toShorthand: false,
+    label: normalisePlantUmlText(label || ""),
+    ...arrow,
+  });
+  return true;
+}
+
+/**
  * State declaration plugin.
  * Handles: state Name, state "Long Name" as alias, state Name { ... }
  * @public
@@ -85,6 +141,7 @@ export const stateDeclarationPlugin = {
 
     const id = match[2] || parsed.id;
     const isBlock = !!match[3];
+    if (isBlock) return false;
 
     ctx.addBox({
       id,
@@ -229,6 +286,8 @@ export const compositeStatePlugin = {
           return true;
         }
 
+        if (queueStateTransition(trimmed, innerCtx)) return true;
+
         return false;
       },
       tryEnd: (/** @type {string} */ endLine) => endLine.trim() === "}",
@@ -253,12 +312,29 @@ export const stateDescriptionPlugin = {
     if (!match) return false;
 
     const id = match[1];
-    const box = ctx.boxes.get(id);
-    if (!box) return false;
+    const box =
+      ctx.boxes.get(id) ||
+      ctx.addBox({ id, title: normalisePlantUmlText(id), shape: "state", members: [] });
 
     if (!box.members) box.members = [];
-    box.members.push(match[2]);
+    box.members.push(normalisePlantUmlText(match[2]));
     return true;
+  },
+};
+
+/**
+ * State transition plugin. Handles state pseudo endpoints such as `[*]`.
+ * @public
+ */
+export const stateTransitionPlugin = {
+  name: "state.transition",
+  /**
+   * @param {string} line
+   * @param {Record<string, any>} ctx
+   * @returns {boolean}
+   */
+  tryLine(line, ctx) {
+    return queueStateTransition(line, ctx);
   },
 };
 
