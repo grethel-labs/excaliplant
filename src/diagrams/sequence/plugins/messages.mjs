@@ -11,7 +11,11 @@
 //   ++/--/**/!! lifecycle suffixes after the target.
 
 import { SequenceArrow } from "../../../general/model/diagram.mjs";
-import { stripQuotes, unescapeLabel } from "../../../util/plantuml_utils.mjs";
+import {
+  extractPlantUmlLink,
+  normalisePlantUmlText,
+  stripQuotes,
+} from "../../../util/plantuml_utils.mjs";
 
 const ARROW_CHARS = new Set(["-", "<", ">", "\\", "/", "o", "x", "[", "]", "?"]);
 const LIFECYCLE = new Set(["++", "--", "**", "!!"]);
@@ -60,16 +64,19 @@ export const messagePlugin = {
       arrow.direction = src === dst ? "self" : arrow.direction;
     }
 
+    const parsedLabel = extractPlantUmlLink(parsed.label);
     const msg = ctx.addMessage({
       from: src,
       to: dst,
-      label: unescapeLabel(parsed.label),
+      label: normalisePlantUmlText(parsedLabel.text),
       dashed: arrow.line.dashed,
       kind: src === dst && !parsed.incoming && !parsed.outgoing ? "self" : messageKind(arrow),
       startArrowhead: arrow.start.excalidrawArrowhead,
       endArrowhead: arrow.end.excalidrawArrowhead,
       arrow,
       color: arrow.line.color,
+      link: parsedLabel.link,
+      tooltip: parsedLabel.tooltip,
     });
     msg.lifecycle = parsed.lifecycle;
     msg.parallel = parsed.parallel;
@@ -259,20 +266,20 @@ function parseRightParticipant(raw) {
   const possibleLabel = readToken(source);
   if (possibleLabel?.token.startsWith('"') && possibleLabel.rest.trim()) {
     const restFirst = readToken(possibleLabel.rest.trim());
-    if (!restFirst || !LIFECYCLE.has(restFirst.token)) {
-      endpointLabel = unescapeLabel(stripQuotes(possibleLabel.token));
+    if (!restFirst || (!/^as$/i.test(restFirst.token) && !LIFECYCLE.has(restFirst.token))) {
+      endpointLabel = normalisePlantUmlText(stripQuotes(possibleLabel.token));
       source = possibleLabel.rest.trim();
     }
   }
-  const first = readToken(source);
+  const first = readParticipantReference(source);
   if (!first) return { participant: null, lifecycle: "", color: "", endpointLabel };
   let rest = first.rest.trim();
   let lifecycle = "";
   let color = "";
-  const attached = first.token.match(/^(.*?)(\+\+|--|\*\*|!!)(?:\s+(#[\w-]+))?$/);
-  let token = first.token;
+  const attached = first.raw.match(/^(.*?)(\+\+|--|\*\*|!!)(?:\s+(#[\w-]+))?$/);
+  let participant = first.participant;
   if (attached && attached[1]) {
-    token = attached[1];
+    participant = parseParticipantToken(attached[1]);
     lifecycle = attached[2];
     color = attached[3] || rest.split(/\s+/).find((part) => part.startsWith("#")) || "";
   } else if (rest) {
@@ -282,7 +289,7 @@ function parseRightParticipant(raw) {
       color = parts[1]?.startsWith("#") ? parts[1] : "";
     }
   }
-  return { participant: parseParticipantToken(token), lifecycle, color, endpointLabel };
+  return { participant, lifecycle, color, endpointLabel };
 }
 
 /**
@@ -296,7 +303,7 @@ function parseLeftParticipant(raw) {
   if (!participantRaw) return { participant: parseParticipantToken(raw), endpointLabel: "" };
   return {
     participant: parseParticipantToken(participantRaw),
-    endpointLabel: unescapeLabel(endpoint[2]),
+    endpointLabel: normalisePlantUmlText(endpoint[2]),
   };
 }
 
@@ -306,8 +313,35 @@ function parseLeftParticipant(raw) {
  */
 function parseParticipantToken(raw) {
   const token = raw.trim();
+  const quotedAlias = token.match(/^"([^"]+)"\s+as\s+(\S+)$/i);
+  if (quotedAlias) {
+    return { id: stripQuotes(quotedAlias[2]), title: normalisePlantUmlText(quotedAlias[1]) };
+  }
   const stripped = stripQuotes(token);
-  return { id: stripped, title: unescapeLabel(stripped) };
+  return { id: stripped, title: normalisePlantUmlText(stripped) };
+}
+
+/**
+ * @param {string} raw
+ * @returns {{participant:{id:string,title:string},raw:string,rest:string}|null}
+ */
+function readParticipantReference(raw) {
+  const quotedAlias = raw.match(/^"([^"]+)"\s+as\s+(\S+)(?:\s+(.*))?$/i);
+  if (quotedAlias) {
+    const [, title, alias, rest = ""] = quotedAlias;
+    return {
+      participant: { id: stripQuotes(alias), title: normalisePlantUmlText(title) },
+      raw: `"${title}" as ${alias}`,
+      rest,
+    };
+  }
+  const first = readToken(raw);
+  if (!first) return null;
+  return {
+    participant: parseParticipantToken(first.token),
+    raw: first.token,
+    rest: first.rest,
+  };
 }
 
 /**

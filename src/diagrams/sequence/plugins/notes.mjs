@@ -6,7 +6,11 @@
 //   note|hnote|rnote across [#color] : text
 //   block variants ended by end note / endhnote / endrnote.
 
-import { collectBlockLines, unescapeLabel } from "../../../util/plantuml_utils.mjs";
+import {
+  collectBlockLines,
+  extractPlantUmlLink,
+  normalisePlantUmlText,
+} from "../../../util/plantuml_utils.mjs";
 
 const NOTE_PREFIX = String.raw`(?:/\s*)?(note|hnote|rnote)`;
 const COLOR = String.raw`(?:\s+(#[\w-]+))?`;
@@ -63,7 +67,16 @@ export const noteSidePlugin = {
     const [, shape, side, targetId, color, text] = m;
     const target = targetId ? ctx.ensureParticipant(targetId) : lastParticipant(ctx);
     if (!target) return true;
-    ctx.addNote({ text: unescapeLabel(text), side, target, shape: shape.toLowerCase(), color });
+    const parsed = extractPlantUmlLink(text);
+    ctx.addNote({
+      text: normalisePlantUmlText(parsed.text),
+      side,
+      target,
+      shape: shape.toLowerCase(),
+      color,
+      link: parsed.link,
+      tooltip: parsed.tooltip,
+    });
     return true;
   },
 };
@@ -78,13 +91,16 @@ export const noteOverPlugin = {
     const m = line.match(SEQ_NOTE_OVER);
     if (!m) return false;
     const [, shape, aId, bId, color, text] = m;
+    const parsed = extractPlantUmlLink(text);
     ctx.addNote({
-      text: unescapeLabel(text),
+      text: normalisePlantUmlText(parsed.text),
       side: "over",
       target: ctx.ensureParticipant(aId),
       target2: bId ? ctx.ensureParticipant(bId) : null,
       shape: shape.toLowerCase(),
       color,
+      link: parsed.link,
+      tooltip: parsed.tooltip,
     });
     return true;
   },
@@ -102,13 +118,16 @@ export const noteAcrossPlugin = {
     const [, shape, color, text] = m;
     const targets = acrossTargets(ctx);
     if (!targets) return true;
+    const parsed = extractPlantUmlLink(text);
     ctx.addNote({
-      text: unescapeLabel(text),
+      text: normalisePlantUmlText(parsed.text),
       side: "over",
       target: targets.target,
       target2: targets.target2,
       shape: shape.toLowerCase(),
       color,
+      link: parsed.link,
+      tooltip: parsed.tooltip,
     });
     return true;
   },
@@ -127,13 +146,16 @@ export const noteSideBlockPlugin = {
     const target = targetId ? ctx.ensureParticipant(targetId) : lastParticipant(ctx);
     return collectBlockLines(NOTE_BLOCK_END, (lines, ctx2) => {
       if (target) {
+        const parsed = extractPlantUmlLink(lines.join("\n"));
         ctx2.addNote({
-          text: lines.join("\n"),
+          text: normalisePlantUmlText(parsed.text),
           side,
           target,
           target2: null,
           shape: shape.toLowerCase(),
           color,
+          link: parsed.link,
+          tooltip: parsed.tooltip,
         });
       }
     });
@@ -153,13 +175,16 @@ export const noteOverBlockPlugin = {
     const a = ctx.ensureParticipant(aId);
     const b = bId ? ctx.ensureParticipant(bId) : null;
     return collectBlockLines(NOTE_BLOCK_END, (lines, ctx2) => {
+      const parsed = extractPlantUmlLink(lines.join("\n"));
       ctx2.addNote({
-        text: lines.join("\n"),
+        text: normalisePlantUmlText(parsed.text),
         side: "over",
         target: a,
         target2: b,
         shape: shape.toLowerCase(),
         color,
+        link: parsed.link,
+        tooltip: parsed.tooltip,
       });
     });
   },
@@ -178,13 +203,16 @@ export const noteAcrossBlockPlugin = {
     const targets = acrossTargets(ctx);
     return collectBlockLines(NOTE_BLOCK_END, (lines, ctx2) => {
       if (targets) {
+        const parsed = extractPlantUmlLink(lines.join("\n"));
         ctx2.addNote({
-          text: lines.join("\n"),
+          text: normalisePlantUmlText(parsed.text),
           side: "over",
           target: targets.target,
           target2: targets.target2,
           shape: shape.toLowerCase(),
           color,
+          link: parsed.link,
+          tooltip: parsed.tooltip,
         });
       }
     });

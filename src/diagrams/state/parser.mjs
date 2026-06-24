@@ -12,8 +12,10 @@ import {
   pseudostateDeclarationPlugin,
   compositeStatePlugin,
   stateDescriptionPlugin,
+  stateTransitionPlugin,
   concurrentRegionPlugin,
 } from "./plugins/syntax.mjs";
+import { componentJsonPlugin } from "../component/plugins/syntax.mjs";
 
 const graphPluginsBeforeConnections = DEFAULT_GRAPH_PLUGINS.filter(
   (plugin) => plugin.name !== connectionPlugin.name,
@@ -27,11 +29,18 @@ export const DEFAULT_STATE_PLUGINS = Object.freeze([
   compositeStatePlugin,
   stateDescriptionPlugin,
   concurrentRegionPlugin,
+  componentJsonPlugin,
+  stateTransitionPlugin,
   connectionPlugin,
 ]);
 
 /** @public */
-export const createStateParseContext = createGraphParseContext;
+export function createStateParseContext() {
+  const ctx = createGraphParseContext();
+  ctx.diagram.kind = "state";
+  ctx.setAutoVivifyConnections(true, "state");
+  return ctx;
+}
 
 /**
  * @param {string[]} lines Raw PlantUML lines.
@@ -68,6 +77,7 @@ export function detectStateDiagram(text) {
     if (/^skinparam\s+state\b/i.test(line)) return true;
     if (/^\[\*\]\s*-->?\s*/.test(line)) return true;
     if (/^state\s+/.test(line)) return true;
+    if (/^json\s+/.test(line)) return true;
     if (/^hide\s+empty\s+description\b/i.test(line)) return true;
   }
   return false;

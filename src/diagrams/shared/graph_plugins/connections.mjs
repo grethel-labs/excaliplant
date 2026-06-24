@@ -4,7 +4,12 @@
 // decoded by `classifyArrow()`; to support a new arrow operator just
 // extend that classifier.
 
-import { classifyArrow, slug, unescapeLabel } from "../../../util/plantuml_utils.mjs";
+import {
+  classifyArrow,
+  extractPlantUmlLink,
+  normalisePlantUmlText,
+  slug,
+} from "../../../util/plantuml_utils.mjs";
 
 // Endpoint can be a bare identifier, a bracket/paren/quoted shorthand,
 // or a quoted name. The arrow may be flanked by quoted multiplicity
@@ -23,7 +28,7 @@ const CONNECTION_LINE = new RegExp(
  * (`[Foo]`, `(Use case)`) and quoted labels resolve to the same
  * identifier the corresponding shape declaration uses.
  * @param {string} raw Raw token captured by the connection regex.
- * @returns {{id: string, shorthand: boolean, portId: string|null}} Identifier suitable for
+ * @returns {{id: string, shorthand: boolean, quoted: boolean, portId: string|null}} Identifier suitable for
  *   the box-id lookup table, plus a flag indicating whether the source
  *   used a bracket/paren/quoted shorthand (those should not auto-vivify
  *   a stub class box if the identifier is unknown — they are meant to
@@ -32,14 +37,14 @@ const CONNECTION_LINE = new RegExp(
 function normaliseEndpoint(raw) {
   let s = raw.trim();
   const portMatch = s.match(/^([^:]+)::(.+)$/);
-  if (portMatch) return { id: portMatch[1], shorthand: false, portId: portMatch[2] };
+  if (portMatch) return { id: portMatch[1], shorthand: false, quoted: false, portId: portMatch[2] };
   if (s.startsWith("[") && s.endsWith("]"))
-    return { id: slug(s.slice(1, -1)), shorthand: true, portId: null };
+    return { id: slug(s.slice(1, -1)), shorthand: true, quoted: false, portId: null };
   if (s.startsWith("(") && s.endsWith(")"))
-    return { id: slug(s.slice(1, -1)), shorthand: true, portId: null };
+    return { id: slug(s.slice(1, -1)), shorthand: true, quoted: false, portId: null };
   if (s.startsWith('"') && s.endsWith('"'))
-    return { id: slug(s.slice(1, -1)), shorthand: true, portId: null };
-  return { id: s, shorthand: false, portId: null };
+    return { id: slug(s.slice(1, -1)), shorthand: true, quoted: true, portId: null };
+  return { id: s, shorthand: false, quoted: false, portId: null };
 }
 
 /**
@@ -58,14 +63,17 @@ export const connectionPlugin = {
     if (!arrow) return false;
     const from = normaliseEndpoint(rawFrom);
     const to = normaliseEndpoint(rawTo);
+    const parsedLabel = extractPlantUmlLink(label?.trim() || "");
     ctx.queueConnection({
       fromId: from.id,
       toId: to.id,
-      fromShorthand: from.shorthand,
-      toShorthand: to.shorthand,
+      fromShorthand: from.shorthand && !(from.quoted && ctx.diagram.kind === "class"),
+      toShorthand: to.shorthand && !(to.quoted && ctx.diagram.kind === "class"),
       fromPort: from.portId,
       toPort: to.portId,
-      label: unescapeLabel(label?.trim() || ""),
+      label: normalisePlantUmlText(parsedLabel.text),
+      link: parsedLabel.link,
+      tooltip: parsedLabel.tooltip,
       fromMul: fromMul || "",
       toMul: toMul || "",
       ...arrow,

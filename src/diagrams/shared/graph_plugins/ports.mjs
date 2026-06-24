@@ -1,5 +1,7 @@
 // Component port declarations.
 
+import { normalisePlantUmlText } from "../../../util/plantuml_utils.mjs";
+
 const PORT_DECLARATION = /^(port|portin|portout)\s+(?:"([^"]+)"|(\S+))(?:\s+as\s+(\S+))?$/i;
 
 /**
@@ -26,8 +28,25 @@ export const portPlugin = {
     const m = line.match(PORT_DECLARATION);
     if (!m) return false;
     const [, keyword, quoted, bare, alias] = m;
-    const ref = splitPortReference(alias || bare || quoted || "");
-    if (!ref) return true;
+    const rawName = alias || bare || quoted || "";
+    const ref = splitPortReference(rawName);
+    if (!ref) {
+      const id = alias || bare || quoted || "";
+      if (!id) return true;
+      const direction =
+        keyword.toLowerCase() === "portout"
+          ? "out"
+          : keyword.toLowerCase() === "portin"
+            ? "in"
+            : "port";
+      ctx.addBox({
+        id,
+        title: normalisePlantUmlText(quoted || bare || alias || id),
+        shape: "interface",
+        stereotype: direction,
+      });
+      return true;
+    }
     ctx.addPort({
       boxId: ref.boxId,
       portId: ref.portId,

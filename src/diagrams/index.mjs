@@ -152,6 +152,25 @@ export {
 export { ActivityDiagramRenderer } from "./activity/render.mjs";
 export { ActivityDiagramSecurity } from "./activity/security.mjs";
 export { ActivityDiagramTests } from "./activity/tests.mjs";
+export { TimingDiagramModule, timingDiagramModule } from "./timing/module.mjs";
+export { TimingDiagramAssets, timingDiagramAssets } from "./timing/assets.mjs";
+export { TimingDiagramDocs, timingDiagramDocs } from "./timing/docs.mjs";
+export { TimingDiagramLayout, layoutTimingDiagram, timingDiagramLayout } from "./timing/layout.mjs";
+export {
+  TimingDiagramParser,
+  DEFAULT_TIMING_PLUGINS,
+  createTimingParseContext,
+  detectTimingDiagram,
+  prepareTimingLines,
+  timingDiagramParser,
+} from "./timing/parser.mjs";
+export {
+  TIMING_RENDERERS,
+  TimingDiagramRenderer,
+  timingDiagramRenderer,
+} from "./timing/render.mjs";
+export { TimingDiagramSecurity, timingDiagramSecurity } from "./timing/security.mjs";
+export { TimingDiagramTests, timingDiagramTests } from "./timing/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
 import { classDiagramModule } from "./class/module.mjs";
@@ -161,6 +180,7 @@ import { useCaseDiagramModule } from "./use-case/module.mjs";
 import { objectDiagramModule } from "./object/module.mjs";
 import { stateDiagramModule } from "./state/module.mjs";
 import { activityDiagramModule } from "./activity/module.mjs";
+import { timingDiagramModule } from "./timing/module.mjs";
 
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
@@ -171,5 +191,6 @@ export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   useCaseDiagramModule,
   objectDiagramModule,
   stateDiagramModule,
+  timingDiagramModule,
   activityDiagramModule,
 ]);

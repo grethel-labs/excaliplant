@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.13.2** &nbsp;·&nbsp; 210 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.14.0** &nbsp;·&nbsp; 250 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -111,19 +111,97 @@ regenerated from JSDoc on every `npm run build:docs` run.
 
 Sequence diagrams support participants (`participant`, `actor`,
 `boundary`, `control`, `entity`, `database`, `collections`, `queue`),
+quoted aliases in both `Name as Alias` and `Alias as "Name"` forms,
 message arrows including async/reply/reverse/bidirectional variants,
 notes, participant `box ... end box` groups, `ref over` references,
 dividers (`== label ==`), delays (`... label ...`), spacers (`|||` /
-`||45||`), `autonumber`, lifecycle controls (`create`, `activate`,
+`||45||`), `autonumber` start/stop/resume, lifecycle controls (`create`, `activate`,
 `deactivate`, `destroy`) and inline message lifecycle suffixes
 (`++`, `--`, `**`, `!!`). Combined fragments render for `opt`,
 `loop`, `alt`/`else`, `par`/`and`, `break`, `critical`/`option`, and
 `group`/`option` blocks. A small sequence `skinparam` subset maps
 directly to output colours in block or compact form: `ArrowColor`,
 `ParticipantBackgroundColor`, `ParticipantBorderColor`, and
-`LifeLineBorderColor`.
+`LifeLineBorderColor`; supported CSS-like `<style>` blocks safely map
+participant, arrow, note, group, lifeline, divider, and activation-bar
+colour properties. Graph diagrams also support a sanitized colour subset
+for common `skinparam` keys and CSS-like `<style>` selectors covering
+backgrounds, component-style boxes, arrows, edge labels, notes, and
+containers. Shared PlantUML presentation commands such as
+`title`, `caption`, `header`, `footer`, `legend`, and `mainframe`
+are preserved in parsed models and rendered where supported; PlantUML
+links in graph labels and sequence message labels are kept as safe
+Excalidraw link metadata. Creole and legacy HTML-like label markup
+degrades to readable plain text across supported diagram families,
+including emphasis, headings, lists, tables, Unicode notation, and
+icon placeholders.
 
 See the full [Sequence Diagram Component Coverage](./docs/sequence-components.md) for detailed examples and support matrix.
+
+### UML graph diagram coverage
+
+Class diagrams support the common PlantUML class-family declarations
+(`class`, `abstract`, `interface`, `enum`, `annotation`, `entity`,
+`protocol`, `struct`, `record`, `dataclass`, and related aliases),
+generic headers, `extends` / `implements`, class body members and
+separators, colon member rows, implicit relationship endpoints,
+inheritance, realization, composition, aggregation, dependency and
+association arrows, multiplicities, member-qualified arrows,
+association classes, qualified associations, packages/namespaces, notes
+on classes, members and links, JSON/object display blocks, hide/show/
+remove/restore filters, and sanitized graph colours/styles.
+
+Object diagrams support object declarations, quoted aliases, field rows,
+body fields, class-style relationships with implicit object endpoints,
+association-object diamonds, map/associative-array tables, row anchors
+via `Map::key`, row-to-object links, PERT-style map nodes, JSON display
+blocks, shared graph notes/styles/presentation, and underlined object
+titles in generated Excalidraw output.
+
+Activity diagrams support the practical PlantUML activity core: beta
+`:action;` flows with multiline text, start/stop/end/kill/detach,
+if/else/switch/while/repeat/fork/split controls, swimlanes, partitions,
+notes, connectors, goto/label, simple `-`/`*` action lists,
+SDL-style stereotypes, and legacy `(*) --> "Activity"` arrows with
+labels. Activity output uses the shared graph layout/rendering pipeline
+for deterministic Excalidraw, SVG, and PNG artefacts.
+
+Component diagrams support bracket and keyword component declarations,
+aliases, multiline labels, optional interface endpoints, lollipop
+interfaces, packages/nodes/folders/frames/clouds/databases, direction
+hints, styled arrows, notes including note-on-link, presentation
+metadata, hidden edges, `port` / `portin` / `portout` declarations,
+`Component::port` anchors, JSON display blocks, and shared
+hide/remove/restore and style handling.
+
+Deployment diagrams support official deployment elements such as
+`node`, `artifact`, `folder`, `frame`, `cloud`, `database`, `queue`,
+`card`, `package`, `stack`, `storage`, `agent`, `file`, `process`,
+and `action`; nested containers; aliases; bracketed long descriptions;
+JSON display blocks; styled arrows; implicit node endpoints; and shared
+graph notes, presentation, filters, and style handling.
+
+State diagrams support simple and composite states, aliases, start/end,
+choice, fork, join, history and deep-history pseudostates, state
+descriptions, nested state blocks, orthogonal region separators, labelled
+transitions, direction hints, inline colours, notes, JSON display blocks,
+scale/layout controls, hide-empty-description commands, and shared graph
+presentation/style handling.
+
+Timing diagrams support PlantUML `robust`, `concise`, `binary`, `clock`,
+`analog`, and `rectangle` participant declarations, aliases, participant
+state lists, absolute and relative time markers, anchored times, state
+changes, binary and clock waveforms, analog polylines, cross-participant
+messages, duration constraints, highlights, top/bottom notes, scale and
+hidden-axis controls, footbox/resource hiding directives, separators, and
+safe text/colour handling on a deterministic shared time axis.
+
+Use-case diagrams support actor and usecase declarations in keyword,
+colon, parenthesized, quoted-alias, reverse-description, stereotype, and
+business `/` forms; nested `package` / `rectangle` system boundaries;
+include, extend, generalization, directional, labelled, and inline-styled
+relationships; notes attached to aliases or usecases; and shared graph
+presentation, link, text-markup, skinparam, and `<style>` handling.
 
 ### Run the tests
 
@@ -131,7 +209,7 @@ See the full [Sequence Diagram Component Coverage](./docs/sequence-components.md
 npm test
 ```
 
-Ships with **210 tests** across functional, edge-case,
+Ships with **250 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -287,6 +365,7 @@ excaliplant
 │   │   │   └── tests.mjs
 │   │   ├── class
 │   │   │   ├── docs
+│   │   │   ├── plugins
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs
 │   │   │   ├── docs.mjs
@@ -299,6 +378,7 @@ excaliplant
 │   │   │   └── tests.mjs
 │   │   ├── component
 │   │   │   ├── docs
+│   │   │   ├── plugins
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs
 │   │   │   ├── docs.mjs
@@ -310,6 +390,7 @@ excaliplant
 │   │   │   └── tests.mjs
 │   │   ├── deployment
 │   │   │   ├── docs
+│   │   │   ├── plugins
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs
 │   │   │   ├── docs.mjs
@@ -363,6 +444,19 @@ excaliplant
 │   │   │   ├── module.mjs
 │   │   │   ├── parser.mjs
 │   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── timing
+│   │   │   ├── docs
+│   │   │   ├── plugins
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── render_excalidraw.mjs
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
 │   │   ├── use-case
@@ -566,6 +660,10 @@ generated by the same command from JSDoc.
 
 
 
+### diagrams/class/plugins/syntax
+
+
+
 ### diagrams/class/render
 
 
@@ -606,6 +704,10 @@ generated by the same command from JSDoc.
 
 
 
+### diagrams/component/plugins/syntax
+
+
+
 ### diagrams/component/render
 
 
@@ -635,6 +737,10 @@ generated by the same command from JSDoc.
 
 
 ### diagrams/deployment/parser
+
+
+
+### diagrams/deployment/plugins/syntax
 
 
 
@@ -775,6 +881,54 @@ generated by the same command from JSDoc.
 
 
 ### diagrams/state/tests/state_components
+
+
+
+### diagrams/timing/assets
+
+
+
+### diagrams/timing/docs
+
+
+
+### diagrams/timing/docs/coverage_examples
+
+
+
+### diagrams/timing/layout
+
+
+
+### diagrams/timing/module
+
+
+
+### diagrams/timing/parser
+
+
+
+### diagrams/timing/plugins/syntax
+
+
+
+### diagrams/timing/render
+
+
+
+### diagrams/timing/render_excalidraw
+
+
+
+### diagrams/timing/security
+
+
+
+### diagrams/timing/tests
+
+
+
+### diagrams/timing/tests/timing_components
 
 
 

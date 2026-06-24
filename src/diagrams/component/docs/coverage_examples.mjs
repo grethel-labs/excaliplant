@@ -95,4 +95,43 @@ api -[hidden]-> Cache
 api --> Cache : reads
 @enduml`,
   },
+  {
+    id: "official-components-relations",
+    title: "Official components and basic relations",
+    description:
+      "Official bracket declarations, keyword declarations, multiline labels and optional interface endpoints.",
+    source: `@startuml
+[First component]
+[Another component] as Comp2
+component Comp3
+component [Last\\ncomponent] as Comp4
+
+DataAccess - [First component]
+[First component] ..> HTTP : use
+@enduml`,
+  },
+  {
+    id: "official-json-ports",
+    title: "Official JSON display and ports",
+    description: "JSON data display plus port, portin and portout declarations.",
+    source: `@startuml
+allowmixing
+component Component
+() Interface
+json JSON {
+  "fruit":"Apple",
+  "size":"Large",
+  "color": ["Red", "Green"]
+}
+component C {
+  port p1
+  portin p2
+  portout p3
+  component c1
+}
+C --> p1
+p1 --> c1
+p3 --> Interface
+@enduml`,
+  },
 ]);

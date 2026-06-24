@@ -90,4 +90,66 @@ hide empty members
 show empty members
 @enduml`,
   },
+  {
+    id: "official-declarative-elements",
+    title: "Official declarative element family",
+    description:
+      "Class-family declarations from the PlantUML reference, including reverse aliases and visibility prefixes.",
+    source: `@startuml
+hide empty members
+abstract class "abstract class"
+annotation annotation
+class class
+class class_stereo <<stereotype>>
+entity entity
+enum enum
+interface interface
+protocol protocol
+struct struct
+-class "private Class" as PrivateClass
+class class2 as "It works this way too"
+@enduml`,
+  },
+  {
+    id: "official-class-relations",
+    title: "Official class relations",
+    description:
+      "Undeclared class endpoints, composition, aggregation, dependencies, role labels and qualified associations.",
+    source: `@startuml
+Class01 <|-- Class02
+Class03 *-- Class04
+Class05 o-- Class06
+Class07 .. Class08
+Class09 -- Class10
+Class11 <|.. Class12
+Class13 --> Class14 : uses >
+Class15 ..> Class16
+Shop [customerId: long] ---> "customer\\n1" Customer
+@enduml`,
+  },
+  {
+    id: "official-members-json",
+    title: "Official members and JSON display",
+    description:
+      "Colon member declarations, class body modifiers, member ports and JSON data in class diagrams.",
+    source: `@startuml
+Object <|-- ArrayList
+Object : equals()
+ArrayList : Object[] elementData
+class Dummy {
+  {static} String id
+  {abstract} void methods()
+  .. getters ..
+  +getName()
+}
+class Class
+object Object
+json JSON {
+  "fruit":"Apple",
+  "size":"Large",
+  "color": ["Red", "Green"]
+}
+Dummy::id --> JSON : serializes
+@enduml`,
+  },
 ]);

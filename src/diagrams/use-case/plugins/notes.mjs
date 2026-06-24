@@ -3,7 +3,7 @@
  * @module diagrams/use-case/plugins/notes
  */
 
-import { stripComment } from "../../../util/plantuml_utils.mjs";
+import { normalisePlantUmlText, stripComment } from "../../../util/plantuml_utils.mjs";
 
 /**
  * Parse note declaration.
@@ -59,7 +59,7 @@ export const useCaseNotePlugin = {
       } else {
         ctx.addBox({
           id: note.id,
-          title: note.text,
+          title: normalisePlantUmlText(note.text),
           shape: "note",
         });
       }

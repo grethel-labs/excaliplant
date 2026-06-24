@@ -1,7 +1,12 @@
 // Additional sequence-diagram constructs: lifecycle, references,
 // participant grouping boxes, dividers, delays, spacing, and autonumber.
 
-import { collectBlockLines, stripQuotes, unescapeLabel } from "../../../util/plantuml_utils.mjs";
+import {
+  collectBlockLines,
+  normalisePlantUmlText,
+  stripQuotes,
+  unescapeLabel,
+} from "../../../util/plantuml_utils.mjs";
 
 const AUTONUMBER = /^autonumber(?:\s+(.*))?$/i;
 const AUTOACTIVATE = /^autoactivate\s+(on|off|true|false)$/i;
@@ -21,10 +26,12 @@ const REF_BLOCK = /^ref\s+over\s+(\S+)(?:\s*,\s*(\S+))?\s*$/i;
 const HIDE_FOOTBOX = /^hide\s+footbox$/i;
 const SHOW_FOOTBOX = /^show\s+footbox$/i;
 const HIDE_UNLINKED = /^hide\s+unlinked$/i;
+const CAPTION = /^caption\s+(.+)$/i;
 const HEADER = /^header\s+(.+)$/i;
 const FOOTER = /^footer\s+(.+)$/i;
 const HEADER_BLOCK = /^header$/i;
 const FOOTER_BLOCK = /^footer$/i;
+const LEGEND_BLOCK = /^legend\b/i;
 const NEWPAGE = /^newpage(?:\s+(.*))?$/i;
 const MAINFRAME = /^mainframe\s+(.+)$/i;
 const PRAGMA_TEOZ = /^!pragma\s+teoz\b/i;
@@ -40,12 +47,17 @@ export const sequenceAdvancedPlugin = {
   tryStart(line, ctx) {
     if (HEADER_BLOCK.test(line)) {
       return collectBlockLines(/^end\s*header$/i, (lines, ctx2) => {
-        ctx2.setHeader(unescapeLabel(lines.join("\n")));
+        ctx2.setHeader(normalisePlantUmlText(lines.join("\n")));
       });
     }
     if (FOOTER_BLOCK.test(line)) {
       return collectBlockLines(/^end\s*footer$/i, (lines, ctx2) => {
-        ctx2.setFooter(unescapeLabel(lines.join("\n")));
+        ctx2.setFooter(normalisePlantUmlText(lines.join("\n")));
+      });
+    }
+    if (LEGEND_BLOCK.test(line)) {
+      return collectBlockLines(/^end\s+legend$/i, (lines, ctx2) => {
+        ctx2.setLegend(normalisePlantUmlText(lines.join("\n")));
       });
     }
     const ref = line.match(REF_BLOCK);
@@ -60,7 +72,7 @@ export const sequenceAdvancedPlugin = {
       },
       tryEnd(l, ctx2) {
         if (!/^end\s+ref$/i.test(l)) return false;
-        ctx2.addReference({ label: lines.join("\n"), target, target2 });
+        ctx2.addReference({ label: normalisePlantUmlText(lines.join("\n")), target, target2 });
         return true;
       },
     };
@@ -93,7 +105,7 @@ export const sequenceAdvancedPlugin = {
 
     const ret = line.match(RETURN);
     if (ret) {
-      return ctx.addReturnMessage(unescapeLabel(ret[1]?.trim() || ""));
+      return ctx.addReturnMessage(normalisePlantUmlText(ret[1]?.trim() || ""));
     }
 
     if (HIDE_FOOTBOX.test(line)) {
@@ -109,31 +121,36 @@ export const sequenceAdvancedPlugin = {
       return true;
     }
 
+    const caption = line.match(CAPTION);
+    if (caption) {
+      ctx.setCaption(normalisePlantUmlText(stripQuotes(caption[1].trim())));
+      return true;
+    }
     const header = line.match(HEADER);
     if (header) {
-      ctx.setHeader(unescapeLabel(stripQuotes(header[1].trim())));
+      ctx.setHeader(normalisePlantUmlText(stripQuotes(header[1].trim())));
       return true;
     }
     const footer = line.match(FOOTER);
     if (footer) {
-      ctx.setFooter(unescapeLabel(stripQuotes(footer[1].trim())));
+      ctx.setFooter(normalisePlantUmlText(stripQuotes(footer[1].trim())));
       return true;
     }
     const mainframe = line.match(MAINFRAME);
     if (mainframe) {
-      ctx.setMainframe(unescapeLabel(stripQuotes(mainframe[1].trim())));
+      ctx.setMainframe(normalisePlantUmlText(stripQuotes(mainframe[1].trim())));
       return true;
     }
     const newpage = line.match(NEWPAGE);
     if (newpage) {
-      ctx.addMarker("pageBreak", unescapeLabel(newpage[1]?.trim() || "newpage"));
+      ctx.addMarker("pageBreak", normalisePlantUmlText(newpage[1]?.trim() || "newpage"));
       return true;
     }
 
     const boxStart = line.match(BOX_START);
     if (boxStart) {
       ctx.startParticipantGroup(
-        unescapeLabel(stripQuotes((boxStart[1] || "").trim())),
+        normalisePlantUmlText(stripQuotes((boxStart[1] || "").trim())),
         boxStart[2] || "",
       );
       return true;
@@ -146,7 +163,7 @@ export const sequenceAdvancedPlugin = {
       const id = alias || bareId || stripQuotes(qTitle || "");
       const participant = ctx.declareParticipant({
         id,
-        title: unescapeLabel(stripQuotes(qTitle || bareId || id)),
+        title: normalisePlantUmlText(stripQuotes(qTitle || bareId || id)),
         shape: shape || "participant",
       });
       ctx.markCreated(participant, ctx.currentSeq());
@@ -177,7 +194,7 @@ export const sequenceAdvancedPlugin = {
     const ref = line.match(REF_INLINE);
     if (ref) {
       ctx.addReference({
-        label: unescapeLabel(ref[3]),
+        label: normalisePlantUmlText(ref[3]),
         target: ctx.ensureParticipant(ref[1]),
         target2: ref[2] ? ctx.ensureParticipant(ref[2]) : null,
       });
@@ -186,13 +203,13 @@ export const sequenceAdvancedPlugin = {
 
     const divider = line.match(DIVIDER);
     if (divider) {
-      ctx.addMarker("divider", unescapeLabel(divider[1].trim()));
+      ctx.addMarker("divider", normalisePlantUmlText(divider[1].trim()));
       return true;
     }
 
     const delay = line.match(DELAY);
     if (delay) {
-      ctx.addMarker("delay", unescapeLabel((delay[1] || "").trim()));
+      ctx.addMarker("delay", normalisePlantUmlText((delay[1] || "").trim()));
       return true;
     }
 
@@ -221,6 +238,18 @@ function configureAutonumber(ctx, raw) {
     return;
   }
   const tokens = readAutonumberTokens(raw);
+  if (tokens[0]?.toLowerCase() === "resume") {
+    const rest = tokens.slice(1);
+    const stepToken = rest.find((token) => /^-?\d+$/.test(token));
+    const formatToken = rest.find((token) => token.startsWith('"'));
+    ctx.setAutonumber(
+      true,
+      undefined,
+      stepToken ? Number(stepToken) : undefined,
+      formatToken ? unescapeLabel(stripQuotes(formatToken)) : undefined,
+    );
+    return;
+  }
   const nums = tokens.filter((token) => /^-?\d+$/.test(token)).map(Number);
   const formatToken = tokens.find((token) => token.startsWith('"'));
   ctx.setAutonumber(

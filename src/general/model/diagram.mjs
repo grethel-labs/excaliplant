@@ -261,14 +261,27 @@ export class Box {
    * @param {string} [spec.shape]      One of {@link SHAPES} — chooses the Excalidraw primitive.
    * @param {string} [spec.stereotype] PlantUML `<<tag>>` (e.g. `service`).
    * @param {string[]} [spec.members]  Class members for `class` shape (one per line).
+   * @param {string} [spec.link] Optional sanitized hyperlink for the visible label.
+   * @param {string} [spec.tooltip] Optional tooltip text for the visible label.
    */
-  constructor({ id, title, description = "", shape = "rectangle", stereotype = "", members = [] }) {
+  constructor({
+    id,
+    title,
+    description = "",
+    shape = "rectangle",
+    stereotype = "",
+    members = [],
+    link = "",
+    tooltip = "",
+  }) {
     this.id = id;
     this.title = title;
     this.description = description;
     this.shape = shape;
     this.stereotype = stereotype; // <<service>>, <<entity>>, …
     this.members = members; // class members (string[])
+    this.link = link;
+    this.tooltip = tooltip;
     /** @type {Plane | Subplane | null} */
     this.parent = null;
     /** @type {Connection[]} */
@@ -449,6 +462,8 @@ export class Connection {
    * @param {string} [spec.fromMul] Multiplicity label rendered next to the source endpoint.
    * @param {string} [spec.toMul]   Multiplicity label rendered next to the target endpoint.
    * @param {DiagramArrow|object|null} [spec.arrow] Structured reusable arrow model.
+   * @param {string} [spec.link] Optional sanitized hyperlink for the edge label.
+   * @param {string} [spec.tooltip] Optional tooltip text for the edge label.
    */
   constructor({
     id,
@@ -463,11 +478,15 @@ export class Connection {
     fromMul = "",
     toMul = "",
     arrow = null,
+    link = "",
+    tooltip = "",
   }) {
     this.id = id;
     this.from = from;
     this.to = to;
     this.label = label;
+    this.link = link;
+    this.tooltip = tooltip;
     this.kind = kind; // default | inheritance | composition | aggregation | realization | dependency
     this.dashed = dashed;
     this.arrow =
@@ -558,6 +577,8 @@ function arrowHeadKindFromExcalidraw(arrowhead) {
 export class Diagram {
   constructor() {
     this.title = "";
+    /** @type {string} Optional parser family hint such as `class` or `component`. */
+    this.kind = "graph";
     /** @type {boolean} Whether `hide empty members` was requested by graph syntax. */
     this.hideEmptyMembers = false;
     /** @type {string} Optional ELK direction override such as RIGHT or DOWN. */
@@ -572,6 +593,26 @@ export class Diagram {
     this.legend = "";
     /** @type {string} Optional graph mainframe metadata. */
     this.mainframe = "";
+    /**
+     * Parsed graph-level style hints from supported PlantUML skinparams
+     * and `<style>` blocks. Empty strings mean renderer defaults should
+     * be used.
+     * @type {{backgroundColor:string,boxBackgroundColor:string,boxBorderColor:string,boxFontColor:string,arrowColor:string,edgeFontColor:string,noteBackgroundColor:string,noteBorderColor:string,noteFontColor:string,containerBackgroundColor:string,containerBorderColor:string,containerFontColor:string}}
+     */
+    this.style = {
+      backgroundColor: "",
+      boxBackgroundColor: "",
+      boxBorderColor: "",
+      boxFontColor: "",
+      arrowColor: "",
+      edgeFontColor: "",
+      noteBackgroundColor: "",
+      noteBorderColor: "",
+      noteFontColor: "",
+      containerBackgroundColor: "",
+      containerBorderColor: "",
+      containerFontColor: "",
+    };
     /** @type {Plane[]} */
     this.planes = [];
     /** @type {Connection[]} */
@@ -731,6 +772,8 @@ export class Message {
    * @param {string|null} [spec.endArrowhead]   Excalidraw arrowhead at the receiver side.
    * @param {SequenceArrow|object|null} [spec.arrow] Structured arrow semantics.
    * @param {string} [spec.color] Optional PlantUML arrow colour token.
+   * @param {string} [spec.link] Optional sanitized hyperlink for the message label.
+   * @param {string} [spec.tooltip] Optional tooltip text for the message label.
    */
   constructor({
     id,
@@ -743,11 +786,15 @@ export class Message {
     endArrowhead = "arrow",
     arrow = null,
     color = "",
+    link = "",
+    tooltip = "",
   }) {
     this.id = id;
     this.from = from;
     this.to = to;
     this.label = label;
+    this.link = link;
+    this.tooltip = tooltip;
     this.arrow =
       arrow instanceof SequenceArrow
         ? arrow
@@ -816,10 +863,24 @@ export class SequenceNote {
    * @param {Participant|null} [spec.target2] Second lifeline for `over A,B` ranges.
    * @param {string} [spec.shape] note | hnote | rnote.
    * @param {string} [spec.color] Optional PlantUML note colour token.
+   * @param {string} [spec.link] Optional sanitized hyperlink for note text.
+   * @param {string} [spec.tooltip] Optional tooltip text for note text.
    */
-  constructor({ id, text, side, target, target2 = null, shape = "note", color = "" }) {
+  constructor({
+    id,
+    text,
+    side,
+    target,
+    target2 = null,
+    shape = "note",
+    color = "",
+    link = "",
+    tooltip = "",
+  }) {
     this.id = id;
     this.text = text;
+    this.link = link;
+    this.tooltip = tooltip;
     this.side = side; // left | right | over
     this.target = target; // Participant
     this.target2 = target2; // Participant or null (for "over A,B")
@@ -995,8 +1056,10 @@ export class SequenceParticipantGroup {
 export class SequenceDiagram {
   constructor() {
     this.title = "";
+    this.caption = "";
     this.header = "";
     this.footer = "";
+    this.legend = "";
     this.mainframe = "";
     /** @type {Participant[]} */
     this.participants = [];
@@ -1123,5 +1186,285 @@ export class SequenceDiagram {
    */
   participantById(id) {
     return this.participants.find((p) => p.id === id) || null;
+  }
+}
+
+/**
+ * A participant/signal row in a UML timing diagram.
+ * @public
+ */
+export class TimingParticipant {
+  /**
+   * @param {object} spec
+   * @param {string} spec.id Stable participant identifier.
+   * @param {string} spec.title Human-readable row label.
+   * @param {"analog"|"binary"|"clock"|"concise"|"rectangle"|"robust"} [spec.kind] Timing signal kind.
+   * @param {boolean} [spec.compact] Whether this participant requested compact rendering.
+   * @param {number} [spec.period] Clock period in timeline units.
+   * @param {number} [spec.pulse] Clock high pulse width in timeline units.
+   * @param {number} [spec.offset] Clock phase offset in timeline units.
+   * @param {number|null} [spec.min] Analog minimum value.
+   * @param {number|null} [spec.max] Analog maximum value.
+   * @param {string} [spec.stereotype] Optional styling stereotype.
+   */
+  constructor({
+    id,
+    title,
+    kind = "robust",
+    compact = false,
+    period = 1,
+    pulse = 0,
+    offset = 0,
+    min = null,
+    max = null,
+    stereotype = "",
+  }) {
+    this.id = id;
+    this.title = title;
+    this.kind = kind;
+    this.compact = compact;
+    this.period = period;
+    this.pulse = pulse;
+    this.offset = offset;
+    this.min = min;
+    this.max = max;
+    this.stereotype = stereotype;
+    /** @type {Map<string,string>} Display labels for robust state values. */
+    this.stateLabels = new Map();
+    /** @type {string[]} Explicit robust state order. */
+    this.stateOrder = [];
+    /** @type {TimingEvent[]} */
+    this.events = [];
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+  }
+}
+
+/**
+ * A signal value at a specific timing point.
+ * @public
+ */
+export class TimingEvent {
+  /**
+   * @param {object} spec
+   * @param {string} spec.participantId Participant id.
+   * @param {number} spec.time Numeric time value after anchor/date resolution.
+   * @param {string} spec.value Displayed signal value.
+   * @param {string} [spec.note] Optional inline annotation.
+   * @param {string} [spec.color] Optional sanitized state colour.
+   * @param {boolean} [spec.hidden] Whether this segment is hidden.
+   */
+  constructor({ participantId, time, value, note = "", color = "", hidden = false }) {
+    this.participantId = participantId;
+    this.time = time;
+    this.value = value;
+    this.note = note;
+    this.color = color;
+    this.hidden = hidden;
+    this.x = 0;
+    this.y = 0;
+  }
+}
+
+/**
+ * Point-to-point message drawn between timing participants.
+ * @public
+ */
+export class TimingMessage {
+  /**
+   * @param {object} spec
+   * @param {string} spec.fromId Source participant id.
+   * @param {string} spec.toId Target participant id.
+   * @param {number} spec.fromTime Source time.
+   * @param {number} spec.toTime Target time.
+   * @param {string} [spec.label] Message label.
+   */
+  constructor({ fromId, toId, fromTime, toTime, label = "" }) {
+    this.fromId = fromId;
+    this.toId = toId;
+    this.fromTime = fromTime;
+    this.toTime = toTime;
+    this.label = label;
+    /** @type {{x:number,y:number}[]} */
+    this.path = [];
+  }
+}
+
+/**
+ * Duration constraint between two timing points.
+ * @public
+ */
+export class TimingConstraint {
+  /**
+   * @param {object} spec
+   * @param {string} [spec.participantId] Optional participant id for row-local constraints.
+   * @param {number} spec.fromTime Start time.
+   * @param {number} spec.toTime End time.
+   * @param {string} [spec.label] Constraint label.
+   */
+  constructor({ participantId = "", fromTime, toTime, label = "" }) {
+    this.participantId = participantId;
+    this.fromTime = fromTime;
+    this.toTime = toTime;
+    this.label = label;
+    /** @type {{x:number,y:number}[]} */
+    this.path = [];
+  }
+}
+
+/**
+ * Highlighted timing interval.
+ * @public
+ */
+export class TimingHighlight {
+  /**
+   * @param {object} spec
+   * @param {number} spec.fromTime Start time.
+   * @param {number} spec.toTime End time.
+   * @param {string} [spec.label] Highlight label.
+   * @param {string} [spec.color] Highlight fill colour.
+   */
+  constructor({ fromTime, toTime, label = "", color = "" }) {
+    this.fromTime = fromTime;
+    this.toTime = toTime;
+    this.label = label;
+    this.color = color;
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+  }
+}
+
+/**
+ * Note attached above or below a timing participant.
+ * @public
+ */
+export class TimingNote {
+  /**
+   * @param {object} spec
+   * @param {"top"|"bottom"} spec.side Note side.
+   * @param {string} spec.participantId Participant id.
+   * @param {string} spec.text Note body.
+   * @param {number} [spec.time] Optional anchor time.
+   */
+  constructor({ side, participantId, text, time = 0 }) {
+    this.side = side;
+    this.participantId = participantId;
+    this.text = text;
+    this.time = time;
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+  }
+}
+
+/**
+ * UML timing diagram model.
+ * @public
+ */
+export class TimingDiagram {
+  /** @param {{title?:string}} [spec] */
+  constructor({ title = "" } = {}) {
+    this.kind = "timing";
+    this.title = title;
+    /** @type {TimingParticipant[]} */
+    this.participants = [];
+    /** @type {Map<string, TimingParticipant>} */
+    this.participantMap = new Map();
+    /** @type {TimingMessage[]} */
+    this.messages = [];
+    /** @type {TimingConstraint[]} */
+    this.constraints = [];
+    /** @type {TimingHighlight[]} */
+    this.highlights = [];
+    /** @type {TimingNote[]} */
+    this.notes = [];
+    /** @type {Map<string, number>} */
+    this.anchors = new Map();
+    this.axis = {
+      hidden: false,
+      manual: false,
+      scaleUnits: 0,
+      scalePixels: 0,
+      dateFormat: "",
+      compact: false,
+    };
+    this.style = {};
+    this.caption = "";
+    this.header = "";
+    this.footer = "";
+    this.legend = "";
+    this.mainframe = "";
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+    this.labelWidth = 0;
+    this.axisY = 0;
+    this.timelineX = 0;
+    this.timelineWidth = 0;
+    this.minTime = 0;
+    this.maxTime = 0;
+    this.pixelsPerTime = 1;
+  }
+
+  /**
+   * @param {TimingParticipant|any} spec Participant spec.
+   * @returns {TimingParticipant}
+   */
+  addParticipant(spec) {
+    const participant = spec instanceof TimingParticipant ? spec : new TimingParticipant(spec);
+    const existing = this.participantMap.get(participant.id);
+    if (existing) return existing;
+    this.participants.push(participant);
+    this.participantMap.set(participant.id, participant);
+    return participant;
+  }
+
+  /** @param {string} id Participant id. @returns {TimingParticipant|null} */
+  participantById(id) {
+    return this.participantMap.get(id) ?? null;
+  }
+
+  /** @param {TimingEvent|any} spec Event spec. @returns {TimingEvent} */
+  addEvent(spec) {
+    const event = spec instanceof TimingEvent ? spec : new TimingEvent(spec);
+    const participant =
+      this.participantById(event.participantId) ||
+      this.addParticipant({ id: event.participantId, title: event.participantId });
+    participant.events.push(event);
+    return event;
+  }
+
+  /** @param {TimingMessage|any} spec Message spec. @returns {TimingMessage} */
+  addMessage(spec) {
+    const message = spec instanceof TimingMessage ? spec : new TimingMessage(spec);
+    this.messages.push(message);
+    return message;
+  }
+
+  /** @param {TimingConstraint|any} spec Constraint spec. @returns {TimingConstraint} */
+  addConstraint(spec) {
+    const constraint = spec instanceof TimingConstraint ? spec : new TimingConstraint(spec);
+    this.constraints.push(constraint);
+    return constraint;
+  }
+
+  /** @param {TimingHighlight|any} spec Highlight spec. @returns {TimingHighlight} */
+  addHighlight(spec) {
+    const highlight = spec instanceof TimingHighlight ? spec : new TimingHighlight(spec);
+    this.highlights.push(highlight);
+    return highlight;
+  }
+
+  /** @param {TimingNote|any} spec Note spec. @returns {TimingNote} */
+  addNote(spec) {
+    const note = spec instanceof TimingNote ? spec : new TimingNote(spec);
+    this.notes.push(note);
+    return note;
   }
 }

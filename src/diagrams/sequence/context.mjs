@@ -21,8 +21,10 @@ import {
  *   readonly result: import("../../general/model/diagram.mjs").SequenceDiagram,
  *   diagram:         import("../../general/model/diagram.mjs").SequenceDiagram,
  *   setTitle(t: string): void,
+ *   setCaption(t: string): void,
  *   setHeader(t: string): void,
  *   setFooter(t: string): void,
+ *   setLegend(t: string): void,
  *   setMainframe(t: string): void,
  *   ensureParticipant(id: string): import("../../general/model/diagram.mjs").Participant,
  *   declareParticipant(spec: object): import("../../general/model/diagram.mjs").Participant,
@@ -102,6 +104,10 @@ export function createSequenceContext() {
     setTitle(/** @type {string} */ t) {
       diagram.title = t;
     },
+    /** @param {string} t Caption text. */
+    setCaption(/** @type {string} */ t) {
+      diagram.caption = t;
+    },
     /** @param {string} t Header text. */
     setHeader(/** @type {string} */ t) {
       diagram.header = t;
@@ -109,6 +115,10 @@ export function createSequenceContext() {
     /** @param {string} t Footer text. */
     setFooter(/** @type {string} */ t) {
       diagram.footer = t;
+    },
+    /** @param {string} t Legend text. */
+    setLegend(/** @type {string} */ t) {
+      diagram.legend = t;
     },
     /** @param {string} t Mainframe label. */
     setMainframe(/** @type {string} */ t) {

@@ -7,7 +7,13 @@
 // rather than a nested container, so this plugin uses the engine's block
 // mode to consume the body.
 
-import { STEREOTYPE, slug, unescapeLabel, normaliseShape } from "../../../util/plantuml_utils.mjs";
+import {
+  STEREOTYPE,
+  extractPlantUmlLink,
+  normalisePlantUmlText,
+  slug,
+  normaliseShape,
+} from "../../../util/plantuml_utils.mjs";
 
 const BOX_BRACKET = /^\[([^\]]+)\](?:\s*<<\s*[^>]+\s*>>)?(?:\s+as\s+(\S+))?(?:\s*:\s*(.+))?$/;
 const USECASE_PARENS = /^\(([^)]+)\)(?:\s+as\s+(\S+))?(?:\s*:\s*(.+))?$/;
@@ -41,6 +47,8 @@ const SHAPE_KEYWORDS = [
   "frame",
   "package",
   "collections",
+  "process",
+  "action",
 ];
 const SHAPE_LINE = new RegExp(
   `^(${SHAPE_KEYWORDS.join("|")})\\s+(?:"([^"]+)"|(\\S+))` +
@@ -61,12 +69,16 @@ export const bracketBoxPlugin = {
     if (!m) return false;
     const [, label, alias, description] = m;
     const stereo = (line.match(STEREOTYPE) || [])[1] || "";
+    const titleLink = extractPlantUmlLink(label);
+    const descriptionLink = extractPlantUmlLink(description?.trim() || "");
     ctx.addBox({
-      id: alias || slug(label),
-      title: unescapeLabel(label),
-      description: unescapeLabel(description?.trim() || ""),
+      id: alias || slug(titleLink.text),
+      title: normalisePlantUmlText(titleLink.text),
+      description: normalisePlantUmlText(descriptionLink.text),
       shape: "rectangle",
       stereotype: stereo,
+      link: titleLink.link || descriptionLink.link,
+      tooltip: titleLink.tooltip || descriptionLink.tooltip,
     });
     return true;
   },
@@ -82,11 +94,15 @@ export const usecaseParensPlugin = {
     const circle = line.match(INTERFACE_CIRCLE);
     if (circle) {
       const [, qTitle, bareId, alias, description] = circle;
+      const titleLink = extractPlantUmlLink(qTitle || bareId || alias);
+      const descriptionLink = extractPlantUmlLink(description?.trim() || "");
       ctx.addBox({
-        id: alias || bareId || slug(qTitle),
-        title: unescapeLabel(qTitle || bareId || alias),
-        description: unescapeLabel(description?.trim() || ""),
+        id: alias || bareId || slug(titleLink.text),
+        title: normalisePlantUmlText(titleLink.text),
+        description: normalisePlantUmlText(descriptionLink.text),
         shape: "interface",
+        link: titleLink.link || descriptionLink.link,
+        tooltip: titleLink.tooltip || descriptionLink.tooltip,
       });
       return true;
     }
@@ -94,11 +110,15 @@ export const usecaseParensPlugin = {
     const m = line.match(USECASE_PARENS);
     if (!m) return false;
     const [, label, alias, description] = m;
+    const titleLink = extractPlantUmlLink(label);
+    const descriptionLink = extractPlantUmlLink(description?.trim() || "");
     ctx.addBox({
-      id: alias || slug(label),
-      title: unescapeLabel(label),
-      description: unescapeLabel(description?.trim() || ""),
+      id: alias || slug(titleLink.text),
+      title: normalisePlantUmlText(titleLink.text),
+      description: normalisePlantUmlText(descriptionLink.text),
       shape: "usecase",
+      link: titleLink.link || descriptionLink.link,
+      tooltip: titleLink.tooltip || descriptionLink.tooltip,
     });
     return true;
   },
@@ -121,8 +141,8 @@ export const shapeKeywordPlugin = {
       const id = alias || bareId || slug(qTitle);
       const box = ctx.addBox({
         id,
-        title: unescapeLabel(qTitle || bareId || alias),
-        description: unescapeLabel(description?.trim() || ""),
+        title: normalisePlantUmlText(qTitle || bareId || alias),
+        description: normalisePlantUmlText(description?.trim() || ""),
         shape: "class",
         stereotype: stereo,
         members: [],
@@ -146,22 +166,27 @@ export const shapeKeywordPlugin = {
     const m = line.match(SHAPE_LINE);
     if (!m) return false;
     const [, shapeKw, qTitle, bareId, alias, description, opensBrace] = m;
+    const rawTitle = qTitle || bareId || alias;
+    const titleLink = extractPlantUmlLink(rawTitle);
+    const descriptionLink = extractPlantUmlLink(description?.trim() || "");
     // Non-class brace forms (e.g. `node X { … }`) become containers.
     if (opensBrace) {
       ctx.openContainer({
         id: alias || bareId || slug(qTitle),
-        title: qTitle || bareId || alias,
+        title: normalisePlantUmlText(titleLink.text),
         kind: shapeKw,
       });
       return true;
     }
     const stereo = (line.match(STEREOTYPE) || [])[1] || "";
     ctx.addBox({
-      id: alias || bareId || slug(qTitle),
-      title: unescapeLabel(qTitle || bareId || alias),
-      description: unescapeLabel(description?.trim() || ""),
+      id: alias || bareId || slug(titleLink.text),
+      title: normalisePlantUmlText(titleLink.text),
+      description: normalisePlantUmlText(descriptionLink.text),
       shape: normaliseShape(shapeKw),
       stereotype: stereo,
+      link: titleLink.link || descriptionLink.link,
+      tooltip: titleLink.tooltip || descriptionLink.tooltip,
     });
     return true;
   },

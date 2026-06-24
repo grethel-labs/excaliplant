@@ -5,14 +5,15 @@
 
 import {
   classifyArrow,
+  normalisePlantUmlText,
   slug,
   stripQuotes,
   STEREOTYPE,
-  unescapeLabel,
 } from "../../../util/plantuml_utils.mjs";
 
 const OBJECT_HEADER = /^object\s+(.+?)(\s*\{)?$/i;
 const MAP_HEADER = /^map\s+(.+?)(\s*\{)?$/i;
+const JSON_HEADER = /^json\s+(.+?)(\s*\{)?$/i;
 const DIAMOND_DECLARATION = /^diamond\s+(.+)$/i;
 const OBJECT_FIELD = /^("[^"]+"|[A-Za-z_][\w.-]*)\s*:\s*(.+)$/;
 const MAP_ASSIGNMENT = /^(.+?)\s*=>\s*(.*)$/;
@@ -87,8 +88,9 @@ function portId(raw) {
  */
 function appendMember(ctx, id, member, shape) {
   const title = stripQuotes(id);
-  const box = ctx.boxes.get(id) || ctx.addBox({ id, title, shape });
-  if (!box.members.includes(member)) box.members.push(member);
+  const box = ctx.boxes.get(id) || ctx.addBox({ id, title: normalisePlantUmlText(title), shape });
+  const displayMember = normalisePlantUmlText(member);
+  if (!box.members.includes(displayMember)) box.members.push(displayMember);
 }
 
 /**
@@ -112,7 +114,7 @@ function addMapPort(ctx, boxId, key) {
  */
 function handleObjectBodyLine(line, ctx, objectId) {
   if (!line || line === "--") return;
-  appendMember(ctx, objectId, unescapeLabel(line), "object");
+  appendMember(ctx, objectId, line, "object");
 }
 
 /**
@@ -129,7 +131,7 @@ function handleMapBodyLine(line, ctx, mapId) {
   if (assignment) {
     const [, key, value] = assignment;
     const row = `${key.trim()} => ${value.trim()}`.trim();
-    appendMember(ctx, mapId, unescapeLabel(row), "map");
+    appendMember(ctx, mapId, row, "map");
     addMapPort(ctx, mapId, key);
     return;
   }
@@ -140,7 +142,7 @@ function handleMapBodyLine(line, ctx, mapId) {
     const arrow = classifyArrow(op);
     if (arrow) {
       const target = normaliseEndpoint(rawTarget);
-      appendMember(ctx, mapId, unescapeLabel(key.trim()), "map");
+      appendMember(ctx, mapId, key.trim(), "map");
       addMapPort(ctx, mapId, key);
       ctx.queueConnection({
         fromId: mapId,
@@ -156,7 +158,7 @@ function handleMapBodyLine(line, ctx, mapId) {
     }
   }
 
-  appendMember(ctx, mapId, unescapeLabel(line), "map");
+  appendMember(ctx, mapId, line, "map");
   addMapPort(ctx, mapId, line);
 }
 
@@ -168,7 +170,7 @@ export const objectDeclarationPlugin = {
     if (!match || !match[2]) return null;
     const parsed = parseDeclaration(match[1]);
     if (!parsed) return null;
-    ctx.addBox({ ...parsed, shape: "object" });
+    ctx.addBox({ ...parsed, title: normalisePlantUmlText(parsed.title), shape: "object" });
     return {
       onLine(bodyLine, bodyCtx) {
         handleObjectBodyLine(bodyLine, bodyCtx, parsed.id);
@@ -183,7 +185,7 @@ export const objectDeclarationPlugin = {
     if (!match || match[2]) return false;
     const parsed = parseDeclaration(match[1]);
     if (!parsed) return false;
-    ctx.addBox({ ...parsed, shape: "object" });
+    ctx.addBox({ ...parsed, title: normalisePlantUmlText(parsed.title), shape: "object" });
     return true;
   },
 };
@@ -196,7 +198,7 @@ export const mapDeclarationPlugin = {
     if (!match || !match[2]) return null;
     const parsed = parseDeclaration(match[1]);
     if (!parsed) return null;
-    ctx.addBox({ ...parsed, shape: "map" });
+    ctx.addBox({ ...parsed, title: normalisePlantUmlText(parsed.title), shape: "map" });
     return {
       onLine(bodyLine, bodyCtx) {
         handleMapBodyLine(bodyLine, bodyCtx, parsed.id);
@@ -211,7 +213,41 @@ export const mapDeclarationPlugin = {
     if (!match || match[2]) return false;
     const parsed = parseDeclaration(match[1]);
     if (!parsed) return false;
-    ctx.addBox({ ...parsed, shape: "map" });
+    ctx.addBox({ ...parsed, title: normalisePlantUmlText(parsed.title), shape: "map" });
+    return true;
+  },
+};
+
+/** @type {import("../../../util/parser_engine.mjs").Plugin} */
+export const jsonDeclarationPlugin = {
+  name: "object.json",
+  tryStart(line, ctx) {
+    const match = line.match(JSON_HEADER);
+    if (!match || !match[2]) return null;
+    const parsed = parseDeclaration(match[1]);
+    if (!parsed) return null;
+    const box = ctx.addBox({
+      ...parsed,
+      title: normalisePlantUmlText(parsed.title),
+      shape: "map",
+      members: [],
+    });
+    return {
+      onLine(bodyLine) {
+        if (!bodyLine || bodyLine === "--") return;
+        box.members.push(normalisePlantUmlText(bodyLine.trim()));
+      },
+      tryEnd(bodyLine) {
+        return /^}$/.test(bodyLine);
+      },
+    };
+  },
+  tryLine(line, ctx) {
+    const match = line.match(JSON_HEADER);
+    if (!match || match[2]) return false;
+    const parsed = parseDeclaration(match[1]);
+    if (!parsed) return false;
+    ctx.addBox({ ...parsed, title: normalisePlantUmlText(parsed.title), shape: "map" });
     return true;
   },
 };
@@ -225,7 +261,7 @@ export const objectFieldPlugin = {
     const [, rawTarget, field] = match;
     const target = stripQuotes(rawTarget.trim());
     const id = rawTarget.startsWith('"') ? slug(target) : target;
-    appendMember(ctx, id, unescapeLabel(field.trim()), "object");
+    appendMember(ctx, id, field.trim(), "object");
     return true;
   },
 };
@@ -238,7 +274,7 @@ export const diamondDeclarationPlugin = {
     if (!match) return false;
     const parsed = parseDeclaration(match[1]);
     if (!parsed) return false;
-    ctx.addBox({ ...parsed, shape: "diamond" });
+    ctx.addBox({ ...parsed, title: normalisePlantUmlText(parsed.title), shape: "diamond" });
     return true;
   },
 };

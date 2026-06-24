@@ -21,11 +21,14 @@ import { planeColor, subplaneColor } from "../../general/style/colors.mjs";
  *   closeContainer(): void,
  *   addBox(spec: object): import("../../general/model/diagram.mjs").Box,
  *   queueConnection(spec: object): void,
+ *   queueBoxLink(spec: object): void,
  *   queueNote(spec: object): void,
  *   queueLinkNote(spec: object): void,
+ *   setGraphStyle(key: keyof import("../../general/model/diagram.mjs").Diagram["style"], value: string): void,
  *   addPort(spec: object): void,
  *   removeBox(id: string): void,
  *   queueFilter(spec: object): void,
+ *   setAutoVivifyConnections(enabled: boolean, shape?: string): void,
  *   nextNoteId(): string,
  *   finalize(): void,
  * }}
@@ -41,6 +44,8 @@ export function createComponentContext() {
   /** @type {any[]} */
   const pendingConnections = [];
   /** @type {any[]} */
+  const pendingBoxLinks = [];
+  /** @type {any[]} */
   const pendingNotes = [];
   /** @type {any[]} */
   const pendingPorts = [];
@@ -48,6 +53,8 @@ export function createComponentContext() {
   const removedIds = new Set();
   /** @type {any[]} */
   const pendingFilters = [];
+  let autoVivifyConnections = false;
+  let autoVivifyShape = "class";
   /** @type {Plane | null} */
   let floatingPlane = null;
 
@@ -72,6 +79,36 @@ export function createComponentContext() {
       if (entry.kind === "plane") return entry.plane;
     }
     return null;
+  };
+
+  /**
+   * Resolve PlantUML filter targets used by `remove`: exact ids, quoted ids,
+   * wildcard suffixes (`Foo*`) and stereotype/tag forms (`$tag`, `<<tag>>`).
+   * @param {string} raw
+   * @returns {string[]}
+   */
+  const idsMatchingFilterTarget = (raw) => {
+    const target = String(raw || "").trim();
+    if (!target) return [];
+    if (target === "*") return [...boxes.keys()];
+    if (/^@?unlinked$/i.test(target)) return [];
+    if (target.startsWith('"') && target.endsWith('"')) return [target.slice(1, -1)];
+    const stereo = target.match(/^<<\s*([^>]+?)\s*>>$/);
+    const tag = stereo?.[1] || (target.startsWith("$") ? target.slice(1) : "");
+    if (tag) {
+      return [...boxes.values()]
+        .filter((box) =>
+          String(box.stereotype || "")
+            .split(/[,\s]+/)
+            .some((part) => part.replace(/^<<|>>$/g, "") === tag),
+        )
+        .map((box) => box.id);
+    }
+    if (target.endsWith("*")) {
+      const prefix = target.slice(0, -1);
+      return [...boxes.keys()].filter((id) => id.startsWith(prefix));
+    }
+    return [target];
   };
 
   const ctx = {
@@ -119,21 +156,33 @@ export function createComponentContext() {
     /**
      * Add a box to the current container (or to a synthesised floating
      * plane if no container is open).
-     * @param {{id:string,title:string,description?:string,shape?:string,stereotype?:string,members?:string[]}} spec Box specification.
+     * @param {{id:string,title:string,description?:string,shape?:string,stereotype?:string,members?:string[],link?:string,tooltip?:string}} spec Box specification.
      * @returns {Box} The newly-created (or pre-existing) box.
      */
     addBox(
-      /** @type {{id:string,title:string,description?:string,shape?:string,stereotype?:string,members?:string[]}} */ {
+      /** @type {{id:string,title:string,description?:string,shape?:string,stereotype?:string,members?:string[],link?:string,tooltip?:string}} */ {
         id,
         title,
         description = "",
         shape = "rectangle",
         stereotype = "",
         members = [],
+        link = "",
+        tooltip = "",
       },
     ) {
-      if (boxes.has(id)) return boxes.get(id);
-      const box = new Box({ id, title, description, shape, stereotype, members });
+      if (boxes.has(id)) {
+        const existing = boxes.get(id);
+        if (title && (!existing.title || existing.title === existing.id)) existing.title = title;
+        if (description && !existing.description) existing.description = description;
+        if (shape && (!existing.shape || existing.shape === "rectangle")) existing.shape = shape;
+        if (stereotype && !existing.stereotype) existing.stereotype = stereotype;
+        if (members.length && !existing.members.length) existing.members = [...members];
+        if (link && !existing.link) existing.link = link;
+        if (tooltip && !existing.tooltip) existing.tooltip = tooltip;
+        return existing;
+      }
+      const box = new Box({ id, title, description, shape, stereotype, members, link, tooltip });
       boxes.set(id, box);
       if (stack.length === 0) {
         ensureFloatingPlane().addBox(box);
@@ -154,6 +203,14 @@ export function createComponentContext() {
       pendingConnections.push(spec);
     },
     /**
+     * Defer a `url of <box> is ...` declaration until all boxes and
+     * eligible auto-vivified endpoints are known.
+     * @param {any} spec Plugin-specific link record.
+     */
+    queueBoxLink(/** @type {any} */ spec) {
+      pendingBoxLinks.push(spec);
+    },
+    /**
      * Defer a `note on link` declaration until {@link finalize} runs.
      * @param {any} spec Plugin-specific note record.
      */
@@ -170,6 +227,18 @@ export function createComponentContext() {
       if (!target) return;
       if (!target.linkNotes) target.linkNotes = [];
       target.linkNotes.push(spec);
+    },
+    /**
+     * Store a sanitized graph-level renderer style hint.
+     * @param {keyof import("../../general/model/diagram.mjs").Diagram["style"]} key Style field.
+     * @param {string} value Sanitized colour token.
+     */
+    setGraphStyle(
+      /** @type {keyof import("../../general/model/diagram.mjs").Diagram["style"]} */ key,
+      /** @type {string} */ value,
+    ) {
+      if (!value) return;
+      diagram.style[key] = value;
     },
     /**
      * Defer a component port declaration until endpoint boxes are known.
@@ -194,6 +263,20 @@ export function createComponentContext() {
     queueFilter(/** @type {any} */ spec) {
       pendingFilters.push(spec);
     },
+    /**
+     * Enable PlantUML-style implicit class declarations for connection
+     * endpoints. Kept opt-in so component/deployment diagrams still require
+     * explicit boxes for generic connections.
+     * @param {boolean} enabled
+     * @param {string} [shape]
+     */
+    setAutoVivifyConnections(
+      /** @type {boolean} */ enabled,
+      /** @type {string} */ shape = "class",
+    ) {
+      autoVivifyConnections = enabled;
+      autoVivifyShape = shape || "class";
+    },
     /** @returns {string} Fresh unique note id. */
     nextNoteId() {
       return `note_${noteCounter++}`;
@@ -201,10 +284,16 @@ export function createComponentContext() {
 
     finalize() {
       for (const filter of pendingFilters) {
+        if (filter.command === "remove") {
+          for (const id of idsMatchingFilterTarget(filter.target)) removedIds.add(id);
+        }
         if (filter.command === "hide" && /^empty\s+members$/i.test(filter.target)) {
           diagram.hideEmptyMembers = true;
         }
-        if (filter.command === "show" && /^empty\s+members$/i.test(filter.target)) {
+        if (
+          (filter.command === "show" || filter.command === "restore") &&
+          /^empty\s+members$/i.test(filter.target)
+        ) {
           diagram.hideEmptyMembers = false;
         }
       }
@@ -223,8 +312,8 @@ export function createComponentContext() {
       ) => {
         const existing = boxes.get(id);
         if (existing) return existing;
-        if (shorthand || !allowVivify) return null;
-        const box = new Box({ id, title: id, shape: "class" });
+        if (shorthand || !(allowVivify || autoVivifyConnections)) return null;
+        const box = new Box({ id, title: id, shape: autoVivifyShape });
         boxes.set(id, box);
         ensureFloatingPlane().addBox(box);
         return box;
@@ -279,6 +368,8 @@ export function createComponentContext() {
           directionHint: c.directionHint,
           fromMul,
           toMul,
+          link: c.link || "",
+          tooltip: c.tooltip || "",
         });
         if (startPort) {
           connection.arrow.start.anchor = "port";
@@ -295,6 +386,8 @@ export function createComponentContext() {
             title: "note",
             description: linkNote.text,
             shape: "note",
+            link: linkNote.link || "",
+            tooltip: linkNote.tooltip || "",
           });
           boxes.set(linkNote.id, noteBox);
           const container = from.parent;
@@ -315,6 +408,15 @@ export function createComponentContext() {
           );
         }
       }
+      // Apply box-level link directives after resolving connections so
+      // class headers with implicit parents can receive metadata too.
+      for (const linkSpec of pendingBoxLinks) {
+        if (removedIds.has(linkSpec.targetId)) continue;
+        const target = boxes.get(linkSpec.targetId);
+        if (!target) continue;
+        target.link = linkSpec.link || "";
+        target.tooltip = linkSpec.tooltip || "";
+      }
       // Resolve notes.
       for (const n of pendingNotes) {
         if (removedIds.has(n.targetId)) continue;
@@ -325,6 +427,8 @@ export function createComponentContext() {
           title: "note",
           description: n.text,
           shape: "note",
+          link: n.link || "",
+          tooltip: n.tooltip || "",
         });
         boxes.set(n.id, noteBox);
         const container = target.parent;
@@ -343,6 +447,15 @@ export function createComponentContext() {
             endArrowhead: null,
           }),
         );
+      }
+      if (
+        pendingFilters.some(
+          (filter) => filter.command === "remove" && /^@?unlinked$/i.test(filter.target),
+        )
+      ) {
+        for (const box of boxes.values()) {
+          if (box.connections.length === 0) removedIds.add(box.id);
+        }
       }
       if (removedIds.size) {
         for (const id of removedIds) boxes.delete(id);

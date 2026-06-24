@@ -47,6 +47,22 @@ const newId = () => {
   const r = Math.floor(_rng() * 0xffffffff).toString(36);
   return `el_${(_idCounter++).toString(36)}_${r.slice(0, 6).padStart(6, "0")}`;
 };
+const DEFAULT_GRAPH_STYLE = {
+  backgroundColor: "",
+  boxBackgroundColor: "",
+  boxBorderColor: "",
+  boxFontColor: "",
+  arrowColor: "",
+  edgeFontColor: "",
+  noteBackgroundColor: "",
+  noteBorderColor: "",
+  noteFontColor: "",
+  containerBackgroundColor: "",
+  containerBorderColor: "",
+  containerFontColor: "",
+};
+/** @type {typeof DEFAULT_GRAPH_STYLE} */
+let _activeGraphStyle = { ...DEFAULT_GRAPH_STYLE };
 
 /**
  * Build the per-call element template populated with id, seed and
@@ -283,6 +299,7 @@ export function exportDiagram(diagram, opts = {}) {
       primitives: { rect, text, arrow, ellipse, line },
     });
   }
+  _activeGraphStyle = resolveGraphStyle(diagram.style);
   const elements = /** @type {ExcalElement[]} */ ([]);
 
   if (debugCorridors) renderDebugCorridors(diagram, elements);
@@ -301,7 +318,7 @@ export function exportDiagram(diagram, opts = {}) {
     // helper mirrors the colour-resolution rules used by renderPlane /
     // renderSubplane / renderBox so the colour is always identical to
     // what the box itself paints.
-    const strokeColor = boxStrokeColor(conn.from);
+    const strokeColor = connectionStrokeColor(conn);
     const a = arrow({
       points: conn.path,
       strokeColor,
@@ -316,9 +333,10 @@ export function exportDiagram(diagram, opts = {}) {
     }
     for (const el of renderConnectionEndpointLabels(conn)) elements.push(el);
   }
+  renderGraphPresentation(diagram, elements);
 
   const appState = {
-    viewBackgroundColor: "#ffffff",
+    viewBackgroundColor: _activeGraphStyle.backgroundColor || "#ffffff",
     gridSize: /** @type {number|null} */ (null),
     name: sourceLabel,
   };
@@ -331,6 +349,235 @@ export function exportDiagram(diagram, opts = {}) {
     appState,
     files: {},
   };
+}
+
+/**
+ * @param {Partial<typeof DEFAULT_GRAPH_STYLE>|undefined} style Parsed graph style.
+ * @returns {typeof DEFAULT_GRAPH_STYLE} Renderer-safe per-call style object.
+ */
+function resolveGraphStyle(style) {
+  return { ...DEFAULT_GRAPH_STYLE, ...(style || {}) };
+}
+
+/**
+ * @param {ColorTriple} color Base colour triple.
+ * @returns {ColorTriple} Colour triple with graph container overrides applied.
+ */
+function applyContainerStyle(color) {
+  return {
+    stroke: _activeGraphStyle.containerBorderColor || color.stroke,
+    fill: _activeGraphStyle.containerBackgroundColor || color.fill,
+    titleFill: _activeGraphStyle.containerBackgroundColor || color.titleFill,
+  };
+}
+
+/**
+ * @param {ColorTriple} color Base colour triple.
+ * @param {Box} box Box being rendered.
+ * @returns {ColorTriple} Colour triple with graph box overrides applied.
+ */
+function applyBoxStyle(color, box) {
+  if (classTypeKey(box)) return color;
+  return {
+    stroke: _activeGraphStyle.boxBorderColor || color.stroke,
+    fill: _activeGraphStyle.boxBackgroundColor || color.fill,
+    titleFill: _activeGraphStyle.boxBackgroundColor || color.titleFill,
+  };
+}
+
+const PRESENTATION_MARGIN = 24;
+const PRESENTATION_GAP = 10;
+const PRESENTATION_MIN_WIDTH = 360;
+
+/**
+ * Render top-level PlantUML presentation metadata around a laid-out graph.
+ * Geometry is derived from emitted elements so this does not perturb ELK's
+ * routing contract for boxes and connections.
+ *
+ * @param {import("../model/diagram.mjs").Diagram} diagram Diagram metadata.
+ * @param {ExcalElement[]} elements Excalidraw element list — mutated in place.
+ * @returns {void}
+ */
+function renderGraphPresentation(diagram, elements) {
+  const presentation = {
+    title: String(diagram.title || ""),
+    caption: String(diagram.caption || ""),
+    header: String(diagram.header || ""),
+    footer: String(diagram.footer || ""),
+    legend: String(diagram.legend || ""),
+    mainframe: String(diagram.mainframe || ""),
+  };
+  if (!Object.values(presentation).some(Boolean)) return;
+
+  const bounds = elementBounds(elements) ?? { minX: 20, minY: 60, maxX: 620, maxY: 220 };
+  const width = Math.max(PRESENTATION_MIN_WIDTH, bounds.maxX - bounds.minX);
+  const left = bounds.minX;
+  let topY = bounds.minY - PRESENTATION_MARGIN;
+
+  if (presentation.title) {
+    const titleHeight = blockHeight(presentation.title, FONT.sizePlaneTitle);
+    topY -= titleHeight;
+    const title = text({
+      x: left,
+      y: topY,
+      width,
+      height: titleHeight,
+      value: presentation.title,
+      fontSize: FONT.sizePlaneTitle,
+      color: "#1f2933",
+      align: "center",
+    });
+    title.customData = { role: "diagramTitle" };
+    elements.push(title);
+    topY -= PRESENTATION_GAP;
+  }
+
+  if (presentation.header) {
+    const headerHeight = blockHeight(presentation.header, FONT.sizeDescription);
+    topY -= headerHeight;
+    const header = text({
+      x: left,
+      y: topY,
+      width,
+      height: headerHeight,
+      value: presentation.header,
+      fontSize: FONT.sizeDescription,
+      color: "#475569",
+      align: "center",
+    });
+    header.customData = { role: "diagramHeader" };
+    elements.push(header);
+  }
+
+  let bottomY = bounds.maxY + PRESENTATION_MARGIN;
+  if (presentation.caption) {
+    const captionHeight = blockHeight(presentation.caption, FONT.sizeDescription);
+    const caption = text({
+      x: left,
+      y: bottomY,
+      width,
+      height: captionHeight,
+      value: presentation.caption,
+      fontSize: FONT.sizeDescription,
+      color: "#475569",
+      align: "center",
+    });
+    caption.customData = { role: "diagramCaption" };
+    elements.push(caption);
+    bottomY += captionHeight + PRESENTATION_GAP;
+  }
+
+  if (presentation.footer) {
+    const footerHeight = blockHeight(presentation.footer, FONT.sizeDescription);
+    const footer = text({
+      x: left,
+      y: bottomY,
+      width,
+      height: footerHeight,
+      value: presentation.footer,
+      fontSize: FONT.sizeDescription,
+      color: "#475569",
+      align: "center",
+    });
+    footer.customData = { role: "diagramFooter" };
+    elements.push(footer);
+    bottomY += footerHeight + PRESENTATION_GAP;
+  }
+
+  if (presentation.legend) {
+    const legendMeasure = measureWrapped(presentation.legend, FONT.sizeDescription, width);
+    const legendWidth = Math.min(width, Math.max(180, legendMeasure.width + 28));
+    const legendHeight = blockHeight(presentation.legend, FONT.sizeDescription) + 20;
+    const legendX = left + width - legendWidth;
+    elements.push(
+      rect({
+        x: legendX,
+        y: bottomY,
+        width: legendWidth,
+        height: legendHeight,
+        strokeColor: "#94a3b8",
+        backgroundColor: "#ffffff",
+      }),
+    );
+    const legendText = text({
+      x: legendX + 12,
+      y: bottomY + 10,
+      width: legendWidth - 24,
+      height: legendHeight - 20,
+      value: presentation.legend,
+      fontSize: FONT.sizeDescription,
+      color: "#334155",
+    });
+    legendText.customData = { role: "diagramLegend" };
+    elements.push(legendText);
+    bottomY += legendHeight;
+  }
+
+  if (presentation.mainframe) {
+    const allBounds = elementBounds(elements) ?? bounds;
+    const frame = rect({
+      x: allBounds.minX - 12,
+      y: allBounds.minY - 12,
+      width: allBounds.maxX - allBounds.minX + 24,
+      height: allBounds.maxY - allBounds.minY + 24,
+      strokeColor: "#64748b",
+      backgroundColor: "transparent",
+    });
+    frame.customData = { role: "diagramMainframe" };
+    elements.push(frame);
+    const label = text({
+      x: allBounds.minX,
+      y: allBounds.minY - 8,
+      width: Math.max(
+        80,
+        measureWrapped(
+          presentation.mainframe,
+          FONT.sizeDescription,
+          allBounds.maxX - allBounds.minX,
+        ).width + 16,
+      ),
+      height: FONT.sizeDescription * FONT.lineHeight,
+      value: presentation.mainframe,
+      fontSize: FONT.sizeDescription,
+      color: "#475569",
+    });
+    label.customData = { role: "diagramMainframeLabel" };
+    elements.push(label);
+  }
+}
+
+/**
+ * @param {ExcalElement[]} elements
+ * @returns {{minX:number,minY:number,maxX:number,maxY:number}|null}
+ */
+function elementBounds(elements) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const el of elements) {
+    const x = Number(el.x);
+    const y = Number(el.y);
+    const width = Number(el.width);
+    const height = Number(el.height);
+    if (![x, y, width, height].every(Number.isFinite)) continue;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + width);
+    maxY = Math.max(maxY, y + height);
+  }
+  if (!Number.isFinite(minX)) return null;
+  return { minX, minY, maxX, maxY };
+}
+
+/**
+ * @param {string} value
+ * @param {number} fontSize
+ * @returns {number}
+ */
+function blockHeight(value, fontSize) {
+  const lines = String(value || "").split("\n").length;
+  return lines * fontSize * FONT.lineHeight;
 }
 
 /**
@@ -595,7 +842,9 @@ function bandFromEdge(x0, y0, x1, y1, thick, stroke, fill) {
  * @returns {void}
  */
 function renderPlane(plane, elements) {
-  const color = plane.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" };
+  const color = applyContainerStyle(
+    plane.color || { stroke: "#444", fill: "#fafafa", titleFill: "#eaeaea" },
+  );
   const isFloating = plane.id === "__floating__";
 
   if (!isFloating) {
@@ -639,7 +888,7 @@ function renderPlane(plane, elements) {
  * @returns {void}
  */
 function renderSubplane(sub, planeC, elements) {
-  const color = sub.color || planeC;
+  const color = applyContainerStyle(sub.color || planeC);
   elements.push(
     rect({
       x: sub.x,
@@ -662,7 +911,7 @@ function renderSubplane(sub, planeC, elements) {
       height: SIZING.subplaneTitleHeight,
       value: sub.title,
       fontSize: FONT.sizeSubplaneTitle,
-      color: color.stroke,
+      color: _activeGraphStyle.containerFontColor || color.stroke,
     }),
   );
   for (const box of sub.boxes) renderBox(box, color, elements);
@@ -834,7 +1083,16 @@ function renderBoxPorts(box, color, elements) {
 function boxRenderColor(box, parentColor) {
   const color = boxColor(parentColor);
   const classColor = classTypeColor(box, color);
-  return classColor || color;
+  return applyBoxStyle(classColor || color, box);
+}
+
+/**
+ * @param {import("../model/diagram.mjs").Connection} conn Connection to colour.
+ * @returns {string} Stroke colour for the connection.
+ */
+function connectionStrokeColor(conn) {
+  if (classTypeKey(conn.from) || classTypeKey(conn.to)) return boxStrokeColor(conn.from);
+  return _activeGraphStyle.arrowColor || boxStrokeColor(conn.from);
 }
 
 /**
@@ -936,6 +1194,39 @@ function renderStateShape(box, color, elements) {
   r.roundness = { type: ROUNDNESS.proportional, value: 0.2 };
   elements.push(r);
   renderBoxText(box, color, elements);
+  if (box.members && box.members.length) {
+    const titleValue = box._wrappedTitle ?? String(box.title || "");
+    const titleFontSize = box._wrappedTitleFontSize ?? FONT.sizeTitle;
+    const titleHeight = titleValue.split("\n").length * titleFontSize * FONT.lineHeight;
+    const stereotypeHeight = box.stereotype ? FONT.sizeDescription * FONT.lineHeight : 0;
+    const sepY =
+      box.y + SIZING.boxPaddingY + stereotypeHeight + titleHeight + SIZING.classCompartmentGap;
+    elements.push(
+      line({
+        points: [
+          { x: box.x, y: sepY },
+          { x: box.x + box.width, y: sepY },
+        ],
+        strokeColor: color.stroke,
+        strokeWidth: 1,
+      }),
+    );
+    const memberLines = (
+      box._wrappedMembers ?? box.members.map((member) => [String(member)])
+    ).flat();
+    elements.push(
+      text({
+        x: box.x + SIZING.boxPaddingX,
+        y: sepY + SIZING.classCompartmentGap,
+        width: box.width - SIZING.boxPaddingX * 2,
+        height: memberLines.length * FONT.sizeDescription * FONT.lineHeight,
+        value: memberLines.join("\n"),
+        fontSize: FONT.sizeDescription,
+        color: _activeGraphStyle.boxFontColor || "#222",
+        align: "left",
+      }),
+    );
+  }
 }
 
 /**
@@ -1109,42 +1400,63 @@ function renderBoxText(box, color, elements, { titleColor } = {}) {
         height: FONT.sizeDescription * FONT.lineHeight,
         value: `«${box.stereotype}»`,
         fontSize: FONT.sizeDescription,
-        color: color.stroke,
+        color: _activeGraphStyle.boxFontColor || color.stroke,
         align: "center",
       }),
     );
   }
   elements.push(
-    text({
-      x: tx,
-      y: ty + (box.stereotype ? FONT.sizeDescription * FONT.lineHeight : 0),
-      width: box.width - SIZING.boxPaddingX * 2,
-      height: titleHeight,
-      value: titleValue,
-      fontSize: titleFontSize,
-      color: titleColor || color.stroke,
-      align: "center",
-    }),
+    applyLinkMetadata(
+      text({
+        x: tx,
+        y: ty + (box.stereotype ? FONT.sizeDescription * FONT.lineHeight : 0),
+        width: box.width - SIZING.boxPaddingX * 2,
+        height: titleHeight,
+        value: titleValue,
+        fontSize: titleFontSize,
+        color: titleColor || _activeGraphStyle.boxFontColor || color.stroke,
+        align: "center",
+      }),
+      box,
+    ),
   );
   if (box.description) {
     const descValue = box._wrappedDescription ?? String(box.description);
     const descFontSize = box._wrappedDescriptionFontSize ?? FONT.sizeDescription;
     elements.push(
-      text({
-        x: tx,
-        y:
-          ty +
-          titleHeight +
-          (box.stereotype ? FONT.sizeDescription * FONT.lineHeight : 0) +
-          SIZING.boxTitleGap,
-        width: box.width - SIZING.boxPaddingX * 2,
-        height: box.height - SIZING.boxPaddingY * 2 - titleHeight,
-        value: descValue,
-        fontSize: descFontSize,
-        color: "#444",
-      }),
+      applyLinkMetadata(
+        text({
+          x: tx,
+          y:
+            ty +
+            titleHeight +
+            (box.stereotype ? FONT.sizeDescription * FONT.lineHeight : 0) +
+            SIZING.boxTitleGap,
+          width: box.width - SIZING.boxPaddingX * 2,
+          height: box.height - SIZING.boxPaddingY * 2 - titleHeight,
+          value: descValue,
+          fontSize: descFontSize,
+          color: _activeGraphStyle.boxFontColor || "#444",
+        }),
+        box,
+      ),
     );
   }
+}
+
+/**
+ * @param {ExcalElement} element Text or shape element.
+ * @param {{link?:string,tooltip?:string}} source Model object carrying link metadata.
+ * @returns {ExcalElement} The same element for inline composition.
+ */
+function applyLinkMetadata(element, source) {
+  const link = String(source.link || "");
+  const tooltip = String(source.tooltip || "");
+  if (link) element.link = link;
+  if (link || tooltip) {
+    element.customData = { ...(element.customData || {}), link, tooltip };
+  }
+  return element;
 }
 
 // --- Actor (stickman) ---------------------------------------------------
@@ -1383,16 +1695,19 @@ function renderInterface(box, color, elements) {
   const labelY = cy + d / 2 + 6;
   const titleLines = String(box.title || "").split("\n").length;
   elements.push(
-    text({
-      x: box.x,
-      y: labelY,
-      width: box.width,
-      height: FONT.sizeTitle * FONT.lineHeight * titleLines,
-      value: box.title,
-      fontSize: FONT.sizeTitle,
-      color: color.stroke,
-      align: "center",
-    }),
+    applyLinkMetadata(
+      text({
+        x: box.x,
+        y: labelY,
+        width: box.width,
+        height: FONT.sizeTitle * FONT.lineHeight * titleLines,
+        value: box.title,
+        fontSize: FONT.sizeTitle,
+        color: color.stroke,
+        align: "center",
+      }),
+      box,
+    ),
   );
 }
 
@@ -1511,6 +1826,24 @@ function renderClass(box, color, elements) {
       align: "center",
     }),
   );
+  if (box.shape === "object") {
+    const underline = line({
+      points: [
+        {
+          x: box.x + SIZING.boxPaddingX,
+          y: ty + titleH + 1,
+        },
+        {
+          x: box.x + box.width - SIZING.boxPaddingX,
+          y: ty + titleH + 1,
+        },
+      ],
+      strokeColor: color.stroke,
+      strokeWidth: 1,
+    });
+    underline.customData = { role: "objectTitleUnderline", boxId: box.id };
+    elements.push(underline);
+  }
   if (box.members && box.members.length) {
     const sepY = ty + titleH + 4;
     elements.push(
@@ -1615,8 +1948,8 @@ function partitionClassMembers(members, wrapped) {
  * @returns {void}
  */
 function renderNote(box, elements) {
-  const NOTE_FILL = "#fff5b1";
-  const NOTE_STROKE = "#a07b00";
+  const NOTE_FILL = _activeGraphStyle.noteBackgroundColor || "#fff5b1";
+  const NOTE_STROKE = _activeGraphStyle.noteBorderColor || "#a07b00";
   elements.push(
     rect({
       x: box.x,
@@ -1641,17 +1974,17 @@ function renderNote(box, elements) {
     }),
   );
   const text_value = box.description || box.title;
-  elements.push(
-    text({
-      x: box.x + SIZING.boxPaddingX,
-      y: box.y + SIZING.boxPaddingY,
-      width: box.width - SIZING.boxPaddingX * 2,
-      height: box.height - SIZING.boxPaddingY * 2,
-      value: text_value,
-      fontSize: FONT.sizeDescription,
-      color: "#000",
-    }),
-  );
+  const noteText = text({
+    x: box.x + SIZING.boxPaddingX,
+    y: box.y + SIZING.boxPaddingY,
+    width: box.width - SIZING.boxPaddingX * 2,
+    height: box.height - SIZING.boxPaddingY * 2,
+    value: text_value,
+    fontSize: FONT.sizeDescription,
+    color: _activeGraphStyle.noteFontColor || "#000",
+  });
+  noteText.customData = { role: "noteText", boxId: box.id };
+  elements.push(applyLinkMetadata(noteText, box));
 }
 
 /**
@@ -1698,10 +2031,10 @@ function renderEdgeLabel(conn) {
   const angle = isVertical ? -Math.PI / 2 : 0;
 
   const style = /** @type {any} */ (getStyle()).edgeLabel || {};
-  const lineColor = conn.from.plane?.color?.stroke || "#444";
+  const lineColor = connectionStrokeColor(conn);
   const bgColor = style.useLineColor === false ? style.backgroundColor || "#444" : lineColor;
   const strokeColor = style.strokeColor || bgColor;
-  const textColor = style.textColor || "#ffffff";
+  const textColor = _activeGraphStyle.edgeFontColor || style.textColor || "#ffffff";
   const padX = typeof style.paddingX === "number" ? style.paddingX : 6;
   const padY = typeof style.paddingY === "number" ? style.paddingY : 2;
   const segMargin = typeof style.segmentMargin === "number" ? style.segmentMargin : 24;
@@ -1748,6 +2081,7 @@ function renderEdgeLabel(conn) {
   });
   label.angle = angle;
   label.customData = { role: "edgeLabelText" };
+  applyLinkMetadata(label, conn);
   return [chip, label];
 }
 
@@ -1777,7 +2111,7 @@ function renderConnectionEndpointLabels(conn) {
       height,
       value: wrapped.lines.join("\n"),
       fontSize,
-      color: "#334155",
+      color: _activeGraphStyle.edgeFontColor || "#334155",
       align: "center",
     });
     label.customData = {
@@ -1828,7 +2162,7 @@ function renderTitleTab({ parent, color, title, fontSize, height, paddingX }, el
       height: fontSize * FONT.lineHeight,
       value: title,
       fontSize,
-      color: color.stroke,
+      color: _activeGraphStyle.containerFontColor || color.stroke,
       align: "left",
       vAlign: "middle",
     }),

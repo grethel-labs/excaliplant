@@ -69,3 +69,66 @@ test("object diamonds and class-like relationships are modeled", () => {
   assert.ok(diagram.connections.some((connection) => connection.kind === "composition"));
   assert.ok(diagram.connections.some((connection) => connection.to.id === "Aggregation"));
 });
+
+test("object official relation examples auto-create object endpoints", () => {
+  const example = exampleById.get("official-definition-relations");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  assert.equal(diagram.kind, "object");
+  assert.equal(diagram.boxById("firstObject").shape, "object");
+  assert.equal(diagram.boxById("o2").title, "My Second Object");
+  for (const id of ["Object05", "Object06", "Object07", "Object08"]) {
+    assert.equal(diagram.boxById(id).shape, "object", `${id} should be auto-declared`);
+  }
+  const aggregation = diagram.connections.find((connection) => connection.kind === "aggregation");
+  assert.ok(aggregation);
+  assert.equal(aggregation.toMul, "4");
+  assert.ok(diagram.connections.some((connection) => connection.label === "some labels"));
+});
+
+test("object render output underlines object titles", async () => {
+  const example = exampleById.get("official-definition-relations");
+  assert.ok(example);
+  const doc = await renderPlantUml(example.source, { sourceLabel: "object/official-definition" });
+
+  const underlines = doc.elements.filter(
+    (element) => element.customData?.role === "objectTitleUnderline",
+  );
+  assert.ok(underlines.length >= 2);
+  assert.ok(underlines.some((element) => element.customData.boxId === "firstObject"));
+});
+
+test("object official map table links rows to objects and row references", () => {
+  const example = exampleById.get("official-map-table");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  const map = diagram.boxById("CapitalCity");
+  assert.ok(map);
+  assert.equal(map.title, "Map Country => CapitalCity");
+  assert.deepEqual(map.members, ["UK", "USA", "Germany"]);
+  assert.ok(map.ports.right.some((port) => port.id === "USA"));
+
+  const usa = diagram.connections.find(
+    (connection) => connection.from.id === "NewYork" && connection.to.id === "CapitalCity",
+  );
+  assert.ok(usa);
+  assert.equal(usa.arrow.end.anchor, "port");
+  assert.equal(usa.arrow.end.label, "USA");
+  assert.ok(diagram.connections.some((connection) => connection.to.id === "Berlin"));
+});
+
+test("object official PERT maps and JSON display parse in strict mode", () => {
+  const example = exampleById.get("official-pert-json");
+  assert.ok(example);
+  const diagram = parsePlantUml(example.source, { unknownLines: "strict" });
+
+  assert.equal(diagram.layoutDirection, "RIGHT");
+  assert.equal(diagram.title, "PERT: Project Name");
+  assert.equal(diagram.boxById("Kick.Off").shape, "map");
+  assert.deepEqual(diagram.boxById("task.1").members, ["Start => End"]);
+  assert.equal(diagram.boxById("JSON").shape, "map");
+  assert.ok(diagram.boxById("JSON").members.some((member) => member.includes('"fruit":"Apple"')));
+  assert.ok(diagram.connections.some((connection) => connection.label === "Label 1"));
+});

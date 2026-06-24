@@ -10,7 +10,7 @@
 //   group <label> / option <label>
 //   end
 
-import { unescapeLabel } from "../../../util/plantuml_utils.mjs";
+import { normalisePlantUmlText } from "../../../util/plantuml_utils.mjs";
 
 const FRAGMENT_START = /^(opt|loop|alt|par|break|critical|group)(?:\s+(.*))?$/i;
 const FRAGMENT_SPLIT = /^(else|and|option)(?:\s+(.*))?$/i;
@@ -31,7 +31,7 @@ export const fragmentPlugin = {
     }
     const split = line.match(FRAGMENT_SPLIT);
     if (split) {
-      return ctx.splitFragmentOperand(unescapeLabel(split[2]?.trim() || ""));
+      return ctx.splitFragmentOperand(normalisePlantUmlText(split[2]?.trim() || ""));
     }
     if (FRAGMENT_END.test(line)) {
       return ctx.endFragment();
@@ -58,10 +58,10 @@ function parseFragmentStart(kind, raw) {
   if (kind === "group") {
     const secondary = label.match(/\s+\[([^\]]+)\]\s*$/);
     if (secondary) {
-      secondaryLabel = unescapeLabel(secondary[1].trim());
+      secondaryLabel = normalisePlantUmlText(secondary[1].trim());
       label = label.slice(0, secondary.index).trimEnd();
     }
   }
 
-  return { kind, label: unescapeLabel(label), secondaryLabel, color };
+  return { kind, label: normalisePlantUmlText(label), secondaryLabel, color };
 }

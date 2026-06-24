@@ -31,12 +31,14 @@
  */
 
 import { runEngine } from "../util/parser_engine.mjs";
+import { stripBlockComments } from "../util/plantuml_utils.mjs";
 import {
   DEFAULT_CLASS_PLUGINS,
   DEFAULT_COMPONENT_PLUGINS,
   DEFAULT_OBJECT_PLUGINS,
   DEFAULT_SEQUENCE_PLUGINS,
   DEFAULT_STATE_PLUGINS,
+  DEFAULT_TIMING_PLUGINS,
   DEFAULT_USE_CASE_PLUGINS,
   defaultDiagramModuleRegistry,
 } from "./builtin.mjs";
@@ -87,6 +89,12 @@ export { DEFAULT_SEQUENCE_PLUGINS } from "./builtin.mjs";
  * @public
  */
 export { DEFAULT_STATE_PLUGINS } from "./builtin.mjs";
+
+/**
+ * Default plugin pipeline for timing diagrams.
+ * @public
+ */
+export { DEFAULT_TIMING_PLUGINS } from "./builtin.mjs";
 
 const PARSE_SECURITY_BASE = createSecurityBase();
 
@@ -145,12 +153,14 @@ export function parsePlantUml(text, opts = {}) {
       `parsePlantUml: input is ${byteLen} bytes, exceeds maxInputBytes=${initialLimits.maxInputBytes}`,
     );
   }
-  const lines = text.split(/\r?\n/);
-  if (Number.isFinite(initialLimits.maxLines) && lines.length > initialLimits.maxLines) {
+  const rawLines = text.split(/\r?\n/);
+  if (Number.isFinite(initialLimits.maxLines) && rawLines.length > initialLimits.maxLines) {
     throw new RangeError(
-      `parsePlantUml: input has ${lines.length} lines, exceeds maxLines=${initialLimits.maxLines}`,
+      `parsePlantUml: input has ${rawLines.length} lines, exceeds maxLines=${initialLimits.maxLines}`,
     );
   }
+  const lines = stripBlockComments(rawLines);
+  const detectionText = lines.join("\n");
 
   /** @type {Array<{line:string,index:number}>} */
   const unknown = [];
@@ -164,7 +174,7 @@ export function parsePlantUml(text, opts = {}) {
           }
         };
 
-  const module = opts.kind ? registry.get(opts.kind) : registry.detect(text);
+  const module = opts.kind ? registry.get(opts.kind) : registry.detect(detectionText);
   if (!module) throw new SyntaxError("parsePlantUml: no diagram module matched the source");
   const moduleProfile = module.securityProfile();
   const limits = {

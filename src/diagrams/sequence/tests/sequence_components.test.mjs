@@ -89,6 +89,23 @@ test("sequence arrows use structured endpoints, line style, anchors and color", 
   );
 });
 
+test("sequence quoted alias forms preserve display titles and stable ids", () => {
+  const src = `@startuml
+participant L as "I have a really long name" #99FF99
+actor Bob #red
+Bob -> "External Service" as svc : log transaction
+svc --> Bob : ok
+@enduml`;
+  const diagram = parsePlantUml(src, { unknownLines: "strict" });
+  assert.ok(diagram instanceof SequenceDiagram);
+
+  assert.equal(diagram.participantById("L")?.title, "I have a really long name");
+  assert.equal(diagram.participantById("L")?.color, "#99FF99");
+  assert.equal(diagram.participantById("svc")?.title, "External Service");
+  assert.equal(diagram.messages[0].to.id, "svc");
+  assert.equal(diagram.messages[1].from.id, "svc");
+});
+
 test("sequence creole/html-like markup is preserved as safe plain text", async () => {
   const src = exampleById.get("basics")?.source;
   assert.ok(src);
@@ -97,15 +114,18 @@ test("sequence creole/html-like markup is preserved as safe plain text", async (
     doc.elements.some(
       (element) =>
         element.customData?.role === "sequenceMessageLabel" &&
-        element.text.includes("**request** <b>as") &&
-        element.text.includes("plain text</b>"),
+        element.text.includes("request as plain") &&
+        element.text.includes("text"),
     ),
   );
   const svg = await renderPlantUml(src, {
     sourceLabel: "test.sequence.safe-plain-markup-svg",
   }).toSvg({ canvas: false });
-  assert.match(svg, /\*\*request\*\* &lt;b&gt;as/);
-  assert.match(svg, /plain text&lt;\/b&gt;/);
+  assert.doesNotMatch(svg, /\*\*request\*\*/);
+  assert.doesNotMatch(svg, /&lt;\/?b&gt;/);
+  assert.match(svg, /request as plain/);
+  assert.match(svg, />text</);
+  assert.match(svg, /with wrapped label/);
 });
 
 test("generic arrow model is shared by sequence messages and component connections", () => {
@@ -306,6 +326,27 @@ B --> A: second
   assert.deepEqual(
     diagram.messages.map((message) => message.number),
     ["[003]", "[005]"],
+  );
+});
+
+test("sequence autonumber resume changes step and format without resetting the counter", () => {
+  const diagram = parsePlantUml(
+    `@startuml
+autonumber 10 10
+Alice -> Bob : first
+Alice -> Bob : second
+autonumber stop
+Alice -> Bob : skipped
+autonumber resume 1 "R{0}"
+Alice -> Bob : resumed
+Alice -> Bob : next
+@enduml`,
+    { unknownLines: "strict" },
+  );
+  assert.ok(diagram instanceof SequenceDiagram);
+  assert.deepEqual(
+    diagram.messages.map((message) => message.number),
+    ["10", "20", "", "R30", "R31"],
   );
 });
 

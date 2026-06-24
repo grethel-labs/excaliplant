@@ -9,6 +9,7 @@ import { createSequenceContext } from "./context.mjs";
 import {
   titlePlugin as sequenceTitlePlugin,
   skinparamPlugin as sequenceSkinparamPlugin,
+  styleBlockPlugin as sequenceStyleBlockPlugin,
 } from "./plugins/preamble.mjs";
 import { participantPlugin } from "./plugins/participants.mjs";
 import { messagePlugin } from "./plugins/messages.mjs";
@@ -27,6 +28,7 @@ import {
 export const DEFAULT_SEQUENCE_PLUGINS = Object.freeze([
   sequenceTitlePlugin,
   sequenceSkinparamPlugin,
+  sequenceStyleBlockPlugin,
   participantPlugin,
   noteSideBlockPlugin,
   noteOverBlockPlugin,

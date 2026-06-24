@@ -1,6 +1,6 @@
 // UML association-class shorthand: `(A, B) .. AssociationClass`.
 
-import { unescapeLabel } from "../../../util/plantuml_utils.mjs";
+import { normalisePlantUmlText } from "../../../util/plantuml_utils.mjs";
 
 const ASSOCIATION_CLASS_LINE =
   /^\(\s*([^,()]+)\s*,\s*([^,()]+)\s*\)\s+([-.]+)\s+(?:(?:class\s+)?"([^"]+)"(?:\s+as\s+(\S+))?|(\S+))(?:\s*:\s*(.+))?$/i;
@@ -23,7 +23,7 @@ export const associationClassPlugin = {
     const title = quotedTitle || bareId || alias;
     ctx.addBox({
       id: classId,
-      title: unescapeLabel(title),
+      title: normalisePlantUmlText(title),
       shape: "class",
       stereotype: "association",
     });
@@ -32,7 +32,7 @@ export const associationClassPlugin = {
       ctx.queueConnection({
         fromId: classId,
         toId: endpoint,
-        label: unescapeLabel(label?.trim() || ""),
+        label: normalisePlantUmlText(label?.trim() || ""),
         kind: "association-class",
         dashed,
         reversed: false,

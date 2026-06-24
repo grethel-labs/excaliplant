@@ -5,11 +5,16 @@
 //   note "text" as Nx                               (free standing)
 //   note on link [: text] / note on link … end note  (after an edge)
 
-import { collectBlockLines, unescapeLabel } from "../../../util/plantuml_utils.mjs";
+import {
+  collectBlockLines,
+  extractPlantUmlLink,
+  normalisePlantUmlText,
+  slug,
+} from "../../../util/plantuml_utils.mjs";
 
-const NOTE_OF = /^note\s+(left|right|top|bottom)\s+of\s+(\S+)\s*:\s*(.+)$/;
+const NOTE_OF = /^note\s+(left|right|top|bottom)\s+of\s+(.+?)\s*:\s*(.+)$/;
 const NOTE_FREE = /^note\s+"([^"]+)"\s+as\s+(\S+)$/;
-const NOTE_BLOCK_OPEN = /^note\s+(left|right|top|bottom)\s+of\s+(\S+)\s*$/;
+const NOTE_BLOCK_OPEN = /^note\s+(left|right|top|bottom)\s+of\s+([^:]+?)\s*$/;
 const NOTE_ON_LINK = /^note\s+on\s+link\s*:\s*(.+)$/;
 const NOTE_ON_LINK_BLOCK_OPEN = /^note\s+on\s+link\s*$/;
 
@@ -19,7 +24,16 @@ const NOTE_ON_LINK_BLOCK_OPEN = /^note\s+on\s+link\s*$/;
  * @returns {string} Box id to attach the note to.
  */
 function noteTargetId(raw) {
-  return raw.split("::")[0];
+  const owner = raw.split("::")[0].trim();
+  if (
+    (owner.startsWith("(") && owner.endsWith(")")) ||
+    (owner.startsWith("[") && owner.endsWith("]")) ||
+    (owner.startsWith('"') && owner.endsWith('"'))
+  ) {
+    const label = owner.slice(1, -1);
+    return /^[A-Za-z_][\w-]*$/.test(label) ? label : slug(label);
+  }
+  return owner;
 }
 
 /**
@@ -31,11 +45,14 @@ export const noteOfPlugin = {
   tryLine(line, ctx) {
     const m = line.match(NOTE_OF);
     if (!m) return false;
+    const parsed = extractPlantUmlLink(m[3].trim());
     ctx.queueNote({
       id: ctx.nextNoteId(),
       side: m[1],
       targetId: noteTargetId(m[2]),
-      text: unescapeLabel(m[3].trim()),
+      text: normalisePlantUmlText(parsed.text),
+      link: parsed.link,
+      tooltip: parsed.tooltip,
     });
     return true;
   },
@@ -50,12 +67,15 @@ export const noteFreePlugin = {
   tryLine(line, ctx) {
     const m = line.match(NOTE_FREE);
     if (!m) return false;
+    const parsed = extractPlantUmlLink(m[1]);
     ctx.addBox({
       id: m[2],
-      title: unescapeLabel(m[1]),
+      title: normalisePlantUmlText(parsed.text),
       description: "",
       shape: "note",
       stereotype: "",
+      link: parsed.link,
+      tooltip: parsed.tooltip,
     });
     return true;
   },
@@ -73,11 +93,14 @@ export const noteBlockPlugin = {
     const side = m[1];
     const targetId = noteTargetId(m[2]);
     return collectBlockLines(/^end\s*note$/i, (lines, ctx) => {
+      const parsed = extractPlantUmlLink(lines.join("\n"));
       ctx.queueNote({
         id: ctx.nextNoteId(),
         side,
         targetId,
-        text: lines.join("\\n"),
+        text: normalisePlantUmlText(parsed.text),
+        link: parsed.link,
+        tooltip: parsed.tooltip,
       });
     });
   },
@@ -92,13 +115,25 @@ export const noteOnLinkPlugin = {
   tryLine(line, ctx) {
     const m = line.match(NOTE_ON_LINK);
     if (!m) return false;
-    ctx.queueLinkNote({ id: ctx.nextNoteId(), text: unescapeLabel(m[1].trim()) });
+    const parsed = extractPlantUmlLink(m[1].trim());
+    ctx.queueLinkNote({
+      id: ctx.nextNoteId(),
+      text: normalisePlantUmlText(parsed.text),
+      link: parsed.link,
+      tooltip: parsed.tooltip,
+    });
     return true;
   },
   tryStart(line) {
     if (!NOTE_ON_LINK_BLOCK_OPEN.test(line)) return null;
     return collectBlockLines(/^end\s*note$/i, (lines, ctx) => {
-      ctx.queueLinkNote({ id: ctx.nextNoteId(), text: lines.join("\n") });
+      const parsed = extractPlantUmlLink(lines.join("\n"));
+      ctx.queueLinkNote({
+        id: ctx.nextNoteId(),
+        text: normalisePlantUmlText(parsed.text),
+        link: parsed.link,
+        tooltip: parsed.tooltip,
+      });
     });
   },
 };

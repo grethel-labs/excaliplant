@@ -125,6 +125,7 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
       color: style.noteFontColor,
     });
     noteText.customData = { role: "sequenceNoteText", noteId: n.id, shape: n.shape };
+    applyLinkMetadata(noteText, n);
     elements.push(noteText);
   }
 
@@ -139,6 +140,7 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
 
   renderSequenceFrame(diagram, elements, { rect, text });
   renderHeaderFooter(diagram, elements, { text });
+  renderCaptionLegend(diagram, elements, { rect, text });
 
   if (diagram.title) {
     elements.push(
@@ -167,6 +169,64 @@ export function exportSequenceDiagram(diagram, { sourceLabel, primitives }) {
     },
     files: {},
   };
+}
+
+/**
+ * Render PlantUML `caption` and `legend` metadata below the sequence body.
+ * @param {import("../../general/model/diagram.mjs").SequenceDiagram} diagram Sequence diagram.
+ * @param {any[]} elements Excalidraw element list.
+ * @param {Record<string, Function>} prims Primitive factories.
+ * @returns {void}
+ */
+function renderCaptionLegend(diagram, elements, { rect, text }) {
+  let y = diagram.height + 16;
+
+  if (diagram.caption) {
+    const captionHeight = blockHeight(diagram.caption, FONT.sizeDescription);
+    const caption = text({
+      x: 20,
+      y,
+      width: Math.max(80, diagram.width - 40),
+      height: captionHeight,
+      value: diagram.caption,
+      fontSize: FONT.sizeDescription,
+      color: HEAD_STROKE,
+      align: "center",
+    });
+    caption.customData = { role: "sequenceCaption" };
+    elements.push(caption);
+    y += captionHeight + 12;
+  }
+
+  if (diagram.legend) {
+    const legendWidth = Math.min(
+      Math.max(180, diagram.width * 0.42),
+      Math.max(180, diagram.width - 40),
+    );
+    const legendHeight = blockHeight(diagram.legend, FONT.sizeDescription) + 20;
+    const legendX = Math.max(20, diagram.width - legendWidth - 20);
+    elements.push(
+      rect({
+        x: legendX,
+        y,
+        width: legendWidth,
+        height: legendHeight,
+        strokeColor: "#94a3b8",
+        backgroundColor: "#ffffff",
+      }),
+    );
+    const legendText = text({
+      x: legendX + 12,
+      y: y + 10,
+      width: legendWidth - 24,
+      height: legendHeight - 20,
+      value: diagram.legend,
+      fontSize: FONT.sizeDescription,
+      color: HEAD_STROKE,
+    });
+    legendText.customData = { role: "sequenceLegend" };
+    elements.push(legendText);
+  }
 }
 
 /**
@@ -1243,6 +1303,7 @@ function renderMessage(m, elements, { arrow, text }, style) {
       align: style.messageAlign,
     });
     label.customData = { role: "sequenceMessageLabel", messageId: m.id };
+    applyLinkMetadata(label, m);
     elements.push(label);
   }
   renderEndpointLabel(m, "start", startX, elements, { text }, style);
@@ -1317,6 +1378,7 @@ function renderSelfMessage(m, elements, { arrow, text }, style) {
       color: style.messageFontColor,
     });
     label.customData = { role: "sequenceMessageLabel", messageId: m.id };
+    applyLinkMetadata(label, m);
     elements.push(label);
   }
   renderEndpointLabel(m, "start", startX, elements, { text }, style);
@@ -1354,6 +1416,21 @@ function renderEndpointLabel(message, endpointName, x, elements, { text }, style
     endpoint: endpointName,
   };
   elements.push(label);
+}
+
+/**
+ * @param {Record<string, any>} element Excalidraw element.
+ * @param {{link?:string,tooltip?:string}} source Model object carrying link metadata.
+ * @returns {Record<string, any>} The same element for inline composition.
+ */
+function applyLinkMetadata(element, source) {
+  const link = String(source.link || "");
+  const tooltip = String(source.tooltip || "");
+  if (link) element.link = link;
+  if (link || tooltip) {
+    element.customData = { ...(element.customData || {}), link, tooltip };
+  }
+  return element;
 }
 
 /**

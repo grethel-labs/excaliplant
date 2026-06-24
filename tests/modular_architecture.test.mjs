@@ -20,6 +20,7 @@ import {
   SequenceDiagram,
   SequenceDiagramModule,
   StateDiagramModule,
+  TimingDiagramModule,
   classDiagramModule,
   componentDiagramModule,
   createModuleSecurityProfile,
@@ -37,13 +38,26 @@ import {
   sequenceDiagramModule,
   objectDiagramModule,
   stateDiagramModule,
+  timingDiagramModule,
 } from "../index.mjs";
+
+const BUILTIN_MODULE_KINDS = [
+  "sequence",
+  "class",
+  "component",
+  "deployment",
+  "use-case",
+  "object",
+  "state",
+  "timing",
+  "activity",
+];
 
 test("module registry is closed-world and exposes built-in manifests", () => {
   assert.equal(defaultDiagramModuleRegistry.frozen, true);
   assert.deepEqual(
     defaultDiagramModuleRegistry.list().map((module) => module.kind),
-    ["sequence", "class", "component", "deployment", "use-case", "object", "state", "activity"],
+    BUILTIN_MODULE_KINDS,
   );
   assert.throws(
     () => defaultDiagramModuleRegistry.register(componentDiagramModule),
@@ -82,6 +96,7 @@ test("built-in diagram modules are concrete classes composed from base facets", 
     [componentDiagramModule, ComponentDiagramModule],
     [objectDiagramModule, ObjectDiagramModule],
     [stateDiagramModule, StateDiagramModule],
+    [timingDiagramModule, TimingDiagramModule],
   ];
 
   for (const [module, ModuleClass] of expectations) {
@@ -225,7 +240,7 @@ test("platform introspection is manifest-driven", () => {
   const platform = describeDiagramPlatform();
   assert.deepEqual(
     platform.modules.map((module) => module.kind),
-    ["sequence", "class", "component", "deployment", "use-case", "object", "state", "activity"],
+    BUILTIN_MODULE_KINDS,
   );
   assert.deepEqual(platform.diagramModules, platform.modules);
   assert.ok(platform.platformServices.some((service) => service.kind === "security-base"));

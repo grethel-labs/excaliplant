@@ -3,6 +3,7 @@
  * @module diagrams/activity/render
  */
 
+import { exportDiagram } from "../../general/render/excalidraw.mjs";
 import { BaseModuleRenderer } from "../base/renderer.mjs";
 
 /**
@@ -13,23 +14,11 @@ export class ActivityDiagramRenderer extends BaseModuleRenderer {
   constructor() {
     super({
       renderers: {
-        excalidraw: (diagram, options = {}) => {
-          // TODO: Implement activity diagram rendering
-          // This includes:
-          // - Action shapes (rounded rectangles)
-          // - Decision diamonds
-          // - Start/Stop symbols
-          // - Fork/Split bars
-          // - Swimlanes
-          // - Arrows with labels
-
-          // For now, return empty elements array
-          return {
-            elements: [],
-            appState: {},
-            files: {},
-          };
-        },
+        excalidraw: (diagram, options = {}) =>
+          exportDiagram(
+            /** @type {import("../../general/model/diagram.mjs").Diagram} */ (diagram),
+            options,
+          ),
       },
     });
   }

@@ -3,145 +3,109 @@
  * @module diagrams/state/tests/state_components
  */
 
-import { describe, it } from "node:test";
-import { strict as assert } from "node:assert";
-import { parsePlantUml } from "../../../../index.mjs";
+import test from "node:test";
+import assert from "node:assert/strict";
 
-const BASIC_STATE = `
-@startuml
+import { parsePlantUml, renderPlantUml, Diagram } from "../../../../index.mjs";
+import { excalidrawToSvg } from "../../../general/render/svg.mjs";
+
+test("state official simple transitions and descriptions parse strictly", async () => {
+  const source = `@startuml
 [*] --> State1
+State1 --> [*]
 State1 : this is a string
-State1 --> State2 : event / action
+State1 : this is another string
+State1 -> State2
 State2 --> [*]
-hide empty description
-@enduml
-`;
+@enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
 
-describe("State diagram examples", () => {
-  it("parses basic state diagram", async () => {
-    const parsed = await parsePlantUml(BASIC_STATE);
-    assert.ok(parsed, "Should parse successfully");
-  });
+  assert.ok(diagram instanceof Diagram);
+  assert.equal(diagram.kind, "state");
+  assert.deepEqual(diagram.boxById("State1").members, [
+    "this is a string",
+    "this is another string",
+  ]);
+  assert.equal(diagram.boxById("state_start").shape, "start");
+  assert.equal(diagram.boxById("state_end").shape, "end");
+  assert.ok(
+    diagram.connections.some(
+      (connection) => connection.from.id === "State1" && connection.to.id === "State2",
+    ),
+  );
+
+  const doc = await renderPlantUml(source, { sourceLabel: "state/simple" });
+  assert.ok(doc.elements.length > 0);
+  assert.match(excalidrawToSvg(doc), /this is a string/);
 });
 
-describe("State declarations", () => {
-  it("parses state declarations", async () => {
-    const puml = `
-@startuml
-state Idle
-state Running : active process
-state Stopped : final state
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse");
-    // Just verify parsing succeeds - detailed box inspection depends on model structure
-    assert.ok(parsed.planes || parsed.boxes, "Should have planes or boxes");
-  });
+test("state official composite example parses inner transitions", () => {
+  const source = `@startuml
+scale 350 width
+[*] --> NotShooting
 
-  it("handles aliases", async () => {
-    const puml = `
-@startuml
-state "My Complex State" as complex
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse with aliases");
-  });
+state NotShooting {
+  [*] --> Idle
+  Idle --> Configuring : EvConfig
+  Configuring --> Idle : EvConfig
+}
+@enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
+
+  assert.ok(diagram.boxById("NotShooting"));
+  assert.ok(diagram.boxById("Idle"));
+  assert.ok(diagram.boxById("Configuring"));
+  assert.ok(diagram.connections.some((connection) => connection.label === "EvConfig"));
 });
 
-describe("Pseudostates", () => {
-  it("recognizes start and end states", async () => {
-    const puml = `
-@startuml
-state start1 <<start>>
-state end1 <<end>>
-[*] --> start1
-start1 --> end1
-end1 --> [*]
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse pseudostates");
-  });
-
-  it("recognizes choice, fork, join", async () => {
-    const puml = `
-@startuml
+test("state pseudostates, aliases and concurrent separators are modeled", () => {
+  const source = `@startuml
+state "Complex State" as complex
 state choice1 <<choice>>
 state fork1 <<fork>>
 state join1 <<join>>
-[*] --> choice1
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse choice/fork/join");
-  });
-
-  it("recognizes history states", async () => {
-    const puml = `
-@startuml
 state h <<history>>
 state hd <<history*>>
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse history states");
-  });
-});
-
-describe("Composite states", () => {
-  it("handles nested states", async () => {
-    const puml = `
-@startuml
 state Active {
-  [*] --> Idle
-  Idle --> Configuring : EvConfig
+  [*] -> NumLockOff
+  NumLockOff --> NumLockOn
+  --
+  [*] -> CapsLockOff
+  CapsLockOff --> CapsLockOn
 }
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse composite states");
-  });
+@enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
 
-  it("handles deeply nested states", async () => {
-    const puml = `
-@startuml
-state Outer {
-  state Inner {
-    [*] --> Deep
-    state Deep {
-      [*] --> Deepest
-    }
-  }
-}
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse deeply nested states");
-  });
+  assert.equal(diagram.boxById("complex").title, "Complex State");
+  assert.equal(diagram.boxById("choice1").shape, "choice");
+  assert.equal(diagram.boxById("fork1").shape, "fork");
+  assert.equal(diagram.boxById("join1").shape, "join");
+  assert.equal(diagram.boxById("h").shape, "history");
+  assert.equal(diagram.boxById("hd").shape, "history_deep");
+  assert.ok(diagram.boxById("Active"));
+  assert.ok(diagram.connections.some((connection) => connection.to.id === "NumLockOn"));
 });
 
-describe("Transitions", () => {
-  it("handles basic transitions", async () => {
-    const puml = `
-@startuml
-State1 --> State2 : event
-State2 --> State3 : event [guard] / action
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse transitions");
-  });
+test("state notes and JSON display render safely", async () => {
+  const source = `@startuml
+state CurrentSite #pink {
+  state HardwareSetup #lightblue
+}
+note right of CurrentSite : composite <b>note</b>
+json JSON {
+  "fruit":"Apple",
+  "size":"Large"
+}
+CurrentSite --> JSON : exports
+@enduml`;
+  const diagram = parsePlantUml(source, { unknownLines: "strict" });
 
-  it("handles transitions to/from [*]", async () => {
-    const puml = `
-@startuml
-[*] --> State1
-State1 --> [*]
-@enduml
-`;
-    const parsed = await parsePlantUml(puml);
-    assert.ok(parsed, "Should parse transitions to/from [*]");
-  });
+  assert.equal(diagram.boxById("JSON").shape, "map");
+  assert.ok(diagram.boxById("JSON").members.some((member) => member.includes('"fruit":"Apple"')));
+  assert.ok(diagram.allBoxes().some((box) => box.shape === "note"));
+
+  const doc = await renderPlantUml(source, { sourceLabel: "state/json-note" });
+  const svg = excalidrawToSvg(doc);
+  assert.match(svg, /composite note/);
+  assert.doesNotMatch(svg, /<b>/);
 });
