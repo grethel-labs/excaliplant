@@ -14,15 +14,21 @@ import {
   BaseModuleTests,
   ClassDiagramModule,
   ComponentDiagramModule,
+  EbnfDiagramModule,
   GraphModuleBase,
+  JsonDiagramModule,
+  MathDiagramModule,
   ObjectDiagramModule,
+  RegexDiagramModule,
   SecurityError,
   SequenceDiagram,
   SequenceDiagramModule,
   StateDiagramModule,
   TimingDiagramModule,
+  YamlDiagramModule,
   classDiagramModule,
   componentDiagramModule,
+  ebnfDiagramModule,
   createModuleSecurityProfile,
   createSecurityBase,
   defaultDiagramModuleRegistry,
@@ -37,8 +43,12 @@ import {
   setDiagramModuleMetadata,
   sequenceDiagramModule,
   objectDiagramModule,
+  regexDiagramModule,
   stateDiagramModule,
   timingDiagramModule,
+  jsonDiagramModule,
+  yamlDiagramModule,
+  mathDiagramModule,
 } from "../index.mjs";
 
 const BUILTIN_MODULE_KINDS = [
@@ -50,6 +60,11 @@ const BUILTIN_MODULE_KINDS = [
   "object",
   "state",
   "timing",
+  "regex",
+  "ebnf",
+  "json",
+  "yaml",
+  "math",
   "activity",
 ];
 
@@ -97,6 +112,11 @@ test("built-in diagram modules are concrete classes composed from base facets", 
     [objectDiagramModule, ObjectDiagramModule],
     [stateDiagramModule, StateDiagramModule],
     [timingDiagramModule, TimingDiagramModule],
+    [regexDiagramModule, RegexDiagramModule],
+    [ebnfDiagramModule, EbnfDiagramModule],
+    [jsonDiagramModule, JsonDiagramModule],
+    [yamlDiagramModule, YamlDiagramModule],
+    [mathDiagramModule, MathDiagramModule],
   ];
 
   for (const [module, ModuleClass] of expectations) {

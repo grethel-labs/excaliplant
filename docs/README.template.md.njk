@@ -206,6 +206,29 @@ messages, duration constraints, highlights, top/bottom notes, scale and
 hidden-axis controls, footbox/resource hiding directives, separators, and
 safe text/colour handling on a deterministic shared time axis.
 
+### Data, Grammar, and Math Diagram Coverage
+
+Regex diagrams support `@startregex` sources with literal text, shorthand and
+range character classes, escaped and unicode categories, groups, lookaround-like
+assertion groups, anchors, alternatives, and repetition operators. They render as
+bounded railroad-style graph diagrams.
+
+EBNF diagrams support `@startebnf` rules with terminals, non-terminals,
+sequences, alternatives, optional blocks, repetition blocks, grouping, special
+sequences, comments/notes, and documented style/pragma lines tolerated by the
+parser. They share the railroad-style graph output used by regex diagrams.
+
+JSON diagrams support `@startjson` objects, arrays, strings, numbers, booleans,
+`null`, empty objects/arrays, unicode and escape sequences through the platform
+JSON parser, plus PlantUML `#highlight` paths. YAML diagrams support the
+documented safe subset for mappings, sequences, scalars, symbol/unicode keys,
+and `#highlight` paths. Both render nested data as deterministic graph trees.
+
+Math support covers standalone `@startmath` / `@startlatex` formula diagrams and
+inline `<math>` / `<latex>` tags in existing labels. The renderer intentionally
+uses a safe readable text fallback instead of pulling in external formula
+rendering dependencies.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;

@@ -176,6 +176,10 @@ export function normalisePlantUmlText(value) {
   text = decodePlantUmlUnicode(text);
   text = text.replace(/<:([#\w-]+:)?([a-z0-9_+-]+):>/gi, ":$2:");
   text = text.replace(/<&([a-z0-9_+-]+)>/gi, "$1");
+  text = text.replace(/<(math|latex)>([\s\S]*?)<\/\1>/gi, (_match, kind, formula) => {
+    const label = String(kind).toLowerCase() === "latex" ? "LaTeX" : "Math";
+    return `${label}: ${formula}`;
+  });
   text = text.replace(/<\/?(?:b|i|u|s|w|plain|code)\b[^>]*>/gi, "");
   text = text.replace(/<\/?(?:color|back|size|font)\b(?::[^>]*)?>/gi, "");
   text = text.replace(/<\/?(?:script|style|img|svg|text)\b[^>]*>/gi, "");

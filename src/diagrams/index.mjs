@@ -171,6 +171,81 @@ export {
 } from "./timing/render.mjs";
 export { TimingDiagramSecurity, timingDiagramSecurity } from "./timing/security.mjs";
 export { TimingDiagramTests, timingDiagramTests } from "./timing/tests.mjs";
+export { RegexDiagramModule, regexDiagramModule } from "./regex/module.mjs";
+export { RegexDiagramAssets, regexDiagramAssets } from "./regex/assets.mjs";
+export { RegexDiagramDocs, regexDiagramDocs } from "./regex/docs.mjs";
+export { RegexDiagramLayout, regexDiagramLayout } from "./regex/layout.mjs";
+export {
+  RegexDiagramParser,
+  DEFAULT_REGEX_PLUGINS,
+  createRegexParseContext,
+  detectRegexDiagram,
+  prepareRegexLines,
+  regexDiagramParser,
+} from "./regex/parser.mjs";
+export { REGEX_RENDERERS, RegexDiagramRenderer, regexDiagramRenderer } from "./regex/render.mjs";
+export { RegexDiagramSecurity, regexDiagramSecurity } from "./regex/security.mjs";
+export { RegexDiagramTests, regexDiagramTests } from "./regex/tests.mjs";
+export { EbnfDiagramModule, ebnfDiagramModule } from "./ebnf/module.mjs";
+export { EbnfDiagramAssets, ebnfDiagramAssets } from "./ebnf/assets.mjs";
+export { EbnfDiagramDocs, ebnfDiagramDocs } from "./ebnf/docs.mjs";
+export { EbnfDiagramLayout, ebnfDiagramLayout } from "./ebnf/layout.mjs";
+export {
+  EbnfDiagramParser,
+  DEFAULT_EBNF_PLUGINS,
+  createEbnfParseContext,
+  detectEbnfDiagram,
+  prepareEbnfLines,
+  ebnfDiagramParser,
+} from "./ebnf/parser.mjs";
+export { EBNF_RENDERERS, EbnfDiagramRenderer, ebnfDiagramRenderer } from "./ebnf/render.mjs";
+export { EbnfDiagramSecurity, ebnfDiagramSecurity } from "./ebnf/security.mjs";
+export { EbnfDiagramTests, ebnfDiagramTests } from "./ebnf/tests.mjs";
+export { JsonDiagramModule, jsonDiagramModule } from "./json/module.mjs";
+export { JsonDiagramAssets, jsonDiagramAssets } from "./json/assets.mjs";
+export { JsonDiagramDocs, jsonDiagramDocs } from "./json/docs.mjs";
+export { JsonDiagramLayout, jsonDiagramLayout } from "./json/layout.mjs";
+export {
+  JsonDiagramParser,
+  DEFAULT_JSON_PLUGINS,
+  createJsonParseContext,
+  detectJsonDiagram,
+  prepareJsonLines,
+  jsonDiagramParser,
+} from "./json/parser.mjs";
+export { JSON_RENDERERS, JsonDiagramRenderer, jsonDiagramRenderer } from "./json/render.mjs";
+export { JsonDiagramSecurity, jsonDiagramSecurity } from "./json/security.mjs";
+export { JsonDiagramTests, jsonDiagramTests } from "./json/tests.mjs";
+export { YamlDiagramModule, yamlDiagramModule } from "./yaml/module.mjs";
+export { YamlDiagramAssets, yamlDiagramAssets } from "./yaml/assets.mjs";
+export { YamlDiagramDocs, yamlDiagramDocs } from "./yaml/docs.mjs";
+export { YamlDiagramLayout, yamlDiagramLayout } from "./yaml/layout.mjs";
+export {
+  YamlDiagramParser,
+  DEFAULT_YAML_PLUGINS,
+  createYamlParseContext,
+  detectYamlDiagram,
+  prepareYamlLines,
+  yamlDiagramParser,
+} from "./yaml/parser.mjs";
+export { YAML_RENDERERS, YamlDiagramRenderer, yamlDiagramRenderer } from "./yaml/render.mjs";
+export { YamlDiagramSecurity, yamlDiagramSecurity } from "./yaml/security.mjs";
+export { YamlDiagramTests, yamlDiagramTests } from "./yaml/tests.mjs";
+export { MathDiagramModule, mathDiagramModule } from "./math/module.mjs";
+export { MathDiagramAssets, mathDiagramAssets } from "./math/assets.mjs";
+export { MathDiagramDocs, mathDiagramDocs } from "./math/docs.mjs";
+export { MathDiagramLayout, mathDiagramLayout } from "./math/layout.mjs";
+export {
+  MathDiagramParser,
+  DEFAULT_MATH_PLUGINS,
+  createMathParseContext,
+  detectMathDiagram,
+  prepareMathLines,
+  mathDiagramParser,
+} from "./math/parser.mjs";
+export { MATH_RENDERERS, MathDiagramRenderer, mathDiagramRenderer } from "./math/render.mjs";
+export { MathDiagramSecurity, mathDiagramSecurity } from "./math/security.mjs";
+export { MathDiagramTests, mathDiagramTests } from "./math/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
 import { classDiagramModule } from "./class/module.mjs";
@@ -181,6 +256,11 @@ import { objectDiagramModule } from "./object/module.mjs";
 import { stateDiagramModule } from "./state/module.mjs";
 import { activityDiagramModule } from "./activity/module.mjs";
 import { timingDiagramModule } from "./timing/module.mjs";
+import { regexDiagramModule } from "./regex/module.mjs";
+import { ebnfDiagramModule } from "./ebnf/module.mjs";
+import { jsonDiagramModule } from "./json/module.mjs";
+import { yamlDiagramModule } from "./yaml/module.mjs";
+import { mathDiagramModule } from "./math/module.mjs";
 
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
@@ -192,5 +272,10 @@ export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   objectDiagramModule,
   stateDiagramModule,
   timingDiagramModule,
+  regexDiagramModule,
+  ebnfDiagramModule,
+  jsonDiagramModule,
+  yamlDiagramModule,
+  mathDiagramModule,
   activityDiagramModule,
 ]);

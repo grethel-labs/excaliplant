@@ -39,6 +39,11 @@ import {
   DEFAULT_SEQUENCE_PLUGINS,
   DEFAULT_STATE_PLUGINS,
   DEFAULT_TIMING_PLUGINS,
+  DEFAULT_REGEX_PLUGINS,
+  DEFAULT_EBNF_PLUGINS,
+  DEFAULT_JSON_PLUGINS,
+  DEFAULT_YAML_PLUGINS,
+  DEFAULT_MATH_PLUGINS,
   DEFAULT_USE_CASE_PLUGINS,
   defaultDiagramModuleRegistry,
 } from "./builtin.mjs";
@@ -95,6 +100,21 @@ export { DEFAULT_STATE_PLUGINS } from "./builtin.mjs";
  * @public
  */
 export { DEFAULT_TIMING_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for regex diagrams. @public */
+export { DEFAULT_REGEX_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for EBNF diagrams. @public */
+export { DEFAULT_EBNF_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for JSON data diagrams. @public */
+export { DEFAULT_JSON_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for YAML data diagrams. @public */
+export { DEFAULT_YAML_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for math diagrams. @public */
+export { DEFAULT_MATH_PLUGINS } from "./builtin.mjs";
 
 const PARSE_SECURITY_BASE = createSecurityBase();
 
