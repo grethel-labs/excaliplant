@@ -1,8 +1,8 @@
 {
   "version": 1,
   "files": {
-    "README.md": "9f9d16b06ab1d4d7c96f2a21776916435f63126e4a6019adaa2154d7d2ccba71",
-    "docs/API.md": "b1708d2af0cdc034f11d6ac4f6cc90a3137914cf535da2c31a91bfabc362bf13",
+    "README.md": "21f9d29bcaf651a8785822c9196cdeaefb6981f6e9ed05c495a7392cac8c8317",
+    "docs/API.md": "72fbe7fe89cfe04b1aa2110e016b132bee489557151c5cd5b1233f4163f1a7bf",
     "docs/ressources/generated/svg/modules.svg": "89417313d025459489bd7204008351df12cebdc4a4f1a10bdc15ead6aba6476e",
     "docs/ressources/generated/png/modules.png": "2ee1da3fda14422c2e484bece302df291fc27ab86c04396d92951dbf5a46c24f",
     "docs/ressources/generated/svg/sequence.svg": "b9efe75e2e75269655223be331f2efb17c7f63733fa416888a3d37a9a11211a2",
@@ -39,6 +39,6 @@
     "docs/ressources/sequence/svg/combination-flow.svg": "4bd54e64ab575b2007766dd4a610afeb73109d25bcd1668ca01444b8fe679931",
     "docs/ressources/sequence/puml/combination-errors.puml": "630a46c8b058110d83c4d2ba5f21db0c2d3ed7a9eac08d8a930ee0043ffbea3a",
     "docs/ressources/sequence/svg/combination-errors.svg": "e1acfbf5e671536ffa0225f55c445bcb33f547da22395eba6af6054466c471a3",
-    "docs/sequence-components.md": "555694c979d999ab815f73aaef4c6aed28afd19ce81c2a488444e8323921acd4"
+    "docs/sequence-components.md": "bf216113f6b87fbd51d8a83bba201ba66237e879ee5ca6e633418764b4a40a48"
   }
 }
