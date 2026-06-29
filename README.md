@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.14.0** &nbsp;·&nbsp; 250 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.15.0** &nbsp;·&nbsp; 251 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -196,6 +196,29 @@ messages, duration constraints, highlights, top/bottom notes, scale and
 hidden-axis controls, footbox/resource hiding directives, separators, and
 safe text/colour handling on a deterministic shared time axis.
 
+### Data, Grammar, and Math Diagram Coverage
+
+Regex diagrams support `@startregex` sources with literal text, shorthand and
+range character classes, escaped and unicode categories, groups, lookaround-like
+assertion groups, anchors, alternatives, and repetition operators. They render as
+bounded railroad-style graph diagrams.
+
+EBNF diagrams support `@startebnf` rules with terminals, non-terminals,
+sequences, alternatives, optional blocks, repetition blocks, grouping, special
+sequences, comments/notes, and documented style/pragma lines tolerated by the
+parser. They share the railroad-style graph output used by regex diagrams.
+
+JSON diagrams support `@startjson` objects, arrays, strings, numbers, booleans,
+`null`, empty objects/arrays, unicode and escape sequences through the platform
+JSON parser, plus PlantUML `#highlight` paths. YAML diagrams support the
+documented safe subset for mappings, sequences, scalars, symbol/unicode keys,
+and `#highlight` paths. Both render nested data as deterministic graph trees.
+
+Math support covers standalone `@startmath` / `@startlatex` formula diagrams and
+inline `<math>` / `<latex>` tags in existing labels. The renderer intentionally
+uses a safe readable text fallback instead of pulling in external formula
+rendering dependencies.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;
@@ -209,7 +232,7 @@ presentation, link, text-markup, skinparam, and `<style>` handling.
 npm test
 ```
 
-Ships with **250 tests** across functional, edge-case,
+Ships with **251 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -400,9 +423,53 @@ excaliplant
 │   │   │   ├── render.mjs
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
+│   │   ├── ebnf
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── json
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── math
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
 │   │   ├── object
 │   │   │   ├── docs
 │   │   │   ├── plugins
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── regex
+│   │   │   ├── docs
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs
 │   │   │   ├── docs.mjs
@@ -431,9 +498,11 @@ excaliplant
 │   │   ├── shared
 │   │   │   ├── common_plugins
 │   │   │   ├── graph_plugins
+│   │   │   ├── data_runtime.mjs
 │   │   │   ├── graph_context.mjs
 │   │   │   ├── graph_parser.mjs
-│   │   │   └── graph_runtime.mjs
+│   │   │   ├── graph_runtime.mjs
+│   │   │   └── railroad_runtime.mjs
 │   │   ├── state
 │   │   │   ├── docs
 │   │   │   ├── plugins
@@ -461,6 +530,17 @@ excaliplant
 │   │   │   └── tests.mjs
 │   │   ├── use-case
 │   │   │   ├── plugins
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── yaml
+│   │   │   ├── docs
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs
 │   │   │   ├── docs.mjs
@@ -756,6 +836,10 @@ generated by the same command from JSDoc.
 
 
 
+### diagrams/ebnf/parser
+
+
+
 ### diagrams/object/assets
 
 
@@ -796,6 +880,22 @@ generated by the same command from JSDoc.
 
 
 
+### diagrams/regex/layout
+
+
+
+### diagrams/regex/module
+
+
+
+### diagrams/regex/parser
+
+
+
+### diagrams/regex/render
+
+
+
 ### diagrams/sequence/assets
 
 
@@ -828,11 +928,19 @@ generated by the same command from JSDoc.
 
 
 
+### diagrams/shared/data_runtime
+
+
+
 ### diagrams/shared/graph_parser
 
 
 
 ### diagrams/shared/graph_runtime
+
+
+
+### diagrams/shared/railroad_runtime
 
 
 

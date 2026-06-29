@@ -542,6 +542,26 @@ test("security: unterminated PlantUML block comments do not activate commented t
   assert.equal(d.connections.length, 0);
 });
 
+test("security: data and math diagrams escape attacker-controlled text in SVG", async () => {
+  const jsonDoc = await renderPlantUml(`@startjson
+{
+  "<script>alert(1)</script>": "<img src=x onerror=alert(1)>"
+}
+@endjson`);
+  const yamlDoc = await renderPlantUml(`@startyaml
+<script>alert(1)</script>: <img src=x onerror=alert(1)>
+@endyaml`);
+  const mathDoc = await renderPlantUml(`@startmath
+<script>alert(1)</script>
+@endmath`);
+
+  for (const doc of [jsonDoc, yamlDoc, mathDoc]) {
+    const svg = excalidrawToSvg(doc);
+    assert.ok(!svg.includes("<script>alert(1)</script>"));
+    assert.ok(!svg.includes("<img src=x onerror=alert(1)>"));
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Parser correctness: Unicode + quoted comments
 // ---------------------------------------------------------------------------

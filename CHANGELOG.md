@@ -152,6 +152,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   times, state changes, binary/clock waveforms, analog values, messages,
   duration constraints, highlights, notes, scale/axis controls, hidden
   footbox/resource directives, separators, and safe text/colour handling.
+- PlantUML regex, EBNF, JSON, YAML, and math technologies now have dedicated
+  modules. Regex and EBNF render bounded railroad-style graphs for documented
+  literals, classes, groups, alternatives, repetitions, rules, terminals,
+  optionals, repetitions, notes, and special sequences. JSON uses `JSON.parse`
+  and YAML uses a bounded safe subset parser for mappings, sequences, scalars,
+  unicode/symbol keys, and highlight paths. Standalone `@startmath` /
+  `@startlatex` diagrams and inline `<math>` / `<latex>` labels degrade to
+  readable escaped text without adding renderer dependencies.
 
 ### Changed
 
