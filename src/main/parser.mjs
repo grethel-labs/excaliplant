@@ -47,6 +47,11 @@ import {
   DEFAULT_NWDIAG_PLUGINS,
   DEFAULT_SALT_PLUGINS,
   DEFAULT_ARCHIMATE_PLUGINS,
+  DEFAULT_GANTT_PLUGINS,
+  DEFAULT_MINDMAP_PLUGINS,
+  DEFAULT_WBS_PLUGINS,
+  DEFAULT_CHRONOLOGY_PLUGINS,
+  DEFAULT_FILES_PLUGINS,
   DEFAULT_USE_CASE_PLUGINS,
   defaultDiagramModuleRegistry,
 } from "./builtin.mjs";
@@ -127,6 +132,21 @@ export { DEFAULT_SALT_PLUGINS } from "./builtin.mjs";
 
 /** Default plugin pipeline for Archimate diagrams. @public */
 export { DEFAULT_ARCHIMATE_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for Gantt diagrams. @public */
+export { DEFAULT_GANTT_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for mindmap diagrams. @public */
+export { DEFAULT_MINDMAP_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for WBS diagrams. @public */
+export { DEFAULT_WBS_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for chronology diagrams. @public */
+export { DEFAULT_CHRONOLOGY_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for files tree diagrams. @public */
+export { DEFAULT_FILES_PLUGINS } from "./builtin.mjs";
 
 const PARSE_SECURITY_BASE = createSecurityBase();
 

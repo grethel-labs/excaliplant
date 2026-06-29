@@ -246,6 +246,23 @@ aliases, stereotypes, junction declarations, simple rectangle states, and
 directed relationships. External sprites and stdlib-specific icons use safe
 text/type fallbacks.
 
+### Planning, Hierarchy, and Files Coverage
+
+Gantt diagrams support `@startgantt` task declarations with durations, explicit
+starts and ends, milestones, project starts, separators, and simple task
+dependencies. The parser records scheduling details on deterministic task boxes
+and routes dependencies through the shared graph pipeline.
+
+Mindmap and WBS diagrams support PlantUML OrgMode-style markers, Markdown-style
+heading/list input, side/direction directives, mixed `*` / `+` hierarchy
+markers, and safe text handling. Files diagrams support `@startfiles` path trees
+with shared folder merging and file/folder stereotypes.
+
+Chronology diagrams support dated milestones, labelled timestamp entries, simple
+ranges, start/end directives, and dependencies between events. Unsupported
+calendar-specific presentation lines are tolerated so useful chronology content
+still renders as safe readable timeline graphs.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;

@@ -299,6 +299,89 @@ export {
 } from "./archimate/render.mjs";
 export { ArchimateDiagramSecurity, archimateDiagramSecurity } from "./archimate/security.mjs";
 export { ArchimateDiagramTests, archimateDiagramTests } from "./archimate/tests.mjs";
+export { GanttDiagramModule, ganttDiagramModule } from "./gantt/module.mjs";
+export { GanttDiagramAssets, ganttDiagramAssets } from "./gantt/assets.mjs";
+export { GanttDiagramDocs, ganttDiagramDocs } from "./gantt/docs.mjs";
+export { GanttDiagramLayout, ganttDiagramLayout } from "./gantt/layout.mjs";
+export {
+  GanttDiagramParser,
+  DEFAULT_GANTT_PLUGINS,
+  createGanttParseContext,
+  detectGanttDiagram,
+  prepareGanttLines,
+  ganttDiagramParser,
+} from "./gantt/parser.mjs";
+export { GANTT_RENDERERS, GanttDiagramRenderer, ganttDiagramRenderer } from "./gantt/render.mjs";
+export { GanttDiagramSecurity, ganttDiagramSecurity } from "./gantt/security.mjs";
+export { GanttDiagramTests, ganttDiagramTests } from "./gantt/tests.mjs";
+export { MindmapDiagramModule, mindmapDiagramModule } from "./mindmap/module.mjs";
+export { MindmapDiagramAssets, mindmapDiagramAssets } from "./mindmap/assets.mjs";
+export { MindmapDiagramDocs, mindmapDiagramDocs } from "./mindmap/docs.mjs";
+export { MindmapDiagramLayout, mindmapDiagramLayout } from "./mindmap/layout.mjs";
+export {
+  MindmapDiagramParser,
+  DEFAULT_MINDMAP_PLUGINS,
+  createMindmapParseContext,
+  detectMindmapDiagram,
+  prepareMindmapLines,
+  mindmapDiagramParser,
+} from "./mindmap/parser.mjs";
+export {
+  MINDMAP_RENDERERS,
+  MindmapDiagramRenderer,
+  mindmapDiagramRenderer,
+} from "./mindmap/render.mjs";
+export { MindmapDiagramSecurity, mindmapDiagramSecurity } from "./mindmap/security.mjs";
+export { MindmapDiagramTests, mindmapDiagramTests } from "./mindmap/tests.mjs";
+export { WbsDiagramModule, wbsDiagramModule } from "./wbs/module.mjs";
+export { WbsDiagramAssets, wbsDiagramAssets } from "./wbs/assets.mjs";
+export { WbsDiagramDocs, wbsDiagramDocs } from "./wbs/docs.mjs";
+export { WbsDiagramLayout, wbsDiagramLayout } from "./wbs/layout.mjs";
+export {
+  WbsDiagramParser,
+  DEFAULT_WBS_PLUGINS,
+  createWbsParseContext,
+  detectWbsDiagram,
+  prepareWbsLines,
+  wbsDiagramParser,
+} from "./wbs/parser.mjs";
+export { WBS_RENDERERS, WbsDiagramRenderer, wbsDiagramRenderer } from "./wbs/render.mjs";
+export { WbsDiagramSecurity, wbsDiagramSecurity } from "./wbs/security.mjs";
+export { WbsDiagramTests, wbsDiagramTests } from "./wbs/tests.mjs";
+export { ChronologyDiagramModule, chronologyDiagramModule } from "./chronology/module.mjs";
+export { ChronologyDiagramAssets, chronologyDiagramAssets } from "./chronology/assets.mjs";
+export { ChronologyDiagramDocs, chronologyDiagramDocs } from "./chronology/docs.mjs";
+export { ChronologyDiagramLayout, chronologyDiagramLayout } from "./chronology/layout.mjs";
+export {
+  ChronologyDiagramParser,
+  DEFAULT_CHRONOLOGY_PLUGINS,
+  createChronologyParseContext,
+  detectChronologyDiagram,
+  prepareChronologyLines,
+  chronologyDiagramParser,
+} from "./chronology/parser.mjs";
+export {
+  CHRONOLOGY_RENDERERS,
+  ChronologyDiagramRenderer,
+  chronologyDiagramRenderer,
+} from "./chronology/render.mjs";
+export { ChronologyDiagramSecurity, chronologyDiagramSecurity } from "./chronology/security.mjs";
+export { ChronologyDiagramTests, chronologyDiagramTests } from "./chronology/tests.mjs";
+export { FilesDiagramModule, filesDiagramModule } from "./files/module.mjs";
+export { FilesDiagramAssets, filesDiagramAssets } from "./files/assets.mjs";
+export { FilesDiagramDocs, filesDiagramDocs } from "./files/docs.mjs";
+export { FilesDiagramLayout, filesDiagramLayout } from "./files/layout.mjs";
+export {
+  FilesDiagramParser,
+  DEFAULT_FILES_PLUGINS,
+  createFilesParseContext,
+  detectFilesDiagram,
+  prepareFilesLines,
+  filesDiagramParser,
+} from "./files/parser.mjs";
+export { FILES_RENDERERS, FilesDiagramRenderer, filesDiagramRenderer } from "./files/render.mjs";
+export { FilesDiagramSecurity, filesDiagramSecurity } from "./files/security.mjs";
+export { FilesDiagramTests, filesDiagramTests } from "./files/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
 import { classDiagramModule } from "./class/module.mjs";
@@ -317,6 +400,11 @@ import { mathDiagramModule } from "./math/module.mjs";
 import { nwdiagDiagramModule } from "./nwdiag/module.mjs";
 import { saltDiagramModule } from "./salt/module.mjs";
 import { archimateDiagramModule } from "./archimate/module.mjs";
+import { ganttDiagramModule } from "./gantt/module.mjs";
+import { mindmapDiagramModule } from "./mindmap/module.mjs";
+import { wbsDiagramModule } from "./wbs/module.mjs";
+import { chronologyDiagramModule } from "./chronology/module.mjs";
+import { filesDiagramModule } from "./files/module.mjs";
 
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
@@ -336,5 +424,10 @@ export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   nwdiagDiagramModule,
   saltDiagramModule,
   archimateDiagramModule,
+  ganttDiagramModule,
+  mindmapDiagramModule,
+  wbsDiagramModule,
+  chronologyDiagramModule,
+  filesDiagramModule,
   activityDiagramModule,
 ]);
