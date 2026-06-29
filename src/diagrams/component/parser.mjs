@@ -68,6 +68,7 @@ export function detectComponentDiagram(text) {
   for (const raw of text.split(/\r?\n/)) {
     const line = stripComment(raw).trim();
     if (!line) continue;
+    if (/^(?:archimate|Junction_(?:And|Or))\b/i.test(line)) return false;
     if (/^state\s+/i.test(line) || /^\[\*\]\s*[-.]+>?/.test(line)) return false;
     if (/^(?:object|map|diamond)\b/i.test(line)) return false;
     if (

@@ -12,14 +12,17 @@ import {
   BaseModuleRenderer,
   BaseModuleSecurity,
   BaseModuleTests,
+  ArchimateDiagramModule,
   ClassDiagramModule,
   ComponentDiagramModule,
   EbnfDiagramModule,
   GraphModuleBase,
   JsonDiagramModule,
   MathDiagramModule,
+  NwdiagDiagramModule,
   ObjectDiagramModule,
   RegexDiagramModule,
+  SaltDiagramModule,
   SecurityError,
   SequenceDiagram,
   SequenceDiagramModule,
@@ -49,6 +52,9 @@ import {
   jsonDiagramModule,
   yamlDiagramModule,
   mathDiagramModule,
+  nwdiagDiagramModule,
+  saltDiagramModule,
+  archimateDiagramModule,
 } from "../index.mjs";
 
 const BUILTIN_MODULE_KINDS = [
@@ -65,6 +71,9 @@ const BUILTIN_MODULE_KINDS = [
   "json",
   "yaml",
   "math",
+  "nwdiag",
+  "salt",
+  "archimate",
   "activity",
 ];
 
@@ -117,6 +126,9 @@ test("built-in diagram modules are concrete classes composed from base facets", 
     [jsonDiagramModule, JsonDiagramModule],
     [yamlDiagramModule, YamlDiagramModule],
     [mathDiagramModule, MathDiagramModule],
+    [nwdiagDiagramModule, NwdiagDiagramModule],
+    [saltDiagramModule, SaltDiagramModule],
+    [archimateDiagramModule, ArchimateDiagramModule],
   ];
 
   for (const [module, ModuleClass] of expectations) {
