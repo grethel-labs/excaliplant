@@ -562,6 +562,31 @@ test("security: data and math diagrams escape attacker-controlled text in SVG", 
   }
 });
 
+test("security: network, salt and archimate diagrams escape attacker-controlled text in SVG", async () => {
+  const nwdiagDoc = await renderPlantUml(`@startnwdiag
+nwdiag {
+  network dmz {
+    evil [address = "<script>alert(1)</script>"];
+  }
+}
+@endnwdiag`);
+  const saltDoc = await renderPlantUml(`@startsalt
+{
+  <script>alert(1)</script>
+  [<img src=x onerror=alert(1)>]
+}
+@endsalt`);
+  const archimateDoc = await renderPlantUml(`@startuml
+archimate #Technology "<script>alert(1)</script>" as evil <<technology-device>>
+@enduml`);
+
+  for (const doc of [nwdiagDoc, saltDoc, archimateDoc]) {
+    const svg = excalidrawToSvg(doc);
+    assert.ok(!svg.includes("<script>alert(1)</script>"));
+    assert.ok(!svg.includes("<img src=x onerror=alert(1)>"));
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Parser correctness: Unicode + quoted comments
 // ---------------------------------------------------------------------------

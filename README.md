@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.15.0** &nbsp;·&nbsp; 251 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.16.0** &nbsp;·&nbsp; 252 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -219,6 +219,23 @@ inline `<math>` / `<latex>` tags in existing labels. The renderer intentionally
 uses a safe readable text fallback instead of pulling in external formula
 rendering dependencies.
 
+### Network, UI, and Architecture Coverage
+
+Network diagrams support `@startnwdiag` with `nwdiag` network lanes, address
+metadata, groups, devices, multi-homed device declarations, and peer
+connections. Devices render through the shared graph pipeline so labels are
+measured and routed deterministically.
+
+Salt diagrams support `@startsalt` wireframes with low-fidelity labels,
+buttons, radio buttons, checkboxes, text fields, dropdowns, tabs, grid/table
+rows, and textarea-style blocks. Unsupported Salt decoration degrades to safe
+readable labels instead of raw markup.
+
+Archimate diagrams support `archimate` element declarations with categories,
+aliases, stereotypes, junction declarations, simple rectangle states, and
+directed relationships. External sprites and stdlib-specific icons use safe
+text/type fallbacks.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;
@@ -232,7 +249,7 @@ presentation, link, text-markup, skinparam, and `<style>` handling.
 npm test
 ```
 
-Ships with **251 tests** across functional, edge-case,
+Ships with **252 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -374,6 +391,17 @@ excaliplant
 │   │   │   ├── render.mjs
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
+│   │   ├── archimate
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
 │   │   ├── base
 │   │   │   ├── artifacts.mjs
 │   │   │   ├── assets.mjs
@@ -456,6 +484,17 @@ excaliplant
 │   │   │   ├── render.mjs
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
+│   │   ├── nwdiag
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
 │   │   ├── object
 │   │   │   ├── docs
 │   │   │   ├── plugins
@@ -469,6 +508,17 @@ excaliplant
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
 │   │   ├── regex
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── salt
 │   │   │   ├── docs
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs

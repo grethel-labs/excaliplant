@@ -229,6 +229,23 @@ inline `<math>` / `<latex>` tags in existing labels. The renderer intentionally
 uses a safe readable text fallback instead of pulling in external formula
 rendering dependencies.
 
+### Network, UI, and Architecture Coverage
+
+Network diagrams support `@startnwdiag` with `nwdiag` network lanes, address
+metadata, groups, devices, multi-homed device declarations, and peer
+connections. Devices render through the shared graph pipeline so labels are
+measured and routed deterministically.
+
+Salt diagrams support `@startsalt` wireframes with low-fidelity labels,
+buttons, radio buttons, checkboxes, text fields, dropdowns, tabs, grid/table
+rows, and textarea-style blocks. Unsupported Salt decoration degrades to safe
+readable labels instead of raw markup.
+
+Archimate diagrams support `archimate` element declarations with categories,
+aliases, stereotypes, junction declarations, simple rectangle states, and
+directed relationships. External sprites and stdlib-specific icons use safe
+text/type fallbacks.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;

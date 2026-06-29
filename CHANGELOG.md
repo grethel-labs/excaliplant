@@ -160,6 +160,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unicode/symbol keys, and highlight paths. Standalone `@startmath` /
   `@startlatex` diagrams and inline `<math>` / `<latex>` labels degrade to
   readable escaped text without adding renderer dependencies.
+- PlantUML network, UI wireframe, and architecture technologies now have
+  dedicated modules. `@startnwdiag` sources parse network lanes, addresses,
+  groups, nodes, multi-interface devices, and peer connections. `@startsalt`
+  sources render documented low-fidelity controls such as labels, buttons,
+  radios, checkboxes, text fields, dropdowns, tabs, grids, and textarea-like
+  blocks. Archimate sources parse element declarations, aliases, junctions,
+  rectangles, relationships, and safe fallback markers for sprites/stdlib
+  constructs.
 
 ### Changed
 

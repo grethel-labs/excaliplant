@@ -68,6 +68,7 @@ export function detectTimingDiagram(source) {
   for (const raw of lines.slice(0, 80)) {
     const line = stripComment(raw).trim();
     if (!line) continue;
+    if (/^(?:archimate|Junction_(?:And|Or))\b/i.test(line)) return false;
     if (DECLARATION.test(line)) return true;
     if (/^@[-:+\w.]+/.test(line) && /\bis\b/i.test(line)) return true;
     if (/^concise\b|^robust\b|^binary\b|^clock\b|^analog\b/i.test(line)) return true;

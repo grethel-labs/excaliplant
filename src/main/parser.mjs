@@ -44,6 +44,9 @@ import {
   DEFAULT_JSON_PLUGINS,
   DEFAULT_YAML_PLUGINS,
   DEFAULT_MATH_PLUGINS,
+  DEFAULT_NWDIAG_PLUGINS,
+  DEFAULT_SALT_PLUGINS,
+  DEFAULT_ARCHIMATE_PLUGINS,
   DEFAULT_USE_CASE_PLUGINS,
   defaultDiagramModuleRegistry,
 } from "./builtin.mjs";
@@ -115,6 +118,15 @@ export { DEFAULT_YAML_PLUGINS } from "./builtin.mjs";
 
 /** Default plugin pipeline for math diagrams. @public */
 export { DEFAULT_MATH_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for nwdiag diagrams. @public */
+export { DEFAULT_NWDIAG_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for Salt wireframe diagrams. @public */
+export { DEFAULT_SALT_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for Archimate diagrams. @public */
+export { DEFAULT_ARCHIMATE_PLUGINS } from "./builtin.mjs";
 
 const PARSE_SECURITY_BASE = createSecurityBase();
 

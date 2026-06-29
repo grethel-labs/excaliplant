@@ -246,6 +246,59 @@ export {
 export { MATH_RENDERERS, MathDiagramRenderer, mathDiagramRenderer } from "./math/render.mjs";
 export { MathDiagramSecurity, mathDiagramSecurity } from "./math/security.mjs";
 export { MathDiagramTests, mathDiagramTests } from "./math/tests.mjs";
+export { NwdiagDiagramModule, nwdiagDiagramModule } from "./nwdiag/module.mjs";
+export { NwdiagDiagramAssets, nwdiagDiagramAssets } from "./nwdiag/assets.mjs";
+export { NwdiagDiagramDocs, nwdiagDiagramDocs } from "./nwdiag/docs.mjs";
+export { NwdiagDiagramLayout, nwdiagDiagramLayout } from "./nwdiag/layout.mjs";
+export {
+  NwdiagDiagramParser,
+  DEFAULT_NWDIAG_PLUGINS,
+  createNwdiagParseContext,
+  detectNwdiagDiagram,
+  prepareNwdiagLines,
+  nwdiagDiagramParser,
+} from "./nwdiag/parser.mjs";
+export {
+  NWDIAG_RENDERERS,
+  NwdiagDiagramRenderer,
+  nwdiagDiagramRenderer,
+} from "./nwdiag/render.mjs";
+export { NwdiagDiagramSecurity, nwdiagDiagramSecurity } from "./nwdiag/security.mjs";
+export { NwdiagDiagramTests, nwdiagDiagramTests } from "./nwdiag/tests.mjs";
+export { SaltDiagramModule, saltDiagramModule } from "./salt/module.mjs";
+export { SaltDiagramAssets, saltDiagramAssets } from "./salt/assets.mjs";
+export { SaltDiagramDocs, saltDiagramDocs } from "./salt/docs.mjs";
+export { SaltDiagramLayout, saltDiagramLayout } from "./salt/layout.mjs";
+export {
+  SaltDiagramParser,
+  DEFAULT_SALT_PLUGINS,
+  createSaltParseContext,
+  detectSaltDiagram,
+  prepareSaltLines,
+  saltDiagramParser,
+} from "./salt/parser.mjs";
+export { SALT_RENDERERS, SaltDiagramRenderer, saltDiagramRenderer } from "./salt/render.mjs";
+export { SaltDiagramSecurity, saltDiagramSecurity } from "./salt/security.mjs";
+export { SaltDiagramTests, saltDiagramTests } from "./salt/tests.mjs";
+export { ArchimateDiagramModule, archimateDiagramModule } from "./archimate/module.mjs";
+export { ArchimateDiagramAssets, archimateDiagramAssets } from "./archimate/assets.mjs";
+export { ArchimateDiagramDocs, archimateDiagramDocs } from "./archimate/docs.mjs";
+export { ArchimateDiagramLayout, archimateDiagramLayout } from "./archimate/layout.mjs";
+export {
+  ArchimateDiagramParser,
+  DEFAULT_ARCHIMATE_PLUGINS,
+  createArchimateParseContext,
+  detectArchimateDiagram,
+  prepareArchimateLines,
+  archimateDiagramParser,
+} from "./archimate/parser.mjs";
+export {
+  ARCHIMATE_RENDERERS,
+  ArchimateDiagramRenderer,
+  archimateDiagramRenderer,
+} from "./archimate/render.mjs";
+export { ArchimateDiagramSecurity, archimateDiagramSecurity } from "./archimate/security.mjs";
+export { ArchimateDiagramTests, archimateDiagramTests } from "./archimate/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
 import { classDiagramModule } from "./class/module.mjs";
@@ -261,6 +314,9 @@ import { ebnfDiagramModule } from "./ebnf/module.mjs";
 import { jsonDiagramModule } from "./json/module.mjs";
 import { yamlDiagramModule } from "./yaml/module.mjs";
 import { mathDiagramModule } from "./math/module.mjs";
+import { nwdiagDiagramModule } from "./nwdiag/module.mjs";
+import { saltDiagramModule } from "./salt/module.mjs";
+import { archimateDiagramModule } from "./archimate/module.mjs";
 
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
@@ -277,5 +333,8 @@ export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   jsonDiagramModule,
   yamlDiagramModule,
   mathDiagramModule,
+  nwdiagDiagramModule,
+  saltDiagramModule,
+  archimateDiagramModule,
   activityDiagramModule,
 ]);
