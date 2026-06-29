@@ -142,6 +142,28 @@ for (const payload of XSS_PAYLOADS) {
   });
 }
 
+test("security: special rendering diagrams escape attacker-controlled text in SVG", async () => {
+  const ditaaDoc = await renderPlantUml(`@startditaa
++---------------+
+| <script>x</script> |
++---------------+
+@endditaa`);
+  const ditaaSvg = excalidrawToSvg(ditaaDoc);
+  assert.equal(/<script[\s>]/i.test(ditaaSvg), false, "raw ditaa <script> in SVG");
+
+  const chartDoc = await renderPlantUml(`@startchart
+h-axis [Q1]
+bar "<img src=x onerror=alert(1)>" [1] #3498db
+@endchart`);
+  const chartSvg = excalidrawToSvg(chartDoc);
+  assert.equal(/<img[\s>]/i.test(chartSvg), false, "raw chart <img> in SVG");
+  assert.equal(
+    /\son\w+\s*=\s*["']?(?:alert|javascript)/i.test(chartSvg),
+    false,
+    "executable chart event handler in SVG",
+  );
+});
+
 test("security: SVG output is parseable as XML", async () => {
   // A well-formed SVG must round-trip through a tolerant XML check:
   // every '<text' opener has a matching '</text' closer.

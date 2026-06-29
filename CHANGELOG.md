@@ -97,6 +97,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Information Engineering crow-foot diagrams and `@startchen` Chen ER diagrams
   parse entity, relationship, attribute, cardinality, and optionality syntax
   through graph-backed module contracts with docs and security coverage.
+- PlantUML special rendering technologies now have dedicated Ditaa and Chart
+  modules. `@startditaa` / inline `ditaa(...)` sources preserve bounded ASCII
+  canvases, and `@startchart` parses axes, bar/line/area/scatter series,
+  legends, colours, orientation, and stacking options into deterministic
+  graph-backed Excalidraw output with security and module-registry coverage.
 - Shared PlantUML preamble support now strips inline and block comments
   before diagram detection, accepts typed `@start...` / `@end...`
   directives, common layout controls, and `<style>...</style>` blocks

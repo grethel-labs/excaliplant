@@ -14,9 +14,11 @@ import {
   BaseModuleTests,
   ArchimateDiagramModule,
   ChenDiagramModule,
+  ChartDiagramModule,
   ClassDiagramModule,
   ComponentDiagramModule,
   ChronologyDiagramModule,
+  DitaaDiagramModule,
   EbnfDiagramModule,
   FilesDiagramModule,
   GanttDiagramModule,
@@ -64,6 +66,8 @@ import {
   archimateDiagramModule,
   ieDiagramModule,
   chenDiagramModule,
+  chartDiagramModule,
+  ditaaDiagramModule,
   ganttDiagramModule,
   mindmapDiagramModule,
   wbsDiagramModule,
@@ -95,6 +99,8 @@ const BUILTIN_MODULE_KINDS = [
   "wbs",
   "chronology",
   "files",
+  "ditaa",
+  "chart",
   "activity",
 ];
 
@@ -156,6 +162,11 @@ test("module registry is closed-world and exposes built-in manifests", () => {
     defaultDiagramModuleRegistry.detect("@startfiles\n/src/index.mjs\n@endfiles")?.kind,
     "files",
   );
+  assert.equal(defaultDiagramModuleRegistry.detect("@startditaa\n+---+\n@endditaa")?.kind, "ditaa");
+  assert.equal(
+    defaultDiagramModuleRegistry.detect('@startchart\nbar "A" [1]\n@endchart')?.kind,
+    "chart",
+  );
 });
 
 test("built-in diagram modules are concrete classes composed from base facets", () => {
@@ -181,6 +192,8 @@ test("built-in diagram modules are concrete classes composed from base facets", 
     [wbsDiagramModule, WbsDiagramModule],
     [chronologyDiagramModule, ChronologyDiagramModule],
     [filesDiagramModule, FilesDiagramModule],
+    [ditaaDiagramModule, DitaaDiagramModule],
+    [chartDiagramModule, ChartDiagramModule],
   ];
 
   for (const [module, ModuleClass] of expectations) {
@@ -415,6 +428,8 @@ test("source layout foregrounds diagram modules and separates runtime concerns",
     "wbs",
     "chronology",
     "files",
+    "ditaa",
+    "chart",
   ]) {
     for (const facet of requiredFacets) {
       const facetPath = `src/diagrams/${diagramKind}/${facet}`;
