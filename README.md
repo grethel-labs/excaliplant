@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.16.0** &nbsp;·&nbsp; 252 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.17.0** &nbsp;·&nbsp; 253 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -236,6 +236,23 @@ aliases, stereotypes, junction declarations, simple rectangle states, and
 directed relationships. External sprites and stdlib-specific icons use safe
 text/type fallbacks.
 
+### Planning, Hierarchy, and Files Coverage
+
+Gantt diagrams support `@startgantt` task declarations with durations, explicit
+starts and ends, milestones, project starts, separators, and simple task
+dependencies. The parser records scheduling details on deterministic task boxes
+and routes dependencies through the shared graph pipeline.
+
+Mindmap and WBS diagrams support PlantUML OrgMode-style markers, Markdown-style
+heading/list input, side/direction directives, mixed `*` / `+` hierarchy
+markers, and safe text handling. Files diagrams support `@startfiles` path trees
+with shared folder merging and file/folder stereotypes.
+
+Chronology diagrams support dated milestones, labelled timestamp entries, simple
+ranges, start/end directives, and dependencies between events. Unsupported
+calendar-specific presentation lines are tolerated so useful chronology content
+still renders as safe readable timeline graphs.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;
@@ -249,7 +266,7 @@ presentation, link, text-markup, skinparam, and `<style>` handling.
 npm test
 ```
 
-Ships with **252 tests** across functional, edge-case,
+Ships with **253 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -414,6 +431,17 @@ excaliplant
 │   │   │   ├── renderer.mjs
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
+│   │   ├── chronology
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
 │   │   ├── class
 │   │   │   ├── docs
 │   │   │   ├── plugins
@@ -462,6 +490,28 @@ excaliplant
 │   │   │   ├── render.mjs
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
+│   │   ├── files
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── gantt
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
 │   │   ├── json
 │   │   │   ├── docs
 │   │   │   ├── tests
@@ -474,6 +524,17 @@ excaliplant
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
 │   │   ├── math
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── mindmap
 │   │   │   ├── docs
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs
@@ -552,7 +613,9 @@ excaliplant
 │   │   │   ├── graph_context.mjs
 │   │   │   ├── graph_parser.mjs
 │   │   │   ├── graph_runtime.mjs
-│   │   │   └── railroad_runtime.mjs
+│   │   │   ├── planning_runtime.mjs
+│   │   │   ├── railroad_runtime.mjs
+│   │   │   └── tree_runtime.mjs
 │   │   ├── state
 │   │   │   ├── docs
 │   │   │   ├── plugins
@@ -580,6 +643,17 @@ excaliplant
 │   │   │   └── tests.mjs
 │   │   ├── use-case
 │   │   │   ├── plugins
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── wbs
+│   │   │   ├── docs
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs
 │   │   │   ├── docs.mjs

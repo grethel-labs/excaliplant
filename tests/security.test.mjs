@@ -587,6 +587,33 @@ archimate #Technology "<script>alert(1)</script>" as evil <<technology-device>>
   }
 });
 
+test("security: planning, hierarchy and files diagrams escape attacker-controlled text in SVG", async () => {
+  const ganttDoc = await renderPlantUml(`@startgantt
+[<script>alert(1)</script>] requires 1 day
+@endgantt`);
+  const mindmapDoc = await renderPlantUml(`@startmindmap
+* <script>alert(1)</script>
+** <img src=x onerror=alert(1)>
+@endmindmap`);
+  const wbsDoc = await renderPlantUml(`@startwbs
+* <script>alert(1)</script>
+** <img src=x onerror=alert(1)>
+@endwbs`);
+  const chronologyDoc = await renderPlantUml(`@startchronology
+[<script>alert(1)</script>] happens on 2024-01-01
+@endchronology`);
+  const filesDoc = await renderPlantUml(`@startfiles
+/src/<script>alert(1)</script>.mjs
+/src/<img src=x onerror=alert(1)>.mjs
+@endfiles`);
+
+  for (const doc of [ganttDoc, mindmapDoc, wbsDoc, chronologyDoc, filesDoc]) {
+    const svg = excalidrawToSvg(doc);
+    assert.ok(!svg.includes("<script>alert(1)</script>"));
+    assert.ok(!svg.includes("<img src=x onerror=alert(1)>"));
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Parser correctness: Unicode + quoted comments
 // ---------------------------------------------------------------------------

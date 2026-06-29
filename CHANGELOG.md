@@ -88,6 +88,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Built-in object diagrams now parse object declarations, aliases,
   body/colon field rows, maps with row anchors, diamonds, notes, and
   class-like relationships through a dedicated `object` diagram module.
+- PlantUML planning and hierarchy technologies now have dedicated modules:
+  `@startgantt`, `@startmindmap`, `@startwbs`, `@startchronology`, and
+  `@startfiles` parse into deterministic graph-backed task, event, hierarchy,
+  and file-tree models with module manifests, docs, security profiles, and
+  regression tests.
 - Shared PlantUML preamble support now strips inline and block comments
   before diagram detection, accepts typed `@start...` / `@end...`
   directives, common layout controls, and `<style>...</style>` blocks

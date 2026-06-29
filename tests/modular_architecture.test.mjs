@@ -15,10 +15,14 @@ import {
   ArchimateDiagramModule,
   ClassDiagramModule,
   ComponentDiagramModule,
+  ChronologyDiagramModule,
   EbnfDiagramModule,
+  FilesDiagramModule,
+  GanttDiagramModule,
   GraphModuleBase,
   JsonDiagramModule,
   MathDiagramModule,
+  MindmapDiagramModule,
   NwdiagDiagramModule,
   ObjectDiagramModule,
   RegexDiagramModule,
@@ -28,6 +32,7 @@ import {
   SequenceDiagramModule,
   StateDiagramModule,
   TimingDiagramModule,
+  WbsDiagramModule,
   YamlDiagramModule,
   classDiagramModule,
   componentDiagramModule,
@@ -55,6 +60,11 @@ import {
   nwdiagDiagramModule,
   saltDiagramModule,
   archimateDiagramModule,
+  ganttDiagramModule,
+  mindmapDiagramModule,
+  wbsDiagramModule,
+  chronologyDiagramModule,
+  filesDiagramModule,
 } from "../index.mjs";
 
 const BUILTIN_MODULE_KINDS = [
@@ -74,6 +84,11 @@ const BUILTIN_MODULE_KINDS = [
   "nwdiag",
   "salt",
   "archimate",
+  "gantt",
+  "mindmap",
+  "wbs",
+  "chronology",
+  "files",
   "activity",
 ];
 
@@ -111,6 +126,25 @@ test("module registry is closed-world and exposes built-in manifests", () => {
     defaultDiagramModuleRegistry.detect("@startstate\nstate Idle\n@endstate")?.kind,
     "state",
   );
+  assert.equal(
+    defaultDiagramModuleRegistry.detect("@startgantt\n[Build] requires 1 day\n@endgantt")?.kind,
+    "gantt",
+  );
+  assert.equal(
+    defaultDiagramModuleRegistry.detect("@startmindmap\n* Root\n@endmindmap")?.kind,
+    "mindmap",
+  );
+  assert.equal(defaultDiagramModuleRegistry.detect("@startwbs\n* Root\n@endwbs")?.kind, "wbs");
+  assert.equal(
+    defaultDiagramModuleRegistry.detect(
+      "@startchronology\n[A] happens on 2024-01-01\n@endchronology",
+    )?.kind,
+    "chronology",
+  );
+  assert.equal(
+    defaultDiagramModuleRegistry.detect("@startfiles\n/src/index.mjs\n@endfiles")?.kind,
+    "files",
+  );
 });
 
 test("built-in diagram modules are concrete classes composed from base facets", () => {
@@ -129,6 +163,11 @@ test("built-in diagram modules are concrete classes composed from base facets", 
     [nwdiagDiagramModule, NwdiagDiagramModule],
     [saltDiagramModule, SaltDiagramModule],
     [archimateDiagramModule, ArchimateDiagramModule],
+    [ganttDiagramModule, GanttDiagramModule],
+    [mindmapDiagramModule, MindmapDiagramModule],
+    [wbsDiagramModule, WbsDiagramModule],
+    [chronologyDiagramModule, ChronologyDiagramModule],
+    [filesDiagramModule, FilesDiagramModule],
   ];
 
   for (const [module, ModuleClass] of expectations) {
@@ -350,7 +389,18 @@ test("source layout foregrounds diagram modules and separates runtime concerns",
     "tests.mjs",
   ];
 
-  for (const diagramKind of ["sequence", "class", "component", "object", "state"]) {
+  for (const diagramKind of [
+    "sequence",
+    "class",
+    "component",
+    "object",
+    "state",
+    "gantt",
+    "mindmap",
+    "wbs",
+    "chronology",
+    "files",
+  ]) {
     for (const facet of requiredFacets) {
       const facetPath = `src/diagrams/${diagramKind}/${facet}`;
       assert.equal(existsSync(path.join(process.cwd(), facetPath)), true, `missing ${facetPath}`);
