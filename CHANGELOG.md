@@ -93,6 +93,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@startfiles` parse into deterministic graph-backed task, event, hierarchy,
   and file-tree models with module manifests, docs, security profiles, and
   regression tests.
+- PlantUML entity relationship technologies now have dedicated modules:
+  Information Engineering crow-foot diagrams and `@startchen` Chen ER diagrams
+  parse entity, relationship, attribute, cardinality, and optionality syntax
+  through graph-backed module contracts with docs and security coverage.
 - Shared PlantUML preamble support now strips inline and block comments
   before diagram detection, accepts typed `@start...` / `@end...`
   directives, common layout controls, and `<style>...</style>` blocks

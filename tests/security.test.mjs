@@ -614,6 +614,28 @@ test("security: planning, hierarchy and files diagrams escape attacker-controlle
   }
 });
 
+test("security: ER diagrams escape attacker-controlled text in SVG", async () => {
+  const ieDoc = await renderPlantUml(`@startuml
+entity "<script>alert(1)</script>" as evil {
+  <img src=x onerror=alert(1)>
+}
+evil ||--o{ Other
+@enduml`);
+  const chenDoc = await renderPlantUml(`@startchen
+entity "<script>alert(1)</script>" as evil {
+}
+attribute "<img src=x onerror=alert(1)>" as bad {
+}
+evil - bad
+@endchen`);
+
+  for (const doc of [ieDoc, chenDoc]) {
+    const svg = excalidrawToSvg(doc);
+    assert.ok(!svg.includes("<script>alert(1)</script>"));
+    assert.ok(!svg.includes("<img src=x onerror=alert(1)>"));
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Parser correctness: Unicode + quoted comments
 // ---------------------------------------------------------------------------
