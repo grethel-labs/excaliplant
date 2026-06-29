@@ -35,6 +35,7 @@ import { stripBlockComments } from "../util/plantuml_utils.mjs";
 import {
   DEFAULT_CLASS_PLUGINS,
   DEFAULT_CHEN_PLUGINS,
+  DEFAULT_CHART_PLUGINS,
   DEFAULT_COMPONENT_PLUGINS,
   DEFAULT_OBJECT_PLUGINS,
   DEFAULT_SEQUENCE_PLUGINS,
@@ -54,6 +55,7 @@ import {
   DEFAULT_CHRONOLOGY_PLUGINS,
   DEFAULT_FILES_PLUGINS,
   DEFAULT_IE_PLUGINS,
+  DEFAULT_DITAA_PLUGINS,
   DEFAULT_USE_CASE_PLUGINS,
   defaultDiagramModuleRegistry,
 } from "./builtin.mjs";
@@ -78,8 +80,14 @@ export { DEFAULT_CLASS_PLUGINS } from "./builtin.mjs";
 /** Default plugin pipeline for Chen ER diagrams. @public */
 export { DEFAULT_CHEN_PLUGINS } from "./builtin.mjs";
 
+/** Default plugin pipeline for chart diagrams. @public */
+export { DEFAULT_CHART_PLUGINS } from "./builtin.mjs";
+
 /** Default plugin pipeline for Information Engineering diagrams. @public */
 export { DEFAULT_IE_PLUGINS } from "./builtin.mjs";
+
+/** Default plugin pipeline for Ditaa diagrams. @public */
+export { DEFAULT_DITAA_PLUGINS } from "./builtin.mjs";
 
 /**
  * Default plugin pipeline for deployment diagrams.

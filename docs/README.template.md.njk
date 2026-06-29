@@ -275,6 +275,20 @@ derived-attribute, multi-valued-attribute, and key declarations, including
 empty or member-bearing blocks, simple orientation directives, aliases, and
 cardinality-labelled connections such as `Person -N- Birthplace`.
 
+### Special Rendering Coverage
+
+Ditaa diagrams support `@startditaa` blocks and inline `ditaa(...)` sources.
+The parser preserves bounded ASCII canvas lines, consumes common rendering
+options such as no-separator, no-shadow, and scale hints, and emits a safe
+deterministic Excalidraw graph representation instead of executing an external
+Ditaa renderer.
+
+Chart diagrams support `@startchart` sources with horizontal and vertical axes,
+bar, line, area, and scatter series, labels, colours, legends, orientation, and
+stacking options. Series and option rows render as reviewable graph-backed
+chart metadata with the same SVG escaping and layout bounds as other diagram
+families.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;

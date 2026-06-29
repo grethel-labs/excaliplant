@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.18.0** &nbsp;·&nbsp; 254 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.19.0** &nbsp;·&nbsp; 255 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -265,6 +265,20 @@ derived-attribute, multi-valued-attribute, and key declarations, including
 empty or member-bearing blocks, simple orientation directives, aliases, and
 cardinality-labelled connections such as `Person -N- Birthplace`.
 
+### Special Rendering Coverage
+
+Ditaa diagrams support `@startditaa` blocks and inline `ditaa(...)` sources.
+The parser preserves bounded ASCII canvas lines, consumes common rendering
+options such as no-separator, no-shadow, and scale hints, and emits a safe
+deterministic Excalidraw graph representation instead of executing an external
+Ditaa renderer.
+
+Chart diagrams support `@startchart` sources with horizontal and vertical axes,
+bar, line, area, and scatter series, labels, colours, legends, orientation, and
+stacking options. Series and option rows render as reviewable graph-backed
+chart metadata with the same SVG escaping and layout bounds as other diagram
+families.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;
@@ -278,7 +292,7 @@ presentation, link, text-markup, skinparam, and `<style>` handling.
 npm test
 ```
 
-Ships with **254 tests** across functional, edge-case,
+Ships with **255 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -443,6 +457,17 @@ excaliplant
 │   │   │   ├── renderer.mjs
 │   │   │   ├── security.mjs
 │   │   │   └── tests.mjs
+│   │   ├── chart
+│   │   │   ├── docs
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
 │   │   ├── chen
 │   │   │   ├── docs
 │   │   │   ├── tests
@@ -493,6 +518,17 @@ excaliplant
 │   │   ├── deployment
 │   │   │   ├── docs
 │   │   │   ├── plugins
+│   │   │   ├── tests
+│   │   │   ├── assets.mjs
+│   │   │   ├── docs.mjs
+│   │   │   ├── layout.mjs
+│   │   │   ├── module.mjs
+│   │   │   ├── parser.mjs
+│   │   │   ├── render.mjs
+│   │   │   ├── security.mjs
+│   │   │   └── tests.mjs
+│   │   ├── ditaa
+│   │   │   ├── docs
 │   │   │   ├── tests
 │   │   │   ├── assets.mjs
 │   │   │   ├── docs.mjs
@@ -650,6 +686,7 @@ excaliplant
 │   │   │   ├── graph_runtime.mjs
 │   │   │   ├── planning_runtime.mjs
 │   │   │   ├── railroad_runtime.mjs
+│   │   │   ├── special_runtime.mjs
 │   │   │   └── tree_runtime.mjs
 │   │   ├── state
 │   │   │   ├── docs

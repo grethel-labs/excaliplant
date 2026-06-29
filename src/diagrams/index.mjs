@@ -412,6 +412,36 @@ export {
 export { FILES_RENDERERS, FilesDiagramRenderer, filesDiagramRenderer } from "./files/render.mjs";
 export { FilesDiagramSecurity, filesDiagramSecurity } from "./files/security.mjs";
 export { FilesDiagramTests, filesDiagramTests } from "./files/tests.mjs";
+export { DitaaDiagramModule, ditaaDiagramModule } from "./ditaa/module.mjs";
+export { DitaaDiagramAssets, ditaaDiagramAssets } from "./ditaa/assets.mjs";
+export { DitaaDiagramDocs, ditaaDiagramDocs } from "./ditaa/docs.mjs";
+export { DitaaDiagramLayout, ditaaDiagramLayout } from "./ditaa/layout.mjs";
+export {
+  DitaaDiagramParser,
+  DEFAULT_DITAA_PLUGINS,
+  createDitaaParseContext,
+  detectDitaaDiagram,
+  prepareDitaaLines,
+  ditaaDiagramParser,
+} from "./ditaa/parser.mjs";
+export { DITAA_RENDERERS, DitaaDiagramRenderer, ditaaDiagramRenderer } from "./ditaa/render.mjs";
+export { DitaaDiagramSecurity, ditaaDiagramSecurity } from "./ditaa/security.mjs";
+export { DitaaDiagramTests, ditaaDiagramTests } from "./ditaa/tests.mjs";
+export { ChartDiagramModule, chartDiagramModule } from "./chart/module.mjs";
+export { ChartDiagramAssets, chartDiagramAssets } from "./chart/assets.mjs";
+export { ChartDiagramDocs, chartDiagramDocs } from "./chart/docs.mjs";
+export { ChartDiagramLayout, chartDiagramLayout } from "./chart/layout.mjs";
+export {
+  ChartDiagramParser,
+  DEFAULT_CHART_PLUGINS,
+  createChartParseContext,
+  detectChartDiagram,
+  prepareChartLines,
+  chartDiagramParser,
+} from "./chart/parser.mjs";
+export { CHART_RENDERERS, ChartDiagramRenderer, chartDiagramRenderer } from "./chart/render.mjs";
+export { ChartDiagramSecurity, chartDiagramSecurity } from "./chart/security.mjs";
+export { ChartDiagramTests, chartDiagramTests } from "./chart/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
 import { ieDiagramModule } from "./ie/module.mjs";
@@ -437,6 +467,8 @@ import { mindmapDiagramModule } from "./mindmap/module.mjs";
 import { wbsDiagramModule } from "./wbs/module.mjs";
 import { chronologyDiagramModule } from "./chronology/module.mjs";
 import { filesDiagramModule } from "./files/module.mjs";
+import { ditaaDiagramModule } from "./ditaa/module.mjs";
+import { chartDiagramModule } from "./chart/module.mjs";
 
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
@@ -463,5 +495,7 @@ export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   wbsDiagramModule,
   chronologyDiagramModule,
   filesDiagramModule,
+  ditaaDiagramModule,
+  chartDiagramModule,
   activityDiagramModule,
 ]);
