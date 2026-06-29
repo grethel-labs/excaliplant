@@ -1,6 +1,6 @@
 {
   "name": "@grethel-labs/excaliplant",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.",
   "type": "module",
   "main": "index.mjs",
@@ -51,7 +51,7 @@
   },
   "scripts": {
     "pretest": "node scripts/clean-test-output.mjs",
-    "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/merge_driver.test.mjs tests/modular_architecture.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs tests/sequence_components.test.mjs tests/class_components.test.mjs tests/component_components.test.mjs tests/deployment_components.test.mjs tests/usecase_components.test.mjs tests/object_components.test.mjs tests/state_components.test.mjs src/diagrams/timing/tests/timing_components.test.mjs src/diagrams/regex/tests/regex_components.test.mjs src/diagrams/ebnf/tests/ebnf_components.test.mjs src/diagrams/json/tests/json_components.test.mjs src/diagrams/yaml/tests/yaml_components.test.mjs src/diagrams/math/tests/math_components.test.mjs src/diagrams/nwdiag/tests/nwdiag_components.test.mjs src/diagrams/salt/tests/salt_components.test.mjs src/diagrams/archimate/tests/archimate_components.test.mjs src/diagrams/gantt/tests/gantt_components.test.mjs src/diagrams/mindmap/tests/mindmap_components.test.mjs src/diagrams/wbs/tests/wbs_components.test.mjs src/diagrams/chronology/tests/chronology_components.test.mjs src/diagrams/files/tests/files_components.test.mjs tests/style.test.mjs",
+    "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/merge_driver.test.mjs tests/modular_architecture.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs tests/sequence_components.test.mjs tests/class_components.test.mjs tests/component_components.test.mjs tests/deployment_components.test.mjs tests/usecase_components.test.mjs tests/object_components.test.mjs tests/state_components.test.mjs src/diagrams/timing/tests/timing_components.test.mjs src/diagrams/regex/tests/regex_components.test.mjs src/diagrams/ebnf/tests/ebnf_components.test.mjs src/diagrams/json/tests/json_components.test.mjs src/diagrams/yaml/tests/yaml_components.test.mjs src/diagrams/math/tests/math_components.test.mjs src/diagrams/nwdiag/tests/nwdiag_components.test.mjs src/diagrams/salt/tests/salt_components.test.mjs src/diagrams/archimate/tests/archimate_components.test.mjs src/diagrams/gantt/tests/gantt_components.test.mjs src/diagrams/mindmap/tests/mindmap_components.test.mjs src/diagrams/wbs/tests/wbs_components.test.mjs src/diagrams/chronology/tests/chronology_components.test.mjs src/diagrams/files/tests/files_components.test.mjs src/diagrams/ie/tests/ie_components.test.mjs src/diagrams/chen/tests/chen_components.test.mjs tests/style.test.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "build:docs": "node docs/scripts/build-docs.mjs",
     "build:api": "node docs/scripts/build-docs.mjs",

@@ -13,6 +13,7 @@ import {
   BaseModuleSecurity,
   BaseModuleTests,
   ArchimateDiagramModule,
+  ChenDiagramModule,
   ClassDiagramModule,
   ComponentDiagramModule,
   ChronologyDiagramModule,
@@ -20,6 +21,7 @@ import {
   FilesDiagramModule,
   GanttDiagramModule,
   GraphModuleBase,
+  IeDiagramModule,
   JsonDiagramModule,
   MathDiagramModule,
   MindmapDiagramModule,
@@ -60,6 +62,8 @@ import {
   nwdiagDiagramModule,
   saltDiagramModule,
   archimateDiagramModule,
+  ieDiagramModule,
+  chenDiagramModule,
   ganttDiagramModule,
   mindmapDiagramModule,
   wbsDiagramModule,
@@ -69,6 +73,8 @@ import {
 
 const BUILTIN_MODULE_KINDS = [
   "sequence",
+  "ie",
+  "chen",
   "class",
   "component",
   "deployment",
@@ -126,6 +132,11 @@ test("module registry is closed-world and exposes built-in manifests", () => {
     defaultDiagramModuleRegistry.detect("@startstate\nstate Idle\n@endstate")?.kind,
     "state",
   );
+  assert.equal(defaultDiagramModuleRegistry.detect("@startuml\nA }|..|| B\n@enduml")?.kind, "ie");
+  assert.equal(
+    defaultDiagramModuleRegistry.detect("@startchen\nentity Person {}\n@endchen")?.kind,
+    "chen",
+  );
   assert.equal(
     defaultDiagramModuleRegistry.detect("@startgantt\n[Build] requires 1 day\n@endgantt")?.kind,
     "gantt",
@@ -150,6 +161,8 @@ test("module registry is closed-world and exposes built-in manifests", () => {
 test("built-in diagram modules are concrete classes composed from base facets", () => {
   const expectations = [
     [sequenceDiagramModule, SequenceDiagramModule],
+    [ieDiagramModule, IeDiagramModule],
+    [chenDiagramModule, ChenDiagramModule],
     [classDiagramModule, ClassDiagramModule],
     [componentDiagramModule, ComponentDiagramModule],
     [objectDiagramModule, ObjectDiagramModule],
@@ -393,6 +406,8 @@ test("source layout foregrounds diagram modules and separates runtime concerns",
     "sequence",
     "class",
     "component",
+    "ie",
+    "chen",
     "object",
     "state",
     "gantt",

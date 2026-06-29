@@ -263,6 +263,18 @@ ranges, start/end directives, and dependencies between events. Unsupported
 calendar-specific presentation lines are tolerated so useful chronology content
 still renders as safe readable timeline graphs.
 
+### Entity Relationship Coverage
+
+Information Engineering diagrams support PlantUML `entity` declarations with
+attribute rows plus crow-foot relationship operators such as `}|..||`,
+`}o..o|`, `||--o{`, and `|o--||`. Cardinality and optionality markers are kept
+as endpoint labels so exported diagrams remain deterministic and reviewable.
+
+Chen ER diagrams support `@startchen` entity, relationship, attribute,
+derived-attribute, multi-valued-attribute, and key declarations, including
+empty or member-bearing blocks, simple orientation directives, aliases, and
+cardinality-labelled connections such as `Person -N- Birthplace`.
+
 Use-case diagrams support actor and usecase declarations in keyword,
 colon, parenthesized, quoted-alias, reverse-description, stereotype, and
 business `/` forms; nested `package` / `rectangle` system boundaries;

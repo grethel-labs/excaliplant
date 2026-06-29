@@ -30,6 +30,36 @@ export {
 } from "./sequence/render.mjs";
 export { SequenceDiagramSecurity, sequenceDiagramSecurity } from "./sequence/security.mjs";
 export { SequenceDiagramTests, sequenceDiagramTests } from "./sequence/tests.mjs";
+export { IeDiagramModule, ieDiagramModule } from "./ie/module.mjs";
+export { IeDiagramAssets, ieDiagramAssets } from "./ie/assets.mjs";
+export { IeDiagramDocs, ieDiagramDocs } from "./ie/docs.mjs";
+export { IeDiagramLayout, ieDiagramLayout } from "./ie/layout.mjs";
+export {
+  IeDiagramParser,
+  DEFAULT_IE_PLUGINS,
+  createIeParseContext,
+  detectIeDiagram,
+  prepareIeLines,
+  ieDiagramParser,
+} from "./ie/parser.mjs";
+export { IE_RENDERERS, IeDiagramRenderer, ieDiagramRenderer } from "./ie/render.mjs";
+export { IeDiagramSecurity, ieDiagramSecurity } from "./ie/security.mjs";
+export { IeDiagramTests, ieDiagramTests } from "./ie/tests.mjs";
+export { ChenDiagramModule, chenDiagramModule } from "./chen/module.mjs";
+export { ChenDiagramAssets, chenDiagramAssets } from "./chen/assets.mjs";
+export { ChenDiagramDocs, chenDiagramDocs } from "./chen/docs.mjs";
+export { ChenDiagramLayout, chenDiagramLayout } from "./chen/layout.mjs";
+export {
+  ChenDiagramParser,
+  DEFAULT_CHEN_PLUGINS,
+  createChenParseContext,
+  detectChenDiagram,
+  prepareChenLines,
+  chenDiagramParser,
+} from "./chen/parser.mjs";
+export { CHEN_RENDERERS, ChenDiagramRenderer, chenDiagramRenderer } from "./chen/render.mjs";
+export { ChenDiagramSecurity, chenDiagramSecurity } from "./chen/security.mjs";
+export { ChenDiagramTests, chenDiagramTests } from "./chen/tests.mjs";
 export { ClassDiagramModule, classDiagramModule } from "./class/module.mjs";
 export { ClassDiagramAssets, classDiagramAssets } from "./class/assets.mjs";
 export { ClassDiagramDocs, classDiagramDocs } from "./class/docs.mjs";
@@ -384,6 +414,8 @@ export { FilesDiagramSecurity, filesDiagramSecurity } from "./files/security.mjs
 export { FilesDiagramTests, filesDiagramTests } from "./files/tests.mjs";
 
 import { sequenceDiagramModule } from "./sequence/module.mjs";
+import { ieDiagramModule } from "./ie/module.mjs";
+import { chenDiagramModule } from "./chen/module.mjs";
 import { classDiagramModule } from "./class/module.mjs";
 import { componentDiagramModule } from "./component/module.mjs";
 import { deploymentDiagramModule } from "./deployment/module.mjs";
@@ -409,6 +441,8 @@ import { filesDiagramModule } from "./files/module.mjs";
 /** @public */
 export const BUILTIN_DIAGRAM_MODULES = Object.freeze([
   sequenceDiagramModule,
+  ieDiagramModule,
+  chenDiagramModule,
   classDiagramModule,
   componentDiagramModule,
   deploymentDiagramModule,
