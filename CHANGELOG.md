@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Graph edge-label chips now inherit the rendered arrow colour by default and
+  use smart wrapping, multiline expansion, and auto-shrink fitting so connection
+  labels remain fully inside their chip backgrounds.
 - New `src/general/style/style.mjs` module with a single source of truth for
   renderer styling. `getStyle()` / `setStyle()` / `resetStyle()` /
   `loadStyleFromFile()` are exported from the package root, the CLI

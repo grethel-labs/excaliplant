@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import {
   parsePlantUml,
   renderPlantUml,
+  exportDiagram,
   Diagram,
   SequenceDiagram,
   Box,
@@ -564,6 +565,195 @@ test("renderDiagram works with a hand-built model (no PlantUML)", async () => {
   assert.equal(doc.type, "excalidraw");
   assert.ok(doc.elements.length > 0);
 });
+
+test("graph edge label chips use arrow colour and contain topology labels", async () => {
+  const doc = await renderPlantUml(`@startuml
+title Network Topology
+left to right direction
+
+card "reachability.management" as capability_reachability_management
+rectangle "cp-0001" as cp_0001
+rectangle "dpl-0001" as dpl_0001
+rectangle "Deployment Host Management Endpoint" as endpoint_dpl_0001_management
+rectangle "Management Network" as network_management
+rectangle "SSH Access" as service_ssh
+rectangle "Management VLAN" as vlan_management
+
+endpoint_dpl_0001_management --> service_ssh : exposes-service
+endpoint_dpl_0001_management --> capability_reachability_management : has-reachability
+endpoint_dpl_0001_management --> network_management : uses-network
+network_management --> cp_0001 : connects
+network_management --> dpl_0001 : connects
+network_management --> service_ssh : exposes-service
+network_management --> vlan_management : uses-vlan
+service_ssh --> network_management : uses-network
+vlan_management --> network_management : backs-network
+@enduml`);
+
+  assertEdgeLabelChipsContainText(doc);
+  assertEdgeLabelChipsUseArrowColour(doc);
+});
+
+test("graph edge label chips fit multiline and long unbreakable labels", async () => {
+  resetStyle();
+  setStyle({ edgeLabel: { maxWidth: 72, paddingX: 5, paddingY: 3 }, font: { sizeEdgeLabel: 12 } });
+  try {
+    const d = new Diagram();
+    const { Plane } = await import("../src/general/model/diagram.mjs");
+    const { planeColor } = await import("../src/general/style/colors.mjs");
+    const plane = d.addPlane(
+      new Plane({ id: "p", title: "P", color: planeColor("p"), kind: "package" }),
+    );
+    const a = plane.addBox(new Box({ id: "a", title: "Source" }));
+    const b = plane.addBox(new Box({ id: "b", title: "Target" }));
+    d.addConnection(
+      new Connection({
+        id: "a->b",
+        from: a,
+        to: b,
+        label: "first line\nsecond-line-with-hyphens\nVeryLongUnbreakableEndpointName",
+      }),
+    );
+
+    const { renderDiagram } = await import("../index.mjs");
+    const doc = await renderDiagram(d);
+    assertEdgeLabelChipsContainText(doc);
+    assertEdgeLabelChipsUseArrowColour(doc);
+
+    const label = doc.elements.find((element) => element.customData?.role === "edgeLabelText");
+    assert.ok(label, "expected edge-label text");
+    assert.ok(String(label.text).includes("\n"), "expected multiline rendered label");
+    assert.ok(label.fontSize <= 12, "expected fitted font size to be no larger than requested");
+  } finally {
+    resetStyle();
+  }
+});
+
+test("graph edge label chips keep a minimum gap when routed labels overlap", async () => {
+  resetStyle();
+  setStyle({ edgeLabel: { minGap: 10, maxWidth: 96 } });
+  try {
+    const d = new Diagram();
+    const { Plane } = await import("../src/general/model/diagram.mjs");
+    const { planeColor } = await import("../src/general/style/colors.mjs");
+    const plane = d.addPlane(
+      new Plane({ id: "p", title: "P", color: planeColor("p"), kind: "package" }),
+    );
+    const a = plane.addBox(new Box({ id: "a", title: "A" }));
+    const b = plane.addBox(new Box({ id: "b", title: "B" }));
+    a.x = 0;
+    a.y = 0;
+    a.width = 80;
+    a.height = 40;
+    b.x = 260;
+    b.y = 0;
+    b.width = 80;
+    b.height = 40;
+
+    const first = d.addConnection(new Connection({ id: "a->b:1", from: a, to: b, label: "alpha" }));
+    const second = d.addConnection(new Connection({ id: "a->b:2", from: a, to: b, label: "beta" }));
+    first.path = [
+      { x: 80, y: 20 },
+      { x: 260, y: 20 },
+    ];
+    second.path = [
+      { x: 80, y: 20 },
+      { x: 260, y: 20 },
+    ];
+
+    const doc = exportDiagram(d);
+    assertEdgeLabelChipsContainText(doc);
+    assertEdgeLabelChipsUseArrowColour(doc);
+    assertEdgeLabelChipsKeepDistance(doc, 10);
+    assert.ok(
+      doc.elements.some(
+        (element) =>
+          element.customData?.role === "edgeLabelChip" && element.customData?.avoidedOverlap,
+      ),
+      "expected at least one chip to be moved away from an occupied label area",
+    );
+  } finally {
+    resetStyle();
+  }
+});
+
+/**
+ * @param {{elements:Array<Record<string, any>>}} doc
+ */
+function assertEdgeLabelChipsContainText(doc) {
+  const chips = doc.elements.filter((element) => element.customData?.role === "edgeLabelChip");
+  const labels = doc.elements.filter((element) => element.customData?.role === "edgeLabelText");
+  assert.ok(chips.length > 0, "expected edge-label chips");
+  assert.equal(labels.length, chips.length, "expected one text element per edge-label chip");
+
+  for (const label of labels) {
+    const chip = chips.find(
+      (candidate) => candidate.customData?.connectionId === label.customData?.connectionId,
+    );
+    assert.ok(chip, `missing chip for ${label.customData?.connectionId}`);
+    assert.ok(label.x >= chip.x, "label starts before chip");
+    assert.ok(label.y >= chip.y, "label starts above chip");
+    assert.ok(label.x + label.width <= chip.x + chip.width + 0.5, "label overflows chip width");
+    assert.ok(label.y + label.height <= chip.y + chip.height + 0.5, "label overflows chip height");
+    assert.ok(
+      (label.customData?.measuredWidth || 0) <= label.width + 0.5,
+      "measured label text overflows text box width",
+    );
+    assert.ok(
+      (label.customData?.measuredHeight || 0) <= label.height + 0.5,
+      "measured label text overflows text box height",
+    );
+  }
+}
+
+/**
+ * @param {{elements:Array<Record<string, any>>}} doc
+ * @param {number} minGap
+ */
+function assertEdgeLabelChipsKeepDistance(doc, minGap) {
+  const chips = doc.elements.filter((element) => element.customData?.role === "edgeLabelChip");
+  for (let i = 0; i < chips.length; i++) {
+    for (let j = i + 1; j < chips.length; j++) {
+      assert.equal(
+        expandedBoundsOverlap(chips[i], chips[j], minGap),
+        false,
+        `edge-label chips ${i} and ${j} overlap or violate ${minGap}px gap`,
+      );
+    }
+  }
+}
+
+/**
+ * @param {Record<string, any>} a
+ * @param {Record<string, any>} b
+ * @param {number} gap
+ * @returns {boolean}
+ */
+function expandedBoundsOverlap(a, b, gap) {
+  return (
+    a.x - gap < b.x + b.width &&
+    a.x + a.width + gap > b.x &&
+    a.y - gap < b.y + b.height &&
+    a.y + a.height + gap > b.y
+  );
+}
+
+/**
+ * @param {{elements:Array<Record<string, any>>}} doc
+ */
+function assertEdgeLabelChipsUseArrowColour(doc) {
+  const arrows = doc.elements.filter((element) => element.customData?.role === "connectionArrow");
+  const chips = doc.elements.filter((element) => element.customData?.role === "edgeLabelChip");
+  assert.ok(arrows.length > 0, "expected connection arrows");
+  for (const chip of chips) {
+    const arrow = arrows.find(
+      (candidate) => candidate.customData?.connectionId === chip.customData?.connectionId,
+    );
+    assert.ok(arrow, `missing arrow for ${chip.customData?.connectionId}`);
+    assert.equal(chip.backgroundColor, arrow.strokeColor);
+    assert.equal(chip.customData?.lineColor, arrow.strokeColor);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Class-diagram support (tplant-style PlantUML)

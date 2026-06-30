@@ -17,7 +17,13 @@
 // no Excalidraw-internal version-specific arrow fields.
 
 import { Box, Plane, Subplane, SequenceDiagram } from "../model/diagram.mjs";
-import { FONT, measureSmartWrapped, measureWrapped, isOperationMember } from "../style/text.mjs";
+import {
+  FONT,
+  measureSmartFitted,
+  measureSmartWrapped,
+  measureWrapped,
+  isOperationMember,
+} from "../style/text.mjs";
 import { getStyle } from "../style/style.mjs";
 import { SIZING } from "../layout/sizing.mjs";
 import { boxColor, planeColor } from "../style/colors.mjs";
@@ -42,6 +48,8 @@ import { exportSequenceDiagram } from "../../diagrams/sequence/render_excalidraw
 // identical output (= reviewable diffs in git, snapshot-friendly).
 let _rng = Math.random;
 let _idCounter = 0;
+/** @type {Array<{x:number,y:number,width:number,height:number}>} */
+let _edgeLabelOccupied = [];
 const RAND_RANGE = 2_000_000_000;
 const newId = () => {
   const r = Math.floor(_rng() * 0xffffffff).toString(36);
@@ -288,6 +296,7 @@ export function exportDiagram(diagram, opts = {}) {
   // deterministic one from the source label so reruns produce identical
   // documents.
   _idCounter = 0;
+  _edgeLabelOccupied = [];
   _rng =
     typeof rng === "function"
       ? rng
@@ -326,7 +335,10 @@ export function exportDiagram(diagram, opts = {}) {
       startArrowhead: conn.startArrowhead ?? null,
       endArrowhead: conn.endArrowhead === undefined ? "arrow" : conn.endArrowhead,
     });
-    if (a) elements.push(a);
+    if (a) {
+      a.customData = { role: "connectionArrow", connectionId: conn.id };
+      elements.push(a);
+    }
     if (conn.label) {
       const labelEls = renderEdgeLabel(conn);
       for (const el of labelEls) elements.push(el);
@@ -1988,12 +2000,12 @@ function renderNote(box, elements) {
 }
 
 /**
- * Render a connection label as a small white "chip": a rounded
- * rectangle background with the text on top, both rotated to follow
- * the segment they sit on so the label visually belongs to the line.
- * The text is kept slightly smaller than body copy and clamped to a
- * sensible width so long labels wrap into a compact mini-box rather
- * than smearing along the line.
+ * Render a connection label as a line-coloured "chip": a rectangle
+ * background with the text on top, both rotated to follow the segment
+ * they sit on so the label visually belongs to the line. The text is
+ * measured with the same smart wrapping/shrink pass used for other
+ * fitted text so whitespace, punctuation, explicit newlines, and long
+ * single tokens stay inside the chip.
  *
  * @param {import("../model/diagram.mjs").Connection} conn Connection whose label is rendered.
  * @returns {ExcalElement[]}    Zero, one or two Excalidraw elements
@@ -2039,17 +2051,22 @@ function renderEdgeLabel(conn) {
   const padY = typeof style.paddingY === "number" ? style.paddingY : 2;
   const segMargin = typeof style.segmentMargin === "number" ? style.segmentMargin : 24;
   const maxWidthCap = typeof style.maxWidth === "number" ? style.maxWidth : 160;
+  const minGap = typeof style.minGap === "number" ? Math.max(0, style.minGap) : 6;
 
   const fontSize = FONT.sizeEdgeLabel;
-  // Clamp the chip width to the segment length (minus a margin so
-  // arrowheads stay clear) and cap at the configured absolute max.
+  // Prefer a chip that fits the segment, but keep enough inner width
+  // for the smart wrapper's minimum four-character line budget. This
+  // makes containment win for very short routed segments instead of
+  // letting the text bleed out of the background.
   const segCap = Math.max(40, bestLen - segMargin);
-  const maxChipWidth = Math.min(maxWidthCap, segCap);
-  const wrapped = measureWrapped(String(conn.label), fontSize, maxChipWidth - padX * 2);
-  const w = Math.min(maxChipWidth, Math.max(20, wrapped.width + padX * 2));
+  const minInnerWidth = Math.ceil(fontSize * FONT.glyphRatio * 4);
+  const preferredChipWidth = Math.min(maxWidthCap, segCap);
+  const innerWidth = Math.max(minInnerWidth, preferredChipWidth - padX * 2);
+  const wrapped = measureSmartFitted(String(conn.label), fontSize, innerWidth);
+  const w = Math.max(20, wrapped.width + padX * 2);
   const h = Math.max(fontSize * FONT.lineHeight, wrapped.height) + padY * 2;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
+  const placement = placeEdgeLabelChip(cx, cy, w, h, angle, isVertical, minGap);
+  const { x, y } = placement;
   const value = wrapped.lines.join("\n");
 
   // Chip: line-coloured pill, no wobble, no rounded corners, so the
@@ -2066,7 +2083,13 @@ function renderEdgeLabel(conn) {
   chip.roughness = 0;
   chip.roundness = null;
   chip.strokeWidth = 1;
-  chip.customData = { role: "edgeLabelChip" };
+  chip.customData = {
+    role: "edgeLabelChip",
+    connectionId: conn.id,
+    lineColor,
+    fittedFontSize: wrapped.fontSize,
+    avoidedOverlap: placement.offset !== 0,
+  };
 
   const label = text({
     x: x + padX,
@@ -2074,15 +2097,116 @@ function renderEdgeLabel(conn) {
     width: w - padX * 2,
     height: h - padY * 2,
     value,
-    fontSize,
+    fontSize: wrapped.fontSize,
     color: textColor,
     align: "center",
     vAlign: "middle",
   });
   label.angle = angle;
-  label.customData = { role: "edgeLabelText" };
+  label.customData = {
+    role: "edgeLabelText",
+    connectionId: conn.id,
+    lineColor,
+    fittedFontSize: wrapped.fontSize,
+    measuredWidth: wrapped.width,
+    measuredHeight: wrapped.height,
+    avoidedOverlap: placement.offset !== 0,
+  };
   applyLinkMetadata(label, conn);
   return [chip, label];
+}
+
+/**
+ * Find a chip position that keeps at least `minGap` pixels from prior
+ * edge-label chips. Labels first try the actual edge midpoint, then
+ * move perpendicular to the edge in alternating directions.
+ *
+ * @param {number} cx Base chip centre x.
+ * @param {number} cy Base chip centre y.
+ * @param {number} width Chip width.
+ * @param {number} height Chip height.
+ * @param {number} angle Chip rotation angle.
+ * @param {boolean} isVertical Whether the owning segment is vertical.
+ * @param {number} minGap Minimum gap around chip bounds.
+ * @returns {{x:number,y:number,offset:number}}
+ */
+function placeEdgeLabelChip(cx, cy, width, height, angle, isVertical, minGap) {
+  const step = (isVertical ? width : height) + minGap;
+  const offsets = [0];
+  for (let i = 1; i <= 12; i++) offsets.push(i * step, -i * step);
+
+  let fallback = { x: cx - width / 2, y: cy - height / 2, offset: 0 };
+  for (const offset of offsets) {
+    const x = cx - width / 2 + (isVertical ? offset : 0);
+    const y = cy - height / 2 + (isVertical ? 0 : offset);
+    const bounds = expandedRotatedBounds(x, y, width, height, angle, minGap);
+    if (!_edgeLabelOccupied.some((occupied) => boundsOverlap(bounds, occupied))) {
+      _edgeLabelOccupied.push(bounds);
+      return { x, y, offset };
+    }
+    fallback = { x, y, offset };
+  }
+
+  _edgeLabelOccupied.push(
+    expandedRotatedBounds(fallback.x, fallback.y, width, height, angle, minGap),
+  );
+  return fallback;
+}
+
+/**
+ * @param {number} x Unrotated element x.
+ * @param {number} y Unrotated element y.
+ * @param {number} width Unrotated element width.
+ * @param {number} height Unrotated element height.
+ * @param {number} angle Rotation angle around the element centre.
+ * @param {number} margin Bounds expansion in px.
+ * @returns {{x:number,y:number,width:number,height:number}}
+ */
+function expandedRotatedBounds(x, y, width, height, angle, margin) {
+  if (!angle) {
+    return {
+      x: x - margin,
+      y: y - margin,
+      width: width + margin * 2,
+      height: height + margin * 2,
+    };
+  }
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const corners = [
+    { x, y },
+    { x: x + width, y },
+    { x: x + width, y: y + height },
+    { x, y: y + height },
+  ].map((point) => {
+    const px = point.x - cx;
+    const py = point.y - cy;
+    return {
+      x: cx + px * cos - py * sin,
+      y: cy + px * sin + py * cos,
+    };
+  });
+  const minX = Math.min(...corners.map((point) => point.x));
+  const maxX = Math.max(...corners.map((point) => point.x));
+  const minY = Math.min(...corners.map((point) => point.y));
+  const maxY = Math.max(...corners.map((point) => point.y));
+  return {
+    x: minX - margin,
+    y: minY - margin,
+    width: maxX - minX + margin * 2,
+    height: maxY - minY + margin * 2,
+  };
+}
+
+/**
+ * @param {{x:number,y:number,width:number,height:number}} a
+ * @param {{x:number,y:number,width:number,height:number}} b
+ * @returns {boolean}
+ */
+function boundsOverlap(a, b) {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
 /**
