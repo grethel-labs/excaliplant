@@ -1171,19 +1171,79 @@ function renderRectangleShape(box, color, elements) {
 function renderDiamondShape(box, color, elements) {
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
-  elements.push(
-    line({
-      points: [
-        { x: cx, y: box.y },
-        { x: box.x + box.width, y: cy },
-        { x: cx, y: box.y + box.height },
-        { x: box.x, y: cy },
-        { x: cx, y: box.y },
-      ],
-      strokeColor: color.stroke,
+  const outline = line({
+    points: [
+      { x: cx, y: box.y },
+      { x: box.x + box.width, y: cy },
+      { x: cx, y: box.y + box.height },
+      { x: box.x, y: cy },
+      { x: cx, y: box.y },
+    ],
+    strokeColor: color.stroke,
+  });
+  outline.customData = { role: "diamondShape", boxId: box.id };
+  elements.push(outline);
+  renderDiamondText(box, color, elements);
+}
+
+/**
+ * Render text in the central band of a diamond. Rectangular box padding
+ * would place text into the narrowing top/bottom corners, where it can
+ * visually cross the diagonal edges even though it fits the bounding box.
+ * @param {Box} box Box being drawn.
+ * @param {ColorTriple} color Colour triple supplying the text colour.
+ * @param {ExcalElement[]} elements Excalidraw element list — mutated in place.
+ * @returns {void}
+ */
+function renderDiamondText(box, color, elements) {
+  const textWidth = Math.max(40, Math.floor(box.width * 0.46));
+  const cx = box.x + box.width / 2;
+  const titleValue = box._wrappedTitle ?? String(box.title || "");
+  const titleFontSize = box._wrappedTitleFontSize ?? FONT.sizeTitle;
+  const titleHeight = titleValue.split("\n").length * titleFontSize * FONT.lineHeight;
+  const stereotypeValue = box.stereotype ? `«${box.stereotype}»` : "";
+  const stereotypeHeight = stereotypeValue ? FONT.sizeDescription * FONT.lineHeight : 0;
+  const gap = stereotypeValue ? 2 : 0;
+  const blockHeight = stereotypeHeight + gap + titleHeight;
+  const top = box.y + (box.height - blockHeight) / 2;
+  const x = cx - textWidth / 2;
+
+  if (stereotypeValue) {
+    const stereotype = text({
+      x,
+      y: top,
+      width: textWidth,
+      height: stereotypeHeight,
+      value: stereotypeValue,
+      fontSize: FONT.sizeDescription,
+      color: _activeGraphStyle.boxFontColor || color.stroke,
+      align: "center",
+      vAlign: "middle",
+    });
+    stereotype.customData = { role: "diamondStereotypeText", boxId: box.id };
+    elements.push(stereotype);
+  }
+
+  const title = applyLinkMetadata(
+    text({
+      x,
+      y: top + stereotypeHeight + gap,
+      width: textWidth,
+      height: titleHeight,
+      value: titleValue,
+      fontSize: titleFontSize,
+      color: _activeGraphStyle.boxFontColor || color.stroke,
+      align: "center",
+      vAlign: "middle",
     }),
+    box,
   );
-  renderBoxText(box, color, elements);
+  title.customData = {
+    ...(title.customData || {}),
+    role: "diamondTitleText",
+    boxId: box.id,
+  };
+  elements.push(title);
 }
 
 /**
@@ -2218,34 +2278,102 @@ function boundsOverlap(a, b) {
 function renderConnectionEndpointLabels(conn) {
   if (!conn.path || conn.path.length < 2) return [];
   const endpoints = [
-    { name: "start", point: conn.path[0], label: conn.arrow.start.label },
-    { name: "end", point: conn.path[conn.path.length - 1], label: conn.arrow.end.label },
+    {
+      name: "start",
+      point: conn.path[0],
+      next: conn.path[1],
+      label: conn.arrow.start.label,
+    },
+    {
+      name: "end",
+      point: conn.path[conn.path.length - 1],
+      next: conn.path[conn.path.length - 2],
+      label: conn.arrow.end.label,
+    },
   ];
   const out = [];
+  const lineColor = connectionStrokeColor(conn);
   for (const endpoint of endpoints) {
     if (!endpoint.label) continue;
-    const fontSize = FONT.sizeEdgeLabel;
-    const wrapped = measureSmartWrapped(endpoint.label, fontSize, 88);
-    const width = Math.max(20, wrapped.width + 4);
-    const height = Math.max(fontSize * FONT.lineHeight, wrapped.height);
-    const label = text({
-      x: endpoint.point.x - width / 2,
-      y: endpoint.point.y - height - 6,
+    const fontSize = Math.max(FONT.sizeEdgeLabel + 2, FONT.sizeDescription);
+    const wrapped = measureSmartFitted(endpoint.label, fontSize, 96, {
+      minFontSize: Math.max(9, FONT.sizeEdgeLabel),
+    });
+    const padX = 5;
+    const padY = 2;
+    const width = Math.max(30, wrapped.width + padX * 2);
+    const height = Math.max(fontSize * FONT.lineHeight, wrapped.height) + padY * 2;
+    const labelCenter = endpointLabelCenter(endpoint.point, endpoint.next, width, height);
+    const chip = rect({
+      x: labelCenter.x - width / 2,
+      y: labelCenter.y - height / 2,
       width,
       height,
+      strokeColor: lineColor,
+      backgroundColor: "#ffffff",
+    });
+    chip.roughness = 0;
+    chip.roundness = null;
+    chip.strokeWidth = 1;
+    chip.customData = {
+      role: "arrowEndpointLabelChip",
+      connectionId: conn.id,
+      endpoint: endpoint.name,
+      lineColor,
+    };
+    out.push(chip);
+
+    const chipX = Number(chip.x);
+    const chipY = Number(chip.y);
+    const label = text({
+      x: chipX + padX,
+      y: chipY + padY,
+      width: width - padX * 2,
+      height: height - padY * 2,
       value: wrapped.lines.join("\n"),
-      fontSize,
-      color: _activeGraphStyle.edgeFontColor || "#334155",
+      fontSize: wrapped.fontSize,
+      color: _activeGraphStyle.edgeFontColor || lineColor,
       align: "center",
+      vAlign: "middle",
     });
     label.customData = {
       role: "arrowEndpointLabel",
       connectionId: conn.id,
       endpoint: endpoint.name,
+      lineColor,
+      measuredWidth: wrapped.width,
+      measuredHeight: wrapped.height,
+      fittedFontSize: wrapped.fontSize,
     };
     out.push(label);
   }
   return out;
+}
+
+/**
+ * Place an endpoint label just inside the routed edge rather than on the
+ * element border. The perpendicular offset keeps the label from sitting
+ * directly on top of the line.
+ * @param {Pt} point Endpoint on the element edge.
+ * @param {Pt} next Adjacent point along the routed edge.
+ * @param {number} width Label chip width.
+ * @param {number} height Label chip height.
+ * @returns {Pt} Label centre.
+ */
+function endpointLabelCenter(point, next, width, height) {
+  const dx = next.x - point.x;
+  const dy = next.y - point.y;
+  const len = Math.max(1, Math.hypot(dx, dy));
+  const ux = dx / len;
+  const uy = dy / len;
+  const nx = -uy;
+  const ny = ux;
+  const along = Math.min(34, Math.max(20, len * 0.22));
+  const away = Math.max(9, Math.min(14, Math.min(width, height) * 0.45));
+  return {
+    x: point.x + ux * along + nx * away,
+    y: point.y + uy * along + ny * away,
+  };
 }
 
 /**

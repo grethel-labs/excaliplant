@@ -677,6 +677,101 @@ test("graph edge label chips keep a minimum gap when routed labels overlap", asy
   }
 });
 
+test("diamond node text stays inside the visible diamond band", async () => {
+  const doc = await renderPlantUml(`@startchen
+entity Module {
+}
+entity Example {
+}
+relationship "Covers examples with long readable relationship text" as Covers {
+}
+Module -1- Covers : owns the documented example set
+Covers -N- Example : includes small focused and large combination examples
+@endchen`);
+
+  const title = doc.elements.find(
+    (element) =>
+      element.customData?.role === "diamondTitleText" && element.customData?.boxId === "Covers",
+  );
+  const stereotype = doc.elements.find(
+    (element) =>
+      element.customData?.role === "diamondStereotypeText" &&
+      element.customData?.boxId === "Covers",
+  );
+  assert.ok(title, "expected diamond title text");
+  assert.ok(stereotype, "expected diamond stereotype text");
+
+  const diamondBounds = diamondTextBounds([title, stereotype]);
+  const cx = title.x + title.width / 2;
+  const cy = (stereotype.y + title.y + title.height) / 2;
+  const diamondWidth = title.width / 0.46;
+  const diamondHeight = Math.max(72, diamondBounds.height * 2.15);
+
+  for (const element of [title, stereotype]) {
+    assertTextRectInsideDiamond(element, {
+      cx,
+      cy,
+      rx: diamondWidth / 2,
+      ry: diamondHeight / 2,
+    });
+  }
+});
+
+test("connection endpoint labels use arrow colour and move inward from element edges", async () => {
+  const doc = await renderPlantUml(`@startchen
+entity Module {
+}
+entity Example {
+}
+relationship Covers {
+}
+Module -1- Covers
+Covers -N- Example
+@endchen`);
+
+  const labels = doc.elements.filter(
+    (element) => element.customData?.role === "arrowEndpointLabel",
+  );
+  const chips = doc.elements.filter(
+    (element) => element.customData?.role === "arrowEndpointLabelChip",
+  );
+  assert.ok(labels.length >= 2, "expected endpoint labels");
+  assert.equal(labels.length, chips.length, "expected one chip per endpoint label");
+
+  for (const label of labels) {
+    const chip = chips.find(
+      (candidate) =>
+        candidate.customData?.connectionId === label.customData?.connectionId &&
+        candidate.customData?.endpoint === label.customData?.endpoint,
+    );
+    assert.ok(chip, `missing endpoint chip for ${label.customData?.connectionId}`);
+    assert.equal(label.strokeColor, label.customData?.lineColor);
+    assert.equal(chip.strokeColor, label.customData?.lineColor);
+    assert.ok(
+      label.fontSize >= 12,
+      "endpoint label font should be larger than old edge-label size",
+    );
+    assert.ok(label.x >= chip.x, "endpoint label starts before chip");
+    assert.ok(label.y >= chip.y, "endpoint label starts above chip");
+    assert.ok(
+      label.x + label.width <= chip.x + chip.width + 0.5,
+      "endpoint label overflows chip width",
+    );
+    assert.ok(
+      label.y + label.height <= chip.y + chip.height + 0.5,
+      "endpoint label overflows chip height",
+    );
+
+    const arrow = doc.elements.find(
+      (element) =>
+        element.customData?.role === "connectionArrow" &&
+        element.customData?.connectionId === label.customData?.connectionId,
+    );
+    assert.ok(arrow, `missing arrow for ${label.customData?.connectionId}`);
+    assertEndpointLabelMovesInward(label, arrow);
+  }
+});
+
 /**
  * @param {{elements:Array<Record<string, any>>}} doc
  */
@@ -753,6 +848,69 @@ function assertEdgeLabelChipsUseArrowColour(doc) {
     assert.equal(chip.backgroundColor, arrow.strokeColor);
     assert.equal(chip.customData?.lineColor, arrow.strokeColor);
   }
+}
+
+/**
+ * @param {Array<Record<string, any>>} elements
+ * @returns {{x:number,y:number,width:number,height:number}}
+ */
+function diamondTextBounds(elements) {
+  const minX = Math.min(...elements.map((element) => element.x));
+  const minY = Math.min(...elements.map((element) => element.y));
+  const maxX = Math.max(...elements.map((element) => element.x + element.width));
+  const maxY = Math.max(...elements.map((element) => element.y + element.height));
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/**
+ * @param {Record<string, any>} element
+ * @param {{cx:number,cy:number,rx:number,ry:number}} diamond
+ */
+function assertTextRectInsideDiamond(element, diamond) {
+  const corners = [
+    [element.x, element.y],
+    [element.x + element.width, element.y],
+    [element.x + element.width, element.y + element.height],
+    [element.x, element.y + element.height],
+  ];
+  for (const [x, y] of corners) {
+    const normalized =
+      Math.abs(x - diamond.cx) / Math.max(1, diamond.rx) +
+      Math.abs(y - diamond.cy) / Math.max(1, diamond.ry);
+    assert.ok(
+      normalized <= 1.02,
+      `diamond text corner (${x}, ${y}) escapes diamond boundary (${normalized})`,
+    );
+  }
+}
+
+/**
+ * @param {Record<string, any>} label
+ * @param {Record<string, any>} arrow
+ */
+function assertEndpointLabelMovesInward(label, arrow) {
+  const points = arrow.points.map(([dx, dy]) => ({ x: arrow.x + dx, y: arrow.y + dy }));
+  const endpoint = label.customData?.endpoint === "start" ? points[0] : points.at(-1);
+  const next = label.customData?.endpoint === "start" ? points[1] : points.at(-2);
+  assert.ok(endpoint && next, "expected routed arrow endpoint and adjacent point");
+
+  const labelCenter = {
+    x: label.x + label.width / 2,
+    y: label.y + label.height / 2,
+  };
+  const vx = next.x - endpoint.x;
+  const vy = next.y - endpoint.y;
+  const len = Math.max(1, Math.hypot(vx, vy));
+  const ux = vx / len;
+  const uy = vy / len;
+  const lx = labelCenter.x - endpoint.x;
+  const ly = labelCenter.y - endpoint.y;
+  const projection = lx * ux + ly * uy;
+  assert.ok(
+    projection >= 16,
+    "endpoint label should be shifted from the element edge toward the edge middle",
+  );
+  assert.ok(Math.hypot(lx, ly) >= 18, "endpoint label should not sit on the element border");
 }
 
 // ---------------------------------------------------------------------------

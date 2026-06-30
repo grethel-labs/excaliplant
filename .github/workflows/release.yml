@@ -29,7 +29,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/API.md docs/.build-manifest.json docs/ressources/generated/
+          git add README.md docs/API.md docs/module-coverage.md docs/.build-manifest.json docs/ressources/generated/ docs/ressources/module-coverage/
           git diff --cached --quiet || git commit -m "docs: regenerate for ${GITHUB_REF_NAME} [skip ci]"
       - name: Pack + smoke-install (clean project)
         run: |
