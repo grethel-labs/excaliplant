@@ -116,7 +116,8 @@ function sizeSubplane(sub, planeContentWidth) {
  */
 function sizeBox(box, width) {
   box.width = width;
-  const innerWidth = Math.max(20, width - SIZING.boxPaddingX * 2);
+  let innerWidth = Math.max(20, width - SIZING.boxPaddingX * 2);
+  if (box.shape === "diamond") innerWidth = diamondTextWidth(width);
   // Auto-wrap the title so long labels stay inside the box. Manual
   // line breaks ("\n") are preserved by wrapping each segment
   // independently. `measureFitted` shrinks the font size when a
@@ -260,7 +261,7 @@ function sizeBox(box, width) {
       }
       break;
     case "diamond":
-      shapeMin = Math.max(shapeMin, 72);
+      shapeMin = Math.max(shapeMin, 72, textHeight * 2.15);
       break;
     case "note":
       shapeMin = Math.max(shapeMin, 50);
@@ -310,6 +311,17 @@ function sizeBox(box, width) {
   }
 
   box.height = Math.max(shapeMin, textHeight, connectionsHeight);
+}
+
+/**
+ * Approximate the widest stable text band inside a diamond. A diamond's
+ * bounding box is much wider at the centre than near its top/bottom, so
+ * titles must wrap against a narrower measure than rectangular boxes.
+ * @param {number} width Diamond bounding-box width.
+ * @returns {number} Text width that stays visually inside the diamond.
+ */
+function diamondTextWidth(width) {
+  return Math.max(40, Math.floor(width * 0.46));
 }
 
 /**
