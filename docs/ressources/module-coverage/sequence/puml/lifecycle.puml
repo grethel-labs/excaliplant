@@ -1,0 +1,14 @@
+@startuml
+title Lifecycle and return
+participant User
+User -> Worker: start
+activate Worker #LightBlue
+Worker -> Worker ++ #DarkSalmon: nested work
+return nested done
+create control Job
+Worker -> Job **: create job
+Job --> Worker: ready
+Worker -> Job !!: delete job
+Worker --> User: done
+deactivate Worker
+@enduml

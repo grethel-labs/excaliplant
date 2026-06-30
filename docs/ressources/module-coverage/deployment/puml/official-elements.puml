@@ -1,0 +1,16 @@
+@startuml
+actor actor
+agent agent
+artifact artifact
+cloud cloud
+component component
+database database
+folder folder
+frame frame
+node node
+package package
+queue queue
+rectangle rectangle
+stack stack
+storage storage
+@enduml

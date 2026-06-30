@@ -1,0 +1,8 @@
+@startebnf
+title EBNF elements
+litteral = "a";
+special = ? a ?;
+optional = [a];
+zero_or_more = {a};
+group = (a | b), c;
+@endebnf

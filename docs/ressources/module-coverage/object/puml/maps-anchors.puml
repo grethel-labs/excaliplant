@@ -1,0 +1,8 @@
+@startobject
+map CapitalCity {
+  UK => London
+  USA => Washington
+}
+object Traveler
+Traveler --> CapitalCity::UK : visits
+@endobject

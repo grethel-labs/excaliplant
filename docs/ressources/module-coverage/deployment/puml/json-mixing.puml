@@ -1,0 +1,6 @@
+@startuml
+allowmixing
+node Runtime
+[Metadata] : "region: eu-central-1"
+Runtime --> Metadata
+@enduml

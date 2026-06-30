@@ -1,0 +1,10 @@
+@startuml
+allowmixing
+node Runtime
+json JSON {
+  "fruit":"Apple",
+  "size":"Large",
+  "color": ["Red", "Green"]
+}
+Runtime --> JSON
+@enduml

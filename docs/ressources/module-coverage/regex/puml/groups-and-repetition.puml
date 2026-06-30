@@ -1,0 +1,4 @@
+@startregex
+title Regex groups and repetition
+^(ab?)+|(?<word>\p{L}{1,3})$
+@endregex

@@ -1,0 +1,19 @@
+@startuml
+allowmixing
+component Component
+() Interface
+json JSON {
+  "fruit":"Apple",
+  "size":"Large",
+  "color": ["Red", "Green"]
+}
+component C {
+  port p1
+  portin p2
+  portout p3
+  component c1
+}
+C --> p1
+p1 --> c1
+p3 --> Interface
+@enduml

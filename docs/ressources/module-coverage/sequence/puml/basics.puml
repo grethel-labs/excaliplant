@@ -1,0 +1,8 @@
+@startuml
+title Basic sequence messages
+participant Client
+participant API
+Client->API: **request** <b>as plain text</b>\nwith wrapped label
+API --> Client: response
+Client <- API: reverse-readable reply
+@enduml

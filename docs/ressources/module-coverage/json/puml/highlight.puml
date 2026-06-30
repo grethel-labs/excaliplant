@@ -1,0 +1,8 @@
+@startjson
+#highlight "address" / "city"
+{
+  "firstName": "John",
+  "lastName": "Smith",
+  "address": { "city": "New York" }
+}
+@endjson

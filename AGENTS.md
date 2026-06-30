@@ -173,16 +173,34 @@ Test placement:
 - `tests/plantuml.test.mjs`: core parser/render behavior.
 - `tests/security.test.mjs`: XSS, ReDoS, prototype pollution, limits, CLI hardening.
 - `tests/self_introspection.test.mjs`: repo-generated architecture diagrams.
+- `tests/module_coverage.test.mjs`: shared coverage inventory that renders every
+  diagram-module example through SVG.
 
 New parser, renderer, security, or public API behavior needs a regression test.
 Avoid tests that only assert "renders something" when a more specific contract is
 available.
+
+Diagram-module coverage examples should follow the sequence-diagram coverage
+model. Each module owns examples in
+`src/diagrams/<kind>/docs/coverage_examples.mjs`; keep several small, focused
+examples for individual syntax/renderer decisions and at least one large
+combination example that intentionally mixes supported features. The large
+example should exercise edge cases, overlap-prone layouts, long labels,
+wrapping/multiline text, functional choices, and deliberate design decisions so
+the final SVG validates the diagram type beyond a smoke render. When a diagram
+type naturally represents repository structure or dependencies, prefer an
+additional repo-derived dynamic example. Wire examples into the generated docs
+through `docs/scripts/build-module-coverage.mjs` and keep tests using the same
+coverage inventory so documentation and validation cannot drift apart.
 
 ## Docs, Generated Files, and Releases
 
 - `README.md` is generated. Edit `docs/README.template.md.njk` instead, then run
   `npm run build:docs`.
 - Do not manually patch generated docs or `docs/ressources/generated/` output.
+- `docs/module-coverage.md` and `docs/ressources/module-coverage/` are generated
+  from module coverage examples; edit the owning example source or template,
+  then run `npm run build:docs`.
 - Generated artifact merge conflicts use the `keep-generated` merge driver;
   resolve source/template changes, then regenerate with `npm run build:docs`.
 - Preserve `@diagram` JSDoc blocks unless deliberately changing generated
@@ -214,3 +232,25 @@ Use this checklist before finishing substantial changes:
 8. Were generated docs rebuilt through the template pipeline when user-facing docs changed?
 9. Was `CHANGELOG.md` updated for user-visible behavior?
 10. Has the relevant local gate been run?
+
+## PR Completion Process
+
+After completing a feature or patch, finish it through the repository release
+path instead of leaving it only as local changes:
+
+1. Create a PR branch whose name contains exactly one release token
+   (`PATCH`, `MINOR`, or `MAJOR`) matching the intended release impact.
+2. Commit the implementation, tests, docs, and generated artefacts that belong
+   to the change.
+3. Open a pull request into `main` and ensure it has exactly one matching
+   release label. The automation may derive the label from the branch name.
+4. Wait for all required PR pipelines to finish. If workflow automation amends
+   the branch, wait for the new head commit checks too.
+5. Merge the PR only after the required checks pass.
+6. After merge, inspect the `main` workflows that decide publication:
+   `auto-release.yml` creates a `v*` tag only when `package.json` changes on
+   `main`, and `release.yml` publishes to npm only for that tag push.
+7. Report the exact publication outcome. If npm was not updated, identify the
+   concrete reason, such as no version change, an existing tag, a failed tag
+   push, a skipped release workflow, a failing release job, or an npm publish
+   error.

@@ -1,0 +1,10 @@
+@startuml
+analog "Load" between 0 and 100 as L
+@0
+L is 10
+@5
+L is 90
+@10
+L is 30
+highlight 2 to 8 #Gold : spike
+@enduml

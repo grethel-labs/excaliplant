@@ -27,4 +27,26 @@ export const saltCoverageExamples = [
 }
 @endsalt`,
   },
+  {
+    name: "feature-combination",
+    title: "Feature combination",
+    description:
+      "Combines labels, buttons, radios, checkboxes, inputs, dropdowns, tabs and grid-like rows.",
+    source: `@startsalt
+{
+  /Coverage/
+  [Render module gallery]
+  [X] Small examples exist
+  [X] Large combination examples exist
+  [] Manual SVG review pending
+  () Draft
+  (X) Ready
+  "Long free text field that should wrap into a readable rendered node"
+  ^release:minor^
+  | Module | Examples | SVG |
+  | sequence | many | generated |
+  | files | repo-derived | generated |
+}
+@endsalt`,
+  },
 ];

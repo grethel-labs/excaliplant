@@ -1,0 +1,6 @@
+@startchart
+h-axis [Q1, Q2]
+stackMode grouped
+bar "Revenue" [45, 62]
+bar "Profit" [35, 48]
+@endchart

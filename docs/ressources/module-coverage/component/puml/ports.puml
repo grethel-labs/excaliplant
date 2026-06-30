@@ -1,0 +1,9 @@
+@startuml
+component "API Gateway" as api
+[SPA] as spa
+queue "Events" as bus
+portin api::http
+portout api::events
+spa --> api::http : calls
+api::events -[#blue,dashed]-> bus : publishes
+@enduml

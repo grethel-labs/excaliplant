@@ -1,0 +1,11 @@
+@startuml
+[SPA] as spa
+component "API Gateway" as api
+() "HTTP" as HTTP
+queue "Jobs" as jobs
+artifact "Client SDK" as sdk
+spa --> api : calls
+api ..> HTTP : exposes
+api --> jobs : publishes
+sdk --> api : imports
+@enduml

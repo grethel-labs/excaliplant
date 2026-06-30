@@ -1,0 +1,9 @@
+@startobject
+object user {
+  name = "Dummy"
+  id = 123
+}
+object "Session Token" as session
+session : value = "abc"
+user --> session : owns
+@endobject

@@ -1,0 +1,19 @@
+@startuml
+Object <|-- ArrayList
+Object : equals()
+ArrayList : Object[] elementData
+class Dummy {
+  {static} String id
+  {abstract} void methods()
+  .. getters ..
+  +getName()
+}
+class Class
+object Object
+json JSON {
+  "fruit":"Apple",
+  "size":"Large",
+  "color": ["Red", "Green"]
+}
+Dummy::id --> JSON : serializes
+@enduml

@@ -1,0 +1,9 @@
+@startuml
+title Arrow label wrapping
+participant A
+participant B
+A -> B: a very long request label / with punctuation, useful-breakpoints, and enough words to wrap before it reaches the arrow tips
+B "reply source endpoint label with punctuation / fallback" --> "reply target endpoint label with punctuation / fallback" A: a similarly long response label that must push all following items down
+== After wrapped labels ==
+A -> B: compact follow-up
+@enduml

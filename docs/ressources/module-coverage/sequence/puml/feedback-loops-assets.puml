@@ -1,0 +1,21 @@
+@startuml
+title Feedback loops with assets
+actor User
+boundary Gateway
+control Orchestrator
+entity Domain
+database Ledger
+collections Views
+queue Events
+
+loop request-response loop
+  User -> Gateway: submit
+  Gateway -> Orchestrator ++: dispatch
+  Orchestrator -> Domain: validate
+  Domain -> Ledger: write
+  Ledger --> Views: project
+  Views --> Events: enqueue
+  Events --> Gateway: ack
+  Gateway --> User --: response
+end
+@enduml

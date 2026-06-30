@@ -21,4 +21,38 @@ entity Entität01 {
 }
 @enduml`,
   },
+  {
+    name: "feature-combination",
+    title: "Feature combination",
+    description:
+      "Combines IE entities, attributes, dashed and solid crow-foot relationships and long labels.",
+    source: `@startuml
+entity Customer {
+  * customer_id
+  --
+  * email
+  support_tier
+}
+entity Order {
+  * order_id
+  --
+  * placed_at
+  status
+}
+entity Invoice {
+  * invoice_id
+  --
+  total_amount
+}
+entity SupportTicket {
+  * ticket_id
+  --
+  severity
+}
+Customer ||--o{ Order : places many orders over time
+Order ||--|| Invoice : produces billing record
+Customer }o..o{ SupportTicket : may open optional support cases with long label
+SupportTicket }|..|| Order : can reference one order
+@enduml`,
+  },
 ];

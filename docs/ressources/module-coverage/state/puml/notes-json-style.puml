@@ -1,0 +1,11 @@
+@startuml
+state CurrentSite #pink {
+  state HardwareSetup #lightblue
+}
+note right of CurrentSite : composite <b>note</b>
+json JSON {
+  "fruit":"Apple",
+  "size":"Large"
+}
+CurrentSite --> JSON : exports
+@enduml

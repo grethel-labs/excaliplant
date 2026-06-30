@@ -1,0 +1,9 @@
+@startuml
+class Account {
+  +id: UUID
+  +name: string
+  --
+  +save(): void
+  +load(id: UUID): Account
+}
+@enduml

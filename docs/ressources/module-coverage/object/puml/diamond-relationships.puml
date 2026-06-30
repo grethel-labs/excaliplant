@@ -1,0 +1,7 @@
+@startobject
+object Order
+object LineItem
+diamond Aggregation
+Order *-- LineItem : contains
+Order --> Aggregation
+@endobject

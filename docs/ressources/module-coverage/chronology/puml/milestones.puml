@@ -1,0 +1,5 @@
+@startchronology
+[A: Release candidate] happens on 2024-01-15 01:08:12
+[B] happens on 2024-02-01
+[A] -> [B]
+@endchronology

@@ -1,0 +1,9 @@
+@startuml
+class Student
+class Course
+class Obsolete
+(Student, Course) .. Enrollment : attends
+remove Obsolete
+hide empty members
+show empty members
+@enduml

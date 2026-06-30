@@ -1,0 +1,18 @@
+@startuml
+title Timeline decorations
+participant Alice
+participant Bob
+== Initialization ==
+Alice -> Bob: request
+... waiting for callback ...
+Bob --> Alice: response
+|||
+ref over Alice, Bob: external contract
+||45||
+ref over Bob
+multi-line reference
+owned by Bob
+end ref
+== Done ==
+Alice -> Bob: final message
+@enduml

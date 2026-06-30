@@ -19,6 +19,7 @@ import { renderPlantUml, excalidrawJsonToCanvasSvg, svgToPng } from "../../index
 import { extractDocBlocks } from "./extract-docs.mjs";
 import { buildApiModel } from "./extract-api.mjs";
 import { buildSequenceCoverageDocs } from "./build-sequence-coverage.mjs";
+import { buildModuleCoverageDocs } from "./build-module-coverage.mjs";
 import {
   buildModuleDiagramSource,
   buildSequenceDiagramSource,
@@ -167,13 +168,16 @@ async function main() {
     `  wrote docs/API.md (${apiModules.length} modules, ${apiSymbolCount} exported symbols)`,
   );
 
-  const sequenceCoverageFiles = await buildSequenceCoverageDocs();
+  const coverageFiles = [
+    ...(await buildSequenceCoverageDocs()),
+    ...(await buildModuleCoverageDocs()),
+  ];
 
   // Write a build manifest so CI can distinguish a legitimate local
   // `npm run build:docs` (manifest hashes match the files on disk)
   // from a manual edit to a generated file (hashes diverge). The CI
   // guard reads this manifest instead of refusing every change.
-  await writeBuildManifest(generated, sequenceCoverageFiles);
+  await writeBuildManifest(generated, coverageFiles);
 }
 
 /**

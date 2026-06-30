@@ -1,0 +1,6 @@
+@startuml
+ditaa(--no-shadows, scale=0.7)
++---+
+| A |
++---+
+@enduml
