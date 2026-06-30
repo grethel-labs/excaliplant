@@ -1,0 +1,15 @@
+@startuml
+folder folder [
+This is a <b>folder
+----
+You can use separator
+====
+of different kind
+]
+
+node node [
+This is a <b>node
+----
+You can use separator
+]
+@enduml

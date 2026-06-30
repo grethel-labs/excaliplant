@@ -1,0 +1,7 @@
+@startuml
+Junction_And JunctionAnd
+Junction_Or JunctionOr
+archimate #Technology "VPN Server" as vpnServerA <<technology-device>>
+GO -up-> JunctionOr
+STOP -down-> JunctionAnd
+@enduml

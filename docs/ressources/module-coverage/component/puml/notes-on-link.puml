@@ -1,0 +1,9 @@
+@startuml
+component "API" as api
+database Cache
+api --> Cache : reads
+note on link
+  retry policy with [[https://example.invalid docs]]
+end note
+note right of api : public entry point
+@enduml

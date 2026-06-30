@@ -1,0 +1,14 @@
+@startuml
+robust "Client" as C
+robust "Server" as S
+@0
+C is Idle
+S is Idle
+@50
+C is Waiting
+C -> S : request
+@100 <-> @200 : SLA
+note top of C : retries are safe
+@200
+S is Done
+@enduml

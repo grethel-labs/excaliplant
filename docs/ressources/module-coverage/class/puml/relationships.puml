@@ -1,0 +1,8 @@
+@startuml
+class Order
+class LineItem
+interface Serializable
+Order "1" *-- "many" LineItem : contains
+Order -[#blue,dashed]-> Serializable : serializes
+LineItem -up-> Order : belongs to
+@enduml

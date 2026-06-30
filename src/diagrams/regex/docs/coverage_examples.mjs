@@ -15,4 +15,14 @@ title Regex groups and repetition
 ^(ab?)+|(?<word>\\p{L}{1,3})$
 @endregex`,
   },
+  {
+    name: "feature-combination",
+    title: "Feature combination",
+    description:
+      "Combines anchors, named groups, alternatives, classes, repetitions and escaped literals.",
+    source: `@startregex
+title Coverage source matcher
+^(?<kind>sequence|component|files|json|yaml)[-_](?<case>small|large|wild|feature-combination)\\.(puml|svg)$|docs\\/ressources\\/module-coverage\\/.+
+@endregex`,
+  },
 ];

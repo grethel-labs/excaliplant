@@ -1,0 +1,12 @@
+@startnwdiag
+nwdiag {
+  network dmz {
+    web01 [address = "210.x.x.1"];
+  }
+  network internal {
+    web01 [address = "172.x.x.1"];
+    db01;
+  }
+  web01 -- db01 : SQL
+}
+@endnwdiag

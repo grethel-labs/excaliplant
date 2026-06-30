@@ -1,0 +1,11 @@
+@startuml
+actor User
+agent Monitor
+artifact "app.jar"
+cloud AWS
+database DB
+file "config.yml"
+folder "/src"
+node Server
+queue Queue
+@enduml

@@ -1,0 +1,23 @@
+@startuml
+title Combined branching and cleanup
+participant Client
+participant Gateway
+participant Runtime
+participant Audit
+[-> Client: inbound signal
+Client -> Gateway ++: call
+alt normal path
+  Gateway -> Runtime ++: execute
+  hnote across: runtime section spans every lifeline
+  loop every item
+    Runtime -> Audit: audit item
+  end
+  return execution ok
+else failed path
+  Gateway -> Runtime **: create fallback
+  Runtime -> Audit: failure audit
+  Gateway -> Runtime !!: cleanup fallback
+end
+Gateway --> Client --: done
+Client ->]: outbound signal
+@enduml

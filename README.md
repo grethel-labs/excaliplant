@@ -7,7 +7,7 @@
 [![node](https://img.shields.io/node/v/@grethel-labs/excaliplant.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@grethel-labs/excaliplant.svg)](./LICENSE)
 
-> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.19.1** &nbsp;·&nbsp; 258 tests &nbsp;·&nbsp; MIT
+> PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser. &nbsp;·&nbsp; **v0.19.2** &nbsp;·&nbsp; 260 tests &nbsp;·&nbsp; MIT
 
 `@grethel-labs/excaliplant` takes PlantUML source, runs it through a plugin-based
 parser, lays it out with [ELK](https://github.com/kieler/elkjs), and
@@ -137,6 +137,8 @@ including emphasis, headings, lists, tables, Unicode notation, and
 icon placeholders.
 
 See the full [Sequence Diagram Component Coverage](./docs/sequence-components.md) for detailed examples and support matrix.
+
+See the generated [Diagram Module Coverage Gallery](./docs/module-coverage.md) for rendered small and complex examples across diagram modules. The gallery includes SVG artefacts for edge cases, overlap-prone layouts, functional decisions, deliberate design choices, wild feature combinations, and repo-derived examples where the diagram type naturally maps to the source tree.
 
 ### UML graph diagram coverage
 
@@ -292,7 +294,7 @@ presentation, link, text-markup, skinparam, and `<style>` handling.
 npm test
 ```
 
-Ships with **258 tests** across functional, edge-case,
+Ships with **260 tests** across functional, edge-case,
 security (XSS / ReDoS / prototype-pollution), and self-introspection
 suites.
 
@@ -395,21 +397,50 @@ excaliplant
 │   └── excaliplant.mjs
 ├── docs
 │   ├── ressources
+│   │   ├── module-coverage
+│   │   │   ├── archimate
+│   │   │   ├── chart
+│   │   │   ├── chen
+│   │   │   ├── chronology
+│   │   │   ├── class
+│   │   │   ├── component
+│   │   │   ├── deployment
+│   │   │   ├── ditaa
+│   │   │   ├── ebnf
+│   │   │   ├── files
+│   │   │   ├── gantt
+│   │   │   ├── ie
+│   │   │   ├── json
+│   │   │   ├── math
+│   │   │   ├── mindmap
+│   │   │   ├── nwdiag
+│   │   │   ├── object
+│   │   │   ├── regex
+│   │   │   ├── salt
+│   │   │   ├── sequence
+│   │   │   ├── state
+│   │   │   ├── timing
+│   │   │   ├── wbs
+│   │   │   └── yaml
 │   │   └── sequence
 │   │       ├── puml
 │   │       └── svg
 │   ├── scripts
 │   │   ├── build-docs.mjs
+│   │   ├── build-module-coverage.mjs
 │   │   ├── build-sequence-coverage.mjs
 │   │   ├── check-build-manifest.mjs
 │   │   ├── config.mjs
 │   │   ├── extract-api.mjs
 │   │   ├── extract-docs.mjs
 │   │   ├── file-tree.mjs
+│   │   ├── module-coverage-sources.mjs
 │   │   └── self-diagrams.mjs
 │   ├── API.md
 │   ├── API.template.md.njk
 │   ├── README.template.md.njk
+│   ├── module-coverage.md
+│   ├── module-coverage.template.md.njk
 │   ├── sequence-components.md
 │   ├── sequence-components.template.md.njk
 │   └── src-structure-refactor-plan.md
@@ -792,6 +823,7 @@ excaliplant
 │   ├── functional_more.test.mjs
 │   ├── merge_driver.test.mjs
 │   ├── modular_architecture.test.mjs
+│   ├── module_coverage.test.mjs
 │   ├── object_components.test.mjs
 │   ├── plantuml.test.mjs
 │   ├── security.test.mjs

@@ -1,0 +1,19 @@
+@startuml
+left to right direction
+title PERT: Project Name
+map Kick.Off {
+}
+map task.1 {
+  Start => End
+}
+map task.2 {
+  Start => End
+}
+Kick.Off --> task.1 : Label 1
+Kick.Off --> task.2 : Label 2
+json JSON {
+  "fruit":"Apple",
+  "size":"Large",
+  "color": ["Red", "Green"]
+}
+@enduml

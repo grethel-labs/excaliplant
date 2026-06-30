@@ -1,0 +1,8 @@
+@startuml
+entity Entität01 {
+  * identifizierendes_attribut
+  --
+  * vorgeschriebenes_attribut
+  optionales_attribut
+}
+@enduml

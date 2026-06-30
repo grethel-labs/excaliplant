@@ -1,0 +1,36 @@
+@startuml
+title Combined fragments
+participant Client
+participant Service
+participant Audit
+Client -> Service: start
+opt cache hit
+  Service --> Client: cached result
+end
+loop retry up to 3 times
+  Client -> Service: retry
+end
+alt success
+  Service -> Audit: record success
+else failure
+  Service -> Audit: record failure
+end
+par primary
+  Client -> Service: primary path
+and secondary
+  Service -> Audit: secondary path
+end
+break aborted
+  Service --> Client: stop
+end
+critical commit
+  Service -> Audit: commit
+option rollback
+  Audit --> Service: rollback
+end
+group custom label [secondary label] #LightBlue
+  Service -> Audit: grouped
+option alternative label
+  Audit --> Service: alternative
+end
+@enduml

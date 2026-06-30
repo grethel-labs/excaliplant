@@ -1,0 +1,16 @@
+@startuml
+left to right direction
+package "Frontend" as frontend {
+  [SPA] as spa
+}
+node "Runtime" as runtime {
+  component "API" as api
+  database Cache
+}
+frame "External" as external {
+  cloud CDN
+}
+spa --> api : calls
+api -[#blue,dashed]-> Cache : reads
+api -right-> CDN : fetches
+@enduml

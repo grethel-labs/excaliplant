@@ -1,0 +1,17 @@
+@startuml
+namespace "Billing" as billing {
+  abstract Repository<T>
+  interface Serializable
+  enum Status {
+    ACTIVE
+    DISABLED
+  }
+  record Money {
+    +amount: Decimal
+  }
+  annotation Auditable
+  dataclass Invoice
+}
+Repository <|-- Invoice
+Serializable <|.. Invoice
+@enduml

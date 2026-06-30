@@ -1,0 +1,6 @@
+@startuml
+Entität01 }|..|| Entität02
+Entität03 }o..o| Entität04
+Entität05 ||--o{ Entität06
+Entität07 |o--|| Entität08
+@enduml

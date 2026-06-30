@@ -21,4 +21,30 @@ $size: Large
 ‰: Per mille
 @endyaml`,
   },
+  {
+    name: "feature-combination",
+    title: "Feature combination",
+    description:
+      "Combines nested mappings, sequences, booleans, nulls and long strings for data rendering.",
+    source: `@startyaml
+repository: grethel-labs/excaliplant
+coverage:
+  generatedDocs: true
+  modules:
+    - kind: sequence
+      profile: reference-quality
+      examples:
+        - small
+        - complex-fragments
+        - styled-lifecycle
+    - kind: files
+      profile: repo-derived-dynamic
+      examples:
+        - project-tree
+        - merged-paths
+        - feature-combination
+  reviewNotes: Long scalar values should remain readable in the generated SVG output.
+  openRisk: null
+@endyaml`,
+  },
 ];

@@ -1,0 +1,5 @@
+@startchart
+h-axis [Q1, Q2]
+v-axis 0 --> 100
+bar "Sales" [45, 62] #3498db
+@endchart

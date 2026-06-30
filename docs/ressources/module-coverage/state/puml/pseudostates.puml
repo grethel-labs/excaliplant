@@ -1,0 +1,14 @@
+@startuml
+state choice1 <<choice>>
+state fork1 <<fork>>
+state join1 <<join>>
+state h <<history>>
+state hd <<history*>>
+[*] --> choice1
+choice1 --> fork1 : yes
+fork1 --> StateA
+fork1 --> StateB
+StateA --> join1
+StateB --> join1
+join1 --> [*]
+@enduml

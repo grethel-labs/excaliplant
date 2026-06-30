@@ -1,0 +1,14 @@
+@startuml
+hide empty members
+abstract class "abstract class"
+annotation annotation
+class class
+class class_stereo <<stereotype>>
+entity entity
+enum enum
+interface interface
+protocol protocol
+struct struct
+-class "private Class" as PrivateClass
+class class2 as "It works this way too"
+@enduml

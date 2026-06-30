@@ -1,0 +1,5 @@
+@startuml
+node Server
+[Proxy]
+Server --> Proxy
+@enduml

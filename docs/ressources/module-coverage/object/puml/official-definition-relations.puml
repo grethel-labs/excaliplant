@@ -1,0 +1,13 @@
+@startuml
+object firstObject
+object "My Second Object" as o2
+object Object01
+object Object02
+object Object03
+object Object04
+
+Object01 <|-- Object02
+Object03 *-- Object04
+Object05 o-- "4" Object06
+Object07 .. Object08 : some labels
+@enduml

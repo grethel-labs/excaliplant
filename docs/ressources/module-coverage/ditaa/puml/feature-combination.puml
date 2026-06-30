@@ -1,0 +1,13 @@
+@startuml
+ditaa(--no-shadows, scale=0.8)
++-------------------+       +-----------------------+
+| Parser examples   | ----> | Shared coverage data  |
+| small fixtures    |       | small + wild cases    |
++-------------------+       +-----------+-----------+
+                                        |
+                                        v
++-------------------+       +-----------------------+
+| SVG gallery       | <---- | module_coverage.test  |
+| generated docs    |       | render every example  |
++-------------------+       +-----------------------+
+@enduml

@@ -1,0 +1,6 @@
+@startmath
+title Coverage score formula
+coverage_score =
+  (small_examples + large_examples + rendered_svg_checks) /
+  max(1, supported_features + documented_design_decisions)
+@endmath

@@ -16,4 +16,22 @@ starts 2024-01-01
 [Implementation] lasts from 2024-01-02 to 2024-01-31
 @endchronology`,
   },
+  {
+    name: "feature-combination",
+    title: "Feature combination",
+    description: "Combines global bounds, milestone labels, ranges and labelled dependencies.",
+    source: `@startchronology
+starts 2026-01-01
+ends 2026-03-31
+[Kickoff: module inventory] happens on 2026-01-05
+[Coverage examples] lasts from 2026-01-06 to 2026-01-30
+[SVG gallery: generated documentation] happens on 2026-02-03
+[Regression test suite] lasts from 2026-02-04 to 2026-02-21
+[Release review: examples, overlap checks and manifest] happens on 2026-03-02
+[Kickoff] -> [Coverage examples] : source modules selected
+[Coverage examples] -> [SVG gallery] : render all examples
+[SVG gallery] -> [Regression test suite] : docs and tests share data
+[Regression test suite] -> [Release review] : validation complete
+@endchronology`,
+  },
 ];

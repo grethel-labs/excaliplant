@@ -22,4 +22,33 @@ export const jsonCoverageExamples = [
 }
 @endjson`,
   },
+  {
+    name: "feature-combination",
+    title: "Feature combination",
+    description:
+      "Combines nested objects, arrays, booleans, nulls, long strings and highlight directives.",
+    source: `@startjson
+#highlight "coverage" / "modules" / 1 / "status"
+{
+  "repository": "grethel-labs/excaliplant",
+  "coverage": {
+    "generatedDocs": true,
+    "modules": [
+      {
+        "kind": "sequence",
+        "status": "reference quality",
+        "examples": ["small", "fragment-heavy", "style-heavy"]
+      },
+      {
+        "kind": "files",
+        "status": "repo-derived dynamic example",
+        "examples": ["project-tree", "merged-paths", "feature-combination"]
+      }
+    ],
+    "reviewNotes": "Long values exercise wrapping and SVG table sizing decisions.",
+    "openRisk": null
+  }
+}
+@endjson`,
+  },
 ];

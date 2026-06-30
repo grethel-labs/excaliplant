@@ -1,0 +1,4 @@
+@startregex
+title Coverage source matcher
+^(?<kind>sequence|component|files|json|yaml)[-_](?<case>small|large|wild|feature-combination)\.(puml|svg)$|docs\/ressources\/module-coverage\/.+
+@endregex

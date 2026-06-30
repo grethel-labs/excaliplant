@@ -1,0 +1,39 @@
+{# Module coverage template — DO NOT edit docs/module-coverage.md directly.
+   Rendered by docs/scripts/build-module-coverage.mjs.
+#}
+# Diagram Module Coverage
+
+This page is generated from each module's
+`src/diagrams/<kind>/docs/coverage_examples.mjs` file. The examples are
+rendered through the same PlantUML -> Excalidraw -> SVG pipeline used by the
+library, so the gallery doubles as documentation and as visual regression
+surface for layout, overlap, edge-case, functional and design decisions.
+
+The expected shape follows the sequence-diagram coverage model: several small
+fixtures should document focused syntax decisions, and complex fixtures should
+combine supported features in ways that stress labels, wrapping, dense layouts
+and unusual but intentional combinations. Dynamic examples are marked where they
+are generated from the current repository tree.
+
+Generated examples: {{ exampleCount }}
+
+{% for suite in suites %}
+
+## {{ suite.title }}
+
+{% for example in suite.examples %}
+
+### {{ example.title }}{% if example.dynamic %} (dynamic){% endif %}
+
+{{ example.description }}
+
+[PlantUML source](./{{ example.pumlRel }}) · [SVG artifact](./{{ example.svgRel }})
+
+![{{ suite.title }} - {{ example.title }}](./{{ example.svgRel }})
+
+```plantuml
+{{ example.source | trim }}
+```
+
+{% endfor %}
+{% endfor %}
