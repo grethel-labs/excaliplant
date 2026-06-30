@@ -18,6 +18,39 @@ jobs:
           node-version: 20
           cache: npm
           registry-url: "https://registry.npmjs.org"
+      - name: Verify package.json version matches tag
+        run: |
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          if [ "$PKG_VERSION" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${PKG_VERSION}"
+            exit 1
+          fi
+      - name: Check npm token and publication state
+        id: npm_state
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          PKG_NAME="$(node -p "require('./package.json').name")"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+
+          if npm view "${PKG_NAME}@${PKG_VERSION}" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${PKG_NAME}@${PKG_VERSION} is already published; npm publish will be skipped."
+            exit 0
+          fi
+
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::Missing NPM_TOKEN repository secret."
+            exit 1
+          fi
+
+          if ! npm whoami --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "::error::NPM_TOKEN is invalid, expired, or lacks registry access."
+            exit 1
+          fi
+
+          echo "published=false" >> "$GITHUB_OUTPUT"
       - run: npm ci
       - run: npm run typecheck
       - run: npm run format:check
@@ -46,14 +79,8 @@ jobs:
           node smoke.mjs
           cd ..
           rm -rf smoke-test tarball
-      - name: Verify package.json version matches tag
-        run: |
-          PKG_VERSION="v$(node -p "require('./package.json').version")"
-          if [ "$PKG_VERSION" != "${GITHUB_REF_NAME}" ]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${PKG_VERSION}"
-            exit 1
-          fi
       - name: Publish to npm (with provenance)
+        if: steps.npm_state.outputs.published != 'true'
         run: EXCALIPLANT_ALLOW_UNTAGGED=1 npm publish --access public --provenance --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -62,6 +89,7 @@ jobs:
         with:
           make_latest: true
           generate_release_notes: true
+          overwrite_files: true
           files: |
             docs/ressources/generated/svg/*.svg
             docs/ressources/generated/png/*.png
