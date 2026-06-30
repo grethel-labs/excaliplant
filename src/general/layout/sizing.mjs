@@ -118,6 +118,8 @@ function sizeBox(box, width) {
   box.width = width;
   let innerWidth = Math.max(20, width - SIZING.boxPaddingX * 2);
   if (box.shape === "diamond") innerWidth = diamondTextWidth(width);
+  else if (box.shape === "usecase") innerWidth = ellipseTextWidth(width, 0.72);
+  else if (box.shape === "cloud") innerWidth = ellipseTextWidth(width, 0.63);
   // Auto-wrap the title so long labels stay inside the box. Manual
   // line breaks ("\n") are preserved by wrapping each segment
   // independently. `measureFitted` shrinks the font size when a
@@ -322,6 +324,17 @@ function sizeBox(box, width) {
  */
 function diamondTextWidth(width) {
   return Math.max(40, Math.floor(width * 0.46));
+}
+
+/**
+ * Approximate the widest stable text band inside a curved shape (ellipse-like).
+ * `ratio` controls how much of the outer width can safely hold wrapped text.
+ * @param {number} width Bounding-box width for the shape.
+ * @param {number} ratio Text-width ratio to the shape width.
+ * @returns {number} Inner text width.
+ */
+function ellipseTextWidth(width, ratio = 0.72) {
+  return Math.max(40, Math.floor(width * ratio));
 }
 
 /**

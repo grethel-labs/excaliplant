@@ -34,6 +34,42 @@ import { exportSequenceDiagram } from "../../diagrams/sequence/render_excalidraw
 
 /**
  * @typedef {{x:number,y:number}} Pt 2-D point in absolute pixels.
+ * @typedef {Object} LabelLayoutItem
+ *   Internal placement model for both edge and endpoint labels.
+ * @property {string} id
+ * @property {'edge'|'endpoint'} kind
+ * @property {string} connectionId
+ * @property {'start'|'end'|null} [endpoint]
+ * @property {string} text
+ * @property {number} centerX
+ * @property {number} centerY
+ * @property {number} normalX
+ * @property {number} normalY
+ * @property {number} angle
+ * @property {number} padX
+ * @property {number} padY
+ * @property {string} strokeColor
+ * @property {string} backgroundColor
+ * @property {string} textColor
+ * @property {number} minGap
+ * @property {number} minFontSize
+ * @property {number} fontSize
+ * @property {number} maxTextWidth
+ * @property {number} x
+ * @property {number} y
+ * @property {number} width
+ * @property {number} height
+ * @property {number} measuredWidth
+ * @property {number} measuredHeight
+ * @property {number} minInnerTextWidth
+ * @property {number} fittedFontSize
+ * @property {string[]} lines
+ * @property {boolean} avoidedOverlap
+ * @property {string} roleChip
+ * @property {string} roleText
+ * @property {string} lineColor
+ * @property {string} link
+ * @property {string} tooltip
  * @typedef {import("../style/colors.mjs").ColorTriple} ColorTriple
  * @typedef {Record<string, unknown>} ExcalElement
  *   Excalidraw element. Excalidraw's JSON shape is loose and varies by
@@ -48,8 +84,10 @@ import { exportSequenceDiagram } from "../../diagrams/sequence/render_excalidraw
 // identical output (= reviewable diffs in git, snapshot-friendly).
 let _rng = Math.random;
 let _idCounter = 0;
-/** @type {Array<{x:number,y:number,width:number,height:number}>} */
-let _edgeLabelOccupied = [];
+/** @type {number} */
+const EDGE_LABEL_MAX_SHRINK_PASSES = 12;
+/** @type {number} */
+const EDGE_LABEL_MAX_SHIFT_PASSES = 24;
 const RAND_RANGE = 2_000_000_000;
 const newId = () => {
   const r = Math.floor(_rng() * 0xffffffff).toString(36);
@@ -296,7 +334,6 @@ export function exportDiagram(diagram, opts = {}) {
   // deterministic one from the source label so reruns produce identical
   // documents.
   _idCounter = 0;
-  _edgeLabelOccupied = [];
   _rng =
     typeof rng === "function"
       ? rng
@@ -310,6 +347,7 @@ export function exportDiagram(diagram, opts = {}) {
   }
   _activeGraphStyle = resolveGraphStyle(diagram.style);
   const elements = /** @type {ExcalElement[]} */ ([]);
+  const labelLayouts = /** @type {LabelLayoutItem[]} */ ([]);
 
   if (debugCorridors) renderDebugCorridors(diagram, elements);
 
@@ -340,10 +378,18 @@ export function exportDiagram(diagram, opts = {}) {
       elements.push(a);
     }
     if (conn.label) {
-      const labelEls = renderEdgeLabel(conn);
-      for (const el of labelEls) elements.push(el);
+      const labelItem = collectEdgeLabelLayout(conn);
+      if (labelItem) labelLayouts.push(labelItem);
     }
-    for (const el of renderConnectionEndpointLabels(conn)) elements.push(el);
+    for (const endpointLabel of collectConnectionEndpointLabelLayouts(conn)) {
+      labelLayouts.push(endpointLabel);
+    }
+  }
+  if (labelLayouts.length) {
+    layoutGraphLabels(labelLayouts);
+    for (const label of labelLayouts) {
+      elements.push(...renderLabelLayoutElements(label));
+    }
   }
   renderGraphPresentation(diagram, elements);
 
@@ -1247,6 +1293,41 @@ function renderDiamondText(box, color, elements) {
 }
 
 /**
+ * Render title text in a central band for ellipse-like shapes.
+ * The text width is reduced from full box width to avoid visual overflow
+ * into curved edges when wrapped labels are long.
+ * @param {{box: Box, color: ColorTriple, elements: ExcalElement[], ratio: number, role: string}} opts
+ */
+function renderCurvedTextBoxTitle({ box, color, elements, ratio, role }) {
+  const textWidth = Math.max(40, Math.floor(box.width * (ratio ?? 0.7)));
+  const titleValue = box._wrappedTitle ?? String(box.title || "");
+  const titleFontSize = box._wrappedTitleFontSize ?? FONT.sizeTitle;
+  const titleHeight = titleValue.split("\n").length * titleFontSize * FONT.lineHeight;
+  const title = applyLinkMetadata(
+    text({
+      x: box.x + (box.width - textWidth) / 2,
+      y: box.y + (box.height - titleHeight) / 2,
+      width: textWidth,
+      height: titleHeight,
+      value: titleValue,
+      fontSize: titleFontSize,
+      color: _activeGraphStyle.boxFontColor || color.stroke,
+      align: "center",
+      vAlign: "middle",
+    }),
+    box,
+  );
+  if (role) {
+    title.customData = {
+      ...(title.customData || {}),
+      role,
+      boxId: box.id,
+    };
+  }
+  elements.push(title);
+}
+
+/**
  * Render a UML state shape (rounded rectangle with optional compartments).
  * @param {Box} box Box (shape == `state`).
  * @param {{ stroke: string, fill: string, titleFill: string }} color
@@ -1634,20 +1715,13 @@ function renderUsecase(box, color, elements) {
       backgroundColor: color.fill,
     }),
   );
-  const titleLines = String(box.title || "").split("\n").length;
-  const th = FONT.sizeTitle * FONT.lineHeight * titleLines;
-  elements.push(
-    text({
-      x: box.x + SIZING.boxPaddingX,
-      y: box.y + (box.height - th) / 2,
-      width: box.width - SIZING.boxPaddingX * 2,
-      height: th,
-      value: box.title,
-      fontSize: FONT.sizeTitle,
-      color: color.stroke,
-      align: "center",
-    }),
-  );
+  renderCurvedTextBoxTitle({
+    box,
+    color,
+    elements,
+    ratio: 0.72,
+    role: "usecaseTitleText",
+  });
 }
 
 // --- Database (cylinder approximation) ----------------------------------
@@ -1739,7 +1813,13 @@ function renderCloud(box, color, elements) {
       backgroundColor: color.fill,
     }),
   );
-  renderBoxText(box, color, elements);
+  renderCurvedTextBoxTitle({
+    box,
+    color,
+    elements,
+    ratio: 0.63,
+    role: "cloudTitleText",
+  });
 }
 
 // --- Interface (small filled circle, lollipop-style) --------------------
@@ -2060,21 +2140,17 @@ function renderNote(box, elements) {
 }
 
 /**
- * Render a connection label as a line-coloured "chip": a rectangle
- * background with the text on top, both rotated to follow the segment
- * they sit on so the label visually belongs to the line. The text is
- * measured with the same smart wrapping/shrink pass used for other
- * fitted text so whitespace, punctuation, explicit newlines, and long
- * single tokens stay inside the chip.
+ * Collect a single edge-label layout item and keep all measurements in a
+ * mutable structure so collisions can adjust the final position (and font
+ * size, if needed) without re-parsing the diagram model.
  *
  * @param {import("../model/diagram.mjs").Connection} conn Connection whose label is rendered.
- * @returns {ExcalElement[]}    Zero, one or two Excalidraw elements
- *                        (background rect + text), in z-order.
+ * @returns {LabelLayoutItem|null}
  * @internal
  */
-function renderEdgeLabel(conn) {
+function collectEdgeLabelLayout(conn) {
   const path = conn.path;
-  if (!path || path.length < 2) return [];
+  if (!path || path.length < 2) return null;
   // Place at the geometric midpoint of the longest segment so the
   // chip sits on a long, straight stretch of the edge whenever
   // possible (otherwise it would land on a short bend).
@@ -2111,106 +2187,438 @@ function renderEdgeLabel(conn) {
   const padY = typeof style.paddingY === "number" ? style.paddingY : 2;
   const segMargin = typeof style.segmentMargin === "number" ? style.segmentMargin : 24;
   const maxWidthCap = typeof style.maxWidth === "number" ? style.maxWidth : 160;
-  const minGap = typeof style.minGap === "number" ? Math.max(0, style.minGap) : 6;
+  const minGap = Math.max(2, typeof style.minGap === "number" ? style.minGap : 2);
 
-  const fontSize = FONT.sizeEdgeLabel;
   // Prefer a chip that fits the segment, but keep enough inner width
   // for the smart wrapper's minimum four-character line budget. This
   // makes containment win for very short routed segments instead of
   // letting the text bleed out of the background.
   const segCap = Math.max(40, bestLen - segMargin);
-  const minInnerWidth = Math.ceil(fontSize * FONT.glyphRatio * 4);
   const preferredChipWidth = Math.min(maxWidthCap, segCap);
-  const innerWidth = Math.max(minInnerWidth, preferredChipWidth - padX * 2);
-  const wrapped = measureSmartFitted(String(conn.label), fontSize, innerWidth);
-  const w = Math.max(20, wrapped.width + padX * 2);
-  const h = Math.max(fontSize * FONT.lineHeight, wrapped.height) + padY * 2;
-  const placement = placeEdgeLabelChip(cx, cy, w, h, angle, isVertical, minGap);
-  const { x, y } = placement;
-  const value = wrapped.lines.join("\n");
-
-  // Chip: line-coloured pill, no wobble, no rounded corners, so the
-  // label reads as a clean tag riding on the connection.
-  const chip = rect({
-    x,
-    y,
-    width: w,
-    height: h,
+  /** @type {LabelLayoutItem} */
+  const item = {
+    id: `edge:${conn.id}`,
+    kind: "edge",
+    connectionId: conn.id,
+    endpoint: null,
+    text: String(conn.label),
+    centerX: cx,
+    centerY: cy,
+    normalX: isVertical ? 1 : 0,
+    normalY: isVertical ? 0 : 1,
+    angle,
+    padX,
+    padY,
     strokeColor,
-    backgroundColor: bgColor,
+    backgroundColor: style.useLineColor === false ? style.backgroundColor || "#444" : lineColor,
+    textColor: _activeGraphStyle.edgeFontColor || style.textColor || "#ffffff",
+    minGap,
+    minFontSize: Math.max(
+      1,
+      /** @type {any} */ (getStyle()).text?.minFontSize ??
+        /** @type {any} */ (getStyle()).font?.minSize ??
+        8,
+    ),
+    fontSize: FONT.sizeEdgeLabel,
+    maxTextWidth: preferredChipWidth,
+    minInnerTextWidth: Math.max(40, Math.ceil(FONT.sizeEdgeLabel * FONT.glyphRatio * 4)),
+    x: cx,
+    y: cy,
+    width: 20,
+    height: FONT.sizeEdgeLabel * FONT.lineHeight,
+    measuredWidth: 0,
+    measuredHeight: 0,
+    fittedFontSize: FONT.sizeEdgeLabel,
+    lines: [],
+    avoidedOverlap: false,
+    roleChip: "edgeLabelChip",
+    roleText: "edgeLabelText",
+    lineColor,
+    link: conn.link,
+    tooltip: conn.tooltip,
+  };
+  applyLabelMeasurement(item);
+  return item;
+}
+
+/**
+ * Collect optional endpoint label layouts for multiplicity labels.
+ *
+ * @param {import("../model/diagram.mjs").Connection} conn Routed connection.
+ * @returns {LabelLayoutItem[]}
+ */
+function collectConnectionEndpointLabelLayouts(conn) {
+  if (!conn.path || conn.path.length < 2) return [];
+  /** @type {Array<{endpoint:"start"|"end",point:Pt,next:Pt,label:string|undefined}>} */
+  const endpoints = [
+    {
+      endpoint: "start",
+      point: conn.path[0],
+      next: conn.path[1],
+      label: conn.arrow.start.label,
+    },
+    {
+      endpoint: "end",
+      point: conn.path[conn.path.length - 1],
+      next: conn.path[conn.path.length - 2],
+      label: conn.arrow.end.label,
+    },
+  ];
+  const out = /** @type {LabelLayoutItem[]} */ ([]);
+  const style = /** @type {any} */ (getStyle()).edgeLabel || {};
+  const minGap = Math.max(2, typeof style.minGap === "number" ? style.minGap : 2);
+  const lineColor = connectionStrokeColor(conn);
+  for (const endpoint of endpoints) {
+    if (!endpoint.label) continue;
+    const fontSize = Math.max(FONT.sizeEdgeLabel + 2, FONT.sizeDescription);
+    const text = String(endpoint.label);
+    const minFontSize = Math.max(9, FONT.sizeEdgeLabel);
+    const padX = 5;
+    const padY = 2;
+    const dx = endpoint.next.x - endpoint.point.x;
+    const dy = endpoint.next.y - endpoint.point.y;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    const ux = dx / len;
+    const uy = dy / len;
+    const nx = -uy;
+    const ny = ux;
+    /** @type {LabelLayoutItem} */
+    const tempLabel = {
+      id: `endpoint:${conn.id}:${endpoint.endpoint}`,
+      kind: "endpoint",
+      connectionId: conn.id,
+      endpoint: endpoint.endpoint,
+      text,
+      centerX: 0,
+      centerY: 0,
+      normalX: nx,
+      normalY: ny,
+      angle: 0,
+      padX,
+      padY,
+      strokeColor: lineColor,
+      backgroundColor: "#ffffff",
+      textColor: _activeGraphStyle.edgeFontColor || lineColor,
+      minGap,
+      minFontSize,
+      fontSize,
+      maxTextWidth: 96,
+      minInnerTextWidth: 30,
+      x: 0,
+      y: 0,
+      width: 30,
+      height: Math.max(fontSize * FONT.lineHeight, 0),
+      measuredWidth: 0,
+      measuredHeight: 0,
+      fittedFontSize: fontSize,
+      lines: [],
+      avoidedOverlap: false,
+      roleChip: "arrowEndpointLabelChip",
+      roleText: "arrowEndpointLabel",
+      lineColor,
+      link: "",
+      tooltip: "",
+    };
+    applyLabelMeasurement(tempLabel);
+    const center = endpointLabelCenter(
+      endpoint.point,
+      endpoint.next,
+      tempLabel.width,
+      tempLabel.height,
+    );
+    tempLabel.centerX = center.x;
+    tempLabel.centerY = center.y;
+    out.push(tempLabel);
+  }
+  return out;
+}
+
+/**
+ * Resolve all label layouts (edge labels and endpoint labels) so all chips keep
+ * `minGap` px distance. Resolution is iterative:
+ * 1) push colliding labels away from each other along their edge normals,
+ * 2) retry until stable,
+ * 3) shrink all currently-colliding labels and retry if needed.
+ *
+ * @param {LabelLayoutItem[]} labels	horizontal list of labels to place.
+ */
+function layoutGraphLabels(labels) {
+  if (labels.length < 2) return;
+
+  for (let shrinkPass = 0; shrinkPass <= EDGE_LABEL_MAX_SHRINK_PASSES; shrinkPass++) {
+    for (let shiftPass = 0; shiftPass < EDGE_LABEL_MAX_SHIFT_PASSES; shiftPass++) {
+      const pairs = collectOverlappingPairs(labels);
+      if (!pairs.length) return;
+
+      let movedInIteration = false;
+      for (const [leftIdx, rightIdx] of pairs) {
+        if (resolveOverlappingPair(labels, leftIdx, rightIdx)) {
+          movedInIteration = true;
+        }
+      }
+      if (!movedInIteration) break;
+    }
+
+    const remaining = collectOverlappingPairs(labels);
+    if (!remaining.length) return;
+
+    const overlapIndices = /** @type {Set<number>} */ (new Set());
+    for (const [leftIdx, rightIdx] of remaining) {
+      overlapIndices.add(leftIdx);
+      overlapIndices.add(rightIdx);
+    }
+    let didShrink = false;
+    for (const idx of overlapIndices) {
+      didShrink = shrinkLabelFont(labels[idx]) || didShrink;
+    }
+    if (!didShrink) return;
+  }
+}
+
+/**
+ * Resolve one overlapping pair by moving the labels along their normals until
+ * they no longer overlap.
+ *
+ * @param {LabelLayoutItem[]} labels All pending label items.
+ * @param {number} leftIdx Index of first label.
+ * @param {number} rightIdx Index of second label.
+ * @returns {boolean}
+ */
+function resolveOverlappingPair(labels, leftIdx, rightIdx) {
+  const left = labels[leftIdx];
+  const right = labels[rightIdx];
+  if (!pairOverlap(left, right)) return false;
+
+  const movedLeft = moveLabelAway(left, right);
+  if (movedLeft) return true;
+
+  return moveLabelAway(right, left);
+}
+
+/**
+ * Move `item` away from `other` along the item normal. If both labels overlap,
+ * we move by the minimum clearance distance and keep the gap at 0 for the
+ * expanded bounds.
+ *
+ * @param {LabelLayoutItem} item Label to move.
+ * @param {LabelLayoutItem} other Obstacle label.
+ * @returns {boolean} true when moved.
+ */
+function moveLabelAway(item, other) {
+  if (!pairOverlap(item, other)) return false;
+
+  const itemBounds = labelBoundsAtCandidate(item);
+  const otherBounds = labelBoundsAtCandidate(other);
+  const itemCenterX = item.x + item.width / 2;
+  const itemCenterY = item.y + item.height / 2;
+  const otherCenterX = other.x + other.width / 2;
+  const otherCenterY = other.y + other.height / 2;
+  const towardNormal =
+    (itemCenterX - otherCenterX) * item.normalX + (itemCenterY - otherCenterY) * item.normalY;
+  const sign = towardNormal >= 0 ? -1 : 1;
+
+  const vx = item.normalX * sign;
+  const vy = item.normalY * sign;
+  const distance = minimumClearanceDistance(itemBounds, otherBounds, vx, vy);
+  if (!Number.isFinite(distance) || distance <= 0) return false;
+
+  item.x += vx * distance;
+  item.y += vy * distance;
+  item.avoidedOverlap = true;
+  return true;
+}
+
+/**
+ * @param {LabelLayoutItem} item
+ * @param {LabelLayoutItem} other
+ * @returns {boolean}
+ */
+function pairOverlap(item, other) {
+  return boundsOverlap(labelBoundsAtCandidate(item), labelBoundsAtCandidate(other));
+}
+
+/**
+ * @param {LabelLayoutItem[]} labels
+ * @returns {Array<[number, number]>}
+ */
+function collectOverlappingPairs(labels) {
+  const pairs = /** @type {Array<[number, number]>} */ ([]);
+  for (let i = 0; i < labels.length; i++) {
+    for (let j = i + 1; j < labels.length; j++) {
+      if (pairOverlap(labels[i], labels[j])) pairs.push([i, j]);
+    }
+  }
+  return pairs;
+}
+
+/**
+ * @param {{x:number,y:number,width:number,height:number}} mover
+ * @param {{x:number,y:number,width:number,height:number}} obstacle
+ * @param {number} vx
+ * @param {number} vy
+ * @returns {number}
+ */
+function minimumClearanceDistance(mover, obstacle, vx, vy) {
+  const eps = 1e-9;
+  const dists = /** @type {number[]} */ ([]);
+  if (vx > eps) dists.push((obstacle.x + obstacle.width - mover.x) / vx);
+  else if (vx < -eps) dists.push((mover.x + mover.width - obstacle.x) / -vx);
+
+  if (vy > eps) dists.push((obstacle.y + obstacle.height - mover.y) / vy);
+  else if (vy < -eps) dists.push((mover.y + mover.height - obstacle.y) / -vy);
+
+  if (!dists.length) return Infinity;
+  const distance = Math.min(...dists);
+  return distance <= 0 ? 0 : distance;
+}
+
+/**
+ * @param {LabelLayoutItem} item
+ * @param {boolean} [forceShrink]
+ */
+function applyLabelMeasurement(item, forceShrink = false) {
+  const autoShrink = forceShrink || /** @type {any} */ (getStyle()).text?.autoShrink !== false;
+  const minFontSize = item.minFontSize;
+  let fontSize = item.fontSize;
+  /** @type {{width:number, height:number, lines:string[], fontSize?:number}} */
+  let wrapped = /** @type {{ width: number, height: number, lines: string[] }} */ ({
+    width: 0,
+    height: 0,
+    lines: [],
   });
-  chip.angle = angle;
+
+  const maxWidth = Math.max(4, item.maxTextWidth - item.padX * 2);
+  if (item.kind === "edge") {
+    const minInnerWidth = Math.max(
+      item.minInnerTextWidth,
+      Math.ceil(fontSize * FONT.glyphRatio * 4),
+    );
+    const innerWidth = Math.max(minInnerWidth, maxWidth);
+    wrapped =
+      autoShrink || forceShrink
+        ? measureSmartFitted(item.text, fontSize, innerWidth, { minFontSize })
+        : measureSmartWrapped(item.text, fontSize, innerWidth);
+    while (forceShrink && fontSize > minFontSize) {
+      const rawW = Math.max(
+        0,
+        ...wrapped.lines.map((line) => measureSmartWrapped(line, fontSize, innerWidth).width),
+      );
+      if (rawW <= innerWidth + 0.5) break;
+      fontSize -= 1;
+      wrapped = measureSmartWrapped(item.text, fontSize, innerWidth);
+    }
+  } else {
+    wrapped =
+      autoShrink || forceShrink
+        ? measureSmartFitted(item.text, fontSize, item.maxTextWidth, { minFontSize })
+        : measureSmartWrapped(item.text, fontSize, item.maxTextWidth);
+    while (forceShrink && fontSize > minFontSize) {
+      const rawW = Math.max(
+        0,
+        ...wrapped.lines.map((line) => line.length * fontSize * FONT.glyphRatio),
+      );
+      if (rawW <= item.maxTextWidth + 0.5) break;
+      fontSize -= 1;
+      wrapped = measureSmartWrapped(item.text, fontSize, item.maxTextWidth);
+    }
+  }
+  item.fittedFontSize = wrapped.fontSize || fontSize;
+  item.lines = wrapped.lines;
+  item.measuredWidth = wrapped.width;
+  item.measuredHeight = wrapped.height;
+  item.width = Math.max(item.kind === "endpoint" ? 30 : 20, wrapped.width + item.padX * 2);
+  item.height = Math.max(fontSize * FONT.lineHeight, wrapped.height) + item.padY * 2;
+  item.fontSize = fontSize;
+}
+
+/**
+ * @param {LabelLayoutItem} item
+ * @returns {boolean}
+ */
+function shrinkLabelFont(item) {
+  if (item.fontSize <= item.minFontSize) return false;
+  const before = { fontSize: item.fontSize, width: item.width, height: item.height };
+  item.fontSize -= 1;
+  applyLabelMeasurement(item, true);
+  if (item.width >= before.width && item.height >= before.height) {
+    item.fontSize = before.fontSize;
+    item.width = before.width;
+    item.height = before.height;
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @param {LabelLayoutItem} item
+ * @returns {{x:number,y:number,width:number,height:number}}
+ */
+function labelBoundsAtCandidate(item) {
+  return expandedRotatedBounds(item.x, item.y, item.width, item.height, item.angle, item.minGap);
+}
+
+/**
+ * Build final Excalidraw elements for one resolved label layout item.
+ *
+ * @param {LabelLayoutItem} item
+ * @returns {ExcalElement[]}
+ */
+function renderLabelLayoutElements(item) {
+  const out = /** @type {ExcalElement[]} */ ([]);
+  const chip = rect({
+    x: item.x,
+    y: item.y,
+    width: item.width,
+    height: item.height,
+    strokeColor: item.strokeColor,
+    backgroundColor: item.backgroundColor,
+  });
+  chip.angle = item.angle;
   chip.roughness = 0;
   chip.roundness = null;
   chip.strokeWidth = 1;
   chip.customData = {
-    role: "edgeLabelChip",
-    connectionId: conn.id,
-    lineColor,
-    fittedFontSize: wrapped.fontSize,
-    avoidedOverlap: placement.offset !== 0,
+    role: item.roleChip,
+    connectionId: item.connectionId,
+    endpoint: item.endpoint,
+    lineColor: item.lineColor,
+    fittedFontSize: item.fittedFontSize,
+    avoidedOverlap: item.avoidedOverlap,
   };
+  out.push(chip);
 
+  const textValue = item.lines.join("\n");
   const label = text({
-    x: x + padX,
-    y: y + padY,
-    width: w - padX * 2,
-    height: h - padY * 2,
-    value,
-    fontSize: wrapped.fontSize,
-    color: textColor,
+    x: item.x + item.padX,
+    y: item.y + item.padY,
+    width: item.width - item.padX * 2,
+    height: item.height - item.padY * 2,
+    value: textValue,
+    fontSize: item.fittedFontSize,
+    color: item.textColor,
     align: "center",
     vAlign: "middle",
   });
-  label.angle = angle;
+  label.angle = item.angle;
   label.customData = {
-    role: "edgeLabelText",
-    connectionId: conn.id,
-    lineColor,
-    fittedFontSize: wrapped.fontSize,
-    measuredWidth: wrapped.width,
-    measuredHeight: wrapped.height,
-    avoidedOverlap: placement.offset !== 0,
+    role: item.roleText,
+    connectionId: item.connectionId,
+    endpoint: item.endpoint,
+    lineColor: item.lineColor,
+    fittedFontSize: item.fittedFontSize,
+    measuredWidth: item.measuredWidth,
+    measuredHeight: item.measuredHeight,
+    avoidedOverlap: item.avoidedOverlap,
   };
-  applyLinkMetadata(label, conn);
-  return [chip, label];
-}
-
-/**
- * Find a chip position that keeps at least `minGap` pixels from prior
- * edge-label chips. Labels first try the actual edge midpoint, then
- * move perpendicular to the edge in alternating directions.
- *
- * @param {number} cx Base chip centre x.
- * @param {number} cy Base chip centre y.
- * @param {number} width Chip width.
- * @param {number} height Chip height.
- * @param {number} angle Chip rotation angle.
- * @param {boolean} isVertical Whether the owning segment is vertical.
- * @param {number} minGap Minimum gap around chip bounds.
- * @returns {{x:number,y:number,offset:number}}
- */
-function placeEdgeLabelChip(cx, cy, width, height, angle, isVertical, minGap) {
-  const step = (isVertical ? width : height) + minGap;
-  const offsets = [0];
-  for (let i = 1; i <= 12; i++) offsets.push(i * step, -i * step);
-
-  let fallback = { x: cx - width / 2, y: cy - height / 2, offset: 0 };
-  for (const offset of offsets) {
-    const x = cx - width / 2 + (isVertical ? offset : 0);
-    const y = cy - height / 2 + (isVertical ? 0 : offset);
-    const bounds = expandedRotatedBounds(x, y, width, height, angle, minGap);
-    if (!_edgeLabelOccupied.some((occupied) => boundsOverlap(bounds, occupied))) {
-      _edgeLabelOccupied.push(bounds);
-      return { x, y, offset };
-    }
-    fallback = { x, y, offset };
+  if (item.kind === "edge") {
+    const placeholder = {
+      link: item.link || "",
+      tooltip: item.tooltip || "",
+    };
+    applyLinkMetadata(label, /** @type {any} */ (placeholder));
   }
-
-  _edgeLabelOccupied.push(
-    expandedRotatedBounds(fallback.x, fallback.y, width, height, angle, minGap),
-  );
-  return fallback;
+  out.push(label);
+  return out;
 }
 
 /**
@@ -2267,87 +2675,6 @@ function expandedRotatedBounds(x, y, width, height, angle, margin) {
  */
 function boundsOverlap(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-}
-
-/**
- * Render optional endpoint labels (multiplicities or future arrow-tip text)
- * near the first and last routed path points.
- * @param {import("../model/diagram.mjs").Connection} conn Routed connection.
- * @returns {ExcalElement[]} Text elements.
- */
-function renderConnectionEndpointLabels(conn) {
-  if (!conn.path || conn.path.length < 2) return [];
-  const endpoints = [
-    {
-      name: "start",
-      point: conn.path[0],
-      next: conn.path[1],
-      label: conn.arrow.start.label,
-    },
-    {
-      name: "end",
-      point: conn.path[conn.path.length - 1],
-      next: conn.path[conn.path.length - 2],
-      label: conn.arrow.end.label,
-    },
-  ];
-  const out = [];
-  const lineColor = connectionStrokeColor(conn);
-  for (const endpoint of endpoints) {
-    if (!endpoint.label) continue;
-    const fontSize = Math.max(FONT.sizeEdgeLabel + 2, FONT.sizeDescription);
-    const wrapped = measureSmartFitted(endpoint.label, fontSize, 96, {
-      minFontSize: Math.max(9, FONT.sizeEdgeLabel),
-    });
-    const padX = 5;
-    const padY = 2;
-    const width = Math.max(30, wrapped.width + padX * 2);
-    const height = Math.max(fontSize * FONT.lineHeight, wrapped.height) + padY * 2;
-    const labelCenter = endpointLabelCenter(endpoint.point, endpoint.next, width, height);
-    const chip = rect({
-      x: labelCenter.x - width / 2,
-      y: labelCenter.y - height / 2,
-      width,
-      height,
-      strokeColor: lineColor,
-      backgroundColor: "#ffffff",
-    });
-    chip.roughness = 0;
-    chip.roundness = null;
-    chip.strokeWidth = 1;
-    chip.customData = {
-      role: "arrowEndpointLabelChip",
-      connectionId: conn.id,
-      endpoint: endpoint.name,
-      lineColor,
-    };
-    out.push(chip);
-
-    const chipX = Number(chip.x);
-    const chipY = Number(chip.y);
-    const label = text({
-      x: chipX + padX,
-      y: chipY + padY,
-      width: width - padX * 2,
-      height: height - padY * 2,
-      value: wrapped.lines.join("\n"),
-      fontSize: wrapped.fontSize,
-      color: _activeGraphStyle.edgeFontColor || lineColor,
-      align: "center",
-      vAlign: "middle",
-    });
-    label.customData = {
-      role: "arrowEndpointLabel",
-      connectionId: conn.id,
-      endpoint: endpoint.name,
-      lineColor,
-      measuredWidth: wrapped.width,
-      measuredHeight: wrapped.height,
-      fittedFontSize: wrapped.fontSize,
-    };
-    out.push(label);
-  }
-  return out;
 }
 
 /**

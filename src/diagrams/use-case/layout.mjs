@@ -4,12 +4,14 @@
  */
 
 import { BaseModuleLayout } from "../base/layout.mjs";
+import { layoutGraphModel } from "../shared/graph_runtime.mjs";
 
 /** @public */
 export class UseCaseDiagramLayout extends BaseModuleLayout {
   constructor() {
     super({
-      layoutStrategy: "elk",
+      layoutStrategy: "elkGraph",
+      layout: layoutGraphModel,
     });
   }
 }

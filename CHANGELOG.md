@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.5] - 2026-06-30
+
+### Fixed
+
+- Edge and endpoint label collision handling now uses iterative overlap resolution:
+  1. labels are shifted first along their edge-derived normal vector,
+     respecting a minimum 2px gap, with recursive/iterated pair resolution,
+  2. if movement alone cannot clear remaining collisions, labels are shrunk
+     and the process repeats.
+- Endpoint labels are now kept outside element borders with a more robust inward
+  offset, and edge/endpoint labels in collisions are stabilized via the new
+  overlap-resolution loop so 2px spacing is retained under dense routing.
+- Use-case and cloud node titles render inside a reduced-width curved title band,
+  preventing text from spilling beyond rounded outline boundaries.
+
 ### Added
 
 - Graph edge-label chips now inherit the rendered arrow colour by default and

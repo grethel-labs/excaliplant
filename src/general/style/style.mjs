@@ -84,7 +84,7 @@ export const DEFAULT_STYLE = deepFreeze({
     /** Hard cap on chip width in px. */
     maxWidth: 160,
     /** Minimum spacing in px between independent edge-label chips. */
-    minGap: 6,
+    minGap: 2,
     /** Minimum gap to leave around arrowheads at the segment ends. */
     segmentMargin: 24,
   },
