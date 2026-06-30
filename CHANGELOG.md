@@ -218,6 +218,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Release publishing now validates the npm token and package/tag version
+  before running the expensive release gate, skips `npm publish` when the
+  exact version is already present on npm, and still creates the GitHub
+  release/pages artifacts on idempotent release reruns.
 - Connection arrows now always inherit the **outline colour of their
   source box** (not the owning plane's colour), and arrowheads
   (`arrow`, `triangle`, `triangle_outline`, `diamond`,
