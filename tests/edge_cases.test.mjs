@@ -629,6 +629,62 @@ test("graph edge label chips fit multiline and long unbreakable labels", async (
   }
 });
 
+test("graph edge labels move recursively with default 2px gap", async () => {
+  const d = new Diagram();
+  const { Plane } = await import("../src/general/model/diagram.mjs");
+  const { planeColor } = await import("../src/general/style/colors.mjs");
+  const plane = d.addPlane(
+    new Plane({ id: "p", title: "P", color: planeColor("p"), kind: "package" }),
+  );
+  const a = plane.addBox(new Box({ id: "a", title: "Source" }));
+  const b = plane.addBox(new Box({ id: "b", title: "Target" }));
+
+  a.x = 0;
+  a.y = 0;
+  a.width = 80;
+  a.height = 40;
+  b.x = 360;
+  b.y = 0;
+  b.width = 80;
+  b.height = 40;
+
+  for (let i = 0; i < 6; i++) {
+    d.addConnection(
+      new Connection({
+        id: `a->b:${i}`,
+        from: a,
+        to: b,
+        label: `edge-label-${i} with very long wording to force overlap checks`,
+        fromMul: `from-multiplicity-${i}`,
+        toMul: `to-multiplicity-${i}`,
+      }),
+    );
+  }
+
+  for (const conn of d.connections) {
+    conn.path = [
+      { x: 80, y: 20 },
+      { x: 360, y: 20 },
+    ];
+  }
+
+  const doc = exportDiagram(d);
+
+  const labels = doc.elements.filter(
+    (el) => el.customData?.role === "edgeLabelText" || el.customData?.role === "arrowEndpointLabel",
+  );
+  const chips = doc.elements.filter(
+    (el) =>
+      el.customData?.role === "edgeLabelChip" || el.customData?.role === "arrowEndpointLabelChip",
+  );
+  assert.equal(labels.length, chips.length, "labels and chips should stay paired");
+  assert.ok(
+    chips.some((chip) => chip.customData?.avoidedOverlap),
+    "expected collision resolution to trigger offsets",
+  );
+  assertLabelChipsKeepDistanceAll(doc, 2);
+});
+
 test("graph edge label chips keep a minimum gap when routed labels overlap", async () => {
   resetStyle();
   setStyle({ edgeLabel: { minGap: 10, maxWidth: 96 } });
@@ -715,6 +771,77 @@ Covers -N- Example : includes small focused and large combination examples
       ry: diamondHeight / 2,
     });
   }
+});
+
+test("use-case title stays inside the ellipse text band", async () => {
+  const title = "Checkout flow with a very long multiline label to validate wrapping and bounds";
+  const doc = await renderPlantUml(`@startuml
+left to right direction
+usecase "${title}" as UC
+@enduml`);
+
+  const usecaseText = doc.elements.find(
+    (element) =>
+      element.customData?.role === "usecaseTitleText" &&
+      element.customData?.boxId === "UC" &&
+      typeof element.text === "string" &&
+      element.text.includes("Checkout flow"),
+  );
+  assert.ok(usecaseText, "expected centered use-case title text");
+  const ellipse = doc.elements.find(
+    (element) =>
+      element.type === "ellipse" &&
+      element.x <= usecaseText.x &&
+      element.y <= usecaseText.y &&
+      element.x + element.width >= usecaseText.x + usecaseText.width &&
+      element.y + element.height >= usecaseText.y + usecaseText.height,
+  );
+  assert.ok(ellipse, "expected use-case container ellipse");
+  assert.ok(
+    usecaseText.width <= Math.floor(ellipse.width * 0.72),
+    "usecase title text should use a reduced width band",
+  );
+  assertTextRectInsideEllipse(usecaseText, {
+    cx: ellipse.x + ellipse.width / 2,
+    cy: ellipse.y + ellipse.height / 2,
+    rx: ellipse.width / 2,
+    ry: ellipse.height / 2,
+  });
+});
+
+test("cloud title stays inside the cloud ellipse band", async () => {
+  const title = "Public API Gateway for distributed traffic and resilient delivery";
+  const doc = await renderPlantUml(`@startuml
+left to right direction
+cloud "${title}" as CD1
+@enduml`);
+
+  const cloudText = doc.elements.find(
+    (element) =>
+      element.customData?.role === "cloudTitleText" &&
+      element.customData?.boxId === "CD1" &&
+      typeof element.text === "string" &&
+      element.text.includes("Public API Gateway"),
+  );
+  assert.ok(cloudText, "expected cloud title text");
+
+  const cloudEllipses = doc.elements.filter((element) => element.type === "ellipse");
+  assert.ok(cloudEllipses.length > 0, "expected at least one cloud ellipse");
+  const primaryEllipse = cloudEllipses.reduce((acc, current) => {
+    if (current.width * current.height > acc.width * acc.height) return current;
+    return acc;
+  }, cloudEllipses[0]);
+  assert.ok(primaryEllipse, "expected cloud base ellipse");
+  assert.ok(
+    cloudText.width <= Math.floor(primaryEllipse.width * 0.66),
+    "cloud title text should use a reduced width band",
+  );
+  assertTextRectInsideEllipse(cloudText, {
+    cx: primaryEllipse.x + primaryEllipse.width / 2,
+    cy: primaryEllipse.y + primaryEllipse.height / 2,
+    rx: primaryEllipse.width / 2,
+    ry: primaryEllipse.height / 2,
+  });
 });
 
 test("connection endpoint labels use arrow colour and move inward from element edges", async () => {
@@ -819,6 +946,27 @@ function assertEdgeLabelChipsKeepDistance(doc, minGap) {
 }
 
 /**
+ * @param {{elements:Array<Record<string, any>>}} doc
+ * @param {number} minGap
+ */
+function assertLabelChipsKeepDistanceAll(doc, minGap) {
+  const chips = doc.elements.filter(
+    (element) =>
+      element.customData?.role === "edgeLabelChip" ||
+      element.customData?.role === "arrowEndpointLabelChip",
+  );
+  for (let i = 0; i < chips.length; i++) {
+    for (let j = i + 1; j < chips.length; j++) {
+      assert.equal(
+        expandedBoundsOverlap(chips[i], chips[j], minGap),
+        false,
+        `label chips ${i} and ${j} overlap or violate ${minGap}px gap`,
+      );
+    }
+  }
+}
+
+/**
  * @param {Record<string, any>} a
  * @param {Record<string, any>} b
  * @param {number} gap
@@ -880,6 +1028,28 @@ function assertTextRectInsideDiamond(element, diamond) {
     assert.ok(
       normalized <= 1.02,
       `diamond text corner (${x}, ${y}) escapes diamond boundary (${normalized})`,
+    );
+  }
+}
+
+/**
+ * @param {Record<string, any>} element
+ * @param {{cx:number,cy:number,rx:number,ry:number}} ellipse
+ */
+function assertTextRectInsideEllipse(element, ellipse) {
+  const corners = [
+    [element.x, element.y],
+    [element.x + element.width, element.y],
+    [element.x + element.width, element.y + element.height],
+    [element.x, element.y + element.height],
+  ];
+  for (const [x, y] of corners) {
+    const normalized =
+      Math.pow((x - ellipse.cx) / Math.max(1, ellipse.rx), 2) +
+      Math.pow((y - ellipse.cy) / Math.max(1, ellipse.ry), 2);
+    assert.ok(
+      normalized <= 1.02,
+      `text corner (${x}, ${y}) escapes ellipse boundary (${normalized})`,
     );
   }
 }
