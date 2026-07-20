@@ -1,6 +1,6 @@
 {
   "name": "@grethel-labs/excaliplant",
-  "version": "0.19.5",
+  "version": "0.19.6",
   "description": "PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.",
   "type": "module",
   "main": "index.mjs",
@@ -89,7 +89,7 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "elkjs": "^0.11.1",
+    "elkjs": "^0.12.0",
     "roughjs": "^4.6.6"
   },
   "engines": {
