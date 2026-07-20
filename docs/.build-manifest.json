@@ -1,8 +1,8 @@
 {
   "version": 1,
   "files": {
-    "README.md": "10badc880eff23e8f9eae2a0828ebe2c6eb19a5956f76b66715c35f80692320f",
-    "docs/API.md": "d8fd18df0ed779e47ed053a4ce30e28034856ca4bc2b4aea6295490c98dcd713",
+    "README.md": "74a85ca57f7d4a7cc2367ce0daad182be0553d085851be9eaa6aa3ece0b4a805",
+    "docs/API.md": "1b522902372264261de60f8731cfd3e96c7361952451f6c3e48276ab85b83dc5",
     "docs/ressources/generated/svg/modules.svg": "fcbf9c0a1aa1b09c7302910fd7a3fa4054307330de676d28adb62831c5b5c34b",
     "docs/ressources/generated/png/modules.png": "828ca9207d3ee728764bd4287d01fa718eec90978d6013a384604a36bb6d73f6",
     "docs/ressources/generated/svg/sequence.svg": "b9efe75e2e75269655223be331f2efb17c7f63733fa416888a3d37a9a11211a2",
@@ -39,7 +39,7 @@
     "docs/ressources/sequence/svg/combination-flow.svg": "4bd54e64ab575b2007766dd4a610afeb73109d25bcd1668ca01444b8fe679931",
     "docs/ressources/sequence/puml/combination-errors.puml": "630a46c8b058110d83c4d2ba5f21db0c2d3ed7a9eac08d8a930ee0043ffbea3a",
     "docs/ressources/sequence/svg/combination-errors.svg": "e1acfbf5e671536ffa0225f55c445bcb33f547da22395eba6af6054466c471a3",
-    "docs/sequence-components.md": "555694c979d999ab815f73aaef4c6aed28afd19ce81c2a488444e8323921acd4",
+    "docs/sequence-components.md": "bf216113f6b87fbd51d8a83bba201ba66237e879ee5ca6e633418764b4a40a48",
     "docs/ressources/module-coverage/sequence/puml/basics.puml": "2809e9a6b7c84a4b07cd3e2f8c9c3f56ab37e504f73b14a1b91a843ec1fce8ae",
     "docs/ressources/module-coverage/sequence/svg/basics.svg": "f20d973c764310ea1a124d75685f90bbf043cd66b4f1f494f5954e0a092ebe5b",
     "docs/ressources/module-coverage/sequence/puml/participants.puml": "f16a16d4924dd0a306e4d919775730c0d8f4847a22a75cd5d69e30a4231653ce",
@@ -252,6 +252,6 @@
     "docs/ressources/module-coverage/yaml/svg/unicode-keys.svg": "b66eb0d257faaa00037fae48afa7f39843f2fc8366a4c491524878dd9df8c673",
     "docs/ressources/module-coverage/yaml/puml/feature-combination.puml": "8c3e9235bbeb7982074686b1ea67447862c84aa290729a7cd44040b9b5636d1f",
     "docs/ressources/module-coverage/yaml/svg/feature-combination.svg": "633f56a24a9b763b81ba755323f82d1962109276c22cbc2dddc14cefdb9e6fa9",
-    "docs/module-coverage.md": "ae517751922110766ea1ca06923e0b8748c78b730264c133913652c1171920d0"
+    "docs/module-coverage.md": "32facb2a0fe10f04c52a656b2543904a705dddf7d32e20f750483d1a0bf6790e"
   }
 }
