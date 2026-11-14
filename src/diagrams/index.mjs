@@ -22,7 +22,12 @@ import filesDiagram from "./files/index.mjs";
 import { jsonDiagram, yamlDiagram } from "./data/index.mjs";
 import nwdiagDiagram from "./nwdiag/index.mjs";
 import saltDiagram from "./salt/index.mjs";
+import { ebnfDiagram, regexDiagram } from "./railroad/index.mjs";
+import { asciiMathDiagram, latexDiagram } from "./math/index.mjs";
+import ditaaDiagram from "./ditaa/index.mjs";
+import chartDiagram from "./chart/index.mjs";
+import creoleDiagram from "./creole/index.mjs";
 import legacyActivityDiagram from "./legacy-activity/index.mjs";
 
 /** @type {import("../core/registry.mjs").DiagramModule[]} */
-export const BUILTIN_DIAGRAMS = [saltDiagram, nwdiagDiagram, sequenceDiagram, timingDiagram, ganttDiagram, activityDiagram, legacyActivityDiagram, archimateDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram, chenDiagram, dotDiagram, chronologyDiagram, mindmapDiagram, wbsDiagram, filesDiagram, jsonDiagram, yamlDiagram];
+export const BUILTIN_DIAGRAMS = [ditaaDiagram, saltDiagram, nwdiagDiagram, sequenceDiagram, timingDiagram, ganttDiagram, activityDiagram, legacyActivityDiagram, archimateDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram, chenDiagram, dotDiagram, chronologyDiagram, mindmapDiagram, wbsDiagram, filesDiagram, jsonDiagram, yamlDiagram, ebnfDiagram, regexDiagram, asciiMathDiagram, latexDiagram, chartDiagram, creoleDiagram];
