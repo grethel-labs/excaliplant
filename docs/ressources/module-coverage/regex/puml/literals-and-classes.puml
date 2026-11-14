@@ -1,4 +1,0 @@
-@startregex
-title Regex literals and classes
-\d\w\s|[0-9]\Qfoo\E
-@endregex

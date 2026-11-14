@@ -1,9 +1,0 @@
-@startuml
-scale 350 width
-[*] --> NotShooting
-state NotShooting {
-  [*] --> Idle
-  Idle --> Configuring : EvConfig
-  Configuring --> Idle : EvConfig
-}
-@enduml
