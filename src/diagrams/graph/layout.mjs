@@ -103,7 +103,7 @@ export function sizeGraph(model, theme) {
     }
     const [pt, pr, pb, pl] = def.pad;
     const min = def.min ?? [isNote ? 40 : 80, isNote ? 30 : 44];
-    node.width = Math.max(min[0], textW + pl + pr);
+    node.width = Math.max(min[0], textW + pl + pr + (node.data.padX ?? 0));
     node.height = Math.max(min[1], textH + pt + pb);
     if (node.shape === "port") {
       node.width = 14;

@@ -11,6 +11,10 @@ import usecaseDiagram from "./usecase/index.mjs";
 import stateDiagram from "./state/index.mjs";
 import sequenceDiagram from "./sequence/index.mjs";
 import activityDiagram from "./activity/index.mjs";
+import archimateDiagram from "./archimate/index.mjs";
+import chenDiagram from "./chen/index.mjs";
+import dotDiagram from "./dot/index.mjs";
+import legacyActivityDiagram from "./legacy-activity/index.mjs";
 
 /** @type {import("../core/registry.mjs").DiagramModule[]} */
-export const BUILTIN_DIAGRAMS = [sequenceDiagram, activityDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram];
+export const BUILTIN_DIAGRAMS = [sequenceDiagram, activityDiagram, legacyActivityDiagram, archimateDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram, chenDiagram, dotDiagram];

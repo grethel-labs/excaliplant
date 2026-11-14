@@ -206,6 +206,61 @@ SHOW_LEGEND()
 !endprocedure
 `;
 
+
+/** ArchiMate element types per layer (subset of the ArchiMate 3 vocabulary). */
+const ARCHIMATE_TYPES = {
+  Business: ["Actor", "Role", "Collaboration", "Interface", "Process", "Function", "Interaction", "Event", "Service", "Object", "Contract", "Representation", "Product"],
+  Application: ["Component", "Collaboration", "Interface", "Function", "Interaction", "Process", "Event", "Service", "DataObject"],
+  Technology: ["Node", "Device", "SystemSoftware", "Collaboration", "Interface", "Path", "CommunicationNetwork", "Function", "Process", "Interaction", "Event", "Service", "Artifact"],
+  Physical: ["Equipment", "Facility", "DistributionNetwork", "Material"],
+  Motivation: ["Stakeholder", "Driver", "Assessment", "Goal", "Outcome", "Principle", "Requirement", "Constraint", "Meaning", "Value"],
+  Strategy: ["Resource", "Capability", "CourseOfAction", "ValueStream"],
+  Implementation: ["WorkPackage", "Deliverable", "Event", "Plateau", "Gap"],
+};
+
+/** Relationship macro → link arrow. */
+const ARCHIMATE_RELS = {
+  Composition: ["*-", "-"],
+  Aggregation: ["o-", "-"],
+  Assignment: ["0-", "->"],
+  Realization: [".", ".|>"],
+  Serving: ["-", "->>"],
+  Access: [".", ".>"],
+  Influence: [".", ".>"],
+  Triggering: ["-", "->"],
+  Flow: [".", ".>"],
+  Specialization: ["-", "-|>"],
+  Association: ["-", "-"],
+};
+
+/** @param {string} s */
+const kebab = (s) => s.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+
+function archimateLibrary() {
+  const lines = [];
+  for (const [layer, types] of Object.entries(ARCHIMATE_TYPES)) {
+    for (const type of types) {
+      lines.push(`!unquoted procedure ${layer}_${type}($id, $label="", $stereo="")`);
+      lines.push(`archimate #${layer} "$label" as $id <<${layer.toLowerCase()}-${kebab(type)}>>`);
+      lines.push("!endprocedure");
+    }
+  }
+  for (const [name, [head, tail]] of Object.entries(ARCHIMATE_RELS)) {
+    for (const [suffix, dir] of [["", ""], ["_Up", "up"], ["_Down", "down"], ["_Left", "left"], ["_Right", "right"]]) {
+      lines.push(`!unquoted procedure Rel_${name}${suffix}($from, $to, $label="")`);
+      lines.push(`$from ${head}${dir}${tail} $to : $label`);
+      lines.push("!endprocedure");
+    }
+  }
+  lines.push('!unquoted procedure Junction_And($id, $label="")', 'archimate #black "" as $id <<junction>>', "!endprocedure");
+  lines.push('!unquoted procedure Junction_Or($id, $label="")', 'archimate #white "" as $id <<or-junction>>', "!endprocedure");
+  lines.push('!unquoted procedure Grouping($id, $label="")', 'rectangle "$label" as $id ##[dashed]', "!endprocedure");
+  lines.push('!unquoted procedure Group($id, $label="")', 'rectangle "$label" as $id ##[dashed]', "!endprocedure");
+  return lines.join("\n");
+}
+
+const ARCHIMATE = archimateLibrary();
+
 /**
  * Bundled stdlib sources keyed by include name (without angle brackets).
  * @type {ReadonlyMap<string, string>}
@@ -220,4 +275,6 @@ export const STDLIB = new Map([
   ["C4_Context", C4_CORE],
   ["C4_Container", C4_CORE],
   ["C4_Component", C4_CORE],
+  ["archimate/Archimate", ARCHIMATE],
+  ["Archimate", ARCHIMATE],
 ]);

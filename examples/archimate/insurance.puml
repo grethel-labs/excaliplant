@@ -1,0 +1,17 @@
+@startuml
+!include <archimate/Archimate>
+title Claims handling
+Business_Actor(customer, "Customer")
+Business_Role(insurant, "Insurant")
+Business_Service(claimService, "Claim registration service")
+Business_Process(handle, "Handle claim")
+Application_Component(crm, "CRM system")
+Application_Service(policyData, "Policy data service")
+Technology_Node(server, "Mainframe")
+Rel_Assignment(customer, insurant)
+Rel_Serving(claimService, insurant, "serves")
+Rel_Realization(handle, claimService)
+Rel_Serving(policyData, handle)
+Rel_Realization(crm, policyData)
+Rel_Serving(server, crm)
+@enduml
