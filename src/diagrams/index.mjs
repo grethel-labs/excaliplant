@@ -14,7 +14,10 @@ import activityDiagram from "./activity/index.mjs";
 import archimateDiagram from "./archimate/index.mjs";
 import chenDiagram from "./chen/index.mjs";
 import dotDiagram from "./dot/index.mjs";
+import ganttDiagram from "./gantt/index.mjs";
+import chronologyDiagram from "./chronology/index.mjs";
+import timingDiagram from "./timing/index.mjs";
 import legacyActivityDiagram from "./legacy-activity/index.mjs";
 
 /** @type {import("../core/registry.mjs").DiagramModule[]} */
-export const BUILTIN_DIAGRAMS = [sequenceDiagram, activityDiagram, legacyActivityDiagram, archimateDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram, chenDiagram, dotDiagram];
+export const BUILTIN_DIAGRAMS = [sequenceDiagram, timingDiagram, ganttDiagram, activityDiagram, legacyActivityDiagram, archimateDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram, chenDiagram, dotDiagram, chronologyDiagram];
