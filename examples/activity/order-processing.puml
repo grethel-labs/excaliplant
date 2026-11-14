@@ -1,0 +1,22 @@
+@startuml
+title Order processing
+start
+:Receive order;
+if (In stock?) then (yes)
+  :Reserve items;
+else (no)
+  :Order from supplier;
+  :Wait for delivery;
+endif
+fork
+  :Charge card;
+fork again
+  :Prepare invoice;
+end fork
+while (Items left?) is (yes)
+  :Pack item;
+endwhile (no)
+#palegreen:Ship parcel;
+note right: tracking number\nis sent by mail
+stop
+@enduml

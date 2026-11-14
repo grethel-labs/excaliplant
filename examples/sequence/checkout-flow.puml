@@ -1,0 +1,29 @@
+@startuml
+title Checkout flow
+autonumber
+actor Customer as C
+box "Shop" #f1f3f5
+  participant "Web App" as W
+  participant API
+end box
+database Orders as DB
+queue Events as Q
+
+C -> W : open checkout
+W -> API ++ : POST /orders
+API -> DB ++ : insert order
+DB --> API -- : order id
+alt payment ok
+  API -> Q : OrderPlaced
+  API --> W : 201 Created
+else payment declined
+  API --> W : 402 Payment Required
+  note right of W : show retry\ndialog
+end
+deactivate API
+== Fulfilment ==
+... some minutes later ...
+Q ->> W : order shipped
+W -> W : refresh view
+W --> C : "Your order is on the way"
+@enduml

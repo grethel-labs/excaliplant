@@ -160,7 +160,7 @@ function roughOptions(el, filled) {
 function dashAttr(el) {
   const sw = el.strokeWidth;
   if (el.strokeStyle === "dashed") return ` stroke-dasharray="8 ${num(8 + sw)}"`;
-  if (el.strokeStyle === "dotted") return ` stroke-dasharray="1.5 ${num(6 + sw)}" stroke-linecap="round"`;
+  if (el.strokeStyle === "dotted") return ` stroke-dasharray="1.5 ${num(6 + sw)}"`;
   return "";
 }
 

@@ -9,6 +9,8 @@ import { componentDiagram, deploymentDiagram } from "./component/index.mjs";
 import objectDiagram from "./object/index.mjs";
 import usecaseDiagram from "./usecase/index.mjs";
 import stateDiagram from "./state/index.mjs";
+import sequenceDiagram from "./sequence/index.mjs";
+import activityDiagram from "./activity/index.mjs";
 
 /** @type {import("../core/registry.mjs").DiagramModule[]} */
-export const BUILTIN_DIAGRAMS = [stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram];
+export const BUILTIN_DIAGRAMS = [sequenceDiagram, activityDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram];
