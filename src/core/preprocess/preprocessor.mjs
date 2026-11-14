@@ -158,6 +158,11 @@ class Preprocessor {
    * @param {"global" | "local" | null} [where]
    */
   assign(name, value, where = null) {
+    if (typeof value === "string" && value.length > this.limits.maxLineLength * 4) {
+      throw new LimitError(
+        `Preprocessor variable ${name} exceeds ${this.limits.maxLineLength * 4} characters`,
+      );
+    }
     const local = this.scopes[this.scopes.length - 1];
     if (where === "global" || !local) this.globals.set(name, value);
     else if (where === "local" || local.has(name)) local.set(name, value);
@@ -183,10 +188,14 @@ class Preprocessor {
       return evaluate(parseExpression(this.substituteMacros(src)), this.evalContext);
     } catch (err) {
       if (err instanceof ReturnSignal || err instanceof LimitError) throw err;
-      throw new ParseError(`Invalid preprocessor expression "${src}": ${/** @type {Error} */ (err).message}`, {
-        line,
-        cause: err,
-      });
+      if (err instanceof RangeError) throw new LimitError("Preprocessor value too large", { line });
+      throw new ParseError(
+        `Invalid preprocessor expression "${src}": ${/** @type {Error} */ (err).message}`,
+        {
+          line,
+          cause: err,
+        },
+      );
     }
   }
 
@@ -210,7 +219,11 @@ class Preprocessor {
       if (assign) {
         const [, where, name, op, expr] = assign;
         if (op === "?=" && this.lookup(name) !== undefined) continue;
-        this.assign(name, this.eval(expr, src.line), /** @type {any} */ (where?.toLowerCase() ?? null));
+        this.assign(
+          name,
+          this.eval(expr, src.line),
+          /** @type {any} */ (where?.toLowerCase() ?? null),
+        );
         continue;
       }
       const d = DIRECTIVE_RE.exec(src.text);
@@ -277,7 +290,8 @@ class Preprocessor {
       case "while": {
         let n = 0;
         while (truthy(this.eval(rest, head.line))) {
-          if (++n > this.limits.maxLoopIterations) throw new LimitError("!while loop exceeded iteration limit", head);
+          if (++n > this.limits.maxLoopIterations)
+            throw new LimitError("!while loop exceeded iteration limit", head);
           this.exec(body, out);
         }
         return;
@@ -291,7 +305,8 @@ class Preprocessor {
           : value && typeof value === "object"
             ? Object.keys(value)
             : stringify(value).split(",");
-        if (items.length > this.limits.maxLoopIterations) throw new LimitError("!foreach exceeded iteration limit", head);
+        if (items.length > this.limits.maxLoopIterations)
+          throw new LimitError("!foreach exceeded iteration limit", head);
         for (const item of items) {
           this.assign(m[1], item);
           this.exec(body, out);
@@ -300,7 +315,12 @@ class Preprocessor {
       }
       case "procedure":
       case "function":
-        return this.defineCallable(/** @type {"procedure" | "function"} */ (keyword), rest, body, head);
+        return this.defineCallable(
+          /** @type {"procedure" | "function"} */ (keyword),
+          rest,
+          body,
+          head,
+        );
       case "definelong": {
         const m = /^(\w+)\s*(?:\(([^)]*)\))?\s*$/.exec(rest.trim());
         if (!m) throw new ParseError("Invalid !definelong", { line: head.line });
@@ -377,7 +397,9 @@ class Preprocessor {
       .filter(Boolean)
       .map((p) => {
         const eq = p.indexOf("=");
-        return eq < 0 ? { name: p, def: null } : { name: p.slice(0, eq).trim(), def: p.slice(eq + 1).trim() };
+        return eq < 0
+          ? { name: p, def: null }
+          : { name: p.slice(0, eq).trim(), def: p.slice(eq + 1).trim() };
       });
     const inline = /^!return\s+(.*)$/i.exec(m[3].trim());
     this.callables.set(m[1], { kind, params, body, inlineReturn: inline ? inline[1] : null });
@@ -436,7 +458,9 @@ class Preprocessor {
       case "assert": {
         const [cond, ...msg] = splitTopLevel(rest, ":");
         if (!truthy(this.eval(cond, src.line))) {
-          throw new ParseError(`Assertion failed: ${msg.join(":").trim() || cond.trim()}`, { line: src.line });
+          throw new ParseError(`Assertion failed: ${msg.join(":").trim() || cond.trim()}`, {
+            line: src.line,
+          });
         }
         return;
       }
@@ -482,13 +506,17 @@ class Preprocessor {
 
     let text = isStdlib ? (STDLIB.get(name) ?? null) : null;
     if (text === null && this.resolver) {
-      text = this.resolver(name, { from: this.currentFile, kind: isStdlib ? "stdlib" : /^https?:/i.test(name) ? "url" : "file" });
+      text = this.resolver(name, {
+        from: this.currentFile,
+        kind: isStdlib ? "stdlib" : /^https?:/i.test(name) ? "url" : "file",
+      });
     }
     if (text === null) {
       this.diagnostics.warn(`Cannot resolve !${keyword} ${spec}`, src.line);
       return;
     }
-    if (this.depth >= this.limits.maxPreprocessDepth) throw new LimitError("Include depth limit exceeded", src);
+    if (this.depth >= this.limits.maxPreprocessDepth)
+      throw new LimitError("Include depth limit exceeded", src);
 
     const blocks = extractBlocks(text);
     let lines = blocks[0]?.lines ?? [];
@@ -538,7 +566,8 @@ class Preprocessor {
    * @returns {T}
    */
   withScope(scope, fn) {
-    if (this.depth >= this.limits.maxPreprocessDepth) throw new LimitError("Preprocessor call depth exceeded");
+    if (this.depth >= this.limits.maxPreprocessDepth)
+      throw new LimitError("Preprocessor call depth exceeded");
     this.depth++;
     this.scopes.push(scope);
     try {
@@ -559,7 +588,9 @@ class Preprocessor {
   callValue(name, args, named) {
     this.tick();
     if (name.startsWith("%")) {
-      const builtin = Object.prototype.hasOwnProperty.call(BUILTINS, name.slice(1)) ? BUILTINS[name.slice(1)] : null;
+      const builtin = Object.prototype.hasOwnProperty.call(BUILTINS, name.slice(1))
+        ? BUILTINS[name.slice(1)]
+        : null;
       if (!builtin) {
         this.diagnostics.warn(`Unknown builtin ${name}()`);
         return "";
@@ -616,7 +647,11 @@ class Preprocessor {
       const sink = [];
       this.withScope(scope, () => this.exec(fn.body, sink));
       // `Boundary(...) {` keeps its opening brace on the last emitted line.
-      if (call[3] && sink.length) sink[sink.length - 1] = { ...sink[sink.length - 1], text: `${sink[sink.length - 1].text} {` };
+      if (call[3] && sink.length)
+        sink[sink.length - 1] = {
+          ...sink[sink.length - 1],
+          text: `${sink[sink.length - 1].text} {`,
+        };
       for (const l of sink) this.push(out, { text: l.text, line: src.line });
       return;
     }
@@ -647,7 +682,8 @@ class Preprocessor {
     const named = new Map();
     for (const part of splitArgs(raw)) {
       const trimmed = part.trim();
-      if (!trimmed && args.length === 0 && named.size === 0 && splitArgs(raw).length === 1) continue;
+      if (!trimmed && args.length === 0 && named.size === 0 && splitArgs(raw).length === 1)
+        continue;
       const kw = /^(\$\w+)\s*=\s*(.*)$/s.exec(trimmed);
       if (kw) named.set(kw[1], this.evalArg(kw[2], line));
       else args.push(this.evalArg(trimmed, line));
@@ -682,7 +718,8 @@ class Preprocessor {
       this.tick();
       const next = this.substituteCalls(this.substituteMacros(current));
       if (next === current) return next;
-      if (next.length > this.limits.maxLineLength * 4) throw new LimitError("Substituted line too long");
+      if (next.length > this.limits.maxLineLength * 4)
+        throw new LimitError("Substituted line too long");
       current = next;
     }
     return current;
@@ -697,7 +734,10 @@ class Preprocessor {
     let i = 0;
     while (i < text.length) {
       const c = text[i];
-      if ((c === "$" || c === "%" || /[A-Za-z_]/.test(c)) && (i === 0 || !/[\w$%]/.test(text[i - 1]))) {
+      if (
+        (c === "$" || c === "%" || /[A-Za-z_]/.test(c)) &&
+        (i === 0 || !/[\w$%]/.test(text[i - 1]))
+      ) {
         let j = i + 1;
         while (j < text.length && /\w/.test(text[j])) j++;
         const name = text.slice(i, j);
@@ -713,6 +753,16 @@ class Preprocessor {
         if (c === "$") {
           const value = this.lookup(name);
           if (value !== undefined) {
+            // `$obj.key` / `$arr[0]` member access on JSON values.
+            const member =
+              value && typeof value === "object"
+                ? /^(?:\.\w+|\[[^\]\n]{1,200}\])+/.exec(text.slice(j))
+                : null;
+            if (member) {
+              out += stringify(this.eval(name + member[0], 0));
+              i = j + member[0].length;
+              continue;
+            }
             out += stringify(value);
             i = j;
             continue;

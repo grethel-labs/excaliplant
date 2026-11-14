@@ -35,8 +35,50 @@ import { parseColor } from "./color.mjs";
  * @property {string | null} label Text after `:`.
  */
 
-const LEFT_HEADS = ["<|", "<<", "}o", "}|", "|o", "||", "<", "*", "o", "#", "x", "}", "+", "^", "(", ")", "0", "|", "/", "\\"];
-const RIGHT_HEADS = ["|>", ">>", "o{", "|{", "o|", "||", ">", "*", "o", "#", "x", "{", "+", "^", "(", ")", "0", "|", "/", "\\"];
+const LEFT_HEADS = [
+  "<|",
+  "<<",
+  "}o",
+  "}|",
+  "|o",
+  "||",
+  "<",
+  "*",
+  "o",
+  "#",
+  "x",
+  "}",
+  "+",
+  "^",
+  "(",
+  ")",
+  "0",
+  "|",
+  "/",
+  "\\",
+];
+const RIGHT_HEADS = [
+  "|>",
+  ">>",
+  "o{",
+  "|{",
+  "o|",
+  "||",
+  ">",
+  "*",
+  "o",
+  "#",
+  "x",
+  "{",
+  "+",
+  "^",
+  "(",
+  ")",
+  "0",
+  "|",
+  "/",
+  "\\",
+];
 const DIRECTIONS = new Map([
   ["up", "up"],
   ["u", "up"],
@@ -100,13 +142,17 @@ export function parseLink(line) {
     if (!BODY_CHARS.has(head[i])) continue;
     const body = scanBody(head, i);
     if (!body) continue;
+    // Never rescan inside a body run: keeps hostile `-----…` lines linear.
+    const bodyStart = i;
+    i = body.end - 1;
     // A single '.' or '=' alone is not an arrow (e.g. `a.b`), require context.
-    let leftHead = longestSuffix(head.slice(0, i), LEFT_HEADS);
+    let leftHead = longestSuffix(head.slice(Math.max(0, bodyStart - 3), bodyStart), LEFT_HEADS);
     let rightHead = longestPrefix(head.slice(body.end), RIGHT_HEADS);
-    const bodyLen = body.end - i;
-    const plainDots = /^[.=~]+$/.test(head.slice(i, body.end)) && bodyLen < 2 && !leftHead && !rightHead;
+    const bodyLen = body.end - bodyStart;
+    const plainDots =
+      /^[.=~]+$/.test(head.slice(bodyStart, body.end)) && bodyLen < 2 && !leftHead && !rightHead;
     if (plainDots) continue;
-    let start = i - (leftHead?.length ?? 0);
+    let start = bodyStart - (leftHead?.length ?? 0);
     let end = body.end + (rightHead?.length ?? 0);
     // Heads like 'o' / 'x' must not eat an identifier character.
     if (leftHead && /^[ox0]$/.test(leftHead) && start > 0 && /\w/.test(head[start - 1])) {
@@ -129,13 +175,17 @@ export function parseLink(line) {
         to: toSplit.text,
         fromLabel: fromSplit.quoted,
         toLabel: toSplit.quoted,
-        arrow: describe(line.slice(i, body.end), leftHead, rightHead, line.slice(start, end)),
+        arrow: describe(
+          line.slice(bodyStart, body.end),
+          leftHead,
+          rightHead,
+          line.slice(start, end),
+        ),
         label: labelAt >= 0 ? line.slice(labelAt + 1).trim() : null,
       },
       // Arrows separated by whitespace win over dashes inside names (`my-service`).
       spaced: /\s/.test(head[start - 1] ?? " ") || /\s/.test(head[end] ?? " "),
     });
-    i = body.end;
   }
   return (candidates.find((c) => c.spaced) ?? candidates[0])?.spec ?? null;
 }
@@ -245,7 +295,8 @@ function describe(body, left, right, raw) {
       else if (p === "bold") spec.bold = true;
       else if (p === "hidden") spec.hidden = true;
       else if (p === "plain") spec.lineStyle = "solid";
-      else if (p.startsWith("thickness")) spec.thickness = Math.max(0.5, Math.min(12, Number(p.split("=")[1]) || 1));
+      else if (p.startsWith("thickness"))
+        spec.thickness = Math.max(0.5, Math.min(12, Number(p.split("=")[1]) || 1));
       else {
         const c = parseColor(part.trim().split(/[;,]/)[0].replace(/^#/, ""));
         if (c) spec.color = c;

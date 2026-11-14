@@ -86,7 +86,8 @@ function parseSeq(ctx, stop) {
     }
     if (stop(line)) return items;
     reader.next();
-    if (++ctx.count > ctx.module.limits.maxNodes * 4) throw new LimitError("Activity diagram too large");
+    if (++ctx.count > ctx.module.limits.maxNodes * 4)
+      throw new LimitError("Activity diagram too large");
     const item = parseItem(ctx, line, src.line);
     if (item) items.push(item);
   }
@@ -110,7 +111,11 @@ function parseItem(ctx, line, lineNo) {
   if ((m = /^\|(#[^|]+\|)?([^|]+)\|\s*(.*)$/.exec(line))) {
     const id = m[2].trim();
     if (!model.lanes.some((l) => l.id === id)) {
-      model.lanes.push({ id, label: label(m[3] || id), fill: m[1] ? parseColor(m[1].slice(0, -1)) : null });
+      model.lanes.push({
+        id,
+        label: label(m[3] || id),
+        fill: m[1] ? parseColor(m[1].slice(0, -1)) : null,
+      });
     }
     ctx.lane = id;
     return null;
@@ -133,7 +138,12 @@ function parseItem(ctx, line, lineNo) {
   }
   if ((m = /^-+(?:\[([^\]]*)\])?-*>\s*(.*?);?$/.exec(line))) {
     /** @type {ArrowStyle} */
-    const style = { label: m[2] ? label(m[2]) : null, color: null, lineStyle: "solid", hidden: false };
+    const style = {
+      label: m[2] ? label(m[2]) : null,
+      color: null,
+      lineStyle: "solid",
+      hidden: false,
+    };
     for (const part of (m[1] ?? "").split(/[,;]/)) {
       const p = part.trim().toLowerCase();
       if (p === "dashed" || p === "dotted") style.lineStyle = p;
@@ -142,7 +152,9 @@ function parseItem(ctx, line, lineNo) {
     }
     return { t: "arrow", style };
   }
-  if ((m = /^if\s*\((.*)\)\s*(?:(?:is|equals)\s*\((.*?)\)\s*)?then\s*(?:\((.*)\))?\s*$/i.exec(line))) {
+  if (
+    (m = /^if\s*\((.*)\)\s*(?:(?:is|equals)\s*\((.*?)\)\s*)?then\s*(?:\((.*)\))?\s*$/i.exec(line))
+  ) {
     /** @type {Extract<Item, { t: "if" }>} */
     const node = { t: "if", branches: [], elseLabel: null, elseBody: null, lane: lane() };
     let cond = label(m[1] + (m[2] ? ` = ${m[2]}` : ""));
@@ -152,7 +164,10 @@ function parseItem(ctx, line, lineNo) {
       node.branches.push({ cond, label: lbl, body });
       if (reader.done) break;
       const next = reader.next().text.trim();
-      const ei = /^else\s*if\s*\((.*)\)\s*(?:(?:is|equals)\s*\((.*?)\)\s*)?then\s*(?:\((.*)\))?\s*$/i.exec(next);
+      const ei =
+        /^else\s*if\s*\((.*)\)\s*(?:(?:is|equals)\s*\((.*?)\)\s*)?then\s*(?:\((.*)\))?\s*$/i.exec(
+          next,
+        );
       if (ei) {
         cond = label(ei[1] + (ei[2] ? ` = ${ei[2]}` : ""));
         lbl = ei[3] ? label(ei[3]) : null;
@@ -176,7 +191,10 @@ function parseItem(ctx, line, lineNo) {
       const next = reader.next().text.trim();
       const c = /^case\s*\((.*)\)\s*$/i.exec(next);
       if (!c) break;
-      node.cases.push({ label: label(c[1]), body: parseSeq(ctx, (l) => /^(case\b|endswitch\b|end\s+switch\b)/i.test(l)) });
+      node.cases.push({
+        label: label(c[1]),
+        body: parseSeq(ctx, (l) => /^(case\b|endswitch\b|end\s+switch\b)/i.test(l)),
+      });
     }
     return node;
   }
@@ -192,7 +210,15 @@ function parseItem(ctx, line, lineNo) {
       next = reader.done ? "" : reader.next().text.trim();
     }
     const end = /\((.*)\)/.exec(next);
-    return { t: "while", cond: label(m[1]), label: m[2] ? label(m[2]) : null, endLabel: end ? label(end[1]) : null, body, backward, lane: lane() };
+    return {
+      t: "while",
+      cond: label(m[1]),
+      label: m[2] ? label(m[2]) : null,
+      endLabel: end ? label(end[1]) : null,
+      body,
+      backward,
+      lane: lane(),
+    };
   }
   if ((m = /^repeat\s*(?::(.*);)?\s*$/i.exec(line))) {
     const body = parseSeq(ctx, (l) => /^(repeat\s*while|repeatwhile|backward\b)/i.test(l));
@@ -205,7 +231,10 @@ function parseItem(ctx, line, lineNo) {
       parseSeq(ctx, (l) => /^(repeat\s*while|repeatwhile)/i.test(l));
       next = reader.done ? "" : reader.next().text.trim();
     }
-    const rw = /^repeat\s*while\s*(?:\((.*?)\))?\s*(?:is\s*\((.*?)\))?\s*(?:not\s*\((.*?)\))?\s*$/i.exec(next);
+    const rw =
+      /^repeat\s*while\s*(?:\((.*?)\))?\s*(?:is\s*\((.*?)\))?\s*(?:not\s*\((.*?)\))?\s*$/i.exec(
+        next,
+      );
     return {
       t: "repeat",
       body,
@@ -223,7 +252,11 @@ function parseItem(ctx, line, lineNo) {
     const branches = [];
     let merge = false;
     for (;;) {
-      branches.push(parseSeq(ctx, (l) => new RegExp(`^(${kind}\\s+again|end\\s*${kind}|end\\s*merge)\\b`, "i").test(l)));
+      branches.push(
+        parseSeq(ctx, (l) =>
+          new RegExp(`^(${kind}\\s+again|end\\s*${kind}|end\\s*merge)\\b`, "i").test(l),
+        ),
+      );
       if (reader.done) break;
       const next = reader.next().text.trim();
       if (/again/i.test(next)) continue;
@@ -243,7 +276,12 @@ function parseItem(ctx, line, lineNo) {
     return { t: "group", kind, text, fill, body };
   }
   if ((m = /^(floating\s+)?note\s*(left|right)?\s*(#\S+)?\s*(?::\s*(.*))?$/i.exec(line))) {
-    const text = m[4] ?? reader.until(/^\s*end\s*note\s*$/i).map((l) => l.text.trim()).join("\n");
+    const text =
+      m[4] ??
+      reader
+        .until(/^\s*end\s*note\s*$/i)
+        .map((l) => l.text.trim())
+        .join("\n");
     return {
       t: "note",
       text: label(text),
@@ -253,7 +291,12 @@ function parseItem(ctx, line, lineNo) {
     };
   }
   if ((m = /^(#\S+\s*)?\((.{1,3})\)\s*$/.exec(line))) {
-    return { t: "connector", text: m[2], fill: m[1] ? (parseColorSpec(m[1].trim()).fill ?? null) : null, lane: lane() };
+    return {
+      t: "connector",
+      text: m[2],
+      fill: m[1] ? (parseColorSpec(m[1].trim()).fill ?? null) : null,
+      lane: lane(),
+    };
   }
   if (parseCommon(line, model.meta, reader)) return null;
   ctx.module.diagnostics.unknown(line, lineNo);

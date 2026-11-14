@@ -7,7 +7,7 @@
 
 import { ParseError } from "../../core/errors.mjs";
 
-/** @typedef {null | boolean | number | string | YamlValue[] | { [key: string]: YamlValue }} YamlValue */
+/** @typedef {null | boolean | number | string | any[] | Record<string, any>} YamlValue */
 
 /**
  * @param {string} text
@@ -16,7 +16,12 @@ import { ParseError } from "../../core/errors.mjs";
 export function parseYaml(text) {
   const lines = text
     .split(/\r?\n/)
-    .map((raw, i) => ({ raw, no: i + 1, indent: raw.length - raw.trimStart().length, text: stripComment(raw).trimEnd() }))
+    .map((raw, i) => ({
+      raw,
+      no: i + 1,
+      indent: raw.length - raw.trimStart().length,
+      text: stripComment(raw).trimEnd(),
+    }))
     .filter((l) => l.text.trim() !== "" && l.text.trim() !== "---" && l.text.trim() !== "...");
   let pos = 0;
 
@@ -24,7 +29,8 @@ export function parseYaml(text) {
   const block = (indent) => {
     const first = lines[pos];
     if (!first) return null;
-    if (first.text.trim().startsWith("- ") || first.text.trim() === "-") return sequence(first.indent);
+    if (first.text.trim().startsWith("- ") || first.text.trim() === "-")
+      return sequence(first.indent);
     return mapping(first.indent);
     void indent;
   };
@@ -33,15 +39,24 @@ export function parseYaml(text) {
   const sequence = (indent) => {
     /** @type {YamlValue[]} */
     const out = [];
-    while (pos < lines.length && lines[pos].indent === indent && /^-(\s|$)/.test(lines[pos].text.trim())) {
+    while (
+      pos < lines.length &&
+      lines[pos].indent === indent &&
+      /^-(\s|$)/.test(lines[pos].text.trim())
+    ) {
       const l = lines[pos];
       const rest = l.text.trim().slice(1).trim();
       if (!rest) {
         pos++;
-        out.push(pos < lines.length && lines[pos].indent > indent ? block(lines[pos].indent) : null);
+        out.push(
+          pos < lines.length && lines[pos].indent > indent ? block(lines[pos].indent) : null,
+        );
       } else if (/^[^"'{[][^:]*:(\s|$)/.test(rest) || /^["'][^"']*["']\s*:(\s|$)/.test(rest)) {
         // "- key: value" starts an inline mapping
-        const inner = l.indent + (l.text.length - l.text.trimStart().length - l.indent) + l.text.trim().indexOf(rest);
+        const inner =
+          l.indent +
+          (l.text.length - l.text.trimStart().length - l.indent) +
+          l.text.trim().indexOf(rest);
         lines[pos] = { ...l, indent: inner, text: " ".repeat(inner) + rest };
         out.push(mapping(inner));
       } else {
@@ -65,7 +80,12 @@ export function parseYaml(text) {
       const rest = (m[2] ?? "").trim();
       if (!rest) {
         if (pos < lines.length && lines[pos].indent > indent) out[key] = block(lines[pos].indent);
-        else if (pos < lines.length && lines[pos].indent === indent && /^-(\s|$)/.test(lines[pos].text.trim())) out[key] = sequence(indent);
+        else if (
+          pos < lines.length &&
+          lines[pos].indent === indent &&
+          /^-(\s|$)/.test(lines[pos].text.trim())
+        )
+          out[key] = sequence(indent);
         else out[key] = null;
       } else out[key] = scalarOrBlock(rest, indent);
     }

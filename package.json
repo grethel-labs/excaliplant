@@ -46,7 +46,18 @@
   },
   "homepage": "https://github.com/grethel-labs/excaliplant#readme",
   "bugs": "https://github.com/grethel-labs/excaliplant/issues",
-  "keywords": ["plantuml", "excalidraw", "diagram", "uml", "sequence-diagram", "class-diagram", "svg", "png", "elk", "hand-drawn"],
+  "keywords": [
+    "plantuml",
+    "excalidraw",
+    "diagram",
+    "uml",
+    "sequence-diagram",
+    "class-diagram",
+    "svg",
+    "png",
+    "elk",
+    "hand-drawn"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

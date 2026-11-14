@@ -1,0 +1,21 @@
+@startuml
+participant Client
+participant Server
+[-> Client : start
+Client -> Server ++ : connect()
+create Session
+Server -> Session ** : new
+Server -> Session ++ : open()
+return ok
+par
+  Client -> Server : ping
+else
+  Client -> Server : log
+end
+ref over Client, Server : authentication handshake
+note over Client, Server : connection established
+Client -> Server : close()
+Server -> Session !! : dispose
+Server --> Client -- : bye
+Client ->] : done
+@enduml

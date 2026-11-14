@@ -27,6 +27,7 @@
  * @property {string} title Human readable name.
  * @property {readonly string[]} starts Start keywords handled (`uml`, `json`, `mindmap`, …).
  * @property {boolean} [raw] Skip comment stripping and preprocessing (ditaa, …).
+ * @property {boolean} [fallback] Wins shared starts when no detector scores above zero.
  * @property {(lines: SourceLine[]) => number} [detect] Score 0…1 for shared starts such as `@startuml`.
  * @property {(lines: SourceLine[], ctx: ModuleContext) => { meta: import("../syntax/commons.mjs").DiagramMeta }} parse
  * @property {(model: any, ctx: ModuleContext) => any} layout May return a promise.
@@ -45,9 +46,11 @@ export function defineDiagram(def) {
     throw new TypeError("Diagram module needs a lower-case kind");
   }
   for (const hook of ["parse", "layout", "draw"]) {
-    if (typeof (/** @type {any} */ (def)[hook]) !== "function") throw new TypeError(`Diagram module ${def.kind} lacks ${hook}()`);
+    if (typeof (/** @type {any} */ (def)[hook]) !== "function")
+      throw new TypeError(`Diagram module ${def.kind} lacks ${hook}()`);
   }
-  if (!Array.isArray(def.starts) || def.starts.length === 0) throw new TypeError(`Diagram module ${def.kind} needs starts`);
+  if (!Array.isArray(def.starts) || def.starts.length === 0)
+    throw new TypeError(`Diagram module ${def.kind} needs starts`);
   return Object.freeze({ ...def, starts: Object.freeze([...def.starts]) });
 }
 
@@ -104,8 +107,8 @@ export class DiagramRegistry {
   resolve(start, lines) {
     const candidates = this.forStart(start);
     if (candidates.length <= 1) return candidates[0];
-    let best = candidates[0];
-    let bestScore = -1;
+    let best = candidates.find((m) => m.fallback) ?? candidates[0];
+    let bestScore = 0;
     for (const m of candidates) {
       const score = m.detect ? m.detect(lines) : 0;
       if (score > bestScore) {

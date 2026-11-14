@@ -12,7 +12,7 @@ import rough from "roughjs";
 import { excalifontFaceCss } from "./font.mjs";
 import { ASCENDER, DESCENDER, UNITS_PER_EM } from "../layout/font_metrics.mjs";
 
-const generator = rough.generator();
+const generator = /** @type {any} */ (rough).generator();
 
 /**
  * @typedef {object} SvgOptions
@@ -26,7 +26,10 @@ const generator = rough.generator();
  * @param {string} s
  */
 export function escapeXml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c,
+  );
 }
 
 /**
@@ -60,7 +63,9 @@ export function excalidrawToSvg(doc, options = {}) {
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`,
   );
   const css = options.embedFont === false ? "" : excalifontFaceCss();
-  out.push(`<defs><style>${css}text{font-family:Excalifont,"Segoe UI Emoji",sans-serif;white-space:pre;}</style></defs>`);
+  out.push(
+    `<defs><style>${css}text{font-family:Excalifont,"Segoe UI Emoji",sans-serif;white-space:pre;}</style></defs>`,
+  );
   if (bg !== "transparent") out.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="${bg}"/>`);
   out.push(`<g transform="translate(${num(padding - b.x)} ${num(padding - b.y)})">`);
   for (const el of elements) out.push(renderElement(el, bg));
@@ -77,10 +82,12 @@ function bounds(elements) {
   let maxX = -Infinity;
   let maxY = -Infinity;
   for (const e of elements) {
-    const pts = e.points ? e.points.map((/** @type {number[]} */ p) => [e.x + p[0], e.y + p[1]]) : [
-      [e.x, e.y],
-      [e.x + e.width, e.y + e.height],
-    ];
+    const pts = e.points
+      ? e.points.map((/** @type {number[]} */ p) => [e.x + p[0], e.y + p[1]])
+      : [
+          [e.x, e.y],
+          [e.x + e.width, e.y + e.height],
+        ];
     for (const [x, y] of pts) {
       minX = Math.min(minX, x);
       minY = Math.min(minY, y);
@@ -175,8 +182,10 @@ function shape(el, kind) {
   const r = el.roundness ? Math.min(32, Math.min(w, h) * 0.25) : 0;
   if (el.roughness === 0) {
     const common = `fill="${fill === "transparent" ? "none" : fill}" stroke="${stroke === "transparent" ? "none" : stroke}" stroke-width="${num(el.strokeWidth)}"${dashAttr(el)}`;
-    if (kind === "rect") return `<rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="${num(r)}" ${common}/>`;
-    if (kind === "ellipse") return `<ellipse cx="${num(x + w / 2)}" cy="${num(y + h / 2)}" rx="${num(w / 2)}" ry="${num(h / 2)}" ${common}/>`;
+    if (kind === "rect")
+      return `<rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" rx="${num(r)}" ${common}/>`;
+    if (kind === "ellipse")
+      return `<ellipse cx="${num(x + w / 2)}" cy="${num(y + h / 2)}" rx="${num(w / 2)}" ry="${num(h / 2)}" ${common}/>`;
     return `<polygon points="${num(x + w / 2)},${num(y)} ${num(x + w)},${num(y + h / 2)} ${num(x + w / 2)},${num(y + h)} ${num(x)},${num(y + h / 2)}" ${common}/>`;
   }
   const o = roughOptions(el, true);
@@ -215,7 +224,10 @@ function drawable(d) {
     .map((p) => {
       const stroke = p.stroke && p.stroke !== "none" ? p.stroke : "none";
       const fill = p.fill && p.fill !== "none" ? p.fill : "none";
-      const dash = d.options.strokeLineDash && stroke !== "none" && fill === "none" ? ` stroke-dasharray="${d.options.strokeLineDash.join(" ")}"` : "";
+      const dash =
+        d.options.strokeLineDash && stroke !== "none" && fill === "none"
+          ? ` stroke-dasharray="${d.options.strokeLineDash.join(" ")}"`
+          : "";
       return `<path d="${p.d}" stroke="${stroke}" stroke-width="${num(p.strokeWidth)}" fill="${fill}"${dash} stroke-linecap="round" stroke-linejoin="round"/>`;
     })
     .join("");
@@ -235,11 +247,14 @@ function linear(el, bg, isArrow) {
   const fill = color(el.backgroundColor, "transparent");
   const first = pts[0];
   const last = pts[pts.length - 1];
-  const closed = !isArrow && pts.length > 2 && Math.hypot(first[0] - last[0], first[1] - last[1]) < 0.5;
+  const closed =
+    !isArrow && pts.length > 2 && Math.hypot(first[0] - last[0], first[1] - last[1]) < 0.5;
   const curved = !!el.roundness;
   let out = "";
   if (el.roughness === 0) {
-    const d = curved ? smoothPath(pts, closed) : `M ${pts.map((p) => `${num(p[0])} ${num(p[1])}`).join(" L ")}${closed ? " Z" : ""}`;
+    const d = curved
+      ? smoothPath(pts, closed)
+      : `M ${pts.map((p) => `${num(p[0])} ${num(p[1])}`).join(" L ")}${closed ? " Z" : ""}`;
     const f = closed && fill !== "transparent" ? fill : "none";
     if (stroke !== "transparent" || f !== "none") {
       out += `<path d="${d}" fill="${f}" stroke="${stroke === "transparent" ? "none" : stroke}" stroke-width="${num(el.strokeWidth)}"${dashAttr(el)} stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -298,8 +313,14 @@ function arrowhead(el, from, tip, head, bg) {
   const ny = ux;
   const scale = Math.min(1, seg / 30) * (1 + Math.max(0, sw - 2) * 0.15);
   /** @param {number} back @param {number} side @returns {[number, number]} */
-  const at = (back, side) => [tip[0] - ux * back * scale + nx * side * scale, tip[1] - uy * back * scale + ny * side * scale];
-  const o = { ...roughOptions({ ...el, strokeStyle: "solid", backgroundColor: "transparent" }, false), roughness: Math.min(el.roughness, 0.6) };
+  const at = (back, side) => [
+    tip[0] - ux * back * scale + nx * side * scale,
+    tip[1] - uy * back * scale + ny * side * scale,
+  ];
+  const o = {
+    ...roughOptions({ ...el, strokeStyle: "solid", backgroundColor: "transparent" }, false),
+    roughness: Math.min(el.roughness, 0.6),
+  };
   /** @param {[number, number][]} poly @param {string} fill */
   const polygon = (poly, fill) =>
     el.roughness === 0
@@ -359,12 +380,22 @@ function text(el) {
   const fill = color(el.strokeColor, "#000000");
   const bold = el.customData?.bold === true;
   const italic = el.customData?.italic === true;
-  const family = el.fontFamily === 8 ? ` font-family="'Comic Shanns','Cascadia Code',ui-monospace,monospace"` : "";
-  const weight = bold ? ` stroke="${fill}" stroke-width="${num(size / 30)}" paint-order="stroke"` : "";
+  const family =
+    el.fontFamily === 8
+      ? ` font-family="'Comic Shanns','Cascadia Code',ui-monospace,monospace"`
+      : "";
+  const weight = bold
+    ? ` stroke="${fill}" stroke-width="${num(size / 30)}" paint-order="stroke"`
+    : "";
   const lines = String(el.text ?? "").split("\n");
   const tspans = lines
-    .map((line, i) => `<text x="${num(ax)}" y="${num(baseline + i * lh)}" xml:space="preserve" font-size="${num(size)}" fill="${fill}" text-anchor="${anchor}"${family}${weight}>${escapeXml(line)}</text>`)
+    .map(
+      (line, i) =>
+        `<text x="${num(ax)}" y="${num(baseline + i * lh)}" xml:space="preserve" font-size="${num(size)}" fill="${fill}" text-anchor="${anchor}"${family}${weight}>${escapeXml(line)}</text>`,
+    )
     .join("");
-  const transform = italic ? `translate(${num(el.x)} ${num(el.y)}) skewX(-10) translate(${num(lh * 0.15)} 0)` : `translate(${num(el.x)} ${num(el.y)})`;
+  const transform = italic
+    ? `translate(${num(el.x)} ${num(el.y)}) skewX(-10) translate(${num(lh * 0.15)} 0)`
+    : `translate(${num(el.x)} ${num(el.y)})`;
   return `<g transform="${transform}">${tspans}</g>`;
 }

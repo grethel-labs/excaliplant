@@ -6,7 +6,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const WOFF2 = fileURLToPath(new URL("../../assets/fonts/Excalifont-Regular.woff2", import.meta.url));
+const WOFF2 = fileURLToPath(
+  new URL("../../assets/fonts/Excalifont-Regular.woff2", import.meta.url),
+);
 const TTF = fileURLToPath(new URL("../../assets/fonts/Excalifont-Regular.ttf", import.meta.url));
 
 /** Absolute path to the TrueType font used for PNG rasterisation. */

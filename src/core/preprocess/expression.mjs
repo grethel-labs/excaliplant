@@ -12,7 +12,7 @@ import { ParseError } from "../errors.mjs";
 
 /**
  * Preprocessor value. JSON objects use null-prototype records.
- * @typedef {string | number | boolean | null | PValue[] | { [key: string]: PValue }} PValue
+ * @typedef {string | number | boolean | null | any[] | Record<string, any>} PValue
  */
 
 /**
@@ -24,7 +24,26 @@ import { ParseError } from "../errors.mjs";
 /** @typedef {{ t: string, v: string }} Token */
 
 const TWO_CHAR_OPS = new Set(["==", "!=", "<=", ">=", "&&", "||"]);
-const ONE_CHAR_OPS = new Set(["+", "-", "*", "/", "%", "<", ">", "!", "(", ")", "[", "]", "{", "}", ",", ":", ".", "="]);
+const ONE_CHAR_OPS = new Set([
+  "+",
+  "-",
+  "*",
+  "/",
+  "%",
+  "<",
+  ">",
+  "!",
+  "(",
+  ")",
+  "[",
+  "]",
+  "{",
+  "}",
+  ",",
+  ":",
+  ".",
+  "=",
+]);
 
 /**
  * @param {string} src
@@ -126,7 +145,8 @@ class Parser {
   /** @returns {Node} */
   parse() {
     const node = this.or();
-    if (this.pos < this.tokens.length) throw new ParseError(`Unexpected '${this.peek().v}' in expression`);
+    if (this.pos < this.tokens.length)
+      throw new ParseError(`Unexpected '${this.peek().v}' in expression`);
     return node;
   }
   /** @returns {Node} */
@@ -214,7 +234,8 @@ class Parser {
     if (t.t === "var" || t.t === "builtin" || t.t === "ident") {
       if (this.isOp("(")) return this.call(t.v);
       if (t.t === "var") return { k: "var", name: t.v };
-      if (t.t === "ident" && (t.v === "true" || t.v === "false")) return { k: "lit", v: t.v === "true" };
+      if (t.t === "ident" && (t.v === "true" || t.v === "false"))
+        return { k: "lit", v: t.v === "true" };
       return { k: "lit", v: t.v };
     }
     if (t.v === "(") {

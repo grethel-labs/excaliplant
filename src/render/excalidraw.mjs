@@ -45,7 +45,11 @@ export function validateDocument(doc) {
     throw new TypeError("Not an Excalidraw document");
   }
   for (const el of doc.elements) {
-    if (!["rectangle", "ellipse", "diamond", "line", "arrow", "text", "freedraw", "frame"].includes(el.type)) {
+    if (
+      !["rectangle", "ellipse", "diamond", "line", "arrow", "text", "freedraw", "frame"].includes(
+        el.type,
+      )
+    ) {
       throw new TypeError(`Unsupported element type ${el.type}`);
     }
     for (const f of FINITE_FIELDS) {
@@ -56,7 +60,12 @@ export function validateDocument(doc) {
         throw new TypeError(`Element ${el.id} has invalid colour ${c}`);
       }
     }
-    if (el.points && !el.points.every((/** @type {number[]} */ p) => Number.isFinite(p[0]) && Number.isFinite(p[1]))) {
+    if (
+      el.points &&
+      !el.points.every(
+        (/** @type {number[]} */ p) => Number.isFinite(p[0]) && Number.isFinite(p[1]),
+      )
+    ) {
       throw new TypeError(`Element ${el.id} has non-finite points`);
     }
   }

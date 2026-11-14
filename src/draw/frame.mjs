@@ -23,10 +23,20 @@ export function decorate(canvas, meta) {
     const laid = layoutText(meta.legend.text, { fontSize: s.fontSize * 0.9, align: "left" });
     const w = laid.width + 24;
     const h = laid.height + 20;
-    const x = meta.legend.h === "left" ? b.x : meta.legend.h === "right" ? b.x + b.w - w : b.x + (b.w - w) / 2;
+    const x =
+      meta.legend.h === "left"
+        ? b.x
+        : meta.legend.h === "right"
+          ? b.x + b.w - w
+          : b.x + (b.w - w) / 2;
     const y = meta.legend.v === "top" ? b.y - h - GAP : b.y + b.h + GAP;
     canvas.group(() => {
-      canvas.rect(x, y, w, h, { fill: s.fill, stroke: s.stroke, strokeWidth: s.strokeWidth, rounded: true });
+      canvas.rect(x, y, w, h, {
+        fill: s.fill,
+        stroke: s.stroke,
+        strokeWidth: s.strokeWidth,
+        rounded: true,
+      });
       canvas.richText(laid, x + 12, y + 10, { color: s.text, align: "left" });
     });
     b = canvas.bounds();
@@ -50,15 +60,28 @@ export function decorate(canvas, meta) {
   if (meta.header) {
     const s = roleStyle(theme, "header");
     const laid = layoutText(meta.header.text, { fontSize: s.fontSize, align: meta.header.align });
-    const x = meta.header.align === "left" ? b.x : meta.header.align === "right" ? b.x + b.w - laid.width : b.x + (b.w - laid.width) / 2;
-    canvas.richText(laid, x, b.y - laid.height - GAP / 2, { color: s.text, align: meta.header.align });
+    const x =
+      meta.header.align === "left"
+        ? b.x
+        : meta.header.align === "right"
+          ? b.x + b.w - laid.width
+          : b.x + (b.w - laid.width) / 2;
+    canvas.richText(laid, x, b.y - laid.height - GAP / 2, {
+      color: s.text,
+      align: meta.header.align,
+    });
     b = canvas.bounds();
   }
 
   if (meta.footer) {
     const s = roleStyle(theme, "footer");
     const laid = layoutText(meta.footer.text, { fontSize: s.fontSize, align: meta.footer.align });
-    const x = meta.footer.align === "left" ? b.x : meta.footer.align === "right" ? b.x + b.w - laid.width : b.x + (b.w - laid.width) / 2;
+    const x =
+      meta.footer.align === "left"
+        ? b.x
+        : meta.footer.align === "right"
+          ? b.x + b.w - laid.width
+          : b.x + (b.w - laid.width) / 2;
     canvas.richText(laid, x, b.y + b.h + GAP / 2, { color: s.text, align: meta.footer.align });
     b = canvas.bounds();
   }

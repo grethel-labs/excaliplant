@@ -50,7 +50,10 @@ export function parseBlock(block, registry, options = {}) {
   const diagnostics = new Diagnostics({ strict: options.strict });
   const candidates = registry.forStart(block.type);
   if (candidates.length === 0 && !options.kind) {
-    throw new ParseError(`Unsupported diagram type @start${block.type}`, { line: block.line, code: "UNSUPPORTED_DIAGRAM" });
+    throw new ParseError(`Unsupported diagram type @start${block.type}`, {
+      line: block.line,
+      code: "UNSUPPORTED_DIAGRAM",
+    });
   }
   const raw = options.kind ? registry.get(options.kind)?.raw : candidates.every((m) => m.raw);
   let lines = block.lines;
@@ -71,17 +74,25 @@ export function parseBlock(block, registry, options = {}) {
     pragmas = pp.pragmas;
     ppTheme = pp.theme;
   }
-  if (lines.length > limits.maxLines) throw new LimitError(`Diagram has more than ${limits.maxLines} lines`);
+  if (lines.length > limits.maxLines)
+    throw new LimitError(`Diagram has more than ${limits.maxLines} lines`);
   for (const l of lines) {
-    if (l.text.length > limits.maxLineLength) throw new LimitError(`Line longer than ${limits.maxLineLength} characters`, { line: l.line });
+    if (l.text.length > limits.maxLineLength)
+      throw new LimitError(`Line longer than ${limits.maxLineLength} characters`, { line: l.line });
   }
   const pages = raw ? [lines] : splitPages(lines);
   const page = pages[Math.min(Math.max(0, options.page ?? 0), pages.length - 1)];
   const module = options.kind ? registry.get(options.kind) : registry.resolve(block.type, page);
-  if (!module) throw new ParseError(`Unknown diagram kind ${options.kind ?? block.type}`, { code: "UNSUPPORTED_DIAGRAM" });
+  if (!module)
+    throw new ParseError(`Unknown diagram kind ${options.kind ?? block.type}`, {
+      code: "UNSUPPORTED_DIAGRAM",
+    });
 
   const themeName = options.theme ?? mapPlantUmlTheme(ppTheme) ?? "sketch";
-  const theme = createTheme(typeof themeName === "string" && !THEMES[themeName] ? "sketch" : themeName, { sketch: options.sketch });
+  const theme = createTheme(
+    typeof themeName === "string" && !THEMES[themeName] ? "sketch" : themeName,
+    { sketch: options.sketch },
+  );
   /** @type {import("./registry.mjs").ModuleContext} */
   const ctx = { diagnostics, limits, theme, pragmas, start: block.type };
   const model = module.parse(page, ctx);
@@ -100,12 +111,16 @@ export function parseBlock(block, registry, options = {}) {
 export async function renderBlock(block, registry, options = {}, index = 0) {
   const { module, model, ctx, pages } = parseBlock(block, registry, options);
   const laid = await module.layout(model, ctx);
-  const seed = stableHash32(`${options.seed ?? "excaliplant"}|${module.kind}|${index}|${options.page ?? 0}`);
+  const seed = stableHash32(
+    `${options.seed ?? "excaliplant"}|${module.kind}|${index}|${options.page ?? 0}`,
+  );
   const canvas = new Canvas({ seed, theme: ctx.theme, maxElements: ctx.limits.maxElements });
   module.draw(laid, canvas, ctx);
   decorate(canvas, model.meta);
   const b = canvas.bounds();
   canvas.translate(-b.x, -b.y);
-  const document = validateDocument(createDocument(canvas.elements, { background: ctx.theme.background }));
+  const document = validateDocument(
+    createDocument(canvas.elements, { background: ctx.theme.background }),
+  );
   return { kind: module.kind, model, document, diagnostics: ctx.diagnostics.toJSON(), pages };
 }

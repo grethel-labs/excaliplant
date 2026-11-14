@@ -26,7 +26,13 @@ function drawActivity(laid, c) {
     const s = roleStyle(theme, "swimlane");
     const total = laid.lanes.reduce((m, l) => Math.max(m, l.x + l.w), 0);
     for (const l of laid.lanes) {
-      if (l.fill) c.rect(l.x, 0, l.w, laid.height, { fill: l.fill, stroke: TRANSPARENT, roughness: 0, opacity: 50 });
+      if (l.fill)
+        c.rect(l.x, 0, l.w, laid.height, {
+          fill: l.fill,
+          stroke: TRANSPARENT,
+          roughness: 0,
+          opacity: 50,
+        });
       c.richText(l.label, l.x + (l.w - l.label.width) / 2, 8, { color: s.text });
       c.line(
         [
@@ -53,7 +59,13 @@ function drawActivity(laid, c) {
   }
   for (const g of laid.groups) {
     const s = roleStyle(theme, "partition");
-    c.rect(g.x, g.y, g.w, g.h, { stroke: s.stroke, strokeWidth: 1, fill: g.fill ?? TRANSPARENT, rounded: g.kind !== "partition", strokeStyle: g.kind === "group" ? "dashed" : "solid" });
+    c.rect(g.x, g.y, g.w, g.h, {
+      stroke: s.stroke,
+      strokeWidth: 1,
+      fill: g.fill ?? TRANSPARENT,
+      rounded: g.kind !== "partition",
+      strokeStyle: g.kind === "group" ? "dashed" : "solid",
+    });
     c.richText(g.text, g.x + 10, g.y + 6, { color: s.text, align: "left" });
     if (g.kind === "partition") {
       c.line(
@@ -178,21 +190,27 @@ function drawNode(n, c) {
     }
     case "note": {
       const s = roleStyle(theme, "note", { fill: n.fill ?? undefined });
-      const id = SHAPES.note.draw(c, x, y, n.w, n.h, { fill: s.fill, stroke: s.stroke, strokeWidth: 1 });
+      const id = SHAPES.note.draw(c, x, y, n.w, n.h, {
+        fill: s.fill,
+        stroke: s.stroke,
+        strokeWidth: 1,
+      });
       if (n.text) c.richText(n.text, x + 10, y + 8, { color: s.text, align: "left" });
       return id;
     }
     case "connector": {
       const s = roleStyle(theme, "action", { fill: n.fill ?? undefined });
       const id = c.ellipse(x, y, n.w, n.h, { fill: s.fill, stroke: s.stroke });
-      if (n.text) c.richText(n.text, n.x - n.text.width / 2, n.y - n.text.height / 2, { color: s.text });
+      if (n.text)
+        c.richText(n.text, n.x - n.text.width / 2, n.y - n.text.height / 2, { color: s.text });
       return id;
     }
     default: {
       const s = roleStyle(theme, "action", { fill: n.fill ?? undefined });
       const style = { fill: s.fill, stroke: n.fill ? mixColors(n.fill, ink, 0.5) : s.stroke };
       const id = actionShape(c, n.shape, x, y, n.w, n.h, style);
-      if (n.text) c.richText(n.text, n.x - n.text.width / 2, n.y - n.text.height / 2, { color: s.text });
+      if (n.text)
+        c.richText(n.text, n.x - n.text.width / 2, n.y - n.text.height / 2, { color: s.text });
       return id;
     }
   }
@@ -263,7 +281,10 @@ export default defineDiagram({
       [/^(#\S+)?:.*[;|<>/\]}]$/, 2],
       [/^:/, 1.5],
       [/^(if\s*\(.*\)\s*(then|is|equals)|elseif|endif|end\s+if)\b/i, 3],
-      [/^(while\s*\(|endwhile|repeat|repeat\s*while|fork|fork\s+again|end\s+fork|split|end\s+split|switch\s*\(|endswitch|case\s*\()/i, 3],
+      [
+        /^(while\s*\(|endwhile|repeat|repeat\s*while|fork|fork\s+again|end\s+fork|split|end\s+split|switch\s*\(|endswitch|case\s*\()/i,
+        3,
+      ],
       [/^\|[^|]+\|/, 2],
       [/^partition\s/i, 2],
       [/^-+(\[.*\])?->/, 1],

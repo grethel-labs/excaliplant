@@ -14,7 +14,9 @@ export default graphModule({
   // Plain undeclared names in use case diagrams are actors.
   implicit: (token) => {
     const ep = endpointForm(token);
-    return ep.form === "plain" || ep.form === "quoted" ? { id: ep.name, label: ep.name, keyword: "actor" } : null;
+    return ep.form === "plain" || ep.form === "quoted"
+      ? { id: ep.name, label: ep.name, keyword: "actor" }
+      : null;
   },
   detect: (lines) =>
     score(lines, [

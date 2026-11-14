@@ -51,7 +51,10 @@ export function createMeta() {
 export function parseCommon(line, meta, reader) {
   let m;
   if ((m = /^title\s*$/i.exec(line))) {
-    meta.title = reader.until(/^\s*end\s*title\s*$/i).map((l) => l.text.trim()).join("\n");
+    meta.title = reader
+      .until(/^\s*end\s*title\s*$/i)
+      .map((l) => l.text.trim())
+      .join("\n");
     return true;
   }
   if ((m = /^title\s*:?\s+(.+)$/i.exec(line))) {
@@ -67,11 +70,17 @@ export function parseCommon(line, meta, reader) {
       .until(new RegExp(`^\\s*end\\s*${m[2]}\\s*$`, "i"))
       .map((l) => l.text.trim())
       .join("\n");
-    meta[/** @type {"header" | "footer"} */ (m[2].toLowerCase())] = { text, align: align(m[1], m[2]) };
+    meta[/** @type {"header" | "footer"} */ (m[2].toLowerCase())] = {
+      text,
+      align: align(m[1], m[2]),
+    };
     return true;
   }
   if ((m = /^(left|center|right)?\s*(header|footer)\s*:?\s+(.+)$/i.exec(line))) {
-    meta[/** @type {"header" | "footer"} */ (m[2].toLowerCase())] = { text: label(m[3]), align: align(m[1], m[2]) };
+    meta[/** @type {"header" | "footer"} */ (m[2].toLowerCase())] = {
+      text: label(m[3]),
+      align: align(m[1], m[2]),
+    };
     return true;
   }
   if ((m = /^legend\b\s*(top|bottom)?\s*(left|right|center)?\s*$/i.exec(line))) {
@@ -120,7 +129,9 @@ export function parseCommon(line, meta, reader) {
     set.add(m[2].trim().toLowerCase());
     return true;
   }
-  if ((m = /^(scale|skin|set\s+\w+|allowmixing|allow_mixing|page|outputformat)\b\s*(.*)$/i.exec(line))) {
+  if (
+    (m = /^(scale|skin|set\s+\w+|allowmixing|allow_mixing|page|outputformat)\b\s*(.*)$/i.exec(line))
+  ) {
     meta.settings.set(m[1].toLowerCase().replace(/\s+/g, " "), m[2].trim());
     return true;
   }

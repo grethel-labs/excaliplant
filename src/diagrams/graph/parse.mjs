@@ -10,7 +10,14 @@ import { parseCommon } from "../../syntax/commons.mjs";
 import { parseLink, headsOf } from "../../syntax/arrows.mjs";
 import { parseColorSpec } from "../../syntax/color.mjs";
 import { runRules, braceDelta } from "../../syntax/reader.mjs";
-import { label, takeStereotypes, takeColor, takeBlockOpen, unquote, clampText } from "../../syntax/text.mjs";
+import {
+  label,
+  takeStereotypes,
+  takeColor,
+  takeBlockOpen,
+  unquote,
+  clampText,
+} from "../../syntax/text.mjs";
 import { LimitError } from "../../core/errors.mjs";
 
 /** @typedef {import("../../model/graph.mjs").GraphNode} GraphNode */
@@ -130,9 +137,11 @@ export const DESCRIPTIVE_KEYWORDS = [
 export function endpointForm(token) {
   const t = token.trim();
   if (/^\(\)\s*/.test(t)) return { name: unquote(t.replace(/^\(\)\s*/, "")), form: "interface" };
-  if (t.startsWith("[") && t.endsWith("]")) return { name: t.slice(1, -1).trim(), form: "component" };
+  if (t.startsWith("[") && t.endsWith("]"))
+    return { name: t.slice(1, -1).trim(), form: "component" };
   if (t.startsWith("(") && t.endsWith(")")) return { name: t.slice(1, -1).trim(), form: "usecase" };
-  if (t.startsWith(":") && t.endsWith(":") && t.length > 2) return { name: t.slice(1, -1).trim(), form: "actor" };
+  if (t.startsWith(":") && t.endsWith(":") && t.length > 2)
+    return { name: t.slice(1, -1).trim(), form: "actor" };
   if (t.startsWith('"') && t.endsWith('"')) return { name: t.slice(1, -1), form: "quoted" };
   return { name: t, form: "plain" };
 }
@@ -235,7 +244,14 @@ export function parseMembers(lines) {
     if (sep) {
       current = {
         title: sep[2] ? label(sep[2]) : null,
-        separator: sep[1] === ".." ? "dotted" : sep[1] === "==" ? "double" : sep[1] === "__" ? "line" : "line",
+        separator:
+          sep[1] === ".."
+            ? "dotted"
+            : sep[1] === "=="
+              ? "double"
+              : sep[1] === "__"
+                ? "line"
+                : "line",
         members: [],
       };
       compartments.push(current);
@@ -295,8 +311,10 @@ export function createGraphParser(config) {
     /** @type {GraphContext} */
     const ctx = { model, stack: [], config, module, last: null, lastEdge: null, noteSeq: 0 };
     runRules(lines, [...(config.rules ?? []), ...GENERIC_RULES], ctx, module.diagnostics);
-    if (model.nodes.size > module.limits.maxNodes) throw new LimitError(`More than ${module.limits.maxNodes} nodes`);
-    if (model.edges.length > module.limits.maxEdges) throw new LimitError(`More than ${module.limits.maxEdges} edges`);
+    if (model.nodes.size > module.limits.maxNodes)
+      throw new LimitError(`More than ${module.limits.maxNodes} nodes`);
+    if (model.edges.length > module.limits.maxEdges)
+      throw new LimitError(`More than ${module.limits.maxEdges} edges`);
     model.direction = model.meta.direction;
     applyVisibility(model);
     config.finish?.(model, ctx);
@@ -340,7 +358,8 @@ export function declare(ctx, decl, kind) {
     if (decl.label !== decl.id) node.label = label(decl.label);
     if (parent && node.parent !== parent) model.reparent(node, parent);
   }
-  if (decl.label !== decl.id && !model.aliases.has(decl.label)) model.aliases.set(decl.label, node.id);
+  if (decl.label !== decl.id && !model.aliases.has(decl.label))
+    model.aliases.set(decl.label, node.id);
   node.stereotypes.push(...decl.stereotypes.filter((s) => !node.stereotypes.includes(s)));
   Object.assign(node.colors, decl.colors);
   if (decl.link) node.link = decl.link;
@@ -348,14 +367,23 @@ export function declare(ctx, decl, kind) {
   if (kind.container) node.container = true;
   if (kind.classLike) {
     const spot = CLASS_SPOTS.get(decl.keyword) ?? CLASS_SPOTS.get("class");
-    const custom = decl.stereotypes.map((s) => /^\(\s*(\S)\s*,\s*(#?\w+)\s*\)\s*(.*)$/.exec(s)).find(Boolean);
+    const custom = decl.stereotypes
+      .map((s) => /^\(\s*(\S)\s*,\s*(#?\w+)\s*\)\s*(.*)$/.exec(s))
+      .find(Boolean);
     node.classHeader = {
       keyword: decl.keyword,
       generics: (/^<(.*)>/.exec(decl.rest)?.[1] ?? "").trim(),
-      spot: custom ? { char: custom[1], color: parseColorSpec(custom[2]).fill ?? "#2f9e44" } : spot ? { char: spot[0], color: spot[1] } : null,
+      spot: custom
+        ? { char: custom[1], color: parseColorSpec(custom[2]).fill ?? "#2f9e44" }
+        : spot
+          ? { char: spot[0], color: spot[1] }
+          : null,
       abstract: /abstract/.test(decl.keyword),
     };
-    if (custom) node.stereotypes = node.stereotypes.map((s) => s.replace(/^\(\s*\S\s*,\s*#?\w+\s*\)\s*/, "")).filter(Boolean);
+    if (custom)
+      node.stereotypes = node.stereotypes
+        .map((s) => s.replace(/^\(\s*\S\s*,\s*#?\w+\s*\)\s*/, ""))
+        .filter(Boolean);
     const ext = /\bextends\s+(.+?)(?=\s+implements\b|$)/i.exec(decl.rest);
     const impl = /\bimplements\s+(.+)$/i.exec(decl.rest);
     for (const target of ext?.[1].split(",") ?? []) {
@@ -384,7 +412,8 @@ export function ensureNode(ctx, token, keywordHint) {
   const existing = model.find(ep.name);
   if (existing) return existing;
   const implicit = config.implicit?.(token) ?? null;
-  const keyword = keywordHint ?? implicit?.keyword ?? formKeyword(ep.form) ?? [...config.keywords.keys()][0];
+  const keyword =
+    keywordHint ?? implicit?.keyword ?? formKeyword(ep.form) ?? [...config.keywords.keys()][0];
   const kind = config.keywords.get(keyword) ?? config.keywords.values().next().value;
   /** @type {Declaration} */
   const decl = {
@@ -407,7 +436,10 @@ export function ensureNode(ctx, token, keywordHint) {
 
 /** @param {string} form */
 function formKeyword(form) {
-  return { component: "component", usecase: "usecase", actor: "actor", interface: "interface" }[form] ?? null;
+  return (
+    { component: "component", usecase: "usecase", actor: "actor", interface: "interface" }[form] ??
+    null
+  );
 }
 
 /** @type {import("../../syntax/reader.mjs").Rule<GraphContext>[]} */
@@ -460,7 +492,7 @@ const GENERIC_RULES = [
     let text = link.label ? label(link.label) : null;
     /** @type {"<" | ">" | null} */
     let labelArrow = null;
-    if (text && /[^>]\s*>$/.test(text) && !/>>$/.test(text)) {
+    if (text && /[^>]\s*>$/.test(text) && !/>>$/.test(text) && !/<\/?[\w:#=" -]*>$/.test(text)) {
       labelArrow = ">";
       text = text.replace(/\s*>$/, "");
     } else if (text && /^<\s*[^<]/.test(text)) {
@@ -491,7 +523,8 @@ const GENERIC_RULES = [
     const node = ctx.model.find(unquote(m[1]));
     if (!node) return false;
     if (node.classHeader) {
-      if (!node.compartments.length) node.compartments.push({ title: null, separator: "line", members: [] });
+      if (!node.compartments.length)
+        node.compartments.push({ title: null, separator: "line", members: [] });
       node.compartments[node.compartments.length - 1].members.push(parseMember(m[2]));
     } else {
       node.description = node.description ? `${node.description}\n${label(m[2])}` : label(m[2]);
@@ -553,20 +586,35 @@ function noteRule(line, ctx, reader) {
     rest = colon[1];
     text = colon[2];
   }
-  const readBody = () => reader.until(/^\s*end\s*note\s*$/i).map((l) => l.text.trim()).join("\n");
+  const readBody = () =>
+    reader
+      .until(/^\s*end\s*note\s*$/i)
+      .map((l) => l.text.trim())
+      .join("\n");
 
   const onLink = /^on\s+link\b/i.exec(rest);
   if (onLink) {
     const body = text ?? readBody();
-    if (ctx.lastEdge) ctx.lastEdge.label = ctx.lastEdge.label ? `${ctx.lastEdge.label}\n${label(body)}` : label(body);
+    if (ctx.lastEdge)
+      ctx.lastEdge.label = ctx.lastEdge.label
+        ? `${ctx.lastEdge.label}\n${label(body)}`
+        : label(body);
     return true;
   }
   const attached = /^(left|right|top|bottom|over)?\s*(?:of\s+)?(.*?)$/i.exec(rest.trim());
-  const floating = /^"([^"]*)"\s+as\s+(\S+)$/i.exec(rest.trim()) ?? /^as\s+(\S+)$/i.exec(rest.trim());
+  const floating =
+    /^"([^"]*)"\s+as\s+(\S+)$/i.exec(rest.trim()) ?? /^as\s+(\S+)$/i.exec(rest.trim());
   if (floating) {
     const id = floating.length === 3 ? floating[2] : floating[1];
     const body = floating.length === 3 ? floating[1] : (text ?? readBody());
-    model.add(id, { label: label(body), shape: "note", role: "note", keyword: "note", colors, parent: currentParent(ctx) });
+    model.add(id, {
+      label: label(body),
+      shape: "note",
+      role: "note",
+      keyword: "note",
+      colors,
+      parent: currentParent(ctx),
+    });
     return true;
   }
   const side = attached?.[1]?.toLowerCase() ?? null;
@@ -574,14 +622,30 @@ function noteRule(line, ctx, reader) {
   const target = targetName ? model.find(endpointForm(targetName).name) : ctx.last;
   const body = text ?? readBody();
   const id = `__note${ctx.noteSeq++}`;
-  const note = model.add(id, { label: label(body), shape: "note", role: "note", keyword: "note", colors, parent: target?.parent ?? currentParent(ctx) });
+  const note = model.add(id, {
+    label: label(body),
+    shape: "note",
+    role: "note",
+    keyword: "note",
+    colors,
+    parent: target?.parent ?? currentParent(ctx),
+  });
   if (target) {
     const e =
       side === "left" || side === "top"
         ? model.connect(note.id, target.id, { lineStyle: "dashed", role: "note" })
         : model.connect(target.id, note.id, { lineStyle: "dashed", role: "note" });
     e.data.note = true;
-    e.direction = side === "left" ? "right" : side === "right" ? "right" : side === "top" ? "down" : side === "bottom" ? "down" : null;
+    e.direction =
+      side === "left"
+        ? "right"
+        : side === "right"
+          ? "right"
+          : side === "top"
+            ? "down"
+            : side === "bottom"
+              ? "down"
+              : null;
   }
   return true;
 }
@@ -595,12 +659,18 @@ function applyVisibility(model) {
   for (const directive of model.meta.hide) {
     const target = directive.replace(/^\$/, "");
     if (target === "@unlinked") {
-      for (const n of model.nodes.values()) if (!linked.has(n.id) && !n.container && !n.children.length) n.hidden = true;
+      for (const n of model.nodes.values())
+        if (!linked.has(n.id) && !n.container && !n.children.length) n.hidden = true;
       continue;
     }
     const stereo = /^<<(.+)>>$/.exec(target);
     for (const n of model.nodes.values()) {
-      if (stereo ? n.stereotypes.some((s) => s.toLowerCase() === stereo[1]) : n.id.toLowerCase() === target) n.hidden = true;
+      if (
+        stereo
+          ? n.stereotypes.some((s) => s.toLowerCase() === stereo[1])
+          : n.id.toLowerCase() === target
+      )
+        n.hidden = true;
     }
   }
 }

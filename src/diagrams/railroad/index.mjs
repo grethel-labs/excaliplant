@@ -88,7 +88,12 @@ export function parseEbnf(src) {
     }
     if (text[i] === "*" || text[i] === "+" || text[i] === "?") {
       const op = text[i++];
-      base = op === "?" ? { k: "opt", item: base } : op === "+" ? { k: "rep", item: base, sep: null, min: 1, label: null } : { k: "opt", item: { k: "rep", item: base, sep: null, min: 1, label: null } };
+      base =
+        op === "?"
+          ? { k: "opt", item: base }
+          : op === "+"
+            ? { k: "rep", item: base, sep: null, min: 1, label: null }
+            : { k: "opt", item: { k: "rep", item: base, sep: null, min: 1, label: null } };
     }
     if (rep !== null) base = { k: "rep", item: base, sep: null, min: 1, label: `${rep}×` };
     return base;
@@ -231,14 +236,24 @@ export function parseRegex(src) {
     // A quantifier applies to the last character of a literal run only.
     if (atom.k === "term" && atom.text.length > 1) {
       const head = { k: "term", text: atom.text.slice(0, -1) };
-      return /** @type {Rail} */ ({ k: "seq", items: [head, quantified({ k: "term", text: atom.text.slice(-1) }, min, max)] });
+      return /** @type {Rail} */ ({
+        k: "seq",
+        items: [head, quantified({ k: "term", text: atom.text.slice(-1) }, min, max)],
+      });
     }
     return quantified(atom, min, max);
   };
   /** @param {Rail} atom @param {number} min @param {number} max @returns {Rail} */
   const quantified = (atom, min, max) => {
     if (max === 1 && min === 0) return { k: "opt", item: atom };
-    const label = max === Infinity ? (min > 1 ? `${min}+ times` : null) : min === max ? `${min} times` : `${min}–${max} times`;
+    const label =
+      max === Infinity
+        ? min > 1
+          ? `${min}+ times`
+          : null
+        : min === max
+          ? `${min} times`
+          : `${min}–${max} times`;
     const rep = { k: "rep", item: atom, sep: null, min: Math.max(1, min), label };
     return min === 0 ? { k: "opt", item: /** @type {Rail} */ (rep) } : /** @type {Rail} */ (rep);
   };
@@ -253,7 +268,18 @@ export function parseRegex(src) {
         if (m) {
           i += m[0].length;
           groups--;
-          text = m[1] === ":" ? "" : m[1] === "=" ? "followed by" : m[1] === "!" ? "not followed by" : m[1] === "<=" ? "preceded by" : m[1] === "<!" ? "not preceded by" : `group <${m[2] ?? m[3]}>`;
+          text =
+            m[1] === ":"
+              ? ""
+              : m[1] === "="
+                ? "followed by"
+                : m[1] === "!"
+                  ? "not followed by"
+                  : m[1] === "<="
+                    ? "preceded by"
+                    : m[1] === "<!"
+                      ? "not preceded by"
+                      : `group <${m[2] ?? m[3]}>`;
           if (m[2] || m[3]) groups++;
         }
       }
@@ -268,7 +294,10 @@ export function parseRegex(src) {
       while (j < src.length && src[j] !== "]") j += src[j] === "\\" ? 2 : 1;
       const body = src.slice(i + 1, j);
       i = j + 1;
-      return { k: "nonterm", text: body.startsWith("^") ? `none of ${body.slice(1)}` : `one of ${body}` };
+      return {
+        k: "nonterm",
+        text: body.startsWith("^") ? `none of ${body.slice(1)}` : `one of ${body}`,
+      };
     }
     if (c === "\\") {
       const n = src[i + 1] ?? "";
@@ -327,7 +356,9 @@ function box(r, fs, theme) {
     case "special":
     case "anchor":
     case "comment": {
-      const t = layoutText(r.k === "term" ? r.text.replace(/ /g, "␣") : r.text, { fontSize: r.k === "comment" ? fs * 0.8 : fs });
+      const t = layoutText(r.k === "term" ? r.text.replace(/ /g, "␣") : r.text, {
+        fontSize: r.k === "comment" ? fs * 0.8 : fs,
+      });
       const w = t.width + (r.k === "comment" ? 8 : 24);
       const h = t.height + 12;
       const role = r.k === "term" ? "action" : r.k === "nonterm" ? "class" : "decision";
@@ -342,8 +373,19 @@ function box(r, fs, theme) {
             return;
           }
           if (r.k === "special" || r.k === "anchor") {
-            c.line([[x, y], [x + 8, y - h / 2], [x + w - 8, y - h / 2], [x + w, y], [x + w - 8, y + h / 2], [x + 8, y + h / 2]], { closed: true, fill: s.fill, stroke: s.stroke });
-          } else c.rect(x, y - h / 2, w, h, { fill: s.fill, stroke: s.stroke, rounded: r.k === "term" });
+            c.line(
+              [
+                [x, y],
+                [x + 8, y - h / 2],
+                [x + w - 8, y - h / 2],
+                [x + w, y],
+                [x + w - 8, y + h / 2],
+                [x + 8, y + h / 2],
+              ],
+              { closed: true, fill: s.fill, stroke: s.stroke },
+            );
+          } else
+            c.rect(x, y - h / 2, w, h, { fill: s.fill, stroke: s.stroke, rounded: r.k === "term" });
           c.richText(t, x + (w - t.width) / 2, y - t.height / 2, { color: ink });
         },
       };
@@ -358,7 +400,11 @@ function box(r, fs, theme) {
         draw: (c, x, y) => {
           let cx = x;
           parts.forEach((p, k) => {
-            if (k > 0) path(c, [[cx - GAP, y], [cx, y]]);
+            if (k > 0)
+              path(c, [
+                [cx - GAP, y],
+                [cx, y],
+              ]);
             p.draw(c, cx, y);
             cx += p.w + GAP;
           });
@@ -373,7 +419,8 @@ function box(r, fs, theme) {
       const w = inner + BRANCH * 2 + 8;
       /** @type {number[]} */
       const offsets = [0];
-      for (let k = 1; k < parts.length; k++) offsets.push(offsets[k - 1] + parts[k - 1].down + 12 + parts[k].up);
+      for (let k = 1; k < parts.length; k++)
+        offsets.push(offsets[k - 1] + parts[k - 1].down + 12 + parts[k].up);
       return {
         w,
         up: parts[0].up,
@@ -382,11 +429,33 @@ function box(r, fs, theme) {
           parts.forEach((p, k) => {
             const by = y + offsets[k];
             const px = x + BRANCH + 4 + (inner - p.w) / 2;
-            if (k === 0) path(c, [[x, y], [px, y]]);
-            else path(c, [[x, y], [x + BRANCH / 2, y + 6], [x + BRANCH / 2, by - 6], [x + BRANCH, by], [px, by]]);
+            if (k === 0)
+              path(c, [
+                [x, y],
+                [px, y],
+              ]);
+            else
+              path(c, [
+                [x, y],
+                [x + BRANCH / 2, y + 6],
+                [x + BRANCH / 2, by - 6],
+                [x + BRANCH, by],
+                [px, by],
+              ]);
             p.draw(c, px, by);
-            if (k === 0) path(c, [[px + p.w, y], [x + w, y]]);
-            else path(c, [[px + p.w, by], [x + w - BRANCH, by], [x + w - BRANCH / 2, by - 6], [x + w - BRANCH / 2, y + 6], [x + w, y]]);
+            if (k === 0)
+              path(c, [
+                [px + p.w, y],
+                [x + w, y],
+              ]);
+            else
+              path(c, [
+                [px + p.w, by],
+                [x + w - BRANCH, by],
+                [x + w - BRANCH / 2, by - 6],
+                [x + w - BRANCH / 2, y + 6],
+                [x + w, y],
+              ]);
           });
         },
       };
@@ -402,16 +471,32 @@ function box(r, fs, theme) {
         up: p.up,
         down: back + 4 + (lbl ? lbl.height : 0),
         draw: (c, x, y) => {
-          path(c, [[x, y], [x + BRANCH, y]]);
+          path(c, [
+            [x, y],
+            [x + BRANCH, y],
+          ]);
           p.draw(c, x + BRANCH + (w - BRANCH * 2 - p.w) / 2, y);
-          path(c, [[x + BRANCH + (w - BRANCH * 2 + p.w) / 2, y], [x + w, y]]);
+          path(c, [
+            [x + BRANCH + (w - BRANCH * 2 + p.w) / 2, y],
+            [x + w, y],
+          ]);
           const by = y + back;
-          c.arrow([[x + w - BRANCH / 2, y + 6], [x + w - BRANCH / 2, by - 4], [x + w - BRANCH, by], [x + BRANCH, by], [x + BRANCH / 2, by - 4], [x + BRANCH / 2, y + 6]], {
-            ...track,
-            strokeWidth: 1.5,
-            end: "arrow",
-            roughness: Math.min(theme.roughness, 0.8),
-          });
+          c.arrow(
+            [
+              [x + w - BRANCH / 2, y + 6],
+              [x + w - BRANCH / 2, by - 4],
+              [x + w - BRANCH, by],
+              [x + BRANCH, by],
+              [x + BRANCH / 2, by - 4],
+              [x + BRANCH / 2, y + 6],
+            ],
+            {
+              ...track,
+              strokeWidth: 1.5,
+              end: "arrow",
+              roughness: Math.min(theme.roughness, 0.8),
+            },
+          );
           if (lbl) c.richText(lbl, x + (w - lbl.width) / 2, by + 2, { color: theme.muted });
         },
       };
@@ -425,11 +510,22 @@ function box(r, fs, theme) {
         up: p.up + t.height + 8,
         down: p.down + 8,
         draw: (c, x, y) => {
-          c.rect(x, y - p.up - 6, w, p.up + p.down + 12, { stroke: theme.muted, strokeWidth: 1, strokeStyle: "dashed", rounded: true });
+          c.rect(x, y - p.up - 6, w, p.up + p.down + 12, {
+            stroke: theme.muted,
+            strokeWidth: 1,
+            strokeStyle: "dashed",
+            rounded: true,
+          });
           c.richText(t, x + 4, y - p.up - 8 - t.height, { color: theme.muted, align: "left" });
-          path(c, [[x, y], [x + (w - p.w) / 2, y]]);
+          path(c, [
+            [x, y],
+            [x + (w - p.w) / 2, y],
+          ]);
           p.draw(c, x + (w - p.w) / 2, y);
-          path(c, [[x + (w + p.w) / 2, y], [x + w, y]]);
+          path(c, [
+            [x + (w + p.w) / 2, y],
+            [x + w, y],
+          ]);
         },
       };
     }
@@ -442,7 +538,14 @@ function box(r, fs, theme) {
  */
 function layoutRail(model, ctx) {
   const fs = ctx.theme.fontSize * 0.85;
-  return { rows: model.rules.map((r) => ({ name: r.name, comment: r.comment, box: box(r.body, fs, ctx.theme) })), fs };
+  return {
+    rows: model.rules.map((r) => ({
+      name: r.name,
+      comment: r.comment,
+      box: box(r.body, fs, ctx.theme),
+    })),
+    fs,
+  };
 }
 
 /**
@@ -465,14 +568,50 @@ function drawRail(laid, c) {
     }
     const base = y + row.box.up + 6;
     const track = { stroke: theme.muted, strokeWidth: 2 };
-    c.line([[0, base - 8], [0, base + 8]], track);
-    c.line([[5, base - 8], [5, base + 8]], track);
-    c.line([[5, base], [20, base]], track);
+    c.line(
+      [
+        [0, base - 8],
+        [0, base + 8],
+      ],
+      track,
+    );
+    c.line(
+      [
+        [5, base - 8],
+        [5, base + 8],
+      ],
+      track,
+    );
+    c.line(
+      [
+        [5, base],
+        [20, base],
+      ],
+      track,
+    );
     row.box.draw(c, 20, base);
     const end = 20 + row.box.w;
-    c.line([[end, base], [end + 15, base]], track);
-    c.line([[end + 15, base - 8], [end + 15, base + 8]], track);
-    c.line([[end + 20, base - 8], [end + 20, base + 8]], track);
+    c.line(
+      [
+        [end, base],
+        [end + 15, base],
+      ],
+      track,
+    );
+    c.line(
+      [
+        [end + 15, base - 8],
+        [end + 15, base + 8],
+      ],
+      track,
+    );
+    c.line(
+      [
+        [end + 20, base - 8],
+        [end + 20, base + 8],
+      ],
+      track,
+    );
     y = base + row.box.down + 36;
   }
 }
@@ -489,7 +628,11 @@ function collect(lines) {
   while (!reader.done) {
     const l = reader.next();
     const t = l.text.trim();
-    if (/^(title|caption|header|footer|legend|skinparam|scale)\b/i.test(t) && parseCommon(t, meta, reader)) continue;
+    if (
+      /^(title|caption|header|footer|legend|skinparam|scale)\b/i.test(t) &&
+      parseCommon(t, meta, reader)
+    )
+      continue;
     body.push(l.text);
   }
   return { meta, text: body.join("\n") };

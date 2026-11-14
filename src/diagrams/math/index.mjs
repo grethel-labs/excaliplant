@@ -26,28 +26,166 @@ import { LimitError } from "../../core/errors.mjs";
 
 const SYMBOLS = new Map(
   Object.entries({
-    alpha: "α", beta: "β", gamma: "γ", delta: "δ", epsilon: "ε", varepsilon: "ε", zeta: "ζ", eta: "η", theta: "θ", vartheta: "ϑ",
-    iota: "ι", kappa: "κ", lambda: "λ", mu: "μ", nu: "ν", xi: "ξ", pi: "π", rho: "ρ", sigma: "σ", tau: "τ", upsilon: "υ",
-    phi: "φ", varphi: "φ", chi: "χ", psi: "ψ", omega: "ω", Gamma: "Γ", Delta: "Δ", Theta: "Θ", Lambda: "Λ", Xi: "Ξ", Pi: "Π",
-    Sigma: "Σ", Phi: "Φ", Psi: "Ψ", Omega: "Ω",
-    infty: "∞", oo: "∞", partial: "∂", del: "∂", nabla: "∇", grad: "∇", cdot: "·", times: "×", xx: "×", div: "÷", pm: "±",
-    mp: "∓", leq: "≤", le: "≤", geq: "≥", ge: "≥", neq: "≠", ne: "≠", approx: "≈", equiv: "≡", sim: "∼", propto: "∝",
-    in: "∈", notin: "∉", subset: "⊂", subseteq: "⊆", supset: "⊃", cup: "∪", cap: "∩", forall: "∀", exists: "∃",
-    neg: "¬", wedge: "∧", vee: "∨", to: "→", rightarrow: "→", leftarrow: "←", Rightarrow: "⇒", Leftarrow: "⇐",
-    leftrightarrow: "↔", Leftrightarrow: "⇔", implies: "⇒", iff: "⇔", mapsto: "↦", ldots: "…", cdots: "⋯", dots: "…",
-    emptyset: "∅", angle: "∠", circ: "∘", degree: "°", prime: "′", hbar: "ℏ", ell: "ℓ", Re: "ℜ", Im: "ℑ", aleph: "ℵ",
-    RR: "ℝ", NN: "ℕ", ZZ: "ℤ", QQ: "ℚ", CC: "ℂ", star: "⋆", ast: "∗", bullet: "•", langle: "⟨", rangle: "⟩",
+    alpha: "α",
+    beta: "β",
+    gamma: "γ",
+    delta: "δ",
+    epsilon: "ε",
+    varepsilon: "ε",
+    zeta: "ζ",
+    eta: "η",
+    theta: "θ",
+    vartheta: "ϑ",
+    iota: "ι",
+    kappa: "κ",
+    lambda: "λ",
+    mu: "μ",
+    nu: "ν",
+    xi: "ξ",
+    pi: "π",
+    rho: "ρ",
+    sigma: "σ",
+    tau: "τ",
+    upsilon: "υ",
+    phi: "φ",
+    varphi: "φ",
+    chi: "χ",
+    psi: "ψ",
+    omega: "ω",
+    Gamma: "Γ",
+    Delta: "Δ",
+    Theta: "Θ",
+    Lambda: "Λ",
+    Xi: "Ξ",
+    Pi: "Π",
+    Sigma: "Σ",
+    Phi: "Φ",
+    Psi: "Ψ",
+    Omega: "Ω",
+    infty: "∞",
+    oo: "∞",
+    partial: "∂",
+    del: "∂",
+    nabla: "∇",
+    grad: "∇",
+    cdot: "·",
+    times: "×",
+    xx: "×",
+    div: "÷",
+    pm: "±",
+    mp: "∓",
+    leq: "≤",
+    le: "≤",
+    geq: "≥",
+    ge: "≥",
+    neq: "≠",
+    ne: "≠",
+    approx: "≈",
+    equiv: "≡",
+    sim: "∼",
+    propto: "∝",
+    in: "∈",
+    notin: "∉",
+    subset: "⊂",
+    subseteq: "⊆",
+    supset: "⊃",
+    cup: "∪",
+    cap: "∩",
+    forall: "∀",
+    exists: "∃",
+    neg: "¬",
+    wedge: "∧",
+    vee: "∨",
+    to: "→",
+    rightarrow: "→",
+    leftarrow: "←",
+    Rightarrow: "⇒",
+    Leftarrow: "⇐",
+    leftrightarrow: "↔",
+    Leftrightarrow: "⇔",
+    implies: "⇒",
+    iff: "⇔",
+    mapsto: "↦",
+    ldots: "…",
+    cdots: "⋯",
+    dots: "…",
+    emptyset: "∅",
+    angle: "∠",
+    circ: "∘",
+    degree: "°",
+    prime: "′",
+    hbar: "ℏ",
+    ell: "ℓ",
+    Re: "ℜ",
+    Im: "ℑ",
+    aleph: "ℵ",
+    RR: "ℝ",
+    NN: "ℕ",
+    ZZ: "ℤ",
+    QQ: "ℚ",
+    CC: "ℂ",
+    star: "⋆",
+    ast: "∗",
+    bullet: "•",
+    langle: "⟨",
+    rangle: "⟩",
   }),
 );
 const ASCII_OPS = new Map([
-  ["<=", "≤"], [">=", "≥"], ["!=", "≠"], ["->", "→"], ["=>", "⇒"], ["<=>", "⇔"], ["+-", "±"], ["-+", "∓"], ["**", "∗"],
-  ["***", "⋆"], ["//", "/"], ["-:", "÷"], ["~~", "≈"], ["-=", "≡"], ["...", "…"], ["|->", "↦"], ["<-", "←"], ["!in", "∉"],
+  ["<=", "≤"],
+  [">=", "≥"],
+  ["!=", "≠"],
+  ["->", "→"],
+  ["=>", "⇒"],
+  ["<=>", "⇔"],
+  ["+-", "±"],
+  ["-+", "∓"],
+  ["**", "∗"],
+  ["***", "⋆"],
+  ["//", "/"],
+  ["-:", "÷"],
+  ["~~", "≈"],
+  ["-=", "≡"],
+  ["...", "…"],
+  ["|->", "↦"],
+  ["<-", "←"],
+  ["!in", "∉"],
 ]);
 const BIG_OPS = new Map([
-  ["sum", "∑"], ["prod", "∏"], ["int", "∫"], ["oint", "∮"], ["iint", "∬"], ["bigcup", "⋃"], ["bigcap", "⋂"], ["lim", "lim"],
-  ["max", "max"], ["min", "min"], ["sup", "sup"], ["inf", "inf"],
+  ["sum", "∑"],
+  ["prod", "∏"],
+  ["int", "∫"],
+  ["oint", "∮"],
+  ["iint", "∬"],
+  ["bigcup", "⋃"],
+  ["bigcap", "⋂"],
+  ["lim", "lim"],
+  ["max", "max"],
+  ["min", "min"],
+  ["sup", "sup"],
+  ["inf", "inf"],
 ]);
-const FUNCS = new Set(["sin", "cos", "tan", "cot", "sec", "csc", "log", "ln", "exp", "det", "dim", "gcd", "arcsin", "arccos", "arctan", "sinh", "cosh", "tanh", "mod"]);
+const FUNCS = new Set([
+  "sin",
+  "cos",
+  "tan",
+  "cot",
+  "sec",
+  "csc",
+  "log",
+  "ln",
+  "exp",
+  "det",
+  "dim",
+  "gcd",
+  "arcsin",
+  "arccos",
+  "arctan",
+  "sinh",
+  "cosh",
+  "tanh",
+  "mod",
+]);
 
 // ── LaTeX ─────────────────────────────────────────────────────────────
 
@@ -114,7 +252,8 @@ export function parseLatex(src) {
       const m = /^\\([A-Za-z]+|.)/.exec(src.slice(i));
       const cmd = m ? m[1] : "";
       i += cmd.length + 1;
-      if (cmd === "frac" || cmd === "dfrac" || cmd === "tfrac") return { t: "frac", n: group(), d: group() };
+      if (cmd === "frac" || cmd === "dfrac" || cmd === "tfrac")
+        return { t: "frac", n: group(), d: group() };
       if (cmd === "sqrt") {
         let index = null;
         if (src[i] === "[") {
@@ -130,7 +269,13 @@ export function parseLatex(src) {
         i += 6;
         return { t: "fence", open, close: readDelim(), body };
       }
-      if (cmd === "text" || cmd === "mathrm" || cmd === "operatorname" || cmd === "mathbf" || cmd === "textbf") {
+      if (
+        cmd === "text" ||
+        cmd === "mathrm" ||
+        cmd === "operatorname" ||
+        cmd === "mathbf" ||
+        cmd === "textbf"
+      ) {
         const g = group();
         return { t: "sym", text: flatten(g) };
       }
@@ -138,9 +283,15 @@ export function parseLatex(src) {
       if (cmd === "quad") return { t: "space", w: 1 };
       if (cmd === "qquad") return { t: "space", w: 2 };
       if (cmd === "\\") return { t: "space", w: 1 };
-      if (BIG_OPS.has(cmd)) return { t: "big", op: /** @type {string} */ (BIG_OPS.get(cmd)), sup: null, sub: null };
+      if (BIG_OPS.has(cmd))
+        return { t: "big", op: /** @type {string} */ (BIG_OPS.get(cmd)), sup: null, sub: null };
       if (FUNCS.has(cmd)) return { t: "sym", text: cmd };
-      if (SYMBOLS.has(cmd)) return { t: "sym", text: /** @type {string} */ (SYMBOLS.get(cmd)), op: !/^[a-zA-Z]+$/.test(cmd) || cmd.length > 2 };
+      if (SYMBOLS.has(cmd))
+        return {
+          t: "sym",
+          text: /** @type {string} */ (SYMBOLS.get(cmd)),
+          op: !/^[a-zA-Z]+$/.test(cmd) || cmd.length > 2,
+        };
       if ("{}%$#_&".includes(cmd)) return { t: "sym", text: cmd };
       return { t: "sym", text: cmd };
     }
@@ -157,7 +308,7 @@ export function parseLatex(src) {
     while (src[i] === " ") i++;
     if (src[i] === "\\") {
       const m = /^\\([A-Za-z]+|.)/.exec(src.slice(i));
-      i += (m?.[0].length ?? 1);
+      i += m?.[0].length ?? 1;
       return m?.[1] === "{" ? "{" : m?.[1] === "}" ? "}" : (SYMBOLS.get(m?.[1] ?? "") ?? "");
     }
     const ch = src[i++] ?? "";
@@ -195,7 +346,12 @@ export function parseAsciiMath(src) {
       const close = c === "(" ? ")" : c === "[" ? "]" : c === "{" ? "}" : "|";
       i++;
       const body = expr(close);
-      if (src[i] === close || (close === ")" && src[i] === "]") || (close === "]" && src[i] === ")")) i++;
+      if (
+        src[i] === close ||
+        (close === ")" && src[i] === "]") ||
+        (close === "]" && src[i] === ")")
+      )
+        i++;
       return { t: "fence", open: c, close, body };
     }
     if (c === '"') {
@@ -215,7 +371,20 @@ export function parseAsciiMath(src) {
     if (word) {
       const w = word[0];
       // longest known prefix (e.g. "sqrtx" is rare; prefer exact words)
-      const known = [...SYMBOLS.keys(), ...BIG_OPS.keys(), ...FUNCS, "sqrt", "root", "text", "frac", "hat", "bar", "vec"].filter((k) => w.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+      const known = [
+        ...SYMBOLS.keys(),
+        ...BIG_OPS.keys(),
+        ...FUNCS,
+        "sqrt",
+        "root",
+        "text",
+        "frac",
+        "hat",
+        "bar",
+        "vec",
+      ]
+        .filter((k) => w.startsWith(k))
+        .sort((a, b) => b.length - a.length)[0];
       if (known) {
         i += known.length;
         if (known === "sqrt") return { t: "sqrt", body: unwrap(simple()), index: null };
@@ -225,8 +394,15 @@ export function parseAsciiMath(src) {
         }
         if (known === "frac") return { t: "frac", n: unwrap(simple()), d: unwrap(simple()) };
         if (known === "text") return { t: "sym", text: flatten(unwrap(simple())) };
-        if (known === "hat" || known === "bar" || known === "vec") return { t: "script", base: unwrap(simple()), sup: { t: "sym", text: known === "hat" ? "^" : known === "bar" ? "‾" : "→" }, sub: null };
-        if (BIG_OPS.has(known)) return { t: "big", op: /** @type {string} */ (BIG_OPS.get(known)), sup: null, sub: null };
+        if (known === "hat" || known === "bar" || known === "vec")
+          return {
+            t: "script",
+            base: unwrap(simple()),
+            sup: { t: "sym", text: known === "hat" ? "^" : known === "bar" ? "‾" : "→" },
+            sub: null,
+          };
+        if (BIG_OPS.has(known))
+          return { t: "big", op: /** @type {string} */ (BIG_OPS.get(known)), sup: null, sub: null };
         if (FUNCS.has(known)) return { t: "sym", text: known };
         return { t: "sym", text: /** @type {string} */ (SYMBOLS.get(known)) };
       }
@@ -259,7 +435,8 @@ export function parseAsciiMath(src) {
         sup = unwrap(simple());
       } else break;
     }
-    if (sub || sup) base = base.t === "big" ? { ...base, sub, sup } : { t: "script", base, sup, sub };
+    if (sub || sup)
+      base = base.t === "big" ? { ...base, sub, sup } : { t: "script", base, sup, sub };
     return base;
   };
   /** @param {string} end @returns {MNode} */
@@ -316,7 +493,8 @@ function mbox(n, fs, ink) {
         w,
         asc: fs * 0.72,
         desc: fs * 0.24,
-        draw: (c, x, base) => c.text(n.text, x + pad, base - fs * 0.88, { size: fs, color: ink, italic: n.italic }),
+        draw: (c, x, base) =>
+          c.text(n.text, x + pad, base - fs * 0.88, { size: fs, color: ink, italic: n.italic }),
       };
     }
     case "row": {
@@ -345,7 +523,13 @@ function mbox(n, fs, ink) {
         desc: den.asc + den.desc + 4 - axis,
         draw: (c, x, base) => {
           const by = base - axis;
-          c.line([[x + 2, by], [x + w - 2, by]], { stroke: ink, strokeWidth: 1.5, roughness: 0.5 });
+          c.line(
+            [
+              [x + 2, by],
+              [x + w - 2, by],
+            ],
+            { stroke: ink, strokeWidth: 1.5, roughness: 0.5 },
+          );
           num.draw(c, x + (w - num.w) / 2, by - num.desc - 4);
           den.draw(c, x + (w - den.w) / 2, by + den.asc + 4);
         },
@@ -380,7 +564,16 @@ function mbox(n, fs, ink) {
           const top = b - body.asc - 4;
           const bottom = b + body.desc;
           const sx = x + lead;
-          c.line([[sx - fs * 0.7, b - fs * 0.25], [sx - fs * 0.5, b - fs * 0.35], [sx - fs * 0.25, bottom], [sx, top], [sx + body.w + 4, top]], { stroke: ink, strokeWidth: 1.5, roughness: 0.5 });
+          c.line(
+            [
+              [sx - fs * 0.7, b - fs * 0.25],
+              [sx - fs * 0.5, b - fs * 0.35],
+              [sx - fs * 0.25, bottom],
+              [sx, top],
+              [sx + body.w + 4, top],
+            ],
+            { stroke: ink, strokeWidth: 1.5, roughness: 0.5 },
+          );
           if (index) index.draw(c, sx - fs * 0.6 - index.w + fs * 0.3, b - fs * 0.45);
           body.draw(c, sx + 2, b);
         },
@@ -401,16 +594,49 @@ function mbox(n, fs, ink) {
         if (ch === "(" || ch === ")") {
           const dir = ch === "(" ? 1 : -1;
           const ox = ch === "(" ? x + bw * 0.8 : x + bw * 0.2;
-          c.line([[ox, top], [ox - dir * bw * 0.6, mid], [ox, bot]], { ...st, curved: true });
+          c.line(
+            [
+              [ox, top],
+              [ox - dir * bw * 0.6, mid],
+              [ox, bot],
+            ],
+            { ...st, curved: true },
+          );
         } else if (ch === "[" || ch === "]") {
           const ox = ch === "[" ? x + bw * 0.3 : x + bw * 0.7;
           const d = ch === "[" ? bw * 0.5 : -bw * 0.5;
-          c.line([[ox + d, top], [ox, top], [ox, bot], [ox + d, bot]], st);
-        } else if (ch === "|") c.line([[x + bw / 2, top], [x + bw / 2, bot]], st);
+          c.line(
+            [
+              [ox + d, top],
+              [ox, top],
+              [ox, bot],
+              [ox + d, bot],
+            ],
+            st,
+          );
+        } else if (ch === "|")
+          c.line(
+            [
+              [x + bw / 2, top],
+              [x + bw / 2, bot],
+            ],
+            st,
+          );
         else if (ch === "{" || ch === "}") {
           const dir = ch === "{" ? 1 : -1;
           const ox = x + bw / 2;
-          c.line([[ox + dir * bw * 0.4, top], [ox, top + 4], [ox, mid - 4], [ox - dir * bw * 0.4, mid], [ox, mid + 4], [ox, bot - 4], [ox + dir * bw * 0.4, bot]], { ...st, curved: true });
+          c.line(
+            [
+              [ox + dir * bw * 0.4, top],
+              [ox, top + 4],
+              [ox, mid - 4],
+              [ox - dir * bw * 0.4, mid],
+              [ox, mid + 4],
+              [ox, bot - 4],
+              [ox + dir * bw * 0.4, bot],
+            ],
+            { ...st, curved: true },
+          );
         } else c.text(ch, x, b - fs * 0.88, { size: fs, color: ink });
       };
       return {
@@ -439,7 +665,11 @@ function mbox(n, fs, ink) {
         desc,
         draw: (c, x, b) => {
           const cx = x + w / 2;
-          c.text(n.op, cx, b - (word ? fs * 0.88 : ofs * 0.95), { size: ofs, color: ink, align: "center" });
+          c.text(n.op, cx, b - (word ? fs * 0.88 : ofs * 0.95), {
+            size: ofs,
+            color: ink,
+            align: "center",
+          });
           if (sup) sup.draw(c, cx - sup.w / 2, b - (word ? fs * 0.72 : ofs * 0.8) - sup.desc - 2);
           if (sub) sub.draw(c, cx - sub.w / 2, b + (word ? fs * 0.24 : ofs * 0.3) + sub.asc + 2);
         },
@@ -465,12 +695,20 @@ function mathModule(syntax) {
       while (!reader.done) {
         const t = reader.next().text.trim();
         if (!t) continue;
-        if (/^(title|caption|header|footer|legend)\b/i.test(t) && parseCommon(t, meta, reader)) continue;
+        if (/^(title|caption|header|footer|legend)\b/i.test(t) && parseCommon(t, meta, reader))
+          continue;
         formulas.push(t);
       }
-      return { meta, formulas: formulas.map((f) => (syntax === "latex" ? parseLatex(f) : parseAsciiMath(f))) };
+      return {
+        meta,
+        formulas: formulas.map((f) => (syntax === "latex" ? parseLatex(f) : parseAsciiMath(f))),
+      };
     },
-    layout: (model, ctx) => ({ boxes: model.formulas.map((/** @type {MNode} */ f) => mbox(f, ctx.theme.fontSize * 1.6, ctx.theme.ink)) }),
+    layout: (model, ctx) => ({
+      boxes: model.formulas.map((/** @type {MNode} */ f) =>
+        mbox(f, ctx.theme.fontSize * 1.6, ctx.theme.ink),
+      ),
+    }),
     draw: (laid, c) => {
       let y = 0;
       for (const b of laid.boxes) {

@@ -139,7 +139,11 @@ export async function renderAll(source, options = {}) {
 export function parse(source, options = {}) {
   const blocks = blocksOf(source, options);
   const index = pickBlock(blocks, options.block);
-  const { module, model, ctx } = parseBlock(blocks[index], options.registry ?? defaultRegistry, options);
+  const { module, model, ctx } = parseBlock(
+    blocks[index],
+    options.registry ?? defaultRegistry,
+    options,
+  );
   return { kind: module.kind, model, diagnostics: ctx.diagnostics.toJSON() };
 }
 

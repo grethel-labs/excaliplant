@@ -16,7 +16,8 @@ export function score(lines, patterns, scan = 400) {
   let total = 0;
   const n = Math.min(lines.length, scan);
   for (let i = 0; i < n; i++) {
-    const t = lines[i].text.trim();
+    // Only the start of a line matters for detection; this also bounds regex cost.
+    const t = lines[i].text.trim().slice(0, 500);
     if (!t) continue;
     for (const [re, w] of patterns) {
       if (re.test(t)) {

@@ -65,13 +65,21 @@ export function nodeStyle(node, theme) {
  */
 export function drawNode(node, canvas, theme) {
   const s = nodeStyle(node, theme);
-  const style = { stroke: s.stroke, fill: s.fill, strokeWidth: s.strokeWidth, strokeStyle: s.strokeStyle, link: node.link };
+  const style = {
+    stroke: s.stroke,
+    fill: s.fill,
+    strokeWidth: s.strokeWidth,
+    strokeStyle: s.strokeStyle,
+    link: node.link,
+  };
   const { x, y, width: w, height: h } = node;
   const geo = node.data.geo;
   if (node.data.draw) return node.data.draw(canvas, node, style, s);
   if (geo?.kind === "container") {
     // Containers get a light tint so nested elements stay readable.
-    const fill = node.colors.fill ?? (s.fill === TRANSPARENT ? TRANSPARENT : mixColors(s.fill, theme.background, 0.6));
+    const fill =
+      node.colors.fill ??
+      (s.fill === TRANSPARENT ? TRANSPARENT : mixColors(s.fill, theme.background, 0.6));
     return drawContainer(node, canvas, { ...style, fill }, s.text);
   }
   if (geo?.kind === "class") return drawClass(node, canvas, style, s.text, theme);
@@ -86,7 +94,8 @@ export function drawNode(node, canvas, theme) {
     }
     return id;
   }
-  const id = node.shape === "port" ? canvas.rect(x, y, w, h, style) : def.draw(canvas, x, y, w, h, style);
+  const id =
+    node.shape === "port" ? canvas.rect(x, y, w, h, style) : def.draw(canvas, x, y, w, h, style);
   if (geo?.blocks?.length) {
     const [pt, pr, pb, pl] = def.pad;
     const innerW = w - pl - pr;
@@ -137,7 +146,8 @@ function drawContainer(node, canvas, style, textColor) {
   let ty = y + 8 + (node.shape === "node" ? 10 : 0) + (node.shape === "cloud" ? 14 : 0);
   if (node.shape === "frame") {
     const lw = Math.max(...geo.blocks.map((/** @type {any} */ b) => b.width)) + 20;
-    const lh = geo.blocks.reduce((/** @type {number} */ s, /** @type {any} */ b) => s + b.height, 0) + 8;
+    const lh =
+      geo.blocks.reduce((/** @type {number} */ s, /** @type {any} */ b) => s + b.height, 0) + 8;
     canvas.line(
       [
         [x, y + lh],
@@ -186,18 +196,31 @@ function drawClass(node, canvas, style, textColor, theme) {
   const nameBlockW = geo.name.width + (geo.spot ? 30 : 0);
   let ty = y + 7;
   if (geo.stereo) {
-    canvas.richText(geo.stereo, x + (w - geo.stereo.width) / 2 + (geo.spot ? 14 : 0), ty, { color: textColor });
+    canvas.richText(geo.stereo, x + (w - geo.stereo.width) / 2 + (geo.spot ? 14 : 0), ty, {
+      color: textColor,
+    });
     ty += geo.stereo.height;
   }
   const nx = x + (w - nameBlockW) / 2 + (geo.spot ? 30 : 0);
   if (geo.spot) {
     const cy = ty + geo.name.height / 2;
-    canvas.ellipse(nx - 30, cy - 11, 22, 22, { fill: geo.spot.color, stroke: theme.ink, strokeWidth: 1, roughness: Math.min(theme.roughness, 0.5) });
+    canvas.ellipse(nx - 30, cy - 11, 22, 22, {
+      fill: geo.spot.color,
+      stroke: theme.ink,
+      strokeWidth: 1,
+      roughness: Math.min(theme.roughness, 0.5),
+    });
     canvas.text(geo.spot.char, nx - 19, cy - 9, { size: 14, color: "#ffffff", align: "center" });
   }
   const italic = node.classHeader?.abstract || node.classHeader?.keyword === "interface";
   if (geo.name.plain) {
-    canvas.text(geo.name.text, nx, ty, { size: geo.name.fontSize, color: textColor, bold: true, italic, width: geo.name.width });
+    canvas.text(geo.name.text, nx, ty, {
+      size: geo.name.fontSize,
+      color: textColor,
+      bold: true,
+      italic,
+      width: geo.name.width,
+    });
   } else canvas.richText(geo.name, nx, ty, { color: textColor, align: "left" });
   if (node.keyword === "object" || node.keyword === "map") {
     canvas.line(
@@ -211,7 +234,12 @@ function drawClass(node, canvas, style, textColor, theme) {
   if (geo.generics) {
     const gw = geo.generics.width + 10;
     const gh = geo.generics.height + 4;
-    canvas.rect(x + w - gw + 6, y - gh / 2, gw, gh, { fill: theme.background, stroke: style.stroke, strokeStyle: "dashed", strokeWidth: 1 });
+    canvas.rect(x + w - gw + 6, y - gh / 2, gw, gh, {
+      fill: theme.background,
+      stroke: style.stroke,
+      strokeStyle: "dashed",
+      strokeWidth: 1,
+    });
     canvas.richText(geo.generics, x + w - gw + 11, y - gh / 2 + 2, { color: textColor });
   }
   let cy = y + geo.headerHeight;
@@ -246,7 +274,12 @@ function drawClass(node, canvas, style, textColor, theme) {
       }
       const t = row.text;
       if (t.plain) {
-        canvas.text(t.text, rx, ry, { size: t.fontSize, color: textColor, italic: row.member.isAbstract, width: t.width });
+        canvas.text(t.text, rx, ry, {
+          size: t.fontSize,
+          color: textColor,
+          italic: row.member.isAbstract,
+          width: t.width,
+        });
       } else canvas.richText(t, rx, ry, { color: textColor, align: "left" });
       if (row.member.isStatic) {
         canvas.line(
@@ -272,7 +305,10 @@ function drawClass(node, canvas, style, textColor, theme) {
       );
       const rh = Math.max(row.key.height, row.value.height) + 6;
       canvas.richText(row.key, x + 8, cy + 3, { color: textColor, align: "left" });
-      canvas.richText(row.value, x + geo.tableKeyWidth + 8, cy + 3, { color: textColor, align: "left" });
+      canvas.richText(row.value, x + geo.tableKeyWidth + 8, cy + 3, {
+        color: textColor,
+        align: "left",
+      });
       canvas.line(
         [
           [x + geo.tableKeyWidth, cy],
@@ -294,7 +330,12 @@ function drawClass(node, canvas, style, textColor, theme) {
  * @param {import("../../draw/theme.mjs").Theme} theme
  */
 function drawVisibility(canvas, vis, cx, cy, theme) {
-  const style = { stroke: vis.color, fill: vis.filled ? vis.color : TRANSPARENT, strokeWidth: 1, roughness: 0 };
+  const style = {
+    stroke: vis.color,
+    fill: vis.filled ? vis.color : TRANSPARENT,
+    strokeWidth: 1,
+    roughness: 0,
+  };
   void theme;
   if (vis.shape === "circle") canvas.ellipse(cx - 4, cy - 4, 8, 8, style);
   else if (vis.shape === "square") canvas.rect(cx - 4, cy - 4, 8, 8, style);
@@ -323,10 +364,15 @@ function clip(p, q, node) {
     // Horizontal approaches at icon height attach to the icon, not the label block.
     const [iw, ih] = geo.icon;
     const left = node.x + (node.width - iw) / 2;
-    if (Math.abs(p[1] - q[1]) < 0.01 && p[1] <= node.y + ih) return [q[0] < p[0] ? left : left + iw, p[1]];
+    if (Math.abs(p[1] - q[1]) < 0.01 && p[1] <= node.y + ih)
+      return [q[0] < p[0] ? left : left + iw, p[1]];
     return p;
   }
-  const round = node.shape === "usecase" || node.shape === "circle" || node.shape === "diamond" || node.data.round;
+  const round =
+    node.shape === "usecase" ||
+    node.shape === "circle" ||
+    node.shape === "diamond" ||
+    node.data.round;
   if (!round) return p;
   const cx = node.x + node.width / 2;
   const cy = node.y + node.height / 2;
@@ -336,12 +382,14 @@ function clip(p, q, node) {
   const dy = p[1] - q[1];
   if (Math.abs(dx) < 0.01 && Math.abs(dy) > 0) {
     const t = (p[0] - cx) / rx;
-    const off = node.shape === "diamond" ? ry * (1 - Math.abs(t)) : ry * Math.sqrt(Math.max(0, 1 - t * t));
+    const off =
+      node.shape === "diamond" ? ry * (1 - Math.abs(t)) : ry * Math.sqrt(Math.max(0, 1 - t * t));
     return [p[0], dy > 0 ? cy - off : cy + off];
   }
   if (Math.abs(dy) < 0.01 && Math.abs(dx) > 0) {
     const t = (p[1] - cy) / ry;
-    const off = node.shape === "diamond" ? rx * (1 - Math.abs(t)) : rx * Math.sqrt(Math.max(0, 1 - t * t));
+    const off =
+      node.shape === "diamond" ? rx * (1 - Math.abs(t)) : rx * Math.sqrt(Math.max(0, 1 - t * t));
     return [dx > 0 ? cx - off : cx + off, p[1]];
   }
   return p;
@@ -356,14 +404,17 @@ function clip(p, q, node) {
  */
 export function drawEdge(edge, from, to, canvas, ids) {
   const theme = canvas.theme;
-  const s = roleStyle(theme, edge.role === "note" ? "edge" : edge.role, { stroke: edge.color ?? undefined });
+  const s = roleStyle(theme, edge.role === "note" ? "edge" : edge.role, {
+    stroke: edge.color ?? undefined,
+  });
   /** @type {[number, number][]} */
   const pts = edge.points.map((p) => [p[0], p[1]]);
   if (pts.length >= 2) {
     pts[0] = clip(pts[0], pts[1], from);
     pts[pts.length - 1] = clip(pts[pts.length - 1], pts[pts.length - 2], to);
   }
-  const strokeWidth = edge.thickness ?? (edge.bold ? s.strokeWidth * 1.8 : edge.role === "note" ? 1 : s.strokeWidth);
+  const strokeWidth =
+    edge.thickness ?? (edge.bold ? s.strokeWidth * 1.8 : edge.role === "note" ? 1 : s.strokeWidth);
   canvas.arrow(pts, {
     start: edge.startHead,
     end: edge.endHead,
@@ -378,10 +429,18 @@ export function drawEdge(edge, from, to, canvas, ids) {
     const b = edge.labelBox;
     const laid = edge.data.labelLayout;
     canvas.group(() => {
-      canvas.rect(b.x, b.y, b.width, b.height, { fill: theme.background, stroke: TRANSPARENT, strokeWidth: 1, roughness: 0, opacity: 85 });
+      canvas.rect(b.x, b.y, b.width, b.height, {
+        fill: theme.background,
+        stroke: TRANSPARENT,
+        strokeWidth: 1,
+        roughness: 0,
+        opacity: 85,
+      });
       const arrowW = edge.data.labelArrow ? 14 : 0;
       const tx = b.x + (b.width - laid.width - arrowW) / 2;
-      canvas.richText(laid, tx + (edge.data.labelArrow === "<" ? arrowW : 0), b.y + 1, { color: edge.color ?? labelStyle.text });
+      canvas.richText(laid, tx + (edge.data.labelArrow === "<" ? arrowW : 0), b.y + 1, {
+        color: edge.color ?? labelStyle.text,
+      });
       if (edge.data.labelArrow) {
         const ax = edge.data.labelArrow === ">" ? tx + laid.width + 4 : tx;
         const cy = b.y + b.height / 2;
@@ -393,7 +452,13 @@ export function drawEdge(edge, from, to, canvas, ids) {
             [tip, cy],
             [back, cy + 4],
           ],
-          { closed: true, fill: labelStyle.text, stroke: labelStyle.text, strokeWidth: 1, roughness: 0 },
+          {
+            closed: true,
+            fill: labelStyle.text,
+            stroke: labelStyle.text,
+            strokeWidth: 1,
+            roughness: 0,
+          },
         );
       }
     });

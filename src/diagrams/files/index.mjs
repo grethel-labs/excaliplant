@@ -39,7 +39,13 @@ function parseFiles(lines, module) {
     if (/^<note>/i.test(line)) {
       const body = [line.replace(/^<note>/i, "")];
       if (!/<\/note>/i.test(line)) body.push(...reader.until(/<\/note>/i).map((l) => l.text));
-      if (last) last.note = label(body.join("\n").replace(/<\/note>.*/i, "").trim());
+      if (last)
+        last.note = label(
+          body
+            .join("\n")
+            .replace(/<\/note>.*/i, "")
+            .trim(),
+        );
       continue;
     }
     if (!/^[/~.\w]/.test(line) || /^(title|caption|legend|header|footer|skinparam)\b/i.test(line)) {
@@ -53,7 +59,12 @@ function parseFiles(lines, module) {
     parts.forEach((part, i) => {
       let child = node.children.get(part);
       if (!child) {
-        child = { name: part, folder: i < parts.length - 1 || path.endsWith("/"), children: new Map(), note: null };
+        child = {
+          name: part,
+          folder: i < parts.length - 1 || path.endsWith("/"),
+          children: new Map(),
+          note: null,
+        };
         node.children.set(part, child);
         if (++count > module.limits.maxNodes) throw new LimitError("Too many files");
       }
@@ -77,10 +88,18 @@ function layoutFiles(model, ctx) {
   const rowH = fs * 1.25 + 10;
   /** @param {FileEntry} e @param {number} depth @param {boolean[]} trail */
   const walk = (e, depth, trail) => {
-    const kids = [...e.children.values()].sort((a, b) => Number(b.folder) - Number(a.folder) || a.name.localeCompare(b.name));
+    const kids = [...e.children.values()].sort(
+      (a, b) => Number(b.folder) - Number(a.folder) || a.name.localeCompare(b.name),
+    );
     kids.forEach((k, i) => {
       const isLast = i === kids.length - 1;
-      rows.push({ entry: k, depth, y: rows.length * rowH, laid: layoutText(k.name, { fontSize: fs, align: "left" }), last: [...trail, isLast] });
+      rows.push({
+        entry: k,
+        depth,
+        y: rows.length * rowH,
+        laid: layoutText(k.name, { fontSize: fs, align: "left" }),
+        last: [...trail, isLast],
+      });
       walk(k, depth + 1, [...trail, isLast]);
     });
   };
@@ -105,27 +124,80 @@ function drawFiles(laid, c) {
     // tree guides
     if (r.depth > 0) {
       const gx = x - indent + 8;
-      c.line([[gx, cy], [x, cy]], { stroke: theme.muted, strokeWidth: 1, roughness: 0 });
+      c.line(
+        [
+          [gx, cy],
+          [x, cy],
+        ],
+        { stroke: theme.muted, strokeWidth: 1, roughness: 0 },
+      );
     }
     if (r.depth > 0) {
       const gx = x - indent + 8;
       const parentRow = [...rows.slice(0, i)].reverse().find((p) => p.depth === r.depth - 1);
       const top = parentRow ? parentRow.y + rowH - 4 : 0;
-      c.line([[gx, top], [gx, cy]], { stroke: theme.muted, strokeWidth: 1, roughness: 0 });
+      c.line(
+        [
+          [gx, top],
+          [gx, cy],
+        ],
+        { stroke: theme.muted, strokeWidth: 1, roughness: 0 },
+      );
     }
     if (r.entry.folder) {
-      c.line([[x, cy - 5], [x, cy - 8], [x + 7, cy - 8], [x + 9, cy - 5]], { stroke: "#e67700", strokeWidth: 1.5, roughness: 0.5 });
-      c.rect(x, cy - 5, 18, 12, { fill: "#ffd43b", stroke: "#e67700", strokeWidth: 1.5, roughness: 0.5 });
+      c.line(
+        [
+          [x, cy - 5],
+          [x, cy - 8],
+          [x + 7, cy - 8],
+          [x + 9, cy - 5],
+        ],
+        { stroke: "#e67700", strokeWidth: 1.5, roughness: 0.5 },
+      );
+      c.rect(x, cy - 5, 18, 12, {
+        fill: "#ffd43b",
+        stroke: "#e67700",
+        strokeWidth: 1.5,
+        roughness: 0.5,
+      });
     } else {
-      c.line([[x + 2, cy - 8], [x + 11, cy - 8], [x + 15, cy - 4], [x + 15, cy + 8], [x + 2, cy + 8]], { closed: true, fill: theme.background, stroke: theme.muted, strokeWidth: 1.5, roughness: 0.5 });
+      c.line(
+        [
+          [x + 2, cy - 8],
+          [x + 11, cy - 8],
+          [x + 15, cy - 4],
+          [x + 15, cy + 8],
+          [x + 2, cy + 8],
+        ],
+        {
+          closed: true,
+          fill: theme.background,
+          stroke: theme.muted,
+          strokeWidth: 1.5,
+          roughness: 0.5,
+        },
+      );
     }
-    c.richText(r.laid, x + 24, cy - r.laid.height / 2, { color: r.entry.folder ? folder.text : file.text, align: "left" });
+    c.richText(r.laid, x + 24, cy - r.laid.height / 2, {
+      color: r.entry.folder ? folder.text : file.text,
+      align: "left",
+    });
     if (r.entry.note) {
       const t = layoutText(r.entry.note, { fontSize: fs * 0.8, align: "left" });
       const nx = maxRight + 30;
       const note = roleStyle(theme, "note");
-      c.line([[x + 28 + r.laid.width + 4, cy], [nx, cy]], { stroke: note.stroke, strokeWidth: 1, strokeStyle: "dotted", roughness: 0 });
-      c.rect(nx, cy - t.height / 2 - 4, t.width + 16, t.height + 8, { fill: note.fill, stroke: note.stroke, strokeWidth: 1 });
+      c.line(
+        [
+          [x + 28 + r.laid.width + 4, cy],
+          [nx, cy],
+        ],
+        { stroke: note.stroke, strokeWidth: 1, strokeStyle: "dotted", roughness: 0 },
+      );
+      c.rect(nx, cy - t.height / 2 - 4, t.width + 16, t.height + 8, {
+        fill: note.fill,
+        stroke: note.stroke,
+        strokeWidth: 1,
+      });
       c.richText(t, nx + 8, cy - t.height / 2, { color: note.text, align: "left" });
     }
   });

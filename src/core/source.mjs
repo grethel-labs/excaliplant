@@ -44,7 +44,8 @@ export function extractBlocks(text, options = {}) {
     if (!current) {
       const m = START_RE.exec(lineText);
       if (m) {
-        if (blocks.length >= maxBlocks) throw new LimitError(`More than ${maxBlocks} diagram blocks`);
+        if (blocks.length >= maxBlocks)
+          throw new LimitError(`More than ${maxBlocks} diagram blocks`);
         current = { type: m[1].toLowerCase(), name: parseBlockName(m[2]), lines: [], line: i + 1 };
       }
       continue;

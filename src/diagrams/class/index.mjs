@@ -28,7 +28,13 @@ const CLASS_LIKE = /** @type {const} */ ([
 
 /** @type {[string, import("../graph/parse.mjs").ElementKind][]} */
 const KEYWORDS = [
-  ...CLASS_LIKE.map(([kw, role]) => /** @type {[string, import("../graph/parse.mjs").ElementKind]} */ ([kw, { shape: "class", role, classLike: true }])),
+  ...CLASS_LIKE.map(
+    ([kw, role]) =>
+      /** @type {[string, import("../graph/parse.mjs").ElementKind]} */ ([
+        kw,
+        { shape: "class", role, classLike: true },
+      ]),
+  ),
   ["namespace", { shape: "package", role: "package", container: true }],
   ...DESCRIPTIVE_KEYWORDS.filter(([kw]) => !CLASS_LIKE.some(([c]) => c === kw)),
 ];
@@ -40,7 +46,10 @@ export default graphModule({
   implicit: () => null,
   detect: (lines) =>
     score(lines, [
-      [/^(abstract\s+class|abstract|class|interface|enum|annotation|protocol|struct|record|dataclass|exception|metaclass)\s+\S/i, 3],
+      [
+        /^(abstract\s+class|abstract|class|interface|enum|annotation|protocol|struct|record|dataclass|exception|metaclass)\s+\S/i,
+        3,
+      ],
       [/^entity\s+\S+.*\{\s*$/i, 2],
       [/^namespace\s/i, 2],
       [/(<\|--|--\|>|<\|\.\.|\.\.\|>|\*--|--\*|o--|--o\b|\|o--|--o\{|\}o--|\|\|--|--\|\|)/, 2],

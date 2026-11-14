@@ -57,7 +57,17 @@ function splitCells(s) {
 function parseBlock(head, lines, budget) {
   const marker = head.trim();
   /** @type {Widget & { t: "grid" }} */
-  const grid = { t: "grid", border: "", kind: "grid", title: null, rows: [], w: 0, h: 0, colW: [], rowH: [] };
+  const grid = {
+    t: "grid",
+    border: "",
+    kind: "grid",
+    title: null,
+    rows: [],
+    w: 0,
+    h: 0,
+    colW: [],
+    rowH: [],
+  };
   if (marker.startsWith("T")) grid.kind = "tree";
   else if (marker.startsWith("/")) grid.kind = "tabs";
   else if (marker.startsWith("*")) grid.kind = "menu";
@@ -85,7 +95,8 @@ function parseBlock(head, lines, budget) {
       grid.rows.push([widget(m ? m[2] : line.trim(), budget, m ? m[1].length : 1, true)]);
       continue;
     }
-    const cells = grid.kind === "tabs" || grid.kind === "menu" ? splitCells(line) : splitCells(line);
+    const cells =
+      grid.kind === "tabs" || grid.kind === "menu" ? splitCells(line) : splitCells(line);
     grid.rows.push(cells.map((cell) => widget(cell.trim(), budget, 0, false)));
   }
   return grid;
@@ -100,7 +111,8 @@ function parseBlock(head, lines, budget) {
  */
 function widget(cell, budget, depth, treeItem) {
   /** @param {Widget["t"]} t @param {string} text @param {Partial<Widget>} [extra] @returns {Widget} */
-  const w = (t, text, extra = {}) => /** @type {Widget} */ ({ t, text: label(text), laid: null, w: 0, h: 0, ...extra });
+  const w = (t, text, extra = {}) =>
+    /** @type {Widget} */ ({ t, text: label(text), laid: null, w: 0, h: 0, ...extra });
   if (cell.startsWith("{")) {
     const close = cell.lastIndexOf("}");
     const inner = cell.slice(1, close < 0 ? undefined : close);
@@ -115,8 +127,12 @@ function widget(cell, budget, depth, treeItem) {
   if (cell === "." || cell === "") return w("empty", "");
   if (/^(==|\.\.|~~|--)+$/.test(cell)) return w("sep", "", { sep: cell.slice(0, 2) });
   let m;
-  if ((m = /^\[\s*([Xx ]?)\s*\]\s*(.*)$/.exec(cell)) && (m[1] !== "" || m[2] !== "" || cell === "[]")) {
-    if (m[1] || cell.startsWith("[]") || /^\[\s\]/.test(cell)) return w("check", m[2], { on: /x/i.test(m[1]) });
+  if (
+    (m = /^\[\s*([Xx ]?)\s*\]\s*(.*)$/.exec(cell)) &&
+    (m[1] !== "" || m[2] !== "" || cell === "[]")
+  ) {
+    if (m[1] || cell.startsWith("[]") || /^\[\s\]/.test(cell))
+      return w("check", m[2], { on: /x/i.test(m[1]) });
   }
   if ((m = /^\[(.*)\]$/.exec(cell))) return w("button", m[1].trim());
   if ((m = /^\(\s*([Xx]?)\s*\)\s*(.*)$/.exec(cell))) return w("radio", m[2], { on: !!m[1] });
@@ -138,11 +154,17 @@ function measure(wd, fs) {
       wd.colW = [];
       const row = wd.rows[0] ?? [];
       wd.w = row.reduce((s, c) => s + c.w + 20, 0);
-      wd.h = Math.max(0, ...row.map((c) => c.h)) + 10 + wd.rows.slice(1).reduce((s, r) => s + Math.max(...r.map((c) => c.h)) + 6, 0);
+      wd.h =
+        Math.max(0, ...row.map((c) => c.h)) +
+        10 +
+        wd.rows.slice(1).reduce((s, r) => s + Math.max(...r.map((c) => c.h)) + 6, 0);
       wd.w = Math.max(wd.w, ...wd.rows.slice(1).map((r) => r.reduce((s, c) => s + c.w + 10, 0)));
       return;
     }
-    wd.colW = Array.from({ length: cols }, (_, i) => Math.max(0, ...wd.rows.map((r) => (r[i] ? r[i].w : 0))) + pad * 2);
+    wd.colW = Array.from(
+      { length: cols },
+      (_, i) => Math.max(0, ...wd.rows.map((r) => (r[i] ? r[i].w : 0))) + pad * 2,
+    );
     wd.rowH = wd.rows.map((r) => Math.max(...r.map((c) => c.h)) + pad * 2);
     wd.w = wd.colW.reduce((s, x) => s + x, 0);
     wd.h = wd.rowH.reduce((s, x) => s + x, 0) + (wd.kind === "group" ? fs * 1.4 : 0);
@@ -197,7 +219,8 @@ function draw(c, wd, x, y, cw, fs) {
   const ink = theme.ink;
   const line = { stroke: ink, strokeWidth: 1.2 };
   const soft = { stroke: theme.muted, strokeWidth: 1 };
-  const text = (/** @type {number} */ tx, /** @type {number} */ ty) => wd.t !== "grid" && wd.laid && c.richText(wd.laid, tx, ty, { color: ink, align: "left" });
+  const text = (/** @type {number} */ tx, /** @type {number} */ ty) =>
+    wd.t !== "grid" && wd.laid && c.richText(wd.laid, tx, ty, { color: ink, align: "left" });
   switch (wd.t) {
     case "grid": {
       let top = y;
@@ -205,7 +228,12 @@ function draw(c, wd, x, y, cw, fs) {
         c.rect(x, y + fs * 0.6, wd.w, wd.h - fs * 0.6, { ...soft, rounded: true });
         if (wd.title) {
           const t = layoutText(wd.title, { fontSize: fs * 0.9 });
-          c.rect(x + 10, y, t.width + 8, t.height, { fill: theme.background, stroke: "transparent", strokeWidth: 1, roughness: 0 });
+          c.rect(x + 10, y, t.width + 8, t.height, {
+            fill: theme.background,
+            stroke: "transparent",
+            strokeWidth: 1,
+            roughness: 0,
+          });
           c.richText(t, x + 14, y, { color: ink });
         }
         top += fs * 1.4;
@@ -216,11 +244,23 @@ function draw(c, wd, x, y, cw, fs) {
         const th = Math.max(0, ...row.map((r) => r.h)) + 10;
         row.forEach((cell, i) => {
           const w = cell.w + 20;
-          if (wd.kind === "tabs") c.rect(tx, y, w, th, { ...line, fill: i === 0 ? theme.background : theme.roles.muted.fill, rounded: false });
+          if (wd.kind === "tabs")
+            c.rect(tx, y, w, th, {
+              ...line,
+              fill: i === 0 ? theme.background : theme.roles.muted.fill,
+              rounded: false,
+            });
           draw(c, cell, tx + 10, y + 5, cell.w, fs);
           tx += w;
         });
-        if (wd.kind === "menu") c.line([[x, y + th], [Math.max(tx, x + wd.w), y + th]], soft);
+        if (wd.kind === "menu")
+          c.line(
+            [
+              [x, y + th],
+              [Math.max(tx, x + wd.w), y + th],
+            ],
+            soft,
+          );
         else c.rect(x, y + th, Math.max(wd.w, tx - x), wd.h - th, line);
         let ry = y + th + 4;
         for (const r of wd.rows.slice(1)) {
@@ -236,21 +276,45 @@ function draw(c, wd, x, y, cw, fs) {
       if (wd.kind === "scroll") {
         c.rect(x, y, wd.w, wd.h, line);
         c.rect(x + wd.w - 14, y, 14, wd.h, { ...soft, fill: theme.roles.muted.fill });
-        c.rect(x + wd.w - 12, y + 16, 10, Math.max(10, wd.h * 0.3), { ...soft, fill: theme.muted, fillStyle: "solid" });
+        c.rect(x + wd.w - 12, y + 16, 10, Math.max(10, wd.h * 0.3), {
+          ...soft,
+          fill: theme.muted,
+          fillStyle: "solid",
+        });
       }
       if (wd.border === "+" || wd.border === "#") c.rect(x, top, wd.w, wd.h - (top - y), line);
       let ry = top;
       wd.rows.forEach((row, ri) => {
         let rx = x;
         const rh = wd.rowH[ri];
-        if (ri > 0 && (wd.border === "#" || wd.border === "-")) c.line([[x, ry], [x + wd.w, ry]], soft);
+        if (ri > 0 && (wd.border === "#" || wd.border === "-"))
+          c.line(
+            [
+              [x, ry],
+              [x + wd.w, ry],
+            ],
+            soft,
+          );
         row.forEach((cell, ci) => {
           const cwid = wd.colW[ci] ?? cell.w;
-          if (ci > 0 && (wd.border === "#" || wd.border === "!")) c.line([[rx, ry], [rx, ry + rh]], soft);
+          if (ci > 0 && (wd.border === "#" || wd.border === "!"))
+            c.line(
+              [
+                [rx, ry],
+                [rx, ry + rh],
+              ],
+              soft,
+            );
           const pad = wd.border ? 8 : 4;
           if (cell.t === "sep") {
             const style = cell.sep === ".." ? "dotted" : cell.sep === "~~" ? "dashed" : "solid";
-            c.line([[x + 4, ry + rh / 2], [x + wd.w - 4, ry + rh / 2]], { ...soft, strokeStyle: style, strokeWidth: cell.sep === "==" ? 2 : 1 });
+            c.line(
+              [
+                [x + 4, ry + rh / 2],
+                [x + wd.w - 4, ry + rh / 2],
+              ],
+              { ...soft, strokeStyle: style, strokeWidth: cell.sep === "==" ? 2 : 1 },
+            );
           } else draw(c, cell, rx + pad, ry + (rh - cell.h) / 2, cwid - pad * 2, fs);
           rx += cwid;
         });
@@ -259,8 +323,13 @@ function draw(c, wd, x, y, cw, fs) {
       return;
     }
     case "button":
-      c.rect(x, y, Math.max(wd.w, cw), wd.h, { ...line, fill: theme.roles.muted.fill, rounded: true });
-      if (wd.laid) c.richText(wd.laid, x + (Math.max(wd.w, cw) - wd.laid.width) / 2, y + 5, { color: ink });
+      c.rect(x, y, Math.max(wd.w, cw), wd.h, {
+        ...line,
+        fill: theme.roles.muted.fill,
+        rounded: true,
+      });
+      if (wd.laid)
+        c.richText(wd.laid, x + (Math.max(wd.w, cw) - wd.laid.width) / 2, y + 5, { color: ink });
       return;
     case "field":
       c.rect(x, y, Math.max(wd.w, cw), wd.h, { ...line, fill: theme.background });
@@ -268,25 +337,55 @@ function draw(c, wd, x, y, cw, fs) {
       return;
     case "check":
       c.rect(x, y + wd.h / 2 - 7, 14, 14, { ...line, fill: theme.background });
-      if (wd.on) c.line([[x + 3, y + wd.h / 2], [x + 6, y + wd.h / 2 + 4], [x + 12, y + wd.h / 2 - 5]], { stroke: ink, strokeWidth: 2 });
+      if (wd.on)
+        c.line(
+          [
+            [x + 3, y + wd.h / 2],
+            [x + 6, y + wd.h / 2 + 4],
+            [x + 12, y + wd.h / 2 - 5],
+          ],
+          { stroke: ink, strokeWidth: 2 },
+        );
       text(x + 22, y);
       return;
     case "radio":
       c.ellipse(x, y + wd.h / 2 - 7, 14, 14, { ...line, fill: theme.background });
-      if (wd.on) c.ellipse(x + 4, y + wd.h / 2 - 3, 6, 6, { fill: ink, stroke: ink, fillStyle: "solid" });
+      if (wd.on)
+        c.ellipse(x + 4, y + wd.h / 2 - 3, 6, 6, { fill: ink, stroke: ink, fillStyle: "solid" });
       text(x + 22, y);
       return;
     case "drop": {
       const w = Math.max(wd.w, cw);
       c.rect(x, y, w, wd.h, { ...line, fill: theme.background });
-      c.line([[x + w - 22, y], [x + w - 22, y + wd.h]], soft);
-      c.line([[x + w - 16, y + wd.h / 2 - 3], [x + w - 11, y + wd.h / 2 + 3], [x + w - 6, y + wd.h / 2 - 3]], { stroke: ink, strokeWidth: 1.5 });
+      c.line(
+        [
+          [x + w - 22, y],
+          [x + w - 22, y + wd.h],
+        ],
+        soft,
+      );
+      c.line(
+        [
+          [x + w - 16, y + wd.h / 2 - 3],
+          [x + w - 11, y + wd.h / 2 + 3],
+          [x + w - 6, y + wd.h / 2 - 3],
+        ],
+        { stroke: ink, strokeWidth: 1.5 },
+      );
       text(x + 7, y + 4);
       return;
     }
     case "treeitem": {
       const indent = ((wd.depth ?? 1) - 1) * 18;
-      if ((wd.depth ?? 1) > 1) c.line([[x + indent - 12, y - 4], [x + indent - 12, y + wd.h / 2], [x + indent - 2, y + wd.h / 2]], soft);
+      if ((wd.depth ?? 1) > 1)
+        c.line(
+          [
+            [x + indent - 12, y - 4],
+            [x + indent - 12, y + wd.h / 2],
+            [x + indent - 2, y + wd.h / 2],
+          ],
+          soft,
+        );
       c.rect(x + indent, y + wd.h / 2 - 4, 8, 8, { ...soft, fill: theme.roles.muted.fill });
       text(x + indent + 14, y + 1);
       return;
@@ -316,13 +415,23 @@ function parseSalt(lines, module) {
   const text = body.join("\n").trim();
   const open = text.indexOf("{");
   const close = text.lastIndexOf("}");
-  if (open < 0 || close < 0) return { meta, root: parseBlock("", text.split("\n"), { n: 0, max: module.limits.maxNodes * 4 }) };
+  if (open < 0 || close < 0)
+    return {
+      meta,
+      root: parseBlock("", text.split("\n"), { n: 0, max: module.limits.maxNodes * 4 }),
+    };
   const inner = text.slice(open + 1, close);
   const nl = inner.indexOf("\n");
   const head = nl < 0 ? inner : inner.slice(0, nl);
   const rest = nl < 0 ? [] : inner.slice(nl + 1).split("\n");
   const isMarker = /^(T|\/|\*|S[IV-]?|\^|[+#!-])/.test(head.trim());
-  return { meta, root: parseBlock(isMarker ? head : "", isMarker ? rest : [head, ...rest], { n: 0, max: module.limits.maxNodes * 4 }) };
+  return {
+    meta,
+    root: parseBlock(isMarker ? head : "", isMarker ? rest : [head, ...rest], {
+      n: 0,
+      max: module.limits.maxNodes * 4,
+    }),
+  };
 }
 
 export default defineDiagram({
@@ -337,7 +446,12 @@ export default defineDiagram({
   },
   draw: (laid, c) => {
     const root = laid.root;
-    c.rect(-10, -10, root.w + 20, root.h + 20, { stroke: c.theme.muted, strokeWidth: 1.5, fill: c.theme.background, rounded: true });
+    c.rect(-10, -10, root.w + 20, root.h + 20, {
+      stroke: c.theme.muted,
+      strokeWidth: 1.5,
+      fill: c.theme.background,
+      rounded: true,
+    });
     draw(c, root, 0, 0, root.w, laid.fs);
   },
 });

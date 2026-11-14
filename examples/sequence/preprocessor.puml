@@ -1,0 +1,19 @@
+@startuml
+!$services = ["auth", "orders", "billing"]
+!procedure $call($svc, $msg="ping")
+Gateway -> $svc : $msg
+$svc --> Gateway : ok
+!endprocedure
+!function $upper($s) !return %upper($s)
+title Health check (generated with the preprocessor)
+participant Gateway
+!foreach $s in $services
+participant "$upper($s)" as $s
+!endfor
+!foreach $s in $services
+$call($s, "health?")
+!endfor
+!if %size($services) > 2
+note over Gateway : %size($services) services checked
+!endif
+@enduml

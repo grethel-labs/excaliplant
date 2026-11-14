@@ -98,12 +98,21 @@ export function parseCreole(text) {
       const level = numbered[1].length;
       counters.length = level;
       counters[level - 1] = (counters[level - 1] ?? 0) + 1;
-      blocks.push({ kind: "numbered", level, number: counters[level - 1], runs: parseInline(numbered[2]) });
+      blocks.push({
+        kind: "numbered",
+        level,
+        number: counters[level - 1],
+        runs: parseInline(numbered[2]),
+      });
       continue;
     }
     const heading = /^\s*(={1,4})\s+(.*?)\s*=*\s*$/.exec(line);
     if (heading) {
-      blocks.push({ kind: "heading", level: heading[1].length, runs: parseInline(heading[2], { bold: true }) });
+      blocks.push({
+        kind: "heading",
+        level: heading[1].length,
+        runs: parseInline(heading[2], { bold: true }),
+      });
       continue;
     }
     counters.length = 0;
@@ -204,7 +213,8 @@ export function parseInline(text, base = {}) {
       if (text.startsWith(marker, i)) {
         // Avoid treating URLs ("http://") and arrows ("-->") as markup.
         if (marker === "//" && text[i - 1] === ":") break;
-        if (marker === "--" && (text[i + 2] === ">" || text[i - 1] === "<" || text[i + 2] === "-")) break;
+        if (marker === "--" && (text[i + 2] === ">" || text[i - 1] === "<" || text[i + 2] === "-"))
+          break;
         if (style()[prop]) pop();
         else if (text.indexOf(marker, i + 2) > i + 2) push({ [prop]: true });
         else break;
@@ -233,15 +243,16 @@ function applyTag(tag, ops) {
     ops.pop();
     return true;
   }
-  if (lower === "b" || lower === "strong") return ops.push({ bold: true }), true;
-  if (lower === "i" || lower === "em") return ops.push({ italic: true }), true;
-  if (lower === "u") return ops.push({ underline: true }), true;
-  if (lower === "s" || lower === "strike" || lower === "del") return ops.push({ strike: true }), true;
-  if (lower === "w") return ops.push({ wave: true }), true;
-  if (lower === "sub") return ops.push({ script: "sub" }), true;
-  if (lower === "sup") return ops.push({ script: "sup" }), true;
-  if (lower === "plain") return ops.push({ bold: false, italic: false }), true;
-  if (lower === "code") return ops.push({ mono: true }), true;
+  if (lower === "b" || lower === "strong") return (ops.push({ bold: true }), true);
+  if (lower === "i" || lower === "em") return (ops.push({ italic: true }), true);
+  if (lower === "u") return (ops.push({ underline: true }), true);
+  if (lower === "s" || lower === "strike" || lower === "del")
+    return (ops.push({ strike: true }), true);
+  if (lower === "w") return (ops.push({ wave: true }), true);
+  if (lower === "sub") return (ops.push({ script: "sub" }), true);
+  if (lower === "sup") return (ops.push({ script: "sup" }), true);
+  if (lower === "plain") return (ops.push({ bold: false, italic: false }), true);
+  if (lower === "code") return (ops.push({ mono: true }), true);
   const color = /^color\s*[:= ]\s*#?([\w#]+)$/i.exec(t);
   if (color) {
     const c = parseColor(color[1]);
@@ -302,7 +313,19 @@ function safeUrl(url) {
  * @param {Style} s
  */
 function sameStyle(run, s) {
-  const keys = ["bold", "italic", "mono", "strike", "underline", "wave", "color", "background", "size", "script", "link"];
+  const keys = [
+    "bold",
+    "italic",
+    "mono",
+    "strike",
+    "underline",
+    "wave",
+    "color",
+    "background",
+    "size",
+    "script",
+    "link",
+  ];
   return keys.every((k) => /** @type {any} */ (run)[k] === /** @type {any} */ (s)[k]);
 }
 
@@ -314,7 +337,8 @@ function sameStyle(run, s) {
 export function plainText(rich) {
   return rich.blocks
     .map((b) => {
-      if (b.kind === "table") return (b.rows ?? []).map((r) => r.cells.map(runsText).join(" | ")).join("\n");
+      if (b.kind === "table")
+        return (b.rows ?? []).map((r) => r.cells.map(runsText).join(" | ")).join("\n");
       if (b.kind === "hr") return "";
       return runsText(b.runs);
     })

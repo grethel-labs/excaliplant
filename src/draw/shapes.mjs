@@ -115,7 +115,10 @@ export const SHAPES = {
     draw: (c, x, y, w, h, s) => {
       const ry = Math.min(10, h / 6);
       const body = c.line(
-        [...arc(x + w / 2, y + ry, w / 2, ry, 180, 360, 10), ...arc(x + w / 2, y + h - ry, w / 2, ry, 0, 180, 10)],
+        [
+          ...arc(x + w / 2, y + ry, w / 2, ry, 180, 360, 10),
+          ...arc(x + w / 2, y + h - ry, w / 2, ry, 0, 180, 10),
+        ],
         { ...s, closed: true },
       );
       c.line(arc(x + w / 2, y + ry, w / 2, ry, 0, 180, 10), { ...s, fill: undefined });
@@ -128,10 +131,16 @@ export const SHAPES = {
     min: [80, 40],
     draw: (c, x, y, w, h, s) => {
       const rx = Math.min(10, w / 6);
-      const body = c.line([...arc(x + rx, y + h / 2, rx, h / 2, 90, 270, 10), ...arc(x + w - rx, y + h / 2, rx, h / 2, -90, 90, 10)], {
-        ...s,
-        closed: true,
-      });
+      const body = c.line(
+        [
+          ...arc(x + rx, y + h / 2, rx, h / 2, 90, 270, 10),
+          ...arc(x + w - rx, y + h / 2, rx, h / 2, -90, 90, 10),
+        ],
+        {
+          ...s,
+          closed: true,
+        },
+      );
       c.line(arc(x + w - rx, y + h / 2, rx, h / 2, 90, 270, 10), { ...s, fill: undefined });
       return body;
     },
@@ -156,7 +165,8 @@ export const SHAPES = {
         [0.62, 0.78, 0.26, 0.22, 0, 150],
         [0.3, 0.78, 0.2, 0.2, 20, 160],
       ];
-      for (const [cx, cy, rx, ry, a0, a1] of bumps) pts.push(...arc(x + cx * w, y + cy * h, rx * w, ry * h, a0, a1, 6));
+      for (const [cx, cy, rx, ry, a0, a1] of bumps)
+        pts.push(...arc(x + cx * w, y + cy * h, rx * w, ry * h, a0, a1, 6));
       return c.line(pts, { ...s, closed: true, curved: true });
     },
   },
@@ -323,7 +333,8 @@ export const SHAPES = {
   label: {
     label: "inside",
     pad: [4, 4, 4, 4],
-    draw: (c, x, y, w, h, s) => c.rect(x, y, w, h, { ...s, stroke: "transparent", fill: "transparent", strokeWidth: 1 }),
+    draw: (c, x, y, w, h, s) =>
+      c.rect(x, y, w, h, { ...s, stroke: "transparent", fill: "transparent", strokeWidth: 1 }),
   },
   person: {
     label: "inside",
@@ -341,7 +352,10 @@ export const SHAPES = {
     draw: (c, x, y, w, _h, s) => {
       const cx = x + w / 2;
       const line = { ...s, fill: undefined };
-      const head = c.ellipse(cx - 9, y, 18, 18, { ...s, fill: s.fill === "transparent" ? undefined : s.fill });
+      const head = c.ellipse(cx - 9, y, 18, 18, {
+        ...s,
+        fill: s.fill === "transparent" ? undefined : s.fill,
+      });
       c.line(
         [
           [cx, y + 18],
@@ -435,7 +449,8 @@ export const SHAPES = {
     label: "below",
     pad: [0, 0, 0, 0],
     icon: [24, 24],
-    draw: (c, x, y, w, _h, s) => c.ellipse(x + w / 2 - 12, y, 24, 24, { ...s, fill: s.stroke, fillStyle: "solid" }),
+    draw: (c, x, y, w, _h, s) =>
+      c.ellipse(x + w / 2 - 12, y, 24, 24, { ...s, fill: s.stroke, fillStyle: "solid" }),
   },
   end: {
     label: "below",

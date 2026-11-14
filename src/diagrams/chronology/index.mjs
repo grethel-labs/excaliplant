@@ -38,7 +38,10 @@ import { parseDay, dayDate } from "../gantt/index.mjs";
  * @param {string} name
  */
 function findEvent(model, name) {
-  return model.events.find((e) => e.id === name) ?? model.events.find((e) => e.id.split(":")[0].trim() === name.trim());
+  return (
+    model.events.find((e) => e.id === name) ??
+    model.events.find((e) => e.id.split(":")[0].trim() === name.trim())
+  );
 }
 
 /** @type {import("../../syntax/reader.mjs").Rule<{ model: ChronoModel }>[]} */
@@ -53,20 +56,40 @@ const RULES = [
     return true;
   },
   (line, ctx) => {
-    const m = /^\[([^\]]+)\]\s+happens\s+(?:on|at)\s+(\S+)(?:\s+(?:is\s+colou?red\s+in\s+)?(#\S+))?/i.exec(line);
+    const m =
+      /^\[([^\]]+)\]\s+happens\s+(?:on|at)\s+(\S+)(?:\s+(?:is\s+colou?red\s+in\s+)?(#\S+))?/i.exec(
+        line,
+      );
     if (!m) return false;
     const d = parseDay(m[2]);
     if (d === null) return false;
-    ctx.model.events.push({ id: m[1], label: label(m[1]), start: d, end: d, span: false, color: parseColorSpec(m[3]).fill ?? null });
+    ctx.model.events.push({
+      id: m[1],
+      label: label(m[1]),
+      start: d,
+      end: d,
+      span: false,
+      color: parseColorSpec(m[3]).fill ?? null,
+    });
     return true;
   },
   (line, ctx) => {
-    const m = /^\[([^\]]+)\]\s+(?:lasts\s+)?from\s+(\S+)\s+to\s+(\S+)(?:\s+(?:is\s+colou?red\s+in\s+)?(#\S+))?/i.exec(line);
+    const m =
+      /^\[([^\]]+)\]\s+(?:lasts\s+)?from\s+(\S+)\s+to\s+(\S+)(?:\s+(?:is\s+colou?red\s+in\s+)?(#\S+))?/i.exec(
+        line,
+      );
     if (!m) return false;
     const a = parseDay(m[2]);
     const b = parseDay(m[3]);
     if (a === null || b === null) return false;
-    ctx.model.events.push({ id: m[1], label: label(m[1]), start: Math.min(a, b), end: Math.max(a, b), span: true, color: parseColorSpec(m[4]).fill ?? null });
+    ctx.model.events.push({
+      id: m[1],
+      label: label(m[1]),
+      start: Math.min(a, b),
+      end: Math.max(a, b),
+      span: true,
+      color: parseColorSpec(m[4]).fill ?? null,
+    });
     return true;
   },
   (line, ctx) => {
@@ -120,14 +143,30 @@ function drawChrono(laid, c) {
   const theme = c.theme;
   const axis = roleStyle(theme, "axis");
   const y0 = 200;
-  c.arrow([[-20, y0], [width + 30, y0]], { stroke: axis.stroke, strokeWidth: 2, end: "arrow" });
+  c.arrow(
+    [
+      [-20, y0],
+      [width + 30, y0],
+    ],
+    { stroke: axis.stroke, strokeWidth: 2, end: "arrow" },
+  );
   // ticks at month starts
   for (let d = min; d <= max; d++) {
     const date = dayDate(d);
     if (date.getUTCDate() !== 1 && d !== min) continue;
     const x = (d - min) * scale;
-    c.line([[x, y0 - 5], [x, y0 + 5]], { stroke: axis.stroke, strokeWidth: 1.5 });
-    c.text(date.toISOString().slice(0, 10), x, y0 + 8, { size: fs * 0.7, color: theme.muted, align: "center" });
+    c.line(
+      [
+        [x, y0 - 5],
+        [x, y0 + 5],
+      ],
+      { stroke: axis.stroke, strokeWidth: 1.5 },
+    );
+    c.text(date.toISOString().slice(0, 10), x, y0 + 8, {
+      size: fs * 0.7,
+      color: theme.muted,
+      align: "center",
+    });
   }
   /** @type {Map<string, { x: number, y: number }>} */
   const anchors = new Map();
@@ -139,11 +178,26 @@ function drawChrono(laid, c) {
     const cx = (it.x1 + it.x2) / 2;
     const labelY = above ? y0 - 70 - level * 52 - it.text.height : y0 + 60 + level * 52;
     if (it.e.span) {
-      c.rect(it.x1, y0 - 7, Math.max(6, it.x2 - it.x1), 14, { fill: it.e.color ?? pal.fill, stroke: color, rounded: true });
+      c.rect(it.x1, y0 - 7, Math.max(6, it.x2 - it.x1), 14, {
+        fill: it.e.color ?? pal.fill,
+        stroke: color,
+        rounded: true,
+      });
     } else c.ellipse(cx - 7, y0 - 7, 14, 14, { fill: color, stroke: color, fillStyle: "solid" });
     const ly1 = above ? labelY + it.text.height + 8 : labelY - 4;
-    c.line([[cx, above ? y0 - 8 : y0 + 8], [cx, ly1]], { stroke: color, strokeWidth: 1, strokeStyle: "dotted" });
-    c.rect(cx - it.text.width / 2 - 8, labelY - 4, it.text.width + 16, it.text.height + 8, { fill: pal.fill, stroke: color, rounded: true, strokeWidth: 1 });
+    c.line(
+      [
+        [cx, above ? y0 - 8 : y0 + 8],
+        [cx, ly1],
+      ],
+      { stroke: color, strokeWidth: 1, strokeStyle: "dotted" },
+    );
+    c.rect(cx - it.text.width / 2 - 8, labelY - 4, it.text.width + 16, it.text.height + 8, {
+      fill: pal.fill,
+      stroke: color,
+      rounded: true,
+      strokeWidth: 1,
+    });
     c.richText(it.text, cx - it.text.width / 2, labelY, { color: theme.ink });
     anchors.set(it.e.id, { x: cx, y: y0 });
   });
@@ -156,11 +210,24 @@ function drawChrono(laid, c) {
     const b = anchors.get(to.id);
     if (!a || !b) continue;
     const top = y0 - 30;
-    c.arrow([[a.x, y0 - 9], [a.x, top], [b.x, top], [b.x, y0 - 9]], { stroke: theme.muted, strokeWidth: 1, strokeStyle: "dashed", end: "arrow", roughness: 0 });
+    c.arrow(
+      [
+        [a.x, y0 - 9],
+        [a.x, top],
+        [b.x, top],
+        [b.x, y0 - 9],
+      ],
+      { stroke: theme.muted, strokeWidth: 1, strokeStyle: "dashed", end: "arrow", roughness: 0 },
+    );
     if (l.label) {
       const t = layoutText(l.label, { fontSize: fs * 0.75 });
       const lx = (a.x + b.x) / 2 - t.width / 2;
-      c.rect(lx - 3, top - t.height / 2 - 1, t.width + 6, t.height + 2, { fill: theme.background, stroke: "transparent", strokeWidth: 1, roughness: 0 });
+      c.rect(lx - 3, top - t.height / 2 - 1, t.width + 6, t.height + 2, {
+        fill: theme.background,
+        stroke: "transparent",
+        strokeWidth: 1,
+        roughness: 0,
+      });
       c.richText(t, lx, top - t.height / 2, { color: theme.muted });
     }
   }

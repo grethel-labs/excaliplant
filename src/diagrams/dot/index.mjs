@@ -55,7 +55,10 @@ function tokenize(src) {
   /** @type {string[]} */
   const out = [];
   let i = 0;
-  const text = src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1").replace(/^\s*#[^\n]*/gm, "");
+  const text = src
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
+    .replace(/^\s*#[^\n]*/gm, "");
   while (i < text.length) {
     const c = text[i];
     if (/\s/.test(c) || c === ";" || c === ",") {
@@ -85,7 +88,13 @@ function tokenize(src) {
         if (text[j] === "<") depth++;
         else if (text[j] === ">" && --depth === 0) break;
       }
-      out.push(`"${text.slice(i + 1, j).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}`);
+      out.push(
+        `"${text
+          .slice(i + 1, j)
+          .replace(/<[^>]*>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()}`,
+      );
       i = j + 1;
       continue;
     }
@@ -100,7 +109,13 @@ function tokenize(src) {
       continue;
     }
     let j = i;
-    while (j < text.length && /[\w.\-:]/.test(text[j]) && !text.startsWith("->", j) && !text.startsWith("--", j)) j++;
+    while (
+      j < text.length &&
+      /[\w.\-:]/.test(text[j]) &&
+      !text.startsWith("->", j) &&
+      !text.startsWith("--", j)
+    )
+      j++;
     if (j === i) j++;
     out.push(text.slice(i, j));
     i = j;
@@ -122,7 +137,8 @@ function parseDot(lines, ctx) {
   const val = (t) => (t === undefined ? "" : t.startsWith('"') ? t.slice(1) : t);
   if (/^strict$/i.test(peek() ?? "")) next();
   const kind = (next() ?? "").toLowerCase();
-  if (kind !== "graph" && kind !== "digraph") throw new ParseError("DOT source must start with graph or digraph");
+  if (kind !== "graph" && kind !== "digraph")
+    throw new ParseError("DOT source must start with graph or digraph");
   const directed = kind === "digraph";
   if (peek() !== "{") next();
   if (next() !== "{") throw new ParseError("Expected '{' in DOT source");
@@ -173,7 +189,15 @@ function parseDot(lines, ctx) {
           next();
         }
         const cluster = /^cluster/i.test(name);
-        const group = cluster ? model.add(name, { label: "", shape: "rectangle", role: "container", keyword: "cluster", parent }) : null;
+        const group = cluster
+          ? model.add(name, {
+              label: "",
+              shape: "rectangle",
+              role: "container",
+              keyword: "cluster",
+              parent,
+            })
+          : null;
         if (group) group.container = true;
         statements(group ?? parent, nd, ed);
         next();
@@ -197,7 +221,13 @@ function parseDot(lines, ctx) {
       for (const id of chain) {
         if (!model.nodes.has(id)) {
           const a = chain.length === 1 ? { ...nd, ...attrs } : nd;
-          const node = model.add(id, { label: unescapeLabel(a.label ?? id), shape: SHAPES.get((a.shape ?? "ellipse").toLowerCase()) ?? "usecase", role: "default", keyword: "node", parent });
+          const node = model.add(id, {
+            label: unescapeLabel(a.label ?? id),
+            shape: SHAPES.get((a.shape ?? "ellipse").toLowerCase()) ?? "usecase",
+            role: "default",
+            keyword: "node",
+            parent,
+          });
           applyNodeAttrs(node, a);
         } else if (chain.length === 1) {
           const node = /** @type {any} */ (model.nodes.get(id));
@@ -213,7 +243,11 @@ function parseDot(lines, ctx) {
           endHead: dir === "forward" || dir === "both" ? "triangle" : null,
           startHead: dir === "back" || dir === "both" ? "triangle" : null,
           label: a.label ? unescapeLabel(a.label) : null,
-          lineStyle: /dash/.test(a.style ?? "") ? "dashed" : /dot/.test(a.style ?? "") ? "dotted" : "solid",
+          lineStyle: /dash/.test(a.style ?? "")
+            ? "dashed"
+            : /dot/.test(a.style ?? "")
+              ? "dotted"
+              : "solid",
           bold: /bold/.test(a.style ?? ""),
           hidden: /invis/.test(a.style ?? ""),
           color: parseColor(a.color ?? ""),

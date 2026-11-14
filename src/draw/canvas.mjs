@@ -195,7 +195,14 @@ export class Canvas {
     const rel = points.map(([x, y]) => [round(x - x0), round(y - y0)]);
     const xs = rel.map((p) => p[0]);
     const ys = rel.map((p) => p[1]);
-    const el = this.base(type, x0, y0, Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), style);
+    const el = this.base(
+      type,
+      x0,
+      y0,
+      Math.max(...xs) - Math.min(...xs),
+      Math.max(...ys) - Math.min(...ys),
+      style,
+    );
     el.points = rel;
     el.lastCommittedPoint = null;
     el.startBinding = null;
@@ -217,7 +224,13 @@ export class Canvas {
     el.elbowed = false;
     const sw = el.strokeWidth;
     el.startArrowhead = this.head(style.start ?? null, points[1], points[0], el, sw);
-    el.endArrowhead = this.head(style.end ?? null, points[points.length - 2], points[points.length - 1], el, sw);
+    el.endArrowhead = this.head(
+      style.end ?? null,
+      points[points.length - 2],
+      points[points.length - 1],
+      el,
+      sw,
+    );
     if (style.from) this.bind(el, "startBinding", style.from);
     if (style.to) this.bind(el, "endBinding", style.to);
     return el.id;
@@ -235,7 +248,11 @@ export class Canvas {
   head(head, from, tip, el, sw) {
     if (!head) return null;
     if (NATIVE_HEADS.has(head)) return head;
-    const style = { stroke: el.strokeColor, strokeWidth: Math.max(1, sw * 0.75), roughness: el.roughness };
+    const style = {
+      stroke: el.strokeColor,
+      strokeWidth: Math.max(1, sw * 0.75),
+      roughness: el.roughness,
+    };
     const [ux, uy] = unit(from, tip);
     const [nx, ny] = [-uy, ux];
     const at = (/** @type {number} */ back, /** @type {number} */ side) =>
@@ -350,11 +367,24 @@ export class Canvas {
     if (laid.plain) {
       const align = opts.align ?? "center";
       const ax = align === "center" ? x + laid.width / 2 : align === "right" ? x + laid.width : x;
-      if (laid.text) this.text(laid.text, ax, y, { size: laid.fontSize, color, align, width: laid.width, bold: laid.bold });
+      if (laid.text)
+        this.text(laid.text, ax, y, {
+          size: laid.fontSize,
+          color,
+          align,
+          width: laid.width,
+          bold: laid.bold,
+        });
       return;
     }
     for (const it of laid.items) {
-      if (it.kind === "box") this.rect(x + it.x, y + it.y, it.w, it.h, { fill: it.fill, stroke: TRANSPARENT, roughness: 0, strokeWidth: 1 });
+      if (it.kind === "box")
+        this.rect(x + it.x, y + it.y, it.w, it.h, {
+          fill: it.fill,
+          stroke: TRANSPARENT,
+          roughness: 0,
+          strokeWidth: 1,
+        });
     }
     for (const it of laid.items) {
       if (it.kind === "text") {

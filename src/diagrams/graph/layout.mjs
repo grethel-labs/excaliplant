@@ -14,7 +14,7 @@ import { roleStyle } from "../../draw/theme.mjs";
 /** @typedef {import("../../model/graph.mjs").GraphNode} GraphNode */
 /** @typedef {import("../../layout/measure.mjs").RichLayout} RichLayout */
 
-const elk = new ELK();
+const elk = new /** @type {any} */ (ELK)();
 
 /**
  * @typedef {object} ClassGeo
@@ -60,11 +60,20 @@ export function sizeGraph(model, theme) {
   for (const node of model.nodes.values()) {
     const style = roleStyle(theme, node.role);
     const fs = style.fontSize;
-    const stereo = !hideStereo && node.stereotypes.length ? node.stereotypes.map((s) => `«${s}»`).join(" ") : "";
+    // Internal marker stereotypes (bundled stdlib shims) are never displayed.
+    const shown = node.stereotypes.filter((s) => !/^(c4|c4boundary)$/i.test(s));
+    const stereo = !hideStereo && shown.length ? shown.map((s) => `«${s}»`).join(" ") : "";
     if (node.data.fixed) {
       node.width = node.data.fixed[0];
       node.height = node.data.fixed[1];
-      node.data.geo = { kind: "box", blocks: [], textWidth: 0, textHeight: 0, placement: "inside", icon: null };
+      node.data.geo = {
+        kind: "box",
+        blocks: [],
+        textWidth: 0,
+        textHeight: 0,
+        placement: "inside",
+        icon: null,
+      };
       continue;
     }
     if (node.container) {
@@ -76,8 +85,17 @@ export function sizeGraph(model, theme) {
       const textH = blocks.reduce((s, b) => s + b.height, 0);
       const textW = Math.max(0, ...blocks.map((b) => b.width));
       const isPackage = node.shape === "package" || node.shape === "folder";
-      const headerHeight = textH + (isPackage ? 14 : 16) + (node.shape === "node" ? 10 : 0) + (node.shape === "cloud" ? 16 : 0);
-      node.data.geo = { kind: "container", blocks, headerHeight, minWidth: textW + (isPackage ? 40 : 32) };
+      const headerHeight =
+        textH +
+        (isPackage ? 14 : 16) +
+        (node.shape === "node" ? 10 : 0) +
+        (node.shape === "cloud" ? 16 : 0);
+      node.data.geo = {
+        kind: "container",
+        blocks,
+        headerHeight,
+        minWidth: textW + (isPackage ? 40 : 32),
+      };
       node.headerHeight = headerHeight;
       continue;
     }
@@ -90,15 +108,32 @@ export function sizeGraph(model, theme) {
     const blocks = [];
     const isNote = node.shape === "note";
     if (stereo) blocks.push(layoutText(stereo, { fontSize: fs * 0.75 }));
-    if (node.label) blocks.push(layoutText(node.label, { fontSize: isNote ? fs * 0.875 : fs, align: isNote ? "left" : "center", maxWidth: isNote ? 320 : 360 }));
-    if (node.description) blocks.push(layoutText(node.description, { fontSize: fs * 0.8, align: "center", maxWidth: 360 }));
+    if (node.label)
+      blocks.push(
+        layoutText(node.label, {
+          fontSize: isNote ? fs * 0.875 : fs,
+          align: isNote ? "left" : "center",
+          maxWidth: isNote ? 320 : 360,
+        }),
+      );
+    if (node.description)
+      blocks.push(
+        layoutText(node.description, { fontSize: fs * 0.8, align: "center", maxWidth: 360 }),
+      );
     const textW = Math.max(0, ...blocks.map((b) => b.width));
     const textH = blocks.reduce((s, b) => s + b.height, 0) + Math.max(0, blocks.length - 1) * 4;
     if (def.label === "below") {
       const icon = /** @type {[number, number]} */ (def.icon ?? [32, 32]);
       node.width = Math.max(icon[0], textW + 4);
       node.height = icon[1] + (textH ? textH + 6 : 0);
-      node.data.geo = { kind: "box", blocks, textWidth: textW, textHeight: textH, placement: "below", icon };
+      node.data.geo = {
+        kind: "box",
+        blocks,
+        textWidth: textW,
+        textHeight: textH,
+        placement: "below",
+        icon,
+      };
       continue;
     }
     const [pt, pr, pb, pl] = def.pad;
@@ -109,7 +144,14 @@ export function sizeGraph(model, theme) {
       node.width = 14;
       node.height = 14;
     }
-    node.data.geo = { kind: "box", blocks, textWidth: textW, textHeight: textH, placement: "inside", icon: null };
+    node.data.geo = {
+      kind: "box",
+      blocks,
+      textWidth: textW,
+      textHeight: textH,
+      placement: "inside",
+      icon: null,
+    };
   }
 }
 
@@ -122,7 +164,8 @@ export function sizeGraph(model, theme) {
  */
 function classGeometry(node, fs, stereo, hide) {
   const header = node.classHeader;
-  const showSpot = !!header?.spot && !hide.has("circle") && !hide.has("circles") && !hide.has("spot");
+  const showSpot =
+    !!header?.spot && !hide.has("circle") && !hide.has("circles") && !hide.has("spot");
   const name = layoutText(node.label, { fontSize: fs, bold: true });
   const generics = header?.generics ? layoutText(header.generics, { fontSize: fs * 0.7 }) : null;
   const stereoLayout = stereo ? layoutText(stereo, { fontSize: fs * 0.75 }) : null;
@@ -132,11 +175,13 @@ function classGeometry(node, fs, stereo, hide) {
   /** @type {ClassGeo["compartments"]} */
   const compartments = [];
   if (!node.data.table) {
-    const explicit = node.compartments.some((c) => c.title !== null) || node.compartments.length > 1;
+    const explicit =
+      node.compartments.some((c) => c.title !== null) || node.compartments.length > 1;
     let comps = node.compartments;
     if (!explicit) {
       const members = node.compartments.flatMap((c) => c.members);
-      const isEnumLike = header?.keyword === "enum" || node.keyword === "object" || node.keyword === "entity";
+      const isEnumLike =
+        header?.keyword === "enum" || node.keyword === "object" || node.keyword === "entity";
       comps = isEnumLike
         ? [{ title: null, separator: "line", members }]
         : [
@@ -148,14 +193,24 @@ function classGeometry(node, fs, stereo, hide) {
     comps.forEach((c, i) => {
       const kind = i === 0 && !explicit ? "fields" : "methods";
       if (hideAll) return;
-      if (!explicit && (hide.has(kind) || hide.has(`${kind === "fields" ? "attributes" : kind}`))) return;
-      if (!c.members.length && (hide.has("empty members") || hide.has(`empty ${kind}`) || hide.has("empty attributes") && kind === "fields")) return;
+      if (!explicit && (hide.has(kind) || hide.has(`${kind === "fields" ? "attributes" : kind}`)))
+        return;
+      if (
+        !c.members.length &&
+        (hide.has("empty members") ||
+          hide.has(`empty ${kind}`) ||
+          (hide.has("empty attributes") && kind === "fields"))
+      )
+        return;
       const rows = c.members.map((member) => ({
         member,
         text: layoutText(member.text, { fontSize: memberFs, align: "left" }),
       }));
       const title = c.title ? layoutText(c.title, { fontSize: fs * 0.75 }) : null;
-      const height = rows.reduce((s, r) => s + r.text.height, 0) + (title ? title.height + 4 : 0) + (rows.length ? 10 : 8);
+      const height =
+        rows.reduce((s, r) => s + r.text.height, 0) +
+        (title ? title.height + 4 : 0) +
+        (rows.length ? 10 : 8);
       compartments.push({ title, separator: c.separator, rows, height });
     });
   }
@@ -174,7 +229,13 @@ function classGeometry(node, fs, stereo, hide) {
   }
 
   const headerW = name.width + (showSpot ? 34 : 0) + (generics ? generics.width / 2 + 8 : 0);
-  const memberW = Math.max(0, ...compartments.flatMap((c) => c.rows.map((r) => r.text.width + (r.member.visibility ? ICON_ROW : 0)), ...compartments.map((c) => c.title?.width ?? 0)));
+  const memberW = Math.max(
+    0,
+    ...compartments.flatMap(
+      (c) => c.rows.map((r) => r.text.width + (r.member.visibility ? ICON_ROW : 0)),
+      ...compartments.map((c) => c.title?.width ?? 0),
+    ),
+  );
   const tableW = table ? tableKeyWidth + Math.max(0, ...table.map((r) => r.value.width)) + 16 : 0;
   node.width = Math.max(110, headerW + 28, (stereoLayout?.width ?? 0) + 28, memberW + 24, tableW);
   node.height = headerHeight + compartments.reduce((s, c) => s + c.height, 0) + tableHeight;
@@ -243,7 +304,12 @@ export async function layoutGraph(model, theme, options = {}) {
       if (e.label) {
         const laid = layoutText(e.label, { fontSize: fs * 0.8, maxWidth: 220 });
         e.data.labelLayout = laid;
-        labels.push({ id: `${e.id}_l`, text: e.label, width: laid.width + 8 + (e.data.labelArrow ? 14 : 0), height: laid.height + 2 });
+        labels.push({
+          id: `${e.id}_l`,
+          text: e.label,
+          width: laid.width + 8 + (e.data.labelArrow ? 14 : 0),
+          height: laid.height + 2,
+        });
       }
       for (const [which, text] of /** @type {const} */ ([
         ["fromLabel", e.fromLabel],
@@ -266,7 +332,8 @@ export async function layoutGraph(model, theme, options = {}) {
         sources: [reverse ? e.to : e.from],
         targets: [reverse ? e.from : e.to],
         labels,
-        layoutOptions: e.length === 1 && !e.data.note ? { "elk.layered.priority.direction": "0" } : {},
+        layoutOptions:
+          e.length === 1 && !e.data.note ? { "elk.layered.priority.direction": "0" } : {},
       };
     });
 

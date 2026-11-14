@@ -30,10 +30,24 @@ function readAttributes(ctx, owner, reader) {
     const name = label(m?.[1] ?? st.rest);
     const id = `${owner.id}.${name}#${ctx.noteSeq++}`;
     const flags = st.stereotypes.map((s) => s.toLowerCase());
-    const node = ctx.model.add(id, { label: m?.[2] ? `${name} : ${label(m[2])}` : name, shape: "usecase", role: "usecase", keyword: "attribute", parent: owner.parent });
-    node.data.attr = { key: flags.includes("key"), derived: flags.includes("derived"), multi: flags.includes("multi"), partial: flags.includes("partial") };
+    const node = ctx.model.add(id, {
+      label: m?.[2] ? `${name} : ${label(m[2])}` : name,
+      shape: "usecase",
+      role: "usecase",
+      keyword: "attribute",
+      parent: owner.parent,
+    });
+    node.data.attr = {
+      key: flags.includes("key"),
+      derived: flags.includes("derived"),
+      multi: flags.includes("multi"),
+      partial: flags.includes("partial"),
+    };
     node.data.round = true;
-    ctx.model.connect(owner.id, node.id, { role: "edge", lineStyle: node.data.attr.derived ? "dashed" : "solid" });
+    ctx.model.connect(owner.id, node.id, {
+      role: "edge",
+      lineStyle: node.data.attr.derived ? "dashed" : "solid",
+    });
     if (block.opens) readAttributes(ctx, node, reader);
   }
 }
@@ -70,7 +84,10 @@ const RULES = [
     const a = ctx.model.find(m[1]);
     const b = ctx.model.find(m[5]);
     if (!a || !b) return false;
-    const e = ctx.model.connect(a.id, b.id, { label: m[3] ? m[3] : m[6] ? label(m[6]) : null, bold: m[2] === "=" || m[4] === "=" });
+    const e = ctx.model.connect(a.id, b.id, {
+      label: m[3] ? m[3] : m[6] ? label(m[6]) : null,
+      bold: m[2] === "=" || m[4] === "=",
+    });
     if (e.bold) e.thickness = 4;
     return true;
   },
@@ -79,9 +96,13 @@ const RULES = [
     if (!m) return false;
     const parent = ctx.model.find(m[1]);
     if (!parent) return false;
-    for (const child of m[3].split(",").map((s) => s.trim()).filter(Boolean)) {
+    for (const child of m[3]
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)) {
       const c = ctx.model.find(child);
-      if (c) ctx.model.connect(c.id, parent.id, { endHead: "triangle_outline", label: m[2] ?? null });
+      if (c)
+        ctx.model.connect(c.id, parent.id, { endHead: "triangle_outline", label: m[2] ?? null });
     }
     return true;
   },
@@ -97,21 +118,52 @@ export default graphModule({
     for (const n of model.nodes.values()) {
       if (n.data.weak) {
         n.data.padX = 12;
-        n.data.draw = (/** @type {any} */ c, /** @type {any} */ node, /** @type {any} */ st, /** @type {any} */ s) => {
-          const outer = n.shape === "diamond" ? c.diamond(node.x, node.y, node.width, node.height, st) : c.rect(node.x, node.y, node.width, node.height, st);
-          if (n.shape === "diamond") c.diamond(node.x + 8, node.y + 5, node.width - 16, node.height - 10, { ...st, fill: "transparent" });
-          else c.rect(node.x + 4, node.y + 4, node.width - 8, node.height - 8, { ...st, fill: "transparent" });
+        n.data.draw = (
+          /** @type {any} */ c,
+          /** @type {any} */ node,
+          /** @type {any} */ st,
+          /** @type {any} */ s,
+        ) => {
+          const outer =
+            n.shape === "diamond"
+              ? c.diamond(node.x, node.y, node.width, node.height, st)
+              : c.rect(node.x, node.y, node.width, node.height, st);
+          if (n.shape === "diamond")
+            c.diamond(node.x + 8, node.y + 5, node.width - 16, node.height - 10, {
+              ...st,
+              fill: "transparent",
+            });
+          else
+            c.rect(node.x + 4, node.y + 4, node.width - 8, node.height - 8, {
+              ...st,
+              fill: "transparent",
+            });
           const b = node.data.geo.blocks[0];
-          if (b) c.richText(b, node.x + (node.width - b.width) / 2, node.y + (node.height - b.height) / 2, { color: s.text });
+          if (b)
+            c.richText(
+              b,
+              node.x + (node.width - b.width) / 2,
+              node.y + (node.height - b.height) / 2,
+              { color: s.text },
+            );
           return outer;
         };
       }
       const attr = n.data.attr;
       if (!attr) continue;
-      n.data.draw = (/** @type {any} */ c, /** @type {any} */ node, /** @type {any} */ st, /** @type {any} */ s) => {
+      n.data.draw = (
+        /** @type {any} */ c,
+        /** @type {any} */ node,
+        /** @type {any} */ st,
+        /** @type {any} */ s,
+      ) => {
         const style = { ...st, strokeStyle: attr.derived ? "dashed" : st.strokeStyle };
         const id = c.ellipse(node.x, node.y, node.width, node.height, style);
-        if (attr.multi) c.ellipse(node.x + 4, node.y + 4, node.width - 8, node.height - 8, { ...style, fill: "transparent" });
+        if (attr.multi)
+          c.ellipse(node.x + 4, node.y + 4, node.width - 8, node.height - 8, {
+            ...style,
+            fill: "transparent",
+          });
         const b = node.data.geo.blocks[0];
         if (b) {
           const tx = node.x + (node.width - b.width) / 2;
@@ -123,7 +175,12 @@ export default graphModule({
                 [tx, ty + b.height],
                 [tx + b.width, ty + b.height],
               ],
-              { stroke: s.text, strokeWidth: 1, roughness: 0, strokeStyle: attr.partial ? "dashed" : "solid" },
+              {
+                stroke: s.text,
+                strokeWidth: 1,
+                roughness: 0,
+                strokeStyle: attr.partial ? "dashed" : "solid",
+              },
             );
           }
         }

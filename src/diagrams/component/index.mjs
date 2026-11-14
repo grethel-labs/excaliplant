@@ -15,6 +15,7 @@ export const componentDiagram = graphModule({
   implicit: () => null,
   detect: (lines) =>
     score(lines, [
+      [/<<c4(boundary)?>>/, 4],
       [/^\[[^\]]+\]/, 2],
       [/^(component|port|portin|portout)\s/i, 3],
       [/^\(\)\s*\S/, 2],
@@ -31,7 +32,10 @@ export const deploymentDiagram = graphModule({
   implicit: () => null,
   detect: (lines) =>
     score(lines, [
-      [/^(node|artifact|cloud|database|storage|queue|stack|card|file|frame|folder|agent|hexagon|person|process|collections)\s/i, 2],
+      [
+        /^(node|artifact|cloud|database|storage|queue|stack|card|file|frame|folder|agent|hexagon|person|process|collections)\s/i,
+        2,
+      ],
       [/^(rectangle|package)\s/i, 0.7],
     ]),
 });

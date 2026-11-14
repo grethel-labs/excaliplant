@@ -89,13 +89,22 @@ function endpoint(ctx, token, side) {
     const id = `__hist${deep ? "deep" : ""}_${owner?.id ?? "root"}`;
     let node = ctx.model.find(id);
     if (!node) {
-      node = ctx.model.add(id, { label: deep ? "H*" : "H", parent: owner ?? null, keyword: "state" });
+      node = ctx.model.add(id, {
+        label: deep ? "H*" : "H",
+        parent: owner ?? null,
+        keyword: "state",
+      });
       makePseudo(node, deep ? "history*" : "history");
     }
     return node;
   }
   const node = ensureNode(ctx, t, "state");
-  if (!node.parent && parent && node.id !== parent.id && !ctx.model.edges.some((e) => e.from === node.id || e.to === node.id)) {
+  if (
+    !node.parent &&
+    parent &&
+    node.id !== parent.id &&
+    !ctx.model.edges.some((e) => e.from === node.id || e.to === node.id)
+  ) {
     ctx.model.reparent(node, parent);
   }
   return node;
@@ -147,7 +156,10 @@ const RULES = [
     const pseudo = st.stereotypes.map((s) => s.toLowerCase()).find((s) => PSEUDO.has(s));
     if (pseudo) makePseudo(node, pseudo);
     else node.stereotypes.push(...st.stereotypes);
-    if (description) node.description = node.description ? `${node.description}\n${label(description)}` : label(description);
+    if (description)
+      node.description = node.description
+        ? `${node.description}\n${label(description)}`
+        : label(description);
     if (block.opens) {
       node.container = true;
       node.role = "compositeState";
@@ -242,14 +254,20 @@ function drawPseudo(c, n, style, s) {
       return id;
     }
     case "choice":
-      return c.diamond(x, y, w, h, { ...style, fill: s.fill === "transparent" ? c.theme.background : c.theme.roles.decision.fill });
+      return c.diamond(x, y, w, h, {
+        ...style,
+        fill: s.fill === "transparent" ? c.theme.background : c.theme.roles.decision.fill,
+      });
     case "fork":
     case "join":
       return c.rect(x, y, w, h, { ...solid, strokeWidth: 1 });
     case "history":
     case "history*": {
       const id = c.ellipse(x, y, w, h, { stroke: ink, fill: c.theme.background });
-      c.text(n.data.pseudo === "history" ? "H" : "H*", x + w / 2, y + 3, { size: 14, align: "center" });
+      c.text(n.data.pseudo === "history" ? "H" : "H*", x + w / 2, y + 3, {
+        size: 14,
+        align: "center",
+      });
       return id;
     }
     case "exitpoint": {
@@ -308,7 +326,11 @@ export default graphModule({
     ["state", STATE_KIND],
     ["note", { shape: "note", role: "note" }],
   ],
-  implicit: (token) => ({ id: token.replace(/^"|"$/g, ""), label: token.replace(/^"|"$/g, ""), keyword: "state" }),
+  implicit: (token) => ({
+    id: token.replace(/^"|"$/g, ""),
+    label: token.replace(/^"|"$/g, ""),
+    keyword: "state",
+  }),
   rules: RULES,
   finish: (model, ctx) => {
     const fs = ctx.module.theme.fontSize;
@@ -317,7 +339,12 @@ export default graphModule({
         n.role = "compositeState";
         n.colors = { stroke: ctx.module.theme.muted, strokeStyle: "dashed", fill: "transparent" };
         n.data.draw = (/** @type {any} */ c, /** @type {GraphNode} */ r, /** @type {any} */ st) =>
-          c.rect(r.x, r.y, r.width, r.height, { ...st, strokeWidth: 1, strokeStyle: "dashed", fill: "transparent" });
+          c.rect(r.x, r.y, r.width, r.height, {
+            ...st,
+            strokeWidth: 1,
+            strokeStyle: "dashed",
+            fill: "transparent",
+          });
         continue;
       }
       if (n.data.pseudo || n.shape === "note") continue;
@@ -328,9 +355,14 @@ export default graphModule({
         continue;
       }
       const name = layoutText(n.label, { fontSize: fs, bold: true });
-      const desc = n.description ? layoutText(n.description, { fontSize: fs * 0.85, align: "left", maxWidth: 320 }) : null;
+      const desc = n.description
+        ? layoutText(n.description, { fontSize: fs * 0.85, align: "left", maxWidth: 320 })
+        : null;
       n.data.stateText = { name, desc };
-      n.data.fixed = [Math.max(90, name.width + 32, (desc?.width ?? 0) + 28), name.height + 18 + (desc ? desc.height + 14 : 0)];
+      n.data.fixed = [
+        Math.max(90, name.width + 32, (desc?.width ?? 0) + 28),
+        name.height + 18 + (desc ? desc.height + 14 : 0),
+      ];
       n.data.draw = drawState;
     }
   },

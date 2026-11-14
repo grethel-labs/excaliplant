@@ -178,7 +178,8 @@ export class GraphModel {
     const node = new GraphNode(id, init);
     this.nodes.set(id, node);
     if (init.parent) init.parent.children.push(node);
-    if (node.label && node.label !== id && !this.aliases.has(node.label)) this.aliases.set(node.label, id);
+    if (node.label && node.label !== id && !this.aliases.has(node.label))
+      this.aliases.set(node.label, id);
     return node;
   }
 

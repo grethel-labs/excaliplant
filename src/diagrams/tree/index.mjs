@@ -26,7 +26,11 @@ const V_GAP = 14;
  */
 function measure(n, fs) {
   const root = n.depth === 0;
-  const laid = layoutText(n.text, { fontSize: root ? fs * 1.15 : fs * (n.depth > 1 ? 0.9 : 1), bold: root, maxWidth: 260 });
+  const laid = layoutText(n.text, {
+    fontSize: root ? fs * 1.15 : fs * (n.depth > 1 ? 0.9 : 1),
+    bold: root,
+    maxWidth: 260,
+  });
   const w = n.boxless ? laid.width + 8 : laid.width + 30;
   const h = n.boxless ? laid.height + 6 : laid.height + 16;
   return { ...n, x: 0, y: 0, w, h, laid, kids: n.children.map((c) => measure(c, fs)) };
@@ -49,7 +53,9 @@ function placeHorizontal(n, edge, top, dir) {
   const s = span(n);
   n.y = top + s / 2;
   n.x = edge + (dir * n.w) / 2;
-  let y = top + (s - (n.kids.reduce((a, k) => a + span(k), 0) + V_GAP * Math.max(0, n.kids.length - 1))) / 2;
+  let y =
+    top +
+    (s - (n.kids.reduce((a, k) => a + span(k), 0) + V_GAP * Math.max(0, n.kids.length - 1))) / 2;
   for (const k of n.kids) {
     placeHorizontal(k, n.x + (dir * n.w) / 2 + dir * H_GAP, y, dir);
     y += span(k) + V_GAP;
@@ -67,7 +73,8 @@ function layoutMindmap(model, ctx) {
   for (const root of roots) {
     const right = root.kids.filter((k) => k.side !== "left");
     const left = root.kids.filter((k) => k.side === "left");
-    const total = (/** @type {Placed[]} */ list) => list.reduce((s, k) => s + span(k), 0) + V_GAP * Math.max(0, list.length - 1);
+    const total = (/** @type {Placed[]} */ list) =>
+      list.reduce((s, k) => s + span(k), 0) + V_GAP * Math.max(0, list.length - 1);
     const h = Math.max(root.h, total(right), total(left));
     root.x = 0;
     root.y = offsetY + h / 2;
@@ -137,8 +144,13 @@ function drawTree(laid, c) {
   const ids = new Map();
   /** @param {Placed} n */
   const drawNode = (n) => {
-    const pal = n.depth === 0 ? { fill: theme.roles.muted.fill ?? theme.background, stroke: theme.ink } : paletteAt(theme, n.branch);
-    const fill = n.colors.fill ?? (n.depth > 1 && laid.kind === "mindmap" ? mixLight(pal.fill, theme.background) : pal.fill);
+    const pal =
+      n.depth === 0
+        ? { fill: theme.roles.muted.fill ?? theme.background, stroke: theme.ink }
+        : paletteAt(theme, n.branch);
+    const fill =
+      n.colors.fill ??
+      (n.depth > 1 && laid.kind === "mindmap" ? mixLight(pal.fill, theme.background) : pal.fill);
     const stroke = n.colors.stroke ?? pal.stroke;
     const x = n.x - n.w / 2;
     const y = n.y - n.h / 2;
@@ -151,9 +163,17 @@ function drawTree(laid, c) {
         ],
         { stroke, strokeWidth: 1.5 },
       );
-    } else id = c.rect(x, y, n.w, n.h, { fill, stroke, rounded: true, strokeWidth: n.depth === 0 ? 2.5 : 2 });
+    } else
+      id = c.rect(x, y, n.w, n.h, {
+        fill,
+        stroke,
+        rounded: true,
+        strokeWidth: n.depth === 0 ? 2.5 : 2,
+      });
     ids.set(n, id);
-    c.richText(n.laid, n.x - n.laid.width / 2, n.y - n.laid.height / 2, { color: n.colors.text ?? theme.ink });
+    c.richText(n.laid, n.x - n.laid.width / 2, n.y - n.laid.height / 2, {
+      color: n.colors.text ?? theme.ink,
+    });
     n.kids.forEach(drawNode);
   };
   /** @param {Placed} n */
@@ -163,9 +183,16 @@ function drawTree(laid, c) {
       if (laid.kind === "mindmap") {
         const dir = k.x >= n.x ? 1 : -1;
         const a = /** @type {[number, number]} */ ([n.x + (dir * n.w) / 2, n.y]);
-        const b = /** @type {[number, number]} */ ([k.x - (dir * k.w) / 2, k.y + (k.boxless ? k.h / 2 : 0)]);
+        const b = /** @type {[number, number]} */ ([
+          k.x - (dir * k.w) / 2,
+          k.y + (k.boxless ? k.h / 2 : 0),
+        ]);
         const mx = (a[0] + b[0]) / 2;
-        c.line([a, [mx, a[1]], [mx, b[1]], b], { stroke, strokeWidth: Math.max(1.5, 3 - k.depth * 0.5), curved: true });
+        c.line([a, [mx, a[1]], [mx, b[1]], b], {
+          stroke,
+          strokeWidth: Math.max(1.5, 3 - k.depth * 0.5),
+          curved: true,
+        });
       } else if (n.depth === 0) {
         const busY = n.y + n.h / 2 + 20;
         c.line(
@@ -203,7 +230,13 @@ function mixLight(color, bg) {
   if (!/^#[0-9a-f]{6}/i.test(color) || !/^#[0-9a-f]{6}/i.test(bg)) return color;
   const a = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
   const b = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
-  return `#${a.map((v, i) => Math.round(v + (b[i] - v) * 0.5).toString(16).padStart(2, "0")).join("")}`;
+  return `#${a
+    .map((v, i) =>
+      Math.round(v + (b[i] - v) * 0.5)
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
 }
 
 export const mindmapDiagram = defineDiagram({

@@ -28,7 +28,15 @@ import { roleStyle } from "../../draw/theme.mjs";
  * )} SeqItem
  */
 
-const ICON_KINDS = new Set(["actor", "boundary", "control", "entity", "database", "collections", "queue"]);
+const ICON_KINDS = new Set([
+  "actor",
+  "boundary",
+  "control",
+  "entity",
+  "database",
+  "collections",
+  "queue",
+]);
 const MIN_GAP = 40;
 
 /**
@@ -45,7 +53,9 @@ export function layoutSequence(model, ctx) {
 
   // ── participant heads ────────────────────────────────────────────────
   const heads = parts.map((p) => {
-    const stereo = p.stereotypes.length ? `<size:${Math.round(fs * 0.75)}>${p.stereotypes.map((s) => `«${s}»`).join(" ")}</size>\n` : "";
+    const stereo = p.stereotypes.length
+      ? `<size:${Math.round(fs * 0.75)}>${p.stereotypes.map((s) => `«${s}»`).join(" ")}</size>\n`
+      : "";
     const text = layoutText(stereo + p.label, { fontSize: fs });
     const icon = ICON_KINDS.has(p.kind) ? /** @type {[number, number]} */ (iconSize(p.kind)) : null;
     const w = icon ? Math.max(icon[0], text.width) + 8 : Math.max(60, text.width + 28);
@@ -56,7 +66,10 @@ export function layoutSequence(model, ctx) {
 
   // ── horizontal constraints ───────────────────────────────────────────
   const n = parts.length;
-  const gaps = Array.from({ length: Math.max(0, n - 1) }, (_, i) => heads[i].w / 2 + heads[i + 1].w / 2 + MIN_GAP);
+  const gaps = Array.from(
+    { length: Math.max(0, n - 1) },
+    (_, i) => heads[i].w / 2 + heads[i + 1].w / 2 + MIN_GAP,
+  );
   let leftMargin = 20;
   let rightMargin = 20;
   /** @type {[number, number, number][]} */
@@ -158,7 +171,13 @@ export function layoutSequence(model, ctx) {
     const bar = active.get(id)?.pop();
     if (!bar) return;
     const lvl = level(id);
-    items.push({ type: "activation", x: center(id) - 5 + lvl * 5, y1: bar.y, y2: Math.max(at, bar.y + 10), color: bar.color });
+    items.push({
+      type: "activation",
+      x: center(id) - 5 + lvl * 5,
+      y1: bar.y,
+      y2: Math.max(at, bar.y + 10),
+      color: bar.color,
+    });
   };
   /** Horizontal attachment point at a participant considering activation bars. */
   const attach = (/** @type {string} */ id, /** @type {number} */ dir) => {
@@ -170,7 +189,13 @@ export function layoutSequence(model, ctx) {
     const e = model.events[ei];
     switch (e.type) {
       case "message": {
-        const text = e.text || e.number ? layoutText(withNumber(e.text, e.number), { fontSize: msgFs, align: model.messageAlign }) : null;
+        const text =
+          e.text || e.number
+            ? layoutText(withNumber(e.text, e.number), {
+                fontSize: msgFs,
+                align: model.messageAlign,
+              })
+            : null;
         const th = text?.height ?? 0;
         const self = !e.edge && e.from === e.to;
         const target = e.to || e.from;
@@ -193,7 +218,15 @@ export function layoutSequence(model, ctx) {
             [sx + loopW, arrowY + 18],
             [ex, arrowY + 18],
           ]);
-          items.push({ type: "message", points, text, textX: sx + 6, textY: arrowY - th - 2, arrow: e.arrow, self: true });
+          items.push({
+            type: "message",
+            points,
+            text,
+            textX: sx + 6,
+            textY: arrowY - th - 2,
+            arrow: e.arrow,
+            self: true,
+          });
           touch(sx - 10, sx + loopW + (text?.width ?? 0) + 10);
           y = e.parallel ? y : arrowY + 32;
         } else {
@@ -221,7 +254,10 @@ export function layoutSequence(model, ctx) {
             ],
             text,
             // Keep the label clear of the arrowhead by centring it on the shaft.
-            textX: model.messageAlign === "left" ? Math.min(x1, x2) + 8 : (x1 + x2) / 2 - (text?.width ?? 0) / 2 - Math.sign(x2 - x1) * 8,
+            textX:
+              model.messageAlign === "left"
+                ? Math.min(x1, x2) + 8
+                : (x1 + x2) / 2 - (text?.width ?? 0) / 2 - Math.sign(x2 - x1) * 8,
             textY: arrowY - th - 3,
             arrow: e.arrow,
             self: false,
@@ -261,7 +297,16 @@ export function layoutSequence(model, ctx) {
           nx = minX + 10;
           const width = maxX - minX - 20;
           const ny = e.attached ? lastArrowY - h / 2 : y;
-          items.push({ type: "note", x: nx, y: ny, w: width, h, text, shape: e.shape, colors: e.colors });
+          items.push({
+            type: "note",
+            x: nx,
+            y: ny,
+            w: width,
+            h,
+            text,
+            shape: e.shape,
+            colors: e.colors,
+          });
           y = Math.max(y, ny + h + 12);
           break;
         }
@@ -274,13 +319,36 @@ export function layoutSequence(model, ctx) {
           const b = Math.max(...xs) + 30;
           nx = a;
           const width = Math.max(w, b - a);
-          items.push({ type: "note", x: nx, y, w: width, h, text, shape: e.shape, colors: e.colors });
+          items.push({
+            type: "note",
+            x: nx,
+            y,
+            w: width,
+            h,
+            text,
+            shape: e.shape,
+            colors: e.colors,
+          });
           touch(nx, nx + width);
           y += h + 12;
           break;
         } else nx = c - w / 2;
-        const ny = e.attached ? Math.max(lastArrowY - h + 6, y - h - 4 > lastArrowY - h ? lastArrowY - h / 2 : lastArrowY - h / 2) : y;
-        items.push({ type: "note", x: nx, y: e.attached ? ny : y, w, h, text, shape: e.shape, colors: e.colors });
+        const ny = e.attached
+          ? Math.max(
+              lastArrowY - h + 6,
+              y - h - 4 > lastArrowY - h ? lastArrowY - h / 2 : lastArrowY - h / 2,
+            )
+          : y;
+        items.push({
+          type: "note",
+          x: nx,
+          y: e.attached ? ny : y,
+          w,
+          h,
+          text,
+          shape: e.shape,
+          colors: e.colors,
+        });
         touch(nx, nx + w);
         y = e.attached ? Math.max(y, ny + h + 10) : y + h + 12;
         break;
@@ -304,7 +372,15 @@ export function layoutSequence(model, ctx) {
         y += e.height;
         break;
       case "groupStart":
-        groups.push({ kind: e.kind, text: e.text, color: e.color, startY: y, x1: Infinity, x2: -Infinity, elses: [] });
+        groups.push({
+          kind: e.kind,
+          text: e.text,
+          color: e.color,
+          startY: y,
+          x1: Infinity,
+          x2: -Infinity,
+          elses: [],
+        });
         y += layoutText(e.text || e.kind, { fontSize: msgFs }).height + 20;
         break;
       case "groupElse": {
@@ -337,7 +413,10 @@ export function layoutSequence(model, ctx) {
           kind: g.kind,
           text,
           tag,
-          elses: g.elses.map((el) => ({ y: el.y, text: el.text ? layoutText(`[${el.text}]`, { fontSize: msgFs }) : null })),
+          elses: g.elses.map((el) => ({
+            y: el.y,
+            text: el.text ? layoutText(`[${el.text}]`, { fontSize: msgFs }) : null,
+          })),
           color: g.color,
         });
         touch(gx - 4, gx + gw + 4);
@@ -361,7 +440,18 @@ export function layoutSequence(model, ctx) {
   // Close remaining groups and activations.
   while (groups.length) {
     const g = /** @type {any} */ (groups.pop());
-    items.push({ type: "group", x: g.x1 - 14, y: g.startY, w: g.x2 - g.x1 + 28, h: y - g.startY, kind: g.kind, text: null, tag: layoutText(g.kind, { fontSize: msgFs }), elses: [], color: g.color });
+    items.push({
+      type: "group",
+      x: g.x1 - 14,
+      y: g.startY,
+      w: g.x2 - g.x1 + 28,
+      h: y - g.startY,
+      kind: g.kind,
+      text: null,
+      tag: layoutText(g.kind, { fontSize: msgFs }),
+      elses: [],
+      color: g.color,
+    });
   }
   y += 16;
   for (const p of parts) while (level(p.id) > 0) deactivate(p.id, y - 8);
@@ -372,13 +462,40 @@ export function layoutSequence(model, ctx) {
     const hx = cx[i] - h.w / 2;
     const created = createdY.get(h.p.id);
     const headY = created ?? top + headH - h.h;
-    items.unshift({ type: "head", p: h.p, x: hx, y: headY, w: h.w, h: h.h, text: h.text, icon: h.icon, foot: false });
+    items.unshift({
+      type: "head",
+      p: h.p,
+      x: hx,
+      y: headY,
+      w: h.w,
+      h: h.h,
+      text: h.text,
+      icon: h.icon,
+      foot: false,
+    });
     const destroyed = destroyedY.get(h.p.id);
     const lifeTop = headY + h.h;
     const lifeBottom = destroyed ?? footY;
-    items.unshift({ type: "lifeline", x: cx[i], y1: lifeTop, y2: lifeBottom, gaps: delays, destroyed: destroyed !== undefined });
+    items.unshift({
+      type: "lifeline",
+      x: cx[i],
+      y1: lifeTop,
+      y2: lifeBottom,
+      gaps: delays,
+      destroyed: destroyed !== undefined,
+    });
     if (!model.hideFootbox && destroyed === undefined) {
-      items.push({ type: "head", p: h.p, x: hx, y: footY, w: h.w, h: h.h, text: h.text, icon: h.icon, foot: true });
+      items.push({
+        type: "head",
+        p: h.p,
+        x: hx,
+        y: footY,
+        w: h.w,
+        h: h.h,
+        text: h.text,
+        icon: h.icon,
+        foot: true,
+      });
     }
   });
   const bottom = model.hideFootbox ? footY : footY + headH;

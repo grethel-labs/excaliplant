@@ -30,4 +30,34 @@ import creoleDiagram from "./creole/index.mjs";
 import legacyActivityDiagram from "./legacy-activity/index.mjs";
 
 /** @type {import("../core/registry.mjs").DiagramModule[]} */
-export const BUILTIN_DIAGRAMS = [ditaaDiagram, saltDiagram, nwdiagDiagram, sequenceDiagram, timingDiagram, ganttDiagram, activityDiagram, legacyActivityDiagram, archimateDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram, chenDiagram, dotDiagram, chronologyDiagram, mindmapDiagram, wbsDiagram, filesDiagram, jsonDiagram, yamlDiagram, ebnfDiagram, regexDiagram, asciiMathDiagram, latexDiagram, chartDiagram, creoleDiagram];
+export const BUILTIN_DIAGRAMS = [
+  ditaaDiagram,
+  saltDiagram,
+  nwdiagDiagram,
+  sequenceDiagram,
+  timingDiagram,
+  ganttDiagram,
+  activityDiagram,
+  legacyActivityDiagram,
+  archimateDiagram,
+  stateDiagram,
+  classDiagram,
+  objectDiagram,
+  usecaseDiagram,
+  componentDiagram,
+  deploymentDiagram,
+  chenDiagram,
+  dotDiagram,
+  chronologyDiagram,
+  mindmapDiagram,
+  wbsDiagram,
+  filesDiagram,
+  jsonDiagram,
+  yamlDiagram,
+  ebnfDiagram,
+  regexDiagram,
+  asciiMathDiagram,
+  latexDiagram,
+  chartDiagram,
+  creoleDiagram,
+];

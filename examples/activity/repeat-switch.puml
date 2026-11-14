@@ -1,0 +1,20 @@
+@startuml
+start
+partition Initialise {
+  :Load config;
+  :Connect services;
+}
+repeat
+  :Read next message;
+  switch (Message type?)
+  case (order)
+    :Create order;
+  case (refund)
+    :Issue refund;
+  case (other)
+    :Log and skip;
+  endswitch
+repeat while (More messages?) is (yes) not (no)
+:Shut down;
+end
+@enduml

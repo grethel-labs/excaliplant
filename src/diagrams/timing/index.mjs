@@ -56,7 +56,8 @@ import { score } from "../detect.mjs";
 function time(ctx, s) {
   const t = s.trim();
   const anchor = /^:(\w+)\s*([+-]\s*\d+(?:\.\d+)?)?$/.exec(t);
-  if (anchor) return (ctx.model.anchors.get(anchor[1]) ?? 0) + Number((anchor[2] ?? "0").replace(/\s/g, ""));
+  if (anchor)
+    return (ctx.model.anchors.get(anchor[1]) ?? 0) + Number((anchor[2] ?? "0").replace(/\s/g, ""));
   if (/^\+/.test(t)) return ctx.time + Number(t.slice(1));
   const d = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(t);
   if (d) return Date.UTC(Number(d[1]), Number(d[2]) - 1, Number(d[3])) / 86_400_000;
@@ -70,7 +71,10 @@ function time(ctx, s) {
 const RULES = [
   (line, ctx, reader) => parseCommon(line, ctx.model.meta, reader),
   (line, ctx) => {
-    const m = /^(robust|concise|clock|binary|analog|rectangle)\s+(?:"([^"]+)"|(\S+))(?:\s+between\s+(-?[\d.]+)\s+and\s+(-?[\d.]+))?(?:\s+as\s+(\S+))?(?:\s+with\s+period\s+(\d+)(?:\s+pulse\s+(\d+))?(?:\s+offset\s+(\d+))?)?\s*(?:<<.*>>)?\s*$/i.exec(line);
+    const m =
+      /^(robust|concise|clock|binary|analog|rectangle)\s+(?:"([^"]+)"|(\S+))(?:\s+between\s+(-?[\d.]+)\s+and\s+(-?[\d.]+))?(?:\s+as\s+(\S+))?(?:\s+with\s+period\s+(\d+)(?:\s+pulse\s+(\d+))?(?:\s+offset\s+(\d+))?)?\s*(?:<<.*>>)?\s*$/i.exec(
+        line,
+      );
     if (!m) return false;
     const name = m[2] ?? m[3];
     const id = m[6] ?? name;
@@ -85,7 +89,8 @@ const RULES = [
       range: [Number(m[4] ?? 0), Number(m[5] ?? 10)],
       notes: [],
     });
-    if (ctx.model.signals.size > ctx.module.limits.maxNodes) throw new LimitError("Too many timing signals");
+    if (ctx.model.signals.size > ctx.module.limits.maxNodes)
+      throw new LimitError("Too many timing signals");
     return true;
   },
   (line, ctx) => {
@@ -113,20 +118,36 @@ const RULES = [
     const m = /^(\S+?)(?:@(\S+))?\s*-+>\s*(\S+?)(?:@(\S+))?\s*(?::\s*(.*))?$/.exec(line);
     if (!m || !ctx.model.signals.has(m[1]) || !ctx.model.signals.has(m[3])) return false;
     const t1 = m[2] ? time(ctx, m[2]) : ctx.time;
-    ctx.model.messages.push({ from: m[1], t1, to: m[3], t2: m[4] ? time(ctx, m[4]) : t1, text: label(m[5] ?? "") });
+    ctx.model.messages.push({
+      from: m[1],
+      t1,
+      to: m[3],
+      t2: m[4] ? time(ctx, m[4]) : t1,
+      text: label(m[5] ?? ""),
+    });
     return true;
   },
   // constraints: WB@0 <-> @50 : {50 ms}
   (line, ctx) => {
     const m = /^(\S+)?@(\S+)\s*<->\s*@(\S+)\s*(?::\s*(.*))?$/.exec(line);
     if (!m) return false;
-    ctx.model.constraints.push({ signal: m[1] ?? null, t1: time(ctx, m[2]), t2: time(ctx, m[3]), text: label(m[4] ?? "") });
+    ctx.model.constraints.push({
+      signal: m[1] ?? null,
+      t1: time(ctx, m[2]),
+      t2: time(ctx, m[3]),
+      text: label(m[4] ?? ""),
+    });
     return true;
   },
   (line, ctx) => {
     const m = /^highlight\s+(\S+)\s+to\s+(\S+)\s*(#\S+)?\s*(?::\s*(.*))?$/i.exec(line);
     if (!m) return false;
-    ctx.model.highlights.push({ t1: time(ctx, m[1]), t2: time(ctx, m[2]), color: parseColorSpec(m[3]).fill ?? null, text: label(m[4] ?? "") });
+    ctx.model.highlights.push({
+      t1: time(ctx, m[1]),
+      t2: time(ctx, m[2]),
+      color: parseColorSpec(m[3]).fill ?? null,
+      text: label(m[4] ?? ""),
+    });
     return true;
   },
   (line, ctx) => {
@@ -150,13 +171,25 @@ const RULES = [
     const m = /^note\s+(top|bottom)\s+of\s+(\S+)\s*(?::\s*(.*))?$/i.exec(line);
     if (!m) return false;
     const sig = ctx.model.signals.get(m[2]);
-    const text = m[3] ?? reader.until(/^\s*end\s*note\s*$/i).map((l) => l.text.trim()).join("\n");
-    sig?.notes.push({ t: ctx.time, text: label(text), position: /** @type {any} */ (m[1].toLowerCase()) });
+    const text =
+      m[3] ??
+      reader
+        .until(/^\s*end\s*note\s*$/i)
+        .map((l) => l.text.trim())
+        .join("\n");
+    sig?.notes.push({
+      t: ctx.time,
+      text: label(text),
+      position: /** @type {any} */ (m[1].toLowerCase()),
+    });
     return true;
   },
   // state changes: `WB is Idle`, `WB@100 is Idle`, inside @WB: `100 is Idle`, `+50 is X`
   (line, ctx) => {
-    const m = /^(?:(\S+?)(?:@(\S+))?\s+is\s+|(\+?:?[\w.:]+)\s+is\s+)(.+?)(\s*#\S+)?(?:\s*:\s*(.*))?$/i.exec(line);
+    const m =
+      /^(?:(\S+?)(?:@(\S+))?\s+is\s+|(\+?:?[\w.:]+)\s+is\s+)(.+?)(\s*#\S+)?(?:\s*:\s*(.*))?$/i.exec(
+        line,
+      );
     if (!m) return false;
     let sig;
     let t = ctx.time;
@@ -170,7 +203,12 @@ const RULES = [
     }
     if (!sig) return false;
     const state = label(unquote(m[4].trim()).replace(/^\{|\}$/g, (b) => b));
-    sig.changes.push({ t, state, color: parseColorSpec(m[5]?.trim()).fill ?? null, comment: m[6] ? label(m[6]) : null });
+    sig.changes.push({
+      t,
+      state,
+      color: parseColorSpec(m[5]?.trim()).fill ?? null,
+      comment: m[6] ? label(m[6]) : null,
+    });
     if (!sig.states.includes(state) && !/^\{.*\}$/.test(state)) sig.states.push(state);
     return true;
   },
@@ -219,11 +257,19 @@ function layoutTiming(model, ctx) {
   if (!Number.isFinite(minGap) || minGap <= 0) minGap = Math.max(1, t1 - t0);
   t1 += minGap;
   const px = model.pxPerUnit ?? Math.min(20, Math.max(90 / minGap, 720 / (t1 - t0)));
-  const labels = signals.map((s) => layoutText(s.label, { fontSize: fs, bold: true, align: "left" }));
-  const stateW = Math.max(0, ...signals.filter((s) => s.kind === "robust").flatMap((s) => s.states.map((st) => layoutText(st, { fontSize: fs * 0.7 }).width)));
+  const labels = signals.map((s) =>
+    layoutText(s.label, { fontSize: fs, bold: true, align: "left" }),
+  );
+  const stateW = Math.max(
+    0,
+    ...signals
+      .filter((s) => s.kind === "robust")
+      .flatMap((s) => s.states.map((st) => layoutText(st, { fontSize: fs * 0.7 }).width)),
+  );
   const labelW = Math.max(...labels.map((l) => l.width), 60) + 30 + (stateW ? stateW + 12 : 0);
   const rows = signals.map((s) => {
-    const h = s.kind === "robust" ? Math.max(2, s.states.length) * 26 + 20 : s.kind === "analog" ? 90 : 46;
+    const h =
+      s.kind === "robust" ? Math.max(2, s.states.length) * 26 + 20 : s.kind === "analog" ? 90 : 46;
     return { s, h: h + (s.notes.length ? 40 : 0) };
   });
   return { model, signals, labels, labelW, rows, t0, t1, px, fs, ticks: uniq };
@@ -243,10 +289,23 @@ function drawTiming(laid, c) {
   const grid = roleStyle(theme, "grid");
 
   for (const h of model.highlights) {
-    c.rect(xOf(h.t1), 0, (h.t2 - h.t1) * px, total, { fill: h.color ?? "#fff3bf", stroke: "transparent", roughness: 0, strokeWidth: 1, opacity: 70 });
+    c.rect(xOf(h.t1), 0, (h.t2 - h.t1) * px, total, {
+      fill: h.color ?? "#fff3bf",
+      stroke: "transparent",
+      roughness: 0,
+      strokeWidth: 1,
+      opacity: 70,
+    });
     if (h.text) c.text(h.text, xOf(h.t1) + 4, 2, { size: fs * 0.8, color: theme.muted });
   }
-  for (const t of ticks) c.line([[xOf(t), 0], [xOf(t), total]], { ...grid, roughness: 0 });
+  for (const t of ticks)
+    c.line(
+      [
+        [xOf(t), 0],
+        [xOf(t), total],
+      ],
+      { ...grid, roughness: 0 },
+    );
 
   /** @type {Map<string, { top: number, h: number, levelY: (state: string) => number }>} */
   const geo = new Map();
@@ -257,7 +316,13 @@ function drawTiming(laid, c) {
     const top = y + (s.notes.length ? 40 : 0);
     const h = row.h - (s.notes.length ? 40 : 0);
     c.richText(labels[i], 8, top + h / 2 - labels[i].height / 2, { color: ink, align: "left" });
-    c.line([[0, y + row.h], [right, y + row.h]], { stroke: theme.muted, strokeWidth: 1, roughness: 0, opacity: 40 });
+    c.line(
+      [
+        [0, y + row.h],
+        [right, y + row.h],
+      ],
+      { stroke: theme.muted, strokeWidth: 1, roughness: 0, opacity: 40 },
+    );
     const pad = 10;
     const levelY = (/** @type {string} */ state) => {
       if (s.kind === "binary") return /^(high|1|true|on)$/i.test(state) ? top + pad : top + h - pad;
@@ -278,7 +343,12 @@ function drawTiming(laid, c) {
       const pts = [];
       const { period, pulse, offset } = s.clock;
       for (let t = t0 + offset; t < t1 && pts.length < 4000; t += period) {
-        pts.push([xOf(t), top + h - pad], [xOf(t), top + pad], [xOf(Math.min(t1, t + pulse)), top + pad], [xOf(Math.min(t1, t + pulse)), top + h - pad]);
+        pts.push(
+          [xOf(t), top + h - pad],
+          [xOf(t), top + pad],
+          [xOf(Math.min(t1, t + pulse)), top + pad],
+          [xOf(Math.min(t1, t + pulse)), top + h - pad],
+        );
       }
       if (pts.length) c.line(pts, { stroke, strokeWidth: 1.5 });
     } else if (s.kind === "concise" || s.kind === "rectangle") {
@@ -290,17 +360,34 @@ function drawTiming(laid, c) {
         const yb = top + h - pad;
         const d = Math.min(6, (x2 - x1) / 3);
         if (/^\{-\}$|^\{hidden\}$/i.test(ch.state)) {
-          c.line([[x1, (yt + yb) / 2], [x2, (yt + yb) / 2]], { stroke, strokeWidth: 1.5 });
+          c.line(
+            [
+              [x1, (yt + yb) / 2],
+              [x2, (yt + yb) / 2],
+            ],
+            { stroke, strokeWidth: 1.5 },
+          );
           return;
         }
-        c.line([[x1, (yt + yb) / 2], [x1 + d, yt], [x2 - d, yt], [x2, (yt + yb) / 2], [x2 - d, yb], [x1 + d, yb]], {
-          closed: true,
-          fill: ch.color ?? pal.fill,
-          stroke,
-          strokeWidth: 1.5,
-        });
+        c.line(
+          [
+            [x1, (yt + yb) / 2],
+            [x1 + d, yt],
+            [x2 - d, yt],
+            [x2, (yt + yb) / 2],
+            [x2 - d, yb],
+            [x1 + d, yb],
+          ],
+          {
+            closed: true,
+            fill: ch.color ?? pal.fill,
+            stroke,
+            strokeWidth: 1.5,
+          },
+        );
         const t = layoutText(ch.state.replace(/^\{|\}$/g, ""), { fontSize: fs * 0.85 });
-        if (t.width < x2 - x1 - 8) c.richText(t, (x1 + x2) / 2 - t.width / 2, (yt + yb) / 2 - t.height / 2, { color: ink });
+        if (t.width < x2 - x1 - 8)
+          c.richText(t, (x1 + x2) / 2 - t.width / 2, (yt + yb) / 2 - t.height / 2, { color: ink });
       });
     } else if (changes.length) {
       /** @type {[number, number][]} */
@@ -309,23 +396,47 @@ function drawTiming(laid, c) {
         const yy = levelY(ch.state);
         const x = xOf(ch.t);
         if (pts.length) pts.push([x, pts[pts.length - 1][1]]);
-        pts.push(s.kind === "analog" && pts.length ? [x, yy] : [x + (pts.length && s.kind === "robust" ? 4 : 0), yy]);
+        pts.push(
+          s.kind === "analog" && pts.length
+            ? [x, yy]
+            : [x + (pts.length && s.kind === "robust" ? 4 : 0), yy],
+        );
         if (k === changes.length - 1) pts.push([right, yy]);
       });
-      c.line(s.kind === "analog" ? changes.map((ch) => /** @type {[number, number]} */ ([xOf(ch.t), levelY(ch.state)])) : pts, { stroke, strokeWidth: 2 });
+      c.line(
+        s.kind === "analog"
+          ? changes.map((ch) => /** @type {[number, number]} */ ([xOf(ch.t), levelY(ch.state)]))
+          : pts,
+        { stroke, strokeWidth: 2 },
+      );
       if (s.kind === "robust") {
-        for (const st of s.states) c.text(st, labelW - 6, levelY(st) - fs * 0.6, { size: fs * 0.7, color: theme.muted, align: "right" });
+        for (const st of s.states)
+          c.text(st, labelW - 6, levelY(st) - fs * 0.6, {
+            size: fs * 0.7,
+            color: theme.muted,
+            align: "right",
+          });
       }
     }
     for (const n of s.notes) {
       const t = layoutText(n.text, { fontSize: fs * 0.8, align: "left" });
       const nx = xOf(n.t);
-      c.rect(nx, y + 4, t.width + 16, t.height + 8, { fill: roleStyle(theme, "note").fill, stroke: roleStyle(theme, "note").stroke, strokeWidth: 1 });
+      c.rect(nx, y + 4, t.width + 16, t.height + 8, {
+        fill: roleStyle(theme, "note").fill,
+        stroke: roleStyle(theme, "note").stroke,
+        strokeWidth: 1,
+      });
       c.richText(t, nx + 8, y + 8, { color: ink, align: "left" });
     }
     y += row.h;
   });
-  c.line([[labelW, 0], [labelW, total]], { stroke: theme.muted, strokeWidth: 1, roughness: 0 });
+  c.line(
+    [
+      [labelW, 0],
+      [labelW, total],
+    ],
+    { stroke: theme.muted, strokeWidth: 1, roughness: 0 },
+  );
 
   for (const m of model.messages) {
     const a = geo.get(m.from);
@@ -334,23 +445,51 @@ function drawTiming(laid, c) {
     const p1 = /** @type {[number, number]} */ ([xOf(m.t1), a.top + a.h / 2]);
     const p2 = /** @type {[number, number]} */ ([xOf(m.t2), b.top + b.h / 2]);
     c.arrow([p1, p2], { stroke: ink, strokeWidth: 1.5, end: "arrow" });
-    if (m.text) c.text(m.text, (p1[0] + p2[0]) / 2 + 4, (p1[1] + p2[1]) / 2 - fs, { size: fs * 0.8, color: ink });
+    if (m.text)
+      c.text(m.text, (p1[0] + p2[0]) / 2 + 4, (p1[1] + p2[1]) / 2 - fs, {
+        size: fs * 0.8,
+        color: ink,
+      });
   }
   for (const k of model.constraints) {
     const g = k.signal ? geo.get(k.signal) : null;
     const cy = g ? g.top + 4 : total + 10;
-    c.arrow([[xOf(k.t1), cy], [xOf(k.t2), cy]], { stroke: "#c92a2a", strokeWidth: 1.2, start: "arrow", end: "arrow", roughness: 0 });
+    c.arrow(
+      [
+        [xOf(k.t1), cy],
+        [xOf(k.t2), cy],
+      ],
+      { stroke: "#c92a2a", strokeWidth: 1.2, start: "arrow", end: "arrow", roughness: 0 },
+    );
     if (k.text) {
       const t = layoutText(k.text, { fontSize: fs * 0.8 });
-      c.richText(t, (xOf(k.t1) + xOf(k.t2)) / 2 - t.width / 2, cy - t.height - 1, { color: "#c92a2a" });
+      c.richText(t, (xOf(k.t1) + xOf(k.t2)) / 2 - t.width / 2, cy - t.height - 1, {
+        color: "#c92a2a",
+      });
     }
   }
   if (!model.hideAxis) {
     const ay = total + 26;
-    c.line([[labelW, ay], [right, ay]], { stroke: ink, strokeWidth: 1.5 });
+    c.line(
+      [
+        [labelW, ay],
+        [right, ay],
+      ],
+      { stroke: ink, strokeWidth: 1.5 },
+    );
     for (const t of ticks) {
-      c.line([[xOf(t), ay - 4], [xOf(t), ay + 4]], { stroke: ink, strokeWidth: 1.5 });
-      c.text(String(Math.round(t * 100) / 100), xOf(t), ay + 6, { size: fs * 0.75, color: theme.muted, align: "center" });
+      c.line(
+        [
+          [xOf(t), ay - 4],
+          [xOf(t), ay + 4],
+        ],
+        { stroke: ink, strokeWidth: 1.5 },
+      );
+      c.text(String(Math.round(t * 100) / 100), xOf(t), ay + 6, {
+        size: fs * 0.75,
+        color: theme.muted,
+        align: "center",
+      });
     }
   }
 }

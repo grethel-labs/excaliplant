@@ -1,0 +1,25 @@
+@startuml
+title Library schema
+hide circle
+entity Member {
+  * member_id : number <<PK>>
+  --
+  * name : text
+  email : text
+}
+entity Loan {
+  * loan_id : number <<PK>>
+  --
+  * member_id : number <<FK>>
+  * book_id : number <<FK>>
+  due : date
+}
+entity Book {
+  * book_id : number <<PK>>
+  --
+  title : text
+  isbn : text
+}
+Member ||--o{ Loan
+Book ||--o{ Loan
+@enduml

@@ -75,7 +75,12 @@ export function parseOutline(lines, module) {
     if (marker.length === 1 && m[1].length > 0) {
       // Markdown style: depth from indentation.
       const ind = m[1].replace(/\t/g, "    ").length;
-      while (indents.length && indents[indents.length - 1] >= ind && indents[indents.length - 1] !== ind) indents.pop();
+      while (
+        indents.length &&
+        indents[indents.length - 1] >= ind &&
+        indents[indents.length - 1] !== ind
+      )
+        indents.pop();
       if (!indents.includes(ind)) indents.push(ind);
       depth = indents.indexOf(ind) + 2;
     } else {

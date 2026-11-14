@@ -43,7 +43,11 @@ for (let i = 0; i < u16(cmap + 2); i++) {
   const platform = u16(rec);
   const encoding = u16(rec + 2);
   const offset = cmap + u32(rec + 4);
-  if (u16(offset) === 4 && (platform === 3 || platform === 0) && (encoding === 1 || platform === 0)) {
+  if (
+    u16(offset) === 4 &&
+    (platform === 3 || platform === 0) &&
+    (encoding === 1 || platform === 0)
+  ) {
     sub = offset;
     break;
   }

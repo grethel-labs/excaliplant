@@ -58,8 +58,28 @@ import { LimitError } from "../../core/errors.mjs";
  * @property {"left" | "center" | "right"} messageAlign
  */
 
-const PARTICIPANT_KINDS = new Set(["participant", "actor", "boundary", "control", "entity", "database", "collections", "queue"]);
-const GROUP_KINDS = new Set(["alt", "opt", "loop", "par", "par2", "break", "critical", "group", "else", "also"]);
+const PARTICIPANT_KINDS = new Set([
+  "participant",
+  "actor",
+  "boundary",
+  "control",
+  "entity",
+  "database",
+  "collections",
+  "queue",
+]);
+const GROUP_KINDS = new Set([
+  "alt",
+  "opt",
+  "loop",
+  "par",
+  "par2",
+  "break",
+  "critical",
+  "group",
+  "else",
+  "also",
+]);
 
 /**
  * @typedef {object} SeqContext
@@ -94,7 +114,8 @@ function ensureParticipant(ctx, rawName) {
     };
     participants.set(name, p);
     if (ctx.box) ctx.box.members.push(name);
-    if (participants.size > ctx.module.limits.maxNodes) throw new LimitError("Too many participants");
+    if (participants.size > ctx.module.limits.maxNodes)
+      throw new LimitError("Too many participants");
   }
   return p;
 }
@@ -110,7 +131,7 @@ export function findMessageArrow(line) {
     const c = line[i];
     if (c === '"') quoted = !quoted;
     if (quoted || c !== "-") continue;
-    if (line[i - 1] === "-" ) continue;
+    if (line[i - 1] === "-") continue;
     // body: '-' or '--' with an optional [#color] style
     let j = i;
     while (line[j] === "-") j++;
@@ -181,7 +202,10 @@ function arrowOf(left, body, right) {
   return {
     startHead,
     endHead,
-    lineStyle: body.replace(/\[[^\]]*\]/, "").length === 2 || /dashed|dotted/.test(style) ? "dashed" : "solid",
+    lineStyle:
+      body.replace(/\[[^\]]*\]/, "").length === 2 || /dashed|dotted/.test(style)
+        ? "dashed"
+        : "solid",
     color,
   };
 }
@@ -204,13 +228,19 @@ const RULES = [
   (line, ctx, reader) => parseCommon(line, ctx.model.meta, reader),
   // participants
   (line, ctx, reader) => {
-    const m = /^(create\s+)?(participant|actor|boundary|control|entity|database|collections|queue)\s+(.+)$/i.exec(line);
+    const m =
+      /^(create\s+)?(participant|actor|boundary|control|entity|database|collections|queue)\s+(.+)$/i.exec(
+        line,
+      );
     if (!m) return false;
     let rest = m[3].trim();
     let multi = null;
     if (/\[\s*$/.test(rest)) {
       rest = rest.replace(/\[\s*$/, "");
-      multi = reader.until(/^\s*\]\s*$/).map((l) => l.text.trim()).join("\n");
+      multi = reader
+        .until(/^\s*\]\s*$/)
+        .map((l) => l.text.trim())
+        .join("\n");
     }
     const order = /\sorder\s+(-?\d+)\s*$/i.exec(rest);
     if (order) rest = rest.slice(0, order.index);
@@ -226,7 +256,8 @@ const RULES = [
     p.declared = true;
     if (order) p.order = Number(order[1]);
     if (named.label !== named.id) {
-      for (const [k, v] of ctx.model.participants) if (k === named.label && v !== p) ctx.model.participants.delete(k);
+      for (const [k, v] of ctx.model.participants)
+        if (k === named.label && v !== p) ctx.model.participants.delete(k);
     }
     if (m[1]) {
       p.createdAt = ctx.model.events.length;
@@ -263,15 +294,20 @@ const RULES = [
     const p = ensureParticipant(ctx, m[2]);
     const kind = m[1].toLowerCase();
     if (kind === "activate") {
-      ctx.model.events.push({ type: "activate", id: p.id, color: parseColorSpec(m[3]).fill ?? null });
-      const call = [...ctx.model.events].reverse().find((e) => e.type === "message" && e.to === p.id);
+      ctx.model.events.push({
+        type: "activate",
+        id: p.id,
+        color: parseColorSpec(m[3]).fill ?? null,
+      });
+      const call = [...ctx.model.events]
+        .reverse()
+        .find((e) => e.type === "message" && e.to === p.id);
       if (call?.type === "message" && call.from) ctx.activations.push([call.from, p.id]);
     } else if (kind === "deactivate") {
       const at = ctx.activations.map((a) => a[1]).lastIndexOf(p.id);
       if (at >= 0) ctx.activations.splice(at, 1);
       ctx.model.events.push({ type: "deactivate", id: p.id });
-    }
-    else ctx.model.events.push({ type: "destroy", id: p.id });
+    } else ctx.model.events.push({ type: "destroy", id: p.id });
     return true;
   },
   (line, ctx) => {
@@ -323,7 +359,13 @@ const RULES = [
     const m = /^ref\s+over\s+(.+?)(?:\s*:\s*(.*))?$/i.exec(line);
     if (!m) return false;
     const over = m[1].split(",").map((s) => ensureParticipant(ctx, s).id);
-    const text = m[2] !== undefined ? m[2] : reader.until(/^\s*end\s*ref\s*$/i).map((l) => l.text.trim()).join("\n");
+    const text =
+      m[2] !== undefined
+        ? m[2]
+        : reader
+            .until(/^\s*end\s*ref\s*$/i)
+            .map((l) => l.text.trim())
+            .join("\n");
     ctx.model.events.push({ type: "ref", over, text: label(text) });
     return true;
   },
@@ -341,13 +383,28 @@ const RULES = [
     }
     const col = takeColor(rest);
     const position = /** @type {"left" | "right" | "over" | "across"} */ (m[2].toLowerCase());
-    const names = col.rest ? col.rest.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const names = col.rest
+      ? col.rest
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
     const over = names.map((n) => ensureParticipant(ctx, n).id);
-    if (text === null) text = reader.until(/^\s*end\s*(note|hnote|rnote)\s*$/i).map((l) => l.text).join("\n");
+    if (text === null)
+      text = reader
+        .until(/^\s*end\s*(note|hnote|rnote)\s*$/i)
+        .map((l) => l.text)
+        .join("\n");
     const lastMsg = [...ctx.model.events].reverse().find((e) => e.type === "message");
     const attached = over.length === 0 && position !== "across" && !!lastMsg;
     if (attached && lastMsg?.type === "message") {
-      over.push(position === "left" ? (lastMsg.from || lastMsg.to) : position === "right" ? (lastMsg.to || lastMsg.from) : lastMsg.from);
+      over.push(
+        position === "left"
+          ? lastMsg.from || lastMsg.to
+          : position === "right"
+            ? lastMsg.to || lastMsg.from
+            : lastMsg.from,
+      );
     }
     ctx.model.events.push({
       type: "note",
@@ -362,12 +419,21 @@ const RULES = [
   },
   // grouping
   (line, ctx) => {
-    const m = /^(alt|opt|loop|par2?|break|critical|group|else|also)\b\s*(#\S+)?\s*(.*)$/i.exec(line);
+    const m = /^(alt|opt|loop|par2?|break|critical|group|else|also)\b\s*(#\S+)?\s*(.*)$/i.exec(
+      line,
+    );
     if (!m || !GROUP_KINDS.has(m[1].toLowerCase())) return false;
     const kind = m[1].toLowerCase();
     const color = parseColorSpec(m[2]).fill ?? null;
-    if (kind === "else" || kind === "also") ctx.model.events.push({ type: "groupElse", text: label(m[3]), color });
-    else ctx.model.events.push({ type: "groupStart", kind: kind === "par2" ? "par" : kind, text: label(m[3].replace(/^\[|\]$/g, "")), color });
+    if (kind === "else" || kind === "also")
+      ctx.model.events.push({ type: "groupElse", text: label(m[3]), color });
+    else
+      ctx.model.events.push({
+        type: "groupStart",
+        kind: kind === "par2" ? "par" : kind,
+        text: label(m[3].replace(/^\[|\]$/g, "")),
+        color,
+      });
     return true;
   },
   (line, ctx) => {
@@ -455,7 +521,11 @@ const RULES = [
       fromText = "";
     }
     if (!fromText && !toText) return false;
-    if ((fromText && /\s/.test(fromText) && !/^".*"$/.test(fromText)) || (toText && /\s/.test(toText) && !/^".*"$/.test(toText))) return false;
+    if (
+      (fromText && /\s/.test(fromText) && !/^".*"$/.test(fromText)) ||
+      (toText && /\s/.test(toText) && !/^".*"$/.test(toText))
+    )
+      return false;
     const from = fromText ? ensureParticipant(ctx, fromText).id : "";
     const to = toText ? ensureParticipant(ctx, toText).id : "";
     const a = arrowOf(arrow.left, arrow.body, arrow.right);
@@ -481,7 +551,8 @@ const RULES = [
       line: src.line,
     });
     if (lifecycle.target === "++" && from && to) ctx.activations.push([from, to]);
-    if (ctx.model.events.length > ctx.module.limits.maxEdges * 2) throw new LimitError("Too many sequence events");
+    if (ctx.model.events.length > ctx.module.limits.maxEdges * 2)
+      throw new LimitError("Too many sequence events");
     return true;
   },
 ];
@@ -502,11 +573,21 @@ export function parseSequence(lines, module) {
     messageAlign: "center",
   };
   /** @type {SeqContext} */
-  const ctx = { model, module, autonumber: { on: false, value: 1, step: 1, format: "" }, box: null, activations: [], order: 0 };
+  const ctx = {
+    model,
+    module,
+    autonumber: { on: false, value: 1, step: 1, format: "" },
+    box: null,
+    activations: [],
+    order: 0,
+  };
   runRules(lines, RULES, ctx, module.diagnostics);
   if (model.meta.hide.has("footbox")) model.hideFootbox = true;
   const align = model.meta.skin.get("sequencemessagealign");
-  if (align) model.messageAlign = /** @type {any} */ (/left|right/i.test(align) ? align.toLowerCase() : "center");
+  if (align)
+    model.messageAlign = /** @type {any} */ (
+      /left|right/i.test(align) ? align.toLowerCase() : "center"
+    );
   // Explicit `activate` after a `++`-less call also feeds `return`.
   return model;
 }

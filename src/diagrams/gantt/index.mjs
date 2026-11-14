@@ -88,7 +88,21 @@ function task(ctx, name) {
   const id = model.aliases.get(name) ?? name;
   let t = model.tasks.get(id);
   if (!t) {
-    t = { id, label: label(name), start: null, end: null, duration: null, milestone: false, anchor: null, fill: null, stroke: null, complete: 0, resources: [], link: null, row: model.rows++ };
+    t = {
+      id,
+      label: label(name),
+      start: null,
+      end: null,
+      duration: null,
+      milestone: false,
+      anchor: null,
+      fill: null,
+      stroke: null,
+      complete: 0,
+      resources: [],
+      link: null,
+      row: model.rows++,
+    };
     model.tasks.set(id, t);
     if (model.tasks.size > ctx.module.limits.maxNodes) throw new LimitError("Too many Gantt tasks");
   }
@@ -136,14 +150,20 @@ const RULES = [
     return true;
   },
   (line, ctx) => {
-    const m = /^(?:printscale|projectscale|ganttscale)\s+(daily|weekly|monthly|quarterly|yearly)/i.exec(line);
+    const m =
+      /^(?:printscale|projectscale|ganttscale)\s+(daily|weekly|monthly|quarterly|yearly)/i.exec(
+        line,
+      );
     if (!m) return false;
     const s = m[1].toLowerCase();
     ctx.model.scale = s === "daily" ? "daily" : s === "weekly" ? "weekly" : "monthly";
     return true;
   },
   (line, ctx) => {
-    const m = /^(saturday|sunday|monday|tuesday|wednesday|thursday|friday)s?\s+(?:are|is)\s+(closed|open)$/i.exec(line);
+    const m =
+      /^(saturday|sunday|monday|tuesday|wednesday|thursday|friday)s?\s+(?:are|is)\s+(closed|open)$/i.exec(
+        line,
+      );
     if (!m) return false;
     const wd = WEEKDAYS.indexOf(m[1].toLowerCase());
     if (/closed/i.test(m[2])) ctx.model.closedWeekdays.add(wd);
@@ -151,7 +171,10 @@ const RULES = [
     return true;
   },
   (line, ctx) => {
-    const m = /^(\d{4}[-/]\d{1,2}[-/]\d{1,2})(?:\s+to\s+(\d{4}[-/]\d{1,2}[-/]\d{1,2}))?\s+(?:is|are)\s+(closed|open|colou?red\s+in\s+\S+)/i.exec(line);
+    const m =
+      /^(\d{4}[-/]\d{1,2}[-/]\d{1,2})(?:\s+to\s+(\d{4}[-/]\d{1,2}[-/]\d{1,2}))?\s+(?:is|are)\s+(closed|open|colou?red\s+in\s+\S+)/i.exec(
+        line,
+      );
     if (!m) return false;
     const a = /** @type {number} */ (parseDay(m[1]));
     const b = m[2] ? /** @type {number} */ (parseDay(m[2])) : a;
@@ -162,7 +185,10 @@ const RULES = [
     return true;
   },
   (line, ctx) => {
-    const m = /^today\s+is\s+(?:(\d+)\s+days?\s+after\s+start|(.+?))(?:\s+and\s+is\s+colou?red\s+in\s+(\S+))?$/i.exec(line);
+    const m =
+      /^today\s+is\s+(?:(\d+)\s+days?\s+after\s+start|(.+?))(?:\s+and\s+is\s+colou?red\s+in\s+(\S+))?$/i.exec(
+        line,
+      );
     if (m) {
       ctx.model.today = m[1] ? (ctx.model.projectStart ?? 0) + Number(m[1]) : parseDay(m[2]);
       if (m[3]) ctx.model.todayColor = parseColorSpec(m[3]).fill ?? null;
@@ -185,7 +211,8 @@ const RULES = [
     if (!m) return false;
     const a = task(ctx, m[1]);
     const b = task(ctx, m[2]);
-    if (!b.anchor && b.start === null) b.anchor = { task: a.id, edge: "end", offset: 0, kind: "start" };
+    if (!b.anchor && b.start === null)
+      b.anchor = { task: a.id, edge: "end", offset: 0, kind: "start" };
     ctx.model.links.push({ from: a.id, to: b.id, label: m[3] ? label(m[3]) : null });
     return true;
   },
@@ -207,28 +234,34 @@ const RULES = [
       if ((m = /^(?:lasts|requires)\s+(.+)$/i.exec(c))) t.duration = duration(m[1]);
       else if ((m = /^(starts|ends)\s+(?:at\s+|on\s+)?(.+)$/i.exec(c))) {
         const w = when(ctx, m[2]);
-        const kind = /** @type {"start" | "end"} */ (m[1].toLowerCase() === "starts" ? "start" : "end");
+        const kind = /** @type {"start" | "end"} */ (
+          m[1].toLowerCase() === "starts" ? "start" : "end"
+        );
         if (w && "day" in w) {
           if (kind === "start") t.start = w.day;
           else t.end = w.day + 1;
         } else if (w) {
-          t.anchor = { ...w, kind };
-          if (kind === "start" && w.edge === "end") ctx.model.links.push({ from: w.task, to: t.id, label: null });
+          t.anchor = /** @type {any} */ ({ ...w, kind });
+          if (kind === "start" && /** @type {any} */ (w).edge === "end")
+            ctx.model.links.push({ from: /** @type {any} */ (w).task, to: t.id, label: null });
         }
       } else if ((m = /^happens\s+(?:at\s+|on\s+)?(.+)$/i.exec(c))) {
         t.milestone = true;
         t.duration = 0;
         const w = when(ctx, m[1]);
         if (w && "day" in w) t.start = w.day;
-        else if (w) t.anchor = { ...w, kind: "start" };
+        else if (w) t.anchor = /** @type {any} */ ({ ...w, kind: "start" });
       } else if ((m = /^is\s+colou?red\s+in\s+(\S+)$/i.exec(c))) {
         const parts = m[1].split("/");
         t.fill = parseColorSpec(parts[0]).fill ?? null;
         t.stroke = parts[1] ? (parseColorSpec(parts[1]).fill ?? null) : null;
-      } else if ((m = /^is\s+(\d+)%\s*(?:completed?)?$/i.exec(c))) t.complete = Math.min(100, Number(m[1]));
+      } else if ((m = /^is\s+(\d+)%\s*(?:completed?)?$/i.exec(c)))
+        t.complete = Math.min(100, Number(m[1]));
       else if (/^is\s+completed?$/i.test(c)) t.complete = 100;
-      else if ((m = /^on\s+(.+)$/i.exec(c))) t.resources.push(...[...m[1].matchAll(/\{([^}]+)\}/g)].map((r) => r[1]));
-      else if ((m = /^links\s+to\s+\[\[([^\]]+)\]\]$/i.exec(c))) t.link = /^https?:/i.test(m[1]) ? m[1].split(/\s/)[0] : null;
+      else if ((m = /^on\s+(.+)$/i.exec(c)))
+        t.resources.push(...[...m[1].matchAll(/\{([^}]+)\}/g)].map((r) => r[1]));
+      else if ((m = /^links\s+to\s+\[\[([^\]]+)\]\]$/i.exec(c)))
+        t.link = /^https?:/i.test(m[1]) ? m[1].split(/\s/)[0] : null;
       else if (/^is\s+(deleted|paused)/i.test(c)) continue;
       else ctx.module.diagnostics.warn(`Ignored Gantt clause: ${c}`);
     }
@@ -284,7 +317,10 @@ function schedule(model) {
       const ref = model.tasks.get(t.anchor.task);
       if (ref) {
         resolve(ref);
-        const day = (t.anchor.edge === "end" ? /** @type {number} */ (ref.end) : /** @type {number} */ (ref.start)) + t.anchor.offset;
+        const day =
+          (t.anchor.edge === "end"
+            ? /** @type {number} */ (ref.end)
+            : /** @type {number} */ (ref.start)) + t.anchor.offset;
         if (t.anchor.kind === "start") t.start = day;
         else t.end = day;
       }
@@ -353,7 +389,9 @@ function layoutGantt(model, ctx) {
   const fs = ctx.theme.fontSize * 0.85;
   const tasks = [...model.tasks.values()];
   const starts = tasks.map((t) => /** @type {number} */ (t.start));
-  const ends = tasks.map((t) => Math.max(/** @type {number} */ (t.end), /** @type {number} */ (t.start) + 1));
+  const ends = tasks.map((t) =>
+    Math.max(/** @type {number} */ (t.end), /** @type {number} */ (t.start) + 1),
+  );
   let first = Math.min(...starts, model.projectStart ?? Infinity);
   let last = Math.max(...ends, first + 1);
   if (!Number.isFinite(first)) first = 0;
@@ -383,28 +421,75 @@ function drawGantt(laid, c) {
 
   // closed days and header
   for (let d = first; d < last; d++) {
-    if (isClosed(model, d)) c.rect(xOf(d), headerH, dayW, height - headerH, { fill: mixColors(theme.muted, theme.background, 0.88), stroke: "transparent", roughness: 0, strokeWidth: 1 });
+    if (isClosed(model, d))
+      c.rect(xOf(d), headerH, dayW, height - headerH, {
+        fill: mixColors(theme.muted, theme.background, 0.88),
+        stroke: "transparent",
+        roughness: 0,
+        strokeWidth: 1,
+      });
     const date = dayDate(d);
     const newMonth = date.getUTCDate() === 1 || d === first;
     if (dated && newMonth) {
-      c.text(`${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`, xOf(d) + 4, 2, { size: fs * 0.85, color: theme.ink, bold: true });
-      c.line([[xOf(d), 0], [xOf(d), height]], { stroke: theme.muted, strokeWidth: 1, roughness: 0 });
+      c.text(`${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`, xOf(d) + 4, 2, {
+        size: fs * 0.85,
+        color: theme.ink,
+        bold: true,
+      });
+      c.line(
+        [
+          [xOf(d), 0],
+          [xOf(d), height],
+        ],
+        { stroke: theme.muted, strokeWidth: 1, roughness: 0 },
+      );
     }
-    const showDay = model.scale === "daily" || (model.scale === "weekly" && date.getUTCDay() === 1) || (model.scale === "monthly" && date.getUTCDate() === 1);
+    const showDay =
+      model.scale === "daily" ||
+      (model.scale === "weekly" && date.getUTCDay() === 1) ||
+      (model.scale === "monthly" && date.getUTCDate() === 1);
     if (showDay) {
       const txt = dated ? String(date.getUTCDate()) : String(d - first + 1);
-      c.text(txt, xOf(d) + (model.scale === "daily" ? dayW / 2 : 2), headerH - fs * 1.25 - 4, { size: fs * 0.75, color: theme.muted, align: model.scale === "daily" ? "center" : "left" });
-      if (model.scale !== "daily") c.line([[xOf(d), headerH], [xOf(d), height]], { ...grid, roughness: 0 });
+      c.text(txt, xOf(d) + (model.scale === "daily" ? dayW / 2 : 2), headerH - fs * 1.25 - 4, {
+        size: fs * 0.75,
+        color: theme.muted,
+        align: model.scale === "daily" ? "center" : "left",
+      });
+      if (model.scale !== "daily")
+        c.line(
+          [
+            [xOf(d), headerH],
+            [xOf(d), height],
+          ],
+          { ...grid, roughness: 0 },
+        );
     }
   }
-  c.line([[x0, headerH], [x0 + width, headerH]], { stroke: theme.muted, strokeWidth: 1, roughness: 0 });
+  c.line(
+    [
+      [x0, headerH],
+      [x0 + width, headerH],
+    ],
+    { stroke: theme.muted, strokeWidth: 1, roughness: 0 },
+  );
 
   for (const sep of model.separators) {
     const y = yOf(sep.row) + rowH / 2;
-    c.line([[0, y], [x0 + width, y]], { stroke: theme.muted, strokeWidth: 1, roughness: 0 });
+    c.line(
+      [
+        [0, y],
+        [x0 + width, y],
+      ],
+      { stroke: theme.muted, strokeWidth: 1, roughness: 0 },
+    );
     if (sep.text) {
       const t = layoutText(sep.text, { fontSize: fs, bold: true });
-      c.rect(8, y - t.height / 2 - 2, t.width + 12, t.height + 4, { fill: theme.background, stroke: "transparent", roughness: 0, strokeWidth: 1 });
+      c.rect(8, y - t.height / 2 - 2, t.width + 12, t.height + 4, {
+        fill: theme.background,
+        stroke: "transparent",
+        roughness: 0,
+        strokeWidth: 1,
+      });
       c.richText(t, 14, y - t.height / 2, { color: theme.ink });
     }
   }
@@ -423,17 +508,36 @@ function drawGantt(laid, c) {
     const stroke = t.stroke ?? pal.stroke;
     if (t.milestone) {
       const s = 16;
-      c.diamond(x1 - s / 2, y + (rowH - s) / 2, s, s, { fill: stroke, stroke, fillStyle: "solid", link: t.link });
+      c.diamond(x1 - s / 2, y + (rowH - s) / 2, s, s, {
+        fill: stroke,
+        stroke,
+        fillStyle: "solid",
+        link: t.link,
+      });
       boxes.set(t.id, { x1: x1 - s / 2, x2: x1 + s / 2, y: y + rowH / 2 });
       continue;
     }
     const bh = rowH - 12;
     c.rect(x1, y + 6, Math.max(4, x2 - x1), bh, { fill, stroke, rounded: true, link: t.link });
     if (t.complete > 0) {
-      c.rect(x1, y + 6, Math.max(2, ((x2 - x1) * t.complete) / 100), bh, { fill: mixColors(fill, stroke, 0.45), stroke: "transparent", strokeWidth: 1, rounded: true, roughness: 0 });
+      c.rect(x1, y + 6, Math.max(2, ((x2 - x1) * t.complete) / 100), bh, {
+        fill: mixColors(fill, stroke, 0.45),
+        stroke: "transparent",
+        strokeWidth: 1,
+        rounded: true,
+        roughness: 0,
+      });
     }
-    if (t.complete > 0) c.text(`${t.complete}%`, x1 + 4, y + (rowH - fs * 0.75 * 1.25) / 2, { size: fs * 0.75, color: theme.ink });
-    if (t.resources.length) c.text(t.resources.join(", "), x2 + 6, y + (rowH - fs * 0.8 * 1.25) / 2, { size: fs * 0.8, color: theme.muted });
+    if (t.complete > 0)
+      c.text(`${t.complete}%`, x1 + 4, y + (rowH - fs * 0.75 * 1.25) / 2, {
+        size: fs * 0.75,
+        color: theme.ink,
+      });
+    if (t.resources.length)
+      c.text(t.resources.join(", "), x2 + 6, y + (rowH - fs * 0.8 * 1.25) / 2, {
+        size: fs * 0.8,
+        color: theme.muted,
+      });
     boxes.set(t.id, { x1, x2, y: y + rowH / 2 });
   }
 
@@ -446,15 +550,38 @@ function drawGantt(laid, c) {
     const xb = b.x1;
     const pts = /** @type {[number, number][]} */ (
       xb - xa >= 12
-        ? [[xa, a.y], [xa + 6, a.y], [xa + 6, b.y], [xb, b.y]]
-        : [[xa, a.y], [xa + 6, a.y], [xa + 6, (a.y + b.y) / 2], [xb - 8, (a.y + b.y) / 2], [xb - 8, b.y], [xb, b.y]]
+        ? [
+            [xa, a.y],
+            [xa + 6, a.y],
+            [xa + 6, b.y],
+            [xb, b.y],
+          ]
+        : [
+            [xa, a.y],
+            [xa + 6, a.y],
+            [xa + 6, (a.y + b.y) / 2],
+            [xb - 8, (a.y + b.y) / 2],
+            [xb - 8, b.y],
+            [xb, b.y],
+          ]
     );
     c.arrow(pts, { stroke: edge.stroke, strokeWidth: 1.2, end: "triangle", roughness: 0 });
   }
 
   if (model.today !== null && model.today >= first && model.today <= last) {
     const x = xOf(model.today) + dayW / 2;
-    c.line([[x, headerH - 6], [x, height]], { stroke: model.todayColor ?? "#e03131", strokeWidth: 2, strokeStyle: "dashed", roughness: 0 });
+    c.line(
+      [
+        [x, headerH - 6],
+        [x, height],
+      ],
+      {
+        stroke: model.todayColor ?? "#e03131",
+        strokeWidth: 2,
+        strokeStyle: "dashed",
+        roughness: 0,
+      },
+    );
   }
 }
 

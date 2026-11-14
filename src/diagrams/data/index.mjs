@@ -46,7 +46,12 @@ function parseData(lines, format) {
       highlights.push([...hl[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]));
       continue;
     }
-    if (body.length === 0 && /^(title|caption|header|footer|legend|skinparam|<style>|scale)\b/i.test(t) && parseCommon(t, meta, reader)) continue;
+    if (
+      body.length === 0 &&
+      /^(title|caption|header|footer|legend|skinparam|<style>|scale)\b/i.test(t) &&
+      parseCommon(t, meta, reader)
+    )
+      continue;
     body.push(l.text);
   }
   const text = body.join("\n");
@@ -81,27 +86,44 @@ function layoutData(model, ctx) {
   /** @param {Value} v @param {string[]} path @returns {Table} */
   const build = (v, path) => {
     const isArr = Array.isArray(v);
-    const entries = isArr ? /** @type {Value[]} */ (v).map((x, i) => [String(i), x]) : Object.entries(/** @type {Record<string, Value>} */ (v));
-    const hlHere = model.highlights.some((h) => h.length === path.length && h.every((p, i) => p === path[i]));
+    const entries = isArr
+      ? /** @type {Value[]} */ (v).map((x, i) => [String(i), x])
+      : Object.entries(/** @type {Record<string, Value>} */ (v));
+    const hlHere = model.highlights.some(
+      (h) => h.length === path.length && h.every((p, i) => p === path[i]),
+    );
     /** @type {Table} */
     const table = { rows: [], x: 0, y: 0, w: 0, h: 0, keyW: 0, highlight: hlHere };
     for (const [k, val] of entries) {
       if (++count > ctx.limits.maxNodes * 4) throw new LimitError("Data document too large");
       const childPath = [...path, String(k)];
       const nested = val !== null && typeof val === "object";
-      const highlight = model.highlights.some((h) => h.length === childPath.length && h.every((p, i) => p === childPath[i] || p === "*"));
+      const highlight = model.highlights.some(
+        (h) => h.length === childPath.length && h.every((p, i) => p === childPath[i] || p === "*"),
+      );
       table.rows.push({
         key: isArr ? null : layoutText(String(k), { fontSize: fs, bold: true, align: "left" }),
-        value: nested ? null : layoutText(scalarText(val), { fontSize: fs, align: "left", maxWidth: 280 }),
+        value: nested
+          ? null
+          : layoutText(scalarText(val), { fontSize: fs, align: "left", maxWidth: 280 }),
         child: nested ? build(val, childPath) : null,
         highlight,
       });
     }
-    if (!entries.length) table.rows.push({ key: null, value: layoutText(isArr ? "[ ]" : "{ }", { fontSize: fs }), child: null, highlight: false });
+    if (!entries.length)
+      table.rows.push({
+        key: null,
+        value: layoutText(isArr ? "[ ]" : "{ }", { fontSize: fs }),
+        child: null,
+        highlight: false,
+      });
     table.keyW = Math.max(0, ...table.rows.map((r) => (r.key ? r.key.width + 16 : 0)));
     const valW = Math.max(30, ...table.rows.map((r) => (r.value ? r.value.width + 16 : 24)));
     table.w = table.keyW + valW;
-    table.h = table.rows.reduce((s, r) => s + Math.max(r.key?.height ?? 0, r.value?.height ?? fs * 1.25) + 8, 0);
+    table.h = table.rows.reduce(
+      (s, r) => s + Math.max(r.key?.height ?? 0, r.value?.height ?? fs * 1.25) + 8,
+      0,
+    );
     return table;
   };
   const scalarRoot = model.data === null || typeof model.data !== "object";
@@ -139,23 +161,62 @@ function drawData(laid, c) {
   const hl = roleStyle(theme, "highlight");
   /** @param {Table} t */
   const draw = (t) => {
-    const id = c.rect(t.x, t.y, t.w, t.h, { fill: t.highlight ? hl.fill : s.fill, stroke: s.stroke, strokeWidth: 1.5, rounded: false });
+    const id = c.rect(t.x, t.y, t.w, t.h, {
+      fill: t.highlight ? hl.fill : s.fill,
+      stroke: s.stroke,
+      strokeWidth: 1.5,
+      rounded: false,
+    });
     let y = t.y;
     t.rows.forEach((r, i) => {
       const rh = Math.max(r.key?.height ?? 0, r.value?.height ?? laid.fs * 1.25) + 8;
-      if (r.highlight) c.rect(t.x, y, t.w, rh, { fill: hl.fill, stroke: "transparent", strokeWidth: 1, roughness: 0 });
-      if (i > 0) c.line([[t.x, y], [t.x + t.w, y]], { stroke: s.stroke, strokeWidth: 1, roughness: 0 });
+      if (r.highlight)
+        c.rect(t.x, y, t.w, rh, {
+          fill: hl.fill,
+          stroke: "transparent",
+          strokeWidth: 1,
+          roughness: 0,
+        });
+      if (i > 0)
+        c.line(
+          [
+            [t.x, y],
+            [t.x + t.w, y],
+          ],
+          { stroke: s.stroke, strokeWidth: 1, roughness: 0 },
+        );
       if (r.key) c.richText(r.key, t.x + 8, y + 4, { color: s.text, align: "left" });
-      if (t.keyW && r.key) c.line([[t.x + t.keyW, y], [t.x + t.keyW, y + rh]], { stroke: s.stroke, strokeWidth: 1, roughness: 0 });
+      if (t.keyW && r.key)
+        c.line(
+          [
+            [t.x + t.keyW, y],
+            [t.x + t.keyW, y + rh],
+          ],
+          { stroke: s.stroke, strokeWidth: 1, roughness: 0 },
+        );
       if (r.value) c.richText(r.value, t.x + t.keyW + 8, y + 4, { color: s.text, align: "left" });
       if (r.child) {
         const cy = y + rh / 2;
-        c.ellipse(t.x + t.w - 8, cy - 3, 6, 6, { fill: s.stroke, stroke: s.stroke, fillStyle: "solid", roughness: 0, strokeWidth: 1 });
+        c.ellipse(t.x + t.w - 8, cy - 3, 6, 6, {
+          fill: s.stroke,
+          stroke: s.stroke,
+          fillStyle: "solid",
+          roughness: 0,
+          strokeWidth: 1,
+        });
         const target = /** @type {Table} */ (r.child);
-        const b = /** @type {[number, number]} */ ([target.x, target.y + Math.min(target.h / 2, 20)]);
+        const b = /** @type {[number, number]} */ ([
+          target.x,
+          target.y + Math.min(target.h / 2, 20),
+        ]);
         const a = /** @type {[number, number]} */ ([t.x + t.w - 5, cy]);
         const mx = (a[0] + b[0]) / 2;
-        c.arrow([a, [mx, a[1]], [mx, b[1]], b], { stroke: theme.muted, strokeWidth: 1.5, end: "arrow", curved: true });
+        c.arrow([a, [mx, a[1]], [mx, b[1]], b], {
+          stroke: theme.muted,
+          strokeWidth: 1.5,
+          end: "arrow",
+          curved: true,
+        });
         draw(target);
       }
       y += rh;

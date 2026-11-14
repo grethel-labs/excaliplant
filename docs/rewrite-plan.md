@@ -6,16 +6,16 @@ Stand: 2026-11-14 · Ausgangsbasis: `main` @ `1f6fe08` (v0.19.5, ~32k LOC, 25 Mo
 
 ### Ideen, die bleiben
 
-| Idee | Bewertung |
-| --- | --- |
-| Pipeline `PlantUML → Modell → Layout → Excalidraw-JSON → SVG/PNG` | Kern des Produkts, bleibt |
-| Excalidraw-JSON als „Single Source of Truth“; SVG wird *aus* dem JSON gerendert (roughjs) | Bleibt – was man in Excalidraw sieht, steht auch im SVG/PNG |
-| ELK für Graph-Layouts, eigene deterministische Layouts für Sequenz/Timing/Gantt | Bleibt |
-| Excalifont eingebettet (woff2 im SVG, TTF für resvg) | Bleibt |
-| Deterministische IDs/Seeds (Hash über Quelle) | Bleibt |
-| Harte Ressourcenlimits, Escaping, keine FS-Zugriffe im Parser | Bleibt, wird zentralisiert |
-| Beispiele dienen gleichzeitig als Tests und Doku | Bleibt, wird radikal vereinfacht (`.puml`-Dateien) |
-| Release über PR-Label `release:major|minor|patch` | Bleibt als Konzept, Umsetzung komplett neu |
+| Idee                                                                                      | Bewertung                                                   |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------ | ------------------------------------------ |
+| Pipeline `PlantUML → Modell → Layout → Excalidraw-JSON → SVG/PNG`                         | Kern des Produkts, bleibt                                   |
+| Excalidraw-JSON als „Single Source of Truth“; SVG wird _aus_ dem JSON gerendert (roughjs) | Bleibt – was man in Excalidraw sieht, steht auch im SVG/PNG |
+| ELK für Graph-Layouts, eigene deterministische Layouts für Sequenz/Timing/Gantt           | Bleibt                                                      |
+| Excalifont eingebettet (woff2 im SVG, TTF für resvg)                                      | Bleibt                                                      |
+| Deterministische IDs/Seeds (Hash über Quelle)                                             | Bleibt                                                      |
+| Harte Ressourcenlimits, Escaping, keine FS-Zugriffe im Parser                             | Bleibt, wird zentralisiert                                  |
+| Beispiele dienen gleichzeitig als Tests und Doku                                          | Bleibt, wird radikal vereinfacht (`.puml`-Dateien)          |
+| Release über PR-Label `release:major                                                      | minor                                                       | patch` | Bleibt als Konzept, Umsetzung komplett neu |
 
 ### Probleme, die verschwinden
 
@@ -126,37 +126,37 @@ Kein Diagramm-Modul kennt Excalidraw-Felder, SVG oder PNG – es zeichnet nur ü
 
 ### Diagrammtypen
 
-| Typ | Start | Layout |
-| --- | --- | --- |
-| Sequenz | `@startuml` | eigene Tabellen-Engine |
-| Use Case | `@startuml` | ELK |
-| Klasse | `@startuml` | ELK |
-| Objekt (inkl. `map`) | `@startuml` | ELK |
-| Aktivität (neue Syntax + Swimlanes) | `@startuml` | strukturierte Block-Engine |
-| Aktivität (Legacy `(*) -->`) | `@startuml` | ELK |
-| Komponente | `@startuml` | ELK |
-| Deployment | `@startuml` | ELK |
-| Zustand (Composite, Regionen, Pseudo-States) | `@startuml` | ELK (hierarchisch) |
-| Timing | `@startuml` | eigene Zeitachsen-Engine |
-| ArchiMate | `@startuml` | ELK |
-| ER Chen | `@startchen` | ELK |
-| ER IE (Crow's Foot) | `@startuml` | ELK |
-| JSON | `@startjson` | ELK (Tabellen-Knoten) |
-| YAML | `@startyaml` | ELK (Tabellen-Knoten) |
-| Netzwerk (nwdiag) | `@startnwdiag` | eigene Bus-Engine |
-| Salt (Wireframes) | `@startsalt` | Grid-Engine |
-| Gantt | `@startgantt` | Kalender-Engine |
-| Chronologie | `@startchronology` | Zeitachse |
-| MindMap | `@startmindmap` | Tree (beidseitig) |
-| WBS | `@startwbs` | Tree (Org-Chart) |
-| EBNF | `@startebnf` | Railroad-Engine |
-| Regex | `@startregex` | Railroad-Engine |
-| Mathe (AsciiMath/LaTeX) | `@startmath` / `@startlatex` | Box-Layout (Brüche, Hoch/Tief, Wurzeln) |
-| Ditaa | `@startditaa` | ASCII-Grid-Erkennung |
-| Files | `@startfiles` | Tree |
-| Chart | `@startchart` | Achsen-Engine |
-| DOT (Graphviz) | `@startdot` | ELK |
-| Creole | `@startcreole` | Text-Block |
+| Typ                                          | Start                        | Layout                                  |
+| -------------------------------------------- | ---------------------------- | --------------------------------------- |
+| Sequenz                                      | `@startuml`                  | eigene Tabellen-Engine                  |
+| Use Case                                     | `@startuml`                  | ELK                                     |
+| Klasse                                       | `@startuml`                  | ELK                                     |
+| Objekt (inkl. `map`)                         | `@startuml`                  | ELK                                     |
+| Aktivität (neue Syntax + Swimlanes)          | `@startuml`                  | strukturierte Block-Engine              |
+| Aktivität (Legacy `(*) -->`)                 | `@startuml`                  | ELK                                     |
+| Komponente                                   | `@startuml`                  | ELK                                     |
+| Deployment                                   | `@startuml`                  | ELK                                     |
+| Zustand (Composite, Regionen, Pseudo-States) | `@startuml`                  | ELK (hierarchisch)                      |
+| Timing                                       | `@startuml`                  | eigene Zeitachsen-Engine                |
+| ArchiMate                                    | `@startuml`                  | ELK                                     |
+| ER Chen                                      | `@startchen`                 | ELK                                     |
+| ER IE (Crow's Foot)                          | `@startuml`                  | ELK                                     |
+| JSON                                         | `@startjson`                 | ELK (Tabellen-Knoten)                   |
+| YAML                                         | `@startyaml`                 | ELK (Tabellen-Knoten)                   |
+| Netzwerk (nwdiag)                            | `@startnwdiag`               | eigene Bus-Engine                       |
+| Salt (Wireframes)                            | `@startsalt`                 | Grid-Engine                             |
+| Gantt                                        | `@startgantt`                | Kalender-Engine                         |
+| Chronologie                                  | `@startchronology`           | Zeitachse                               |
+| MindMap                                      | `@startmindmap`              | Tree (beidseitig)                       |
+| WBS                                          | `@startwbs`                  | Tree (Org-Chart)                        |
+| EBNF                                         | `@startebnf`                 | Railroad-Engine                         |
+| Regex                                        | `@startregex`                | Railroad-Engine                         |
+| Mathe (AsciiMath/LaTeX)                      | `@startmath` / `@startlatex` | Box-Layout (Brüche, Hoch/Tief, Wurzeln) |
+| Ditaa                                        | `@startditaa`                | ASCII-Grid-Erkennung                    |
+| Files                                        | `@startfiles`                | Tree                                    |
+| Chart                                        | `@startchart`                | Achsen-Engine                           |
+| DOT (Graphviz)                               | `@startdot`                  | ELK                                     |
+| Creole                                       | `@startcreole`               | Text-Block                              |
 
 ## 4. Rendering
 
@@ -173,11 +173,11 @@ Kein Diagramm-Modul kennt Excalidraw-Felder, SVG oder PNG – es zeichnet nur ü
 import { render, renderAll, parse, listDiagramTypes } from "@grethel-labs/excaliplant";
 
 const result = await render(source, { theme: "sketch" });
-result.kind;          // "sequence"
-result.excalidraw;    // Excalidraw-Dokument
-result.toSvg();       // string
+result.kind; // "sequence"
+result.excalidraw; // Excalidraw-Dokument
+result.toSvg(); // string
 result.toPng({ width: 1600 }); // Buffer
-result.diagnostics;   // Warnungen mit Zeilennummern
+result.diagnostics; // Warnungen mit Zeilennummern
 
 // Kompatibilität mit 0.x
 const svg = await renderPlantUml(source).toSvg();

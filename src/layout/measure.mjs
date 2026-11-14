@@ -35,7 +35,8 @@ function advance(cp) {
 export function textWidth(text, fontSize, style = {}) {
   if (style.mono) return [...text].length * fontSize * 0.6;
   let units = 0;
-  for (const ch of text) units += ch === "\t" ? advance(32) * 4 : advance(/** @type {number} */ (ch.codePointAt(0)));
+  for (const ch of text)
+    units += ch === "\t" ? advance(32) * 4 : advance(/** @type {number} */ (ch.codePointAt(0)));
   const w = (units / UNITS_PER_EM) * fontSize;
   return style.bold ? w * 1.04 : w;
 }
@@ -124,7 +125,10 @@ export function layoutText(text, options) {
 
   for (const block of rich.blocks) {
     if (block.kind === "hr") {
-      rows.push({ items: [{ kind: "rule", x1: 0, y1: y + lh / 2, x2: 0, y2: y + lh / 2, full: true }], width: 0 });
+      rows.push({
+        items: [{ kind: "rule", x1: 0, y1: y + lh / 2, x2: 0, y2: y + lh / 2, full: true }],
+        width: 0,
+      });
       y += lh;
       plain = false;
       continue;
@@ -139,7 +143,8 @@ export function layoutText(text, options) {
     let size = fontSize;
     let prefix = "";
     let indent = 0;
-    if (block.kind === "heading") size = fontSize * ([1.5, 1.3, 1.15, 1.0][(block.level ?? 1) - 1] ?? 1);
+    if (block.kind === "heading")
+      size = fontSize * ([1.5, 1.3, 1.15, 1.0][(block.level ?? 1) - 1] ?? 1);
     if (block.kind === "bullet") {
       indent = ((block.level ?? 1) - 1) * fontSize;
       prefix = "• ";
@@ -158,8 +163,12 @@ export function layoutText(text, options) {
     for (const run of runs) {
       const rs = (run.size ?? size) * (run.script ? 0.7 : 1);
       const w = textWidth(run.text, rs, options.bold ? { ...run, bold: true } : run);
-      const ry = y + (lineH - rs * LINE_HEIGHT) + (run.script === "sub" ? rs * 0.3 : run.script === "sup" ? -rs * 0.2 : 0);
-      if (run.background) rowItems.push({ kind: "box", x, y: ry, w, h: rs * LINE_HEIGHT, fill: run.background });
+      const ry =
+        y +
+        (lineH - rs * LINE_HEIGHT) +
+        (run.script === "sub" ? rs * 0.3 : run.script === "sup" ? -rs * 0.2 : 0);
+      if (run.background)
+        rowItems.push({ kind: "box", x, y: ry, w, h: rs * LINE_HEIGHT, fill: run.background });
       rowItems.push({ kind: "text", x, y: ry, text: run.text, fontSize: rs, width: w, run });
       if (run.underline || run.wave) {
         const uy = ry + rs * 1.1;
@@ -177,7 +186,8 @@ export function layoutText(text, options) {
 
   const width = Math.max(0, ...rows.map((r) => r.width));
   for (const row of rows) {
-    const shift = align === "center" ? (width - row.width) / 2 : align === "right" ? width - row.width : 0;
+    const shift =
+      align === "center" ? (width - row.width) / 2 : align === "right" ? width - row.width : 0;
     for (const it of row.items) {
       if (it.kind === "rule" && it.full) {
         it.x1 = 0;
@@ -190,13 +200,26 @@ export function layoutText(text, options) {
     }
   }
   const plainText = rich.blocks.map((b) => b.runs.map((r) => r.text).join("")).join("\n");
-  return { width, height: Math.max(y, rich.blocks.length ? 0 : lh), items, plain, text: plainText, fontSize, bold: !!options.bold };
+  return {
+    width,
+    height: Math.max(y, rich.blocks.length ? 0 : lh),
+    items,
+    plain,
+    text: plainText,
+    fontSize,
+    bold: !!options.bold,
+  };
 }
 
 /** @param {import("../syntax/creole.mjs").Run | undefined} run */
 function hasStyle(run) {
   if (!run) return false;
-  return Object.keys(run).some((k) => k !== "text" && /** @type {any} */ (run)[k] !== undefined && /** @type {any} */ (run)[k] !== false);
+  return Object.keys(run).some(
+    (k) =>
+      k !== "text" &&
+      /** @type {any} */ (run)[k] !== undefined &&
+      /** @type {any} */ (run)[k] !== false,
+  );
 }
 
 /**
@@ -208,8 +231,15 @@ function layoutTable(rows, fontSize, top) {
   const pad = fontSize * 0.4;
   const lh = fontSize * LINE_HEIGHT;
   const cols = Math.max(...rows.map((r) => r.cells.length));
-  const colW = Array.from({ length: cols }, (_, c) =>
-    Math.max(...rows.map((r) => (r.cells[c] ? r.cells[c].reduce((s, run) => s + textWidth(run.text, fontSize, run), 0) : 0))) + pad * 2,
+  const colW = Array.from(
+    { length: cols },
+    (_, c) =>
+      Math.max(
+        ...rows.map((r) =>
+          r.cells[c] ? r.cells[c].reduce((s, run) => s + textWidth(run.text, fontSize, run), 0) : 0,
+        ),
+      ) +
+      pad * 2,
   );
   /** @type {RichItem[]} */
   const items = [];
@@ -222,7 +252,15 @@ function layoutTable(rows, fontSize, top) {
       let cx = x + pad;
       for (const run of cell) {
         const w = textWidth(run.text, fontSize, run);
-        items.push({ kind: "text", x: cx, y: y + pad / 2, text: run.text, fontSize, width: w, run });
+        items.push({
+          kind: "text",
+          x: cx,
+          y: y + pad / 2,
+          text: run.text,
+          fontSize,
+          width: w,
+          run,
+        });
         cx += w;
       }
       x += colW[c];

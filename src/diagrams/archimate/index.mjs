@@ -36,25 +36,79 @@ function icon(c, type, x, y, stroke) {
   const iy = y + 6;
   if (/actor/.test(type)) {
     c.ellipse(ix + 6, iy, 6, 6, s);
-    c.line([[ix + 9, iy + 6], [ix + 9, iy + 11]], s);
-    c.line([[ix + 5, iy + 8], [ix + 13, iy + 8]], s);
-    c.line([[ix + 5, iy + 15], [ix + 9, iy + 11], [ix + 13, iy + 15]], s);
+    c.line(
+      [
+        [ix + 9, iy + 6],
+        [ix + 9, iy + 11],
+      ],
+      s,
+    );
+    c.line(
+      [
+        [ix + 5, iy + 8],
+        [ix + 13, iy + 8],
+      ],
+      s,
+    );
+    c.line(
+      [
+        [ix + 5, iy + 15],
+        [ix + 9, iy + 11],
+        [ix + 13, iy + 15],
+      ],
+      s,
+    );
   } else if (/service/.test(type)) c.rect(ix, iy + 3, 18, 9, { ...s, rounded: true });
-  else if (/(process|function|event|interaction|flow)/.test(type)) c.line([[ix, iy + 4], [ix + 12, iy + 4], [ix + 12, iy], [ix + 18, iy + 7], [ix + 12, iy + 14], [ix + 12, iy + 10], [ix, iy + 10]], { ...s, closed: true });
+  else if (/(process|function|event|interaction|flow)/.test(type))
+    c.line(
+      [
+        [ix, iy + 4],
+        [ix + 12, iy + 4],
+        [ix + 12, iy],
+        [ix + 18, iy + 7],
+        [ix + 12, iy + 14],
+        [ix + 12, iy + 10],
+        [ix, iy + 10],
+      ],
+      { ...s, closed: true },
+    );
   else if (/component/.test(type)) {
     c.rect(ix + 4, iy, 14, 14, s);
     c.rect(ix, iy + 3, 8, 3, s);
     c.rect(ix, iy + 8, 8, 3, s);
   } else if (/(node|device|equipment|facility|system-software)/.test(type)) {
     c.rect(ix, iy + 3, 15, 11, s);
-    c.line([[ix, iy + 3], [ix + 3, iy], [ix + 18, iy], [ix + 18, iy + 11], [ix + 15, iy + 14]], s);
+    c.line(
+      [
+        [ix, iy + 3],
+        [ix + 3, iy],
+        [ix + 18, iy],
+        [ix + 18, iy + 11],
+        [ix + 15, iy + 14],
+      ],
+      s,
+    );
   } else if (/(object|artifact|data|representation|contract|deliverable)/.test(type)) {
     c.rect(ix, iy, 18, 14, s);
-    c.line([[ix, iy + 4], [ix + 18, iy + 4]], s);
+    c.line(
+      [
+        [ix, iy + 4],
+        [ix + 18, iy + 4],
+      ],
+      s,
+    );
   } else if (/interface/.test(type)) {
     c.ellipse(ix + 8, iy + 3, 9, 9, s);
-    c.line([[ix, iy + 7], [ix + 8, iy + 7]], s);
-  } else if (/(goal|outcome|principle|requirement|constraint|driver|assessment|value|meaning)/.test(type)) {
+    c.line(
+      [
+        [ix, iy + 7],
+        [ix + 8, iy + 7],
+      ],
+      s,
+    );
+  } else if (
+    /(goal|outcome|principle|requirement|constraint|driver|assessment|value|meaning)/.test(type)
+  ) {
     c.ellipse(ix + 2, iy, 14, 14, s);
     c.ellipse(ix + 6, iy + 4, 6, 6, s);
   } else if (/role/.test(type)) {
@@ -69,7 +123,15 @@ export default graphModule({
   keywords: [["archimate", { shape: "rectangle", role: "default" }], ...DESCRIPTIVE_KEYWORDS],
   finish: (model) => {
     for (const n of model.nodes.values()) {
-      if (n.keyword !== "archimate" && !n.stereotypes.some((s) => /^(business|application|technology|motivation|strategy|implementation|physical|migration)-/i.test(s))) continue;
+      if (
+        n.keyword !== "archimate" &&
+        !n.stereotypes.some((s) =>
+          /^(business|application|technology|motivation|strategy|implementation|physical|migration)-/i.test(
+            s,
+          ),
+        )
+      )
+        continue;
       const type = (n.stereotypes.find((s) => /-/.test(s)) ?? "").toLowerCase();
       const layer = /** @type {keyof typeof ARCHIMATE_LAYERS} */ (type.split("-")[0] || "other");
       n.stereotypes = n.stereotypes.filter((s) => !/-/.test(s));
@@ -79,14 +141,30 @@ export default graphModule({
         n.data.fixed = [16, 16];
         n.data.round = true;
         n.data.draw = (/** @type {any} */ c, /** @type {any} */ node, /** @type {any} */ st) =>
-          c.ellipse(node.x, node.y, node.width, node.height, { ...st, fill: /or/.test(type) ? c.theme.background : st.stroke, fillStyle: "solid" });
+          c.ellipse(node.x, node.y, node.width, node.height, {
+            ...st,
+            fill: /or/.test(type) ? c.theme.background : st.stroke,
+            fillStyle: "solid",
+          });
         continue;
       }
-      n.shape = /service/.test(type) ? "rounded" : /(process|function|event)/.test(type) ? "rounded" : "rectangle";
+      n.shape = /service/.test(type)
+        ? "rounded"
+        : /(process|function|event)/.test(type)
+          ? "rounded"
+          : "rectangle";
       n.data.archimateType = type;
       n.data.padX = 40;
-      n.data.draw = (/** @type {any} */ c, /** @type {any} */ node, /** @type {any} */ st, /** @type {any} */ s) => {
-        const rid = c.rect(node.x, node.y, node.width, node.height, { ...st, rounded: n.shape === "rounded" });
+      n.data.draw = (
+        /** @type {any} */ c,
+        /** @type {any} */ node,
+        /** @type {any} */ st,
+        /** @type {any} */ s,
+      ) => {
+        const rid = c.rect(node.x, node.y, node.width, node.height, {
+          ...st,
+          rounded: n.shape === "rounded",
+        });
         const geo = node.data.geo;
         let ty = node.y + (node.height - geo.textHeight) / 2;
         for (const b of geo.blocks) {
@@ -101,7 +179,10 @@ export default graphModule({
   detect: (lines) =>
     score(lines, [
       [/^archimate\b/i, 4],
-      [/<<(business|application|technology|motivation|strategy|implementation|physical)-[\w-]+>>/i, 3],
+      [
+        /<<(business|application|technology|motivation|strategy|implementation|physical)-[\w-]+>>/i,
+        3,
+      ],
       [/^(Business|Application|Technology|Motivation|Strategy|Implementation|Physical)_\w+\(/, 4],
       [/^Rel_\w+\(/, 2],
     ]),

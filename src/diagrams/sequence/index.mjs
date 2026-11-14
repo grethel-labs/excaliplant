@@ -21,18 +21,46 @@ import { layoutSequence } from "./layout.mjs";
 function drawSequence(laid, c) {
   const theme = c.theme;
   const msg = roleStyle(theme, "message");
-  for (const it of laid.items) {
+  const layer = {
+    box: 0,
+    group: 1,
+    lifeline: 2,
+    activation: 3,
+    head: 4,
+    message: 5,
+    ref: 6,
+    note: 7,
+    divider: 8,
+    delay: 8,
+    destroy: 9,
+  };
+  const items = laid.items
+    .map((it, i) => ({ it, i }))
+    .sort((a, b) => layer[a.it.type] - layer[b.it.type] || a.i - b.i);
+  for (const { it } of items) {
     switch (it.type) {
       case "box": {
         const s = roleStyle(theme, "participantBox", { fill: it.color ?? undefined });
-        c.rect(it.x, it.y, it.w, it.h, { fill: s.fill, stroke: s.stroke, strokeWidth: 1, rounded: true, roughness: Math.min(theme.roughness, 0.5) });
-        if (it.text) c.richText(it.text, it.x + (it.w - it.text.width) / 2, it.y + 6, { color: s.text });
+        c.rect(it.x, it.y, it.w, it.h, {
+          fill: s.fill,
+          stroke: s.stroke,
+          strokeWidth: 1,
+          rounded: true,
+          roughness: Math.min(theme.roughness, 0.5),
+        });
+        if (it.text)
+          c.richText(it.text, it.x + (it.w - it.text.width) / 2, it.y + 6, { color: s.text });
         break;
       }
       case "group": {
         const s = roleStyle(theme, "fragment");
         const tagStyle = roleStyle(theme, "fragmentTag");
-        c.rect(it.x, it.y, it.w, it.h, { stroke: s.stroke, strokeWidth: 1.5, fill: it.color ?? TRANSPARENT, opacity: it.color ? 60 : 100 });
+        c.rect(it.x, it.y, it.w, it.h, {
+          stroke: s.stroke,
+          strokeWidth: 1.5,
+          fill: it.color ?? TRANSPARENT,
+          opacity: it.color ? 60 : 100,
+        });
         const tw = it.tag.width + 16;
         const th = it.tag.height + 6;
         c.line(
@@ -91,41 +119,88 @@ function drawSequence(laid, c) {
       }
       case "activation": {
         const s = roleStyle(theme, "activation", { fill: it.color ?? undefined });
-        c.rect(it.x, it.y1, 10, it.y2 - it.y1, { fill: s.fill, stroke: s.stroke, strokeWidth: 1, roughness: Math.min(theme.roughness, 0.5) });
+        c.rect(it.x, it.y1, 10, it.y2 - it.y1, {
+          fill: s.fill,
+          stroke: s.stroke,
+          strokeWidth: 1,
+          roughness: Math.min(theme.roughness, 0.5),
+        });
         break;
       }
       case "head": {
         const p = it.p;
-        const s = roleStyle(theme, "participant", { fill: p.colors.fill, stroke: p.colors.stroke, text: p.colors.text });
+        const s = roleStyle(theme, "participant", {
+          fill: p.colors.fill,
+          stroke: p.colors.stroke,
+          text: p.colors.text,
+        });
         c.group(() => {
           if (it.icon) {
             const [iw, ih] = it.icon;
             const ix = it.x + (it.w - iw) / 2;
-            const kind = p.kind === "database" ? "database" : p.kind === "queue" ? "queue" : p.kind === "collections" ? "collections" : p.kind;
+            const kind =
+              p.kind === "database"
+                ? "database"
+                : p.kind === "queue"
+                  ? "queue"
+                  : p.kind === "collections"
+                    ? "collections"
+                    : p.kind;
             const def = SHAPES[kind];
-            const iconStyle = { stroke: s.stroke, fill: p.kind === "actor" ? (p.colors.fill ?? TRANSPARENT) : s.fill, strokeWidth: s.strokeWidth };
+            const iconStyle = {
+              stroke: s.stroke,
+              fill: p.kind === "actor" ? (p.colors.fill ?? TRANSPARENT) : s.fill,
+              strokeWidth: s.strokeWidth,
+            };
             if (it.foot) {
               def.draw(c, ix, it.y + it.text.height + 6, iw, ih, iconStyle);
               c.richText(it.text, it.x + (it.w - it.text.width) / 2, it.y, { color: s.text });
             } else {
               def.draw(c, ix, it.y, iw, ih, iconStyle);
-              c.richText(it.text, it.x + (it.w - it.text.width) / 2, it.y + ih + 6, { color: s.text });
+              c.richText(it.text, it.x + (it.w - it.text.width) / 2, it.y + ih + 6, {
+                color: s.text,
+              });
             }
           } else {
-            c.rect(it.x, it.y, it.w, it.h, { fill: s.fill, stroke: s.stroke, strokeWidth: s.strokeWidth, rounded: true });
-            c.richText(it.text, it.x + (it.w - it.text.width) / 2, it.y + (it.h - it.text.height) / 2, { color: s.text });
+            c.rect(it.x, it.y, it.w, it.h, {
+              fill: s.fill,
+              stroke: s.stroke,
+              strokeWidth: s.strokeWidth,
+              rounded: true,
+            });
+            c.richText(
+              it.text,
+              it.x + (it.w - it.text.width) / 2,
+              it.y + (it.h - it.text.height) / 2,
+              { color: s.text },
+            );
           }
         });
         break;
       }
       case "message": {
         const stroke = it.arrow.color ?? msg.stroke;
-        c.arrow(it.points, { stroke, strokeWidth: 1.5, strokeStyle: it.arrow.lineStyle, start: it.arrow.startHead, end: it.arrow.endHead, roughness: Math.min(theme.roughness, 0.6) });
-        if (it.text) c.richText(it.text, it.textX, it.textY, { color: it.arrow.color ?? msg.text, align: "left" });
+        c.arrow(it.points, {
+          stroke,
+          strokeWidth: 1.5,
+          strokeStyle: it.arrow.lineStyle,
+          start: it.arrow.startHead,
+          end: it.arrow.endHead,
+          roughness: Math.min(theme.roughness, 0.6),
+        });
+        if (it.text)
+          c.richText(it.text, it.textX, it.textY, {
+            color: it.arrow.color ?? msg.text,
+            align: "left",
+          });
         break;
       }
       case "note": {
-        const s = roleStyle(theme, "note", { fill: it.colors.fill, stroke: it.colors.stroke, text: it.colors.text });
+        const s = roleStyle(theme, "note", {
+          fill: it.colors.fill,
+          stroke: it.colors.stroke,
+          text: it.colors.text,
+        });
         const style = { fill: s.fill, stroke: s.stroke, strokeWidth: 1 };
         c.group(() => {
           if (it.shape === "hnote") {
@@ -140,7 +215,8 @@ function drawSequence(laid, c) {
               ],
               { ...style, closed: true },
             );
-          } else if (it.shape === "rnote") c.rect(it.x, it.y, it.w, it.h, { ...style, rounded: true });
+          } else if (it.shape === "rnote")
+            c.rect(it.x, it.y, it.w, it.h, { ...style, rounded: true });
           else SHAPES.note.draw(c, it.x, it.y, it.w, it.h, style);
           c.richText(it.text, it.x + 10, it.y + 7, { color: s.text, align: "left" });
         });
@@ -166,13 +242,21 @@ function drawSequence(laid, c) {
           const w = it.text.width + 24;
           const h = it.text.height + 8;
           const x = (it.x1 + it.x2 - w) / 2;
-          c.rect(x, it.y - h / 2, w, h, { fill: mixColors(roleStyle(theme, "participant").fill, theme.background, 0.4), stroke: s.stroke, strokeWidth: 1, rounded: true });
+          c.rect(x, it.y - h / 2, w, h, {
+            fill: mixColors(roleStyle(theme, "participant").fill, theme.background, 0.4),
+            stroke: s.stroke,
+            strokeWidth: 1,
+            rounded: true,
+          });
           c.richText(it.text, x + 12, it.y - h / 2 + 4, { color: s.text });
         }
         break;
       }
       case "delay":
-        if (it.text) c.richText(it.text, (it.x1 + it.x2 - it.text.width) / 2, it.y - it.text.height / 2, { color: theme.muted });
+        if (it.text)
+          c.richText(it.text, (it.x1 + it.x2 - it.text.width) / 2, it.y - it.text.height / 2, {
+            color: theme.muted,
+          });
         break;
       case "ref": {
         const s = roleStyle(theme, "reference");
@@ -216,6 +300,7 @@ export default defineDiagram({
   kind: "sequence",
   title: "Sequence diagram",
   starts: ["uml", "sequence"],
+  fallback: true,
   detect: (lines) =>
     score(lines, [
       [/^(participant|boundary|control|collections|queue)\s/i, 3],
@@ -228,7 +313,10 @@ export default defineDiagram({
       [/^(==.*==|\.\.\..*|\|\|\d*\|\|?)$/, 2],
       [/^box\b/i, 1],
       [/^hide\s+footbox/i, 3],
-      [/^[\[?]?\s*("[^"]+"|[\w.]+)?\s*[ox]?(<<?|\\\\?|\/\/?)?-{1,2}(\[[^\]]*\])?(>>?|\\\\?|\/\/?)[ox]?\s*("[^"]+"|[\w.]+|\]|\?)?\s*(\+\+|--|\*\*|!!)?\s*(:.*)?$/, 1],
+      [
+        /^[\[?]?\s*("[^"]+"|[\w.]+)?\s*[ox]?(<<?|\\\\?|\/\/?)?-{1,2}(\[[^\]]*\])?(>>?|\\\\?|\/\/?)[ox]?\s*("[^"]+"|[\w.]+|\]|\?)?\s*(\+\+|--|\*\*|!!)?\s*(:.*)?$/,
+        1,
+      ],
       [/^("[^"]+"|[\w.]+)\s*<-{1,2}\s*("[^"]+"|[\w.]+)\s*(:.*)?$/, 1],
     ]),
   parse: parseSequence,

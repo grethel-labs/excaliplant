@@ -79,7 +79,13 @@ export function layoutActivity(model, ctx) {
    * @returns {LNode}
    */
   const node = (kind, o = {}) => {
-    const text = o.text ? layoutText(o.text, { fontSize: o.small ? fs * 0.85 : fs, align: kind === "note" ? "left" : "center", maxWidth: 300 }) : null;
+    const text = o.text
+      ? layoutText(o.text, {
+          fontSize: o.small ? fs * 0.85 : fs,
+          align: kind === "note" ? "left" : "center",
+          maxWidth: 300,
+        })
+      : null;
     let w = o.w ?? 0;
     let h = o.h ?? 0;
     if (kind === "action") {
@@ -94,7 +100,18 @@ export function layoutActivity(model, ctx) {
     } else if (kind === "connector") {
       w = h = Math.max(30, (text?.width ?? 0) + 14);
     }
-    return { id: seq++, kind, x: 0, y: h / 2, w, h, text, shape: o.shape ?? "", fill: o.fill ?? null, lane: o.lane ?? null };
+    return {
+      id: seq++,
+      kind,
+      x: 0,
+      y: h / 2,
+      w,
+      h,
+      text,
+      shape: o.shape ?? "",
+      fill: o.fill ?? null,
+      lane: o.lane ?? null,
+    };
   };
 
   /** @param {Frame} f @param {number} dx @param {number} dy */
@@ -142,7 +159,16 @@ export function layoutActivity(model, ctx) {
   });
 
   /** @returns {Frame} */
-  const empty = () => ({ nodes: [], edges: [], groups: [], entry: null, exits: null, minX: 0, maxX: 0, height: 0 });
+  const empty = () => ({
+    nodes: [],
+    edges: [],
+    groups: [],
+    entry: null,
+    exits: null,
+    minX: 0,
+    maxX: 0,
+    height: 0,
+  });
 
   /**
    * @param {Frame} target
@@ -173,7 +199,9 @@ export function layoutActivity(model, ctx) {
     const f = single(head);
     f.exits = [];
     const top = head.h + GAP;
-    const widths = branches.map((b) => (b.frame.exits === null && !b.frame.nodes.length ? 0 : b.frame.maxX - b.frame.minX));
+    const widths = branches.map((b) =>
+      b.frame.exits === null && !b.frame.nodes.length ? 0 : b.frame.maxX - b.frame.minX,
+    );
     const nonEmpty = branches.filter((b, i) => widths[i] > 0);
     /** @type {number[]} */
     const axes = [];
@@ -210,14 +238,36 @@ export function layoutActivity(model, ctx) {
       if (widths[i] === 0) {
         // Empty branch: bypass column straight into the join.
         const via = axis === 0 ? null : axis;
-        f.edges.push(edge(head, fromBar ? "bottom" : sideFor(axis || 1), join, fromBar ? "top" : axis < 0 ? "left" : "right", { label: b.label, via: via ?? Math.max(f.maxX, head.w / 2) + BRANCH_GAP / 2, fromDx, toDx: fromDx }));
+        f.edges.push(
+          edge(
+            head,
+            fromBar ? "bottom" : sideFor(axis || 1),
+            join,
+            fromBar ? "top" : axis < 0 ? "left" : "right",
+            {
+              label: b.label,
+              via: via ?? Math.max(f.maxX, head.w / 2) + BRANCH_GAP / 2,
+              fromDx,
+              toDx: fromDx,
+            },
+          ),
+        );
         f.maxX = Math.max(f.maxX, (via ?? 0) + 10);
         joined = true;
         return;
       }
-      if (b.frame.entry) f.edges.push(edge(head, fromSide, b.frame.entry, "top", { label: b.label, fromDx }));
+      if (b.frame.entry)
+        f.edges.push(edge(head, fromSide, b.frame.entry, "top", { label: b.label, fromDx }));
       for (const ex of b.frame.exits ?? []) {
-        f.edges.push(edge(ex.node, ex.side, join, joinKind === "merge" ? sideFor(axis) === "bottom" ? "top" : sideFor(axis) : "top", { fromDx: ex.dx, toDx: joinKind === "merge" ? 0 : axis }));
+        f.edges.push(
+          edge(
+            ex.node,
+            ex.side,
+            join,
+            joinKind === "merge" ? (sideFor(axis) === "bottom" ? "top" : sideFor(axis)) : "top",
+            { fromDx: ex.dx, toDx: joinKind === "merge" ? 0 : axis },
+          ),
+        );
         joined = true;
       }
     });
@@ -257,7 +307,10 @@ export function layoutActivity(model, ctx) {
       if (item.t === "note") {
         const n = node("note", { text: item.text, fill: item.fill, small: true });
         if (lastNode) {
-          n.x = item.side === "left" ? lastNode.x - lastNode.w / 2 - 20 - n.w / 2 : lastNode.x + lastNode.w / 2 + 20 + n.w / 2;
+          n.x =
+            item.side === "left"
+              ? lastNode.x - lastNode.w / 2 - 20 - n.w / 2
+              : lastNode.x + lastNode.w / 2 + 20 + n.w / 2;
           n.y = lastNode.y;
           n.lane = lastNode.lane;
         } else n.y = n.h / 2;
@@ -277,7 +330,13 @@ export function layoutActivity(model, ctx) {
         if (!f.entry) f.entry = part.entry;
         for (const ex of exits ?? []) {
           const style = pending;
-          f.edges.push(edge(ex.node, ex.side, part.entry, "top", { label: style?.label ?? null, style, fromDx: ex.dx }));
+          f.edges.push(
+            edge(ex.node, ex.side, part.entry, "top", {
+              label: style?.label ?? null,
+              style,
+              fromDx: ex.dx,
+            }),
+          );
         }
         pending = null;
         exits = part.exits ?? exits;
@@ -287,7 +346,7 @@ export function layoutActivity(model, ctx) {
       started = true;
       if (part.exits && part.exits.length === 0) exits = [];
     }
-    f.exits = started ? exits ?? [] : null;
+    f.exits = started ? (exits ?? []) : null;
     f.height = y;
     return f;
   };
@@ -309,12 +368,20 @@ export function layoutActivity(model, ctx) {
       case "kill":
       case "detach":
       case "break": {
-        const f = single(node("kill", { w: item.t === "break" ? 0 : 16, h: item.t === "break" ? 0 : 16, lane: item.lane }));
+        const f = single(
+          node("kill", {
+            w: item.t === "break" ? 0 : 16,
+            h: item.t === "break" ? 0 : 16,
+            lane: item.lane,
+          }),
+        );
         f.exits = [];
         return f;
       }
       case "action":
-        return single(node("action", { text: item.text, shape: item.shape, fill: item.fill, lane: item.lane }));
+        return single(
+          node("action", { text: item.text, shape: item.shape, fill: item.fill, lane: item.lane }),
+        );
       case "connector":
         return single(node("connector", { text: item.text, fill: item.fill, lane: item.lane }));
       case "if": {
@@ -354,7 +421,11 @@ export function layoutActivity(model, ctx) {
       }
       case "fork": {
         const split = item.kind === "split";
-        const head = node(split ? "junction" : "bar", { lane: item.lane, w: split ? 0 : 60, h: split ? 0 : 6 });
+        const head = node(split ? "junction" : "bar", {
+          lane: item.lane,
+          w: split ? 0 : 60,
+          h: split ? 0 : 6,
+        });
         const f = branchOut(
           head,
           item.branches.map((b) => ({ frame: layoutSeq(b), label: null })),
@@ -379,7 +450,10 @@ export function layoutActivity(model, ctx) {
         const backLabel = back && back.t === "action" ? back.text : null;
         if (body.entry) {
           f.edges.push(edge(head, "bottom", body.entry, "top", { label: item.label }));
-          for (const ex of body.exits ?? []) f.edges.push(edge(ex.node, ex.side, head, "left", { via: left, fromDx: ex.dx, label: backLabel }));
+          for (const ex of body.exits ?? [])
+            f.edges.push(
+              edge(ex.node, ex.side, head, "left", { via: left, fromDx: ex.dx, label: backLabel }),
+            );
         } else {
           f.edges.push(edge(head, "bottom", head, "left", { via: left, label: item.label }));
         }
@@ -395,7 +469,19 @@ export function layoutActivity(model, ctx) {
       }
       case "repeat": {
         const head = node("merge", { lane: item.lane, w: 22, h: 22 });
-        const bodyItems = item.startLabel ? [/** @type {Item} */ ({ t: "action", text: item.startLabel, shape: ";", fill: null, lane: item.lane, stereotypes: [] }), ...item.body] : item.body;
+        const bodyItems = item.startLabel
+          ? [
+              /** @type {Item} */ ({
+                t: "action",
+                text: item.startLabel,
+                shape: ";",
+                fill: null,
+                lane: item.lane,
+                stereotypes: [],
+              }),
+              ...item.body,
+            ]
+          : item.body;
         const body = layoutSeq(bodyItems);
         const cond = node("diamond", { text: item.cond || null, lane: item.lane, small: true });
         /** @type {Frame} */
@@ -407,11 +493,20 @@ export function layoutActivity(model, ctx) {
         f.nodes.push(cond);
         if (body.entry) {
           f.edges.push(edge(head, "bottom", body.entry, "top"));
-          for (const ex of body.exits ?? []) f.edges.push(edge(ex.node, ex.side, cond, "top", { fromDx: ex.dx }));
+          for (const ex of body.exits ?? [])
+            f.edges.push(edge(ex.node, ex.side, cond, "top", { fromDx: ex.dx }));
         } else f.edges.push(edge(head, "bottom", cond, "top"));
         const left = Math.min(f.minX, -cond.w / 2) - 24;
         const back = item.backward.find((b) => b.t === "action");
-        f.edges.push(edge(cond, "left", head, "left", { via: left, label: [item.label, back && back.t === "action" ? back.text : null].filter(Boolean).join("\n") || null }));
+        f.edges.push(
+          edge(cond, "left", head, "left", {
+            via: left,
+            label:
+              [item.label, back && back.t === "action" ? back.text : null]
+                .filter(Boolean)
+                .join("\n") || null,
+          }),
+        );
         f.exits = [{ node: cond, side: "bottom", dx: 0 }];
         f.minX = Math.min(left - 8, -cond.w / 2);
         f.maxX = Math.max(f.maxX, cond.w / 2);
@@ -440,7 +535,8 @@ export function layoutActivity(model, ctx) {
   // Exit labels on repeat conditions become labels of their outgoing edge.
   for (const e of frame.edges) {
     const exitLabel = /** @type {any} */ (e.from).data?.exitLabel;
-    if (exitLabel && e.fromSide === "bottom" && !e.label) e.label = layoutText(exitLabel, { fontSize: fs * 0.8 });
+    if (exitLabel && e.fromSide === "bottom" && !e.label)
+      e.label = layoutText(exitLabel, { fontSize: fs * 0.8 });
   }
 
   // ── swimlanes ────────────────────────────────────────────────────────
@@ -453,7 +549,9 @@ export function layoutActivity(model, ctx) {
     let x = 0;
     for (const l of model.lanes) {
       const members = frame.nodes.filter((n) => laneOf(n) === l.id);
-      const vias = frame.edges.filter((e) => e.via && laneOf(e.from) === l.id).map((e) => /** @type {{ x: number }} */ (e.via).x);
+      const vias = frame.edges
+        .filter((e) => e.via && laneOf(e.from) === l.id)
+        .map((e) => /** @type {{ x: number }} */ (e.via).x);
       const minX = Math.min(...members.map((n) => n.x - n.w / 2), ...vias, Infinity);
       const maxX = Math.max(...members.map((n) => n.x + n.w / 2), ...vias, -Infinity);
       const text = layoutText(l.label, { fontSize: fs, bold: true });
@@ -503,7 +601,12 @@ export function layoutActivity(model, ctx) {
     for (const list of byNode.values()) {
       for (const side of ["left", "right"]) {
         const same = list.filter((e) => e[sideKey] === side);
-        if (same.length < 2 || list.length < 2 || list.some((e) => e[sideKey] === (key === "from" ? "bottom" : "top"))) continue;
+        if (
+          same.length < 2 ||
+          list.length < 2 ||
+          list.some((e) => e[sideKey] === (key === "from" ? "bottom" : "top"))
+        )
+          continue;
         same.sort((p, q) => Math.abs(p[other].x - p[key].x) - Math.abs(q[other].x - q[key].x));
         same[0][sideKey] = key === "from" ? "bottom" : "top";
       }
@@ -518,7 +621,14 @@ export function layoutActivity(model, ctx) {
       const vx = e.via.x;
       if (e.fromSide === "bottom") pts = [a, [a[0], a[1] + 14], [vx, a[1] + 14], [vx, b[1]], b];
       else pts = [a, [vx, a[1]], [vx, b[1]], b];
-      if (e.toSide === "top") pts = [a, [vx, a[1]], [vx, b[1] - (e.to.kind === "junction" ? 0 : 14)], [b[0], b[1] - (e.to.kind === "junction" ? 0 : 14)], b];
+      if (e.toSide === "top")
+        pts = [
+          a,
+          [vx, a[1]],
+          [vx, b[1] - (e.to.kind === "junction" ? 0 : 14)],
+          [b[0], b[1] - (e.to.kind === "junction" ? 0 : 14)],
+          b,
+        ];
     } else if (e.fromSide === "bottom" && e.toSide === "top") {
       if (Math.abs(a[0] - b[0]) < 1) pts = [a, b];
       else {
@@ -527,7 +637,13 @@ export function layoutActivity(model, ctx) {
       }
     } else if (e.toSide === "top") pts = [a, [b[0], a[1]], b];
     else if (e.fromSide === "bottom") pts = [a, [a[0], b[1]], b];
-    else pts = [a, [a[0] + (e.fromSide === "right" ? 16 : -16), a[1]], [a[0] + (e.fromSide === "right" ? 16 : -16), b[1]], b];
+    else
+      pts = [
+        a,
+        [a[0] + (e.fromSide === "right" ? 16 : -16), a[1]],
+        [a[0] + (e.fromSide === "right" ? 16 : -16), b[1]],
+        b,
+      ];
     e.points = dedupe(pts);
   }
 

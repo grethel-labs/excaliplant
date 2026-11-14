@@ -64,7 +64,7 @@ const DARK = {
 };
 
 /**
- * @param {typeof LIGHT} h
+ * @param {Record<string, { fill: string, stroke: string }>} h
  * @param {string} ink
  * @param {string} muted
  * @param {string} paper
@@ -173,7 +173,9 @@ export const THEMES = {
     fillStyle: "hachure",
     palette: Object.values(LIGHT),
     roles: roles(
-      Object.fromEntries(Object.entries(LIGHT).map(([k, v]) => [k, { fill: v.stroke, stroke: v.stroke }])),
+      Object.fromEntries(
+        Object.entries(LIGHT).map(([k, v]) => [k, { fill: v.stroke, stroke: v.stroke }]),
+      ),
       "#1e1e1e",
       "#495057",
       "#ffffff",
@@ -190,7 +192,9 @@ export const THEMES = {
     fillStyle: "solid",
     palette: Array(6).fill({ fill: "#ffffff", stroke: "#1e1e1e" }),
     roles: roles(
-      Object.fromEntries(Object.keys(LIGHT).map((k) => [k, { fill: "#ffffff", stroke: "#1e1e1e" }])),
+      Object.fromEntries(
+        Object.keys(LIGHT).map((k) => [k, { fill: "#ffffff", stroke: "#1e1e1e" }]),
+      ),
       "#1e1e1e",
       "#495057",
       "#ffffff",
@@ -219,7 +223,9 @@ export const THEMES = {
     fillStyle: "solid",
     palette: Array(6).fill({ fill: "#0e4aa8", stroke: "#ffffff" }),
     roles: roles(
-      Object.fromEntries(Object.keys(LIGHT).map((k) => [k, { fill: "#0e4aa8", stroke: "#ffffff" }])),
+      Object.fromEntries(
+        Object.keys(LIGHT).map((k) => [k, { fill: "#0e4aa8", stroke: "#ffffff" }]),
+      ),
       "#ffffff",
       "#c5d7f7",
       "#0b3d91",
@@ -241,7 +247,10 @@ export function mapPlantUmlTheme(name) {
   if (THEMES[n]) return n;
   if (/(dark|black|night|cyborg|reddress-dark|hacker|spacelab-dark|sunlust)/.test(n)) return "dark";
   if (/(blueprint|amiga)/.test(n)) return "blueprint";
-  if (/(plain|cerulean|minty|united|materia|lightgray|bluegray|mars|metal|toy|vibrant|_none_)/.test(n)) return "plain";
+  if (
+    /(plain|cerulean|minty|united|materia|lightgray|bluegray|mars|metal|toy|vibrant|_none_)/.test(n)
+  )
+    return "plain";
   if (/(sketchy|crt)/.test(n)) return "sketch";
   if (/mono|silver/.test(n)) return "mono";
   return null;
@@ -254,7 +263,10 @@ export function mapPlantUmlTheme(name) {
  * @returns {Theme}
  */
 export function createTheme(base, options = {}) {
-  const src = typeof base === "object" && base ? base : (THEMES[base ?? "sketch"] ?? THEMES.sketch);
+  const src =
+    typeof base === "object" && base
+      ? base
+      : (THEMES[/** @type {string} */ (base) ?? "sketch"] ?? THEMES.sketch);
   /** @type {Theme} */
   const theme = {
     ...src,

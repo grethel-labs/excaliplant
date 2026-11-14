@@ -135,7 +135,8 @@ function convert(prop, raw) {
     const n = Number(raw);
     return Number.isFinite(n) ? Math.max(0.5, Math.min(12, n)) : null;
   }
-  if (prop === "strokeStyle") return /dot/i.test(raw) ? "dotted" : /[-\d]|dash/i.test(raw) ? "dashed" : "solid";
+  if (prop === "strokeStyle")
+    return /dot/i.test(raw) ? "dotted" : /[-\d]|dash/i.test(raw) ? "dashed" : "solid";
   if (prop === "rounded") return Number(raw) > 0;
   return null;
 }
@@ -147,7 +148,11 @@ function convert(prop, raw) {
  */
 export function applySkin(theme, skin) {
   for (const [key, raw] of skin) {
-    if (key === "backgroundcolor" || key === "document.backgroundcolor" || key === "root.backgroundcolor") {
+    if (
+      key === "backgroundcolor" ||
+      key === "document.backgroundcolor" ||
+      key === "root.backgroundcolor"
+    ) {
       const c = parseColor(raw);
       if (c) theme.background = c === "transparent" ? "#ffffff" : c;
       continue;
@@ -193,7 +198,10 @@ export function applySkin(theme, skin) {
     const value = convert(prop, raw);
     if (value === null || value === undefined) continue;
     const element = parts.element.replace(/[^a-z]/g, "");
-    const targets = element === "element" || element === "default" || element === "" ? ALL_NODE_ROLES : (ELEMENT_ROLES.get(element) ?? []);
+    const targets =
+      element === "element" || element === "default" || element === ""
+        ? ALL_NODE_ROLES
+        : (ELEMENT_ROLES.get(element) ?? []);
     for (const role of targets) {
       const r = theme.roles[role];
       if (r) /** @type {any} */ (r)[prop] = value;

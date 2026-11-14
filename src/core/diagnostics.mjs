@@ -49,7 +49,8 @@ export class Diagnostics {
    */
   unknown(text, line) {
     const preview = text.length > 80 ? `${text.slice(0, 77)}...` : text;
-    if (this.strict) throw new ParseError(`Unrecognised syntax: ${preview}`, { line: line ?? undefined });
+    if (this.strict)
+      throw new ParseError(`Unrecognised syntax: ${preview}`, { line: line ?? undefined });
     this.warn(`Ignored unrecognised line: ${preview}`, line);
   }
 

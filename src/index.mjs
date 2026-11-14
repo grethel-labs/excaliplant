@@ -3,7 +3,16 @@
  * @module excaliplant
  */
 
-export { render, renderAll, parse, detectKind, listDiagramTypes, renderPlantUml, RenderResult, defaultRegistry } from "./api.mjs";
+export {
+  render,
+  renderAll,
+  parse,
+  detectKind,
+  listDiagramTypes,
+  renderPlantUml,
+  RenderResult,
+  defaultRegistry,
+} from "./api.mjs";
 export { DiagramRegistry, defineDiagram } from "./core/registry.mjs";
 export { DEFAULT_LIMITS } from "./core/limits.mjs";
 export { ExcaliplantError, ParseError, LimitError } from "./core/errors.mjs";

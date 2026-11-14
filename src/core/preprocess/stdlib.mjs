@@ -206,14 +206,62 @@ SHOW_LEGEND()
 !endprocedure
 `;
 
-
 /** ArchiMate element types per layer (subset of the ArchiMate 3 vocabulary). */
 const ARCHIMATE_TYPES = {
-  Business: ["Actor", "Role", "Collaboration", "Interface", "Process", "Function", "Interaction", "Event", "Service", "Object", "Contract", "Representation", "Product"],
-  Application: ["Component", "Collaboration", "Interface", "Function", "Interaction", "Process", "Event", "Service", "DataObject"],
-  Technology: ["Node", "Device", "SystemSoftware", "Collaboration", "Interface", "Path", "CommunicationNetwork", "Function", "Process", "Interaction", "Event", "Service", "Artifact"],
+  Business: [
+    "Actor",
+    "Role",
+    "Collaboration",
+    "Interface",
+    "Process",
+    "Function",
+    "Interaction",
+    "Event",
+    "Service",
+    "Object",
+    "Contract",
+    "Representation",
+    "Product",
+  ],
+  Application: [
+    "Component",
+    "Collaboration",
+    "Interface",
+    "Function",
+    "Interaction",
+    "Process",
+    "Event",
+    "Service",
+    "DataObject",
+  ],
+  Technology: [
+    "Node",
+    "Device",
+    "SystemSoftware",
+    "Collaboration",
+    "Interface",
+    "Path",
+    "CommunicationNetwork",
+    "Function",
+    "Process",
+    "Interaction",
+    "Event",
+    "Service",
+    "Artifact",
+  ],
   Physical: ["Equipment", "Facility", "DistributionNetwork", "Material"],
-  Motivation: ["Stakeholder", "Driver", "Assessment", "Goal", "Outcome", "Principle", "Requirement", "Constraint", "Meaning", "Value"],
+  Motivation: [
+    "Stakeholder",
+    "Driver",
+    "Assessment",
+    "Goal",
+    "Outcome",
+    "Principle",
+    "Requirement",
+    "Constraint",
+    "Meaning",
+    "Value",
+  ],
   Strategy: ["Resource", "Capability", "CourseOfAction", "ValueStream"],
   Implementation: ["WorkPackage", "Deliverable", "Event", "Plateau", "Gap"],
 };
@@ -246,16 +294,38 @@ function archimateLibrary() {
     }
   }
   for (const [name, [head, tail]] of Object.entries(ARCHIMATE_RELS)) {
-    for (const [suffix, dir] of [["", ""], ["_Up", "up"], ["_Down", "down"], ["_Left", "left"], ["_Right", "right"]]) {
+    for (const [suffix, dir] of [
+      ["", ""],
+      ["_Up", "up"],
+      ["_Down", "down"],
+      ["_Left", "left"],
+      ["_Right", "right"],
+    ]) {
       lines.push(`!unquoted procedure Rel_${name}${suffix}($from, $to, $label="")`);
       lines.push(`$from ${head}${dir}${tail} $to : $label`);
       lines.push("!endprocedure");
     }
   }
-  lines.push('!unquoted procedure Junction_And($id, $label="")', 'archimate #black "" as $id <<junction>>', "!endprocedure");
-  lines.push('!unquoted procedure Junction_Or($id, $label="")', 'archimate #white "" as $id <<or-junction>>', "!endprocedure");
-  lines.push('!unquoted procedure Grouping($id, $label="")', 'rectangle "$label" as $id ##[dashed]', "!endprocedure");
-  lines.push('!unquoted procedure Group($id, $label="")', 'rectangle "$label" as $id ##[dashed]', "!endprocedure");
+  lines.push(
+    '!unquoted procedure Junction_And($id, $label="")',
+    'archimate #black "" as $id <<junction>>',
+    "!endprocedure",
+  );
+  lines.push(
+    '!unquoted procedure Junction_Or($id, $label="")',
+    'archimate #white "" as $id <<or-junction>>',
+    "!endprocedure",
+  );
+  lines.push(
+    '!unquoted procedure Grouping($id, $label="")',
+    'rectangle "$label" as $id ##[dashed]',
+    "!endprocedure",
+  );
+  lines.push(
+    '!unquoted procedure Group($id, $label="")',
+    'rectangle "$label" as $id ##[dashed]',
+    "!endprocedure",
+  );
   return lines.join("\n");
 }
 
