@@ -20,7 +20,9 @@ import timingDiagram from "./timing/index.mjs";
 import { mindmapDiagram, wbsDiagram } from "./tree/index.mjs";
 import filesDiagram from "./files/index.mjs";
 import { jsonDiagram, yamlDiagram } from "./data/index.mjs";
+import nwdiagDiagram from "./nwdiag/index.mjs";
+import saltDiagram from "./salt/index.mjs";
 import legacyActivityDiagram from "./legacy-activity/index.mjs";
 
 /** @type {import("../core/registry.mjs").DiagramModule[]} */
-export const BUILTIN_DIAGRAMS = [sequenceDiagram, timingDiagram, ganttDiagram, activityDiagram, legacyActivityDiagram, archimateDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram, chenDiagram, dotDiagram, chronologyDiagram, mindmapDiagram, wbsDiagram, filesDiagram, jsonDiagram, yamlDiagram];
+export const BUILTIN_DIAGRAMS = [saltDiagram, nwdiagDiagram, sequenceDiagram, timingDiagram, ganttDiagram, activityDiagram, legacyActivityDiagram, archimateDiagram, stateDiagram, classDiagram, objectDiagram, usecaseDiagram, componentDiagram, deploymentDiagram, chenDiagram, dotDiagram, chronologyDiagram, mindmapDiagram, wbsDiagram, filesDiagram, jsonDiagram, yamlDiagram];
