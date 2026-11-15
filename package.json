@@ -30,7 +30,7 @@
     "THIRD_PARTY_NOTICES.md"
   ],
   "scripts": {
-    "test": "node --test \"test/**/*.test.mjs\"",
+    "test": "node scripts/test.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "types": "tsc -p tsconfig.types.json",
     "docs": "node scripts/docs.mjs",

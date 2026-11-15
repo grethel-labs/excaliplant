@@ -1,0 +1,141 @@
+name: Release
+
+# Publishes to npm when a pull request is merged into main.
+#
+#   1. Read the release:* label of the merged PR (or the manual input).
+#   2. Compute the next version from the latest v* tag.
+#   3. Run the full quality gate, set the version in the runner only
+#      (nothing is committed back), pack and smoke-test the tarball.
+#   4. npm publish with provenance, then create the tag + GitHub release.
+#
+# Every step is idempotent: re-running a failed release skips an already
+# published version and only creates what is missing.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan release
+    runs-on: ubuntu-latest
+    outputs:
+      bump: ${{ steps.bump.outputs.bump }}
+      version: ${{ steps.version.outputs.version }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Determine bump
+        id: bump
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            bump="${{ inputs.bump }}"
+          else
+            labels=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+              --jq '[.[0].labels[]?.name | select(startswith("release:"))] | join(",")' || true)
+            case "$labels" in
+              release:major) bump=major ;;
+              release:minor) bump=minor ;;
+              release:patch) bump=patch ;;
+              *) bump=none ;;
+            esac
+            echo "Merged PR release label: ${labels:-<none>}"
+          fi
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+      - name: Compute version
+        id: version
+        if: steps.bump.outputs.bump != 'none'
+        run: |
+          set -euo pipefail
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          version=$(node scripts/next-version.mjs "${{ steps.bump.outputs.bump }}" "$latest")
+          echo "Latest tag: ${latest:-<none>} → next version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish v${{ needs.plan.outputs.version }}
+    needs: plan
+    if: needs.plan.outputs.bump != 'none'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - name: Use an npm with trusted publishing support
+        run: npm install -g npm@11
+      - run: npm ci
+      - name: Quality gate
+        run: |
+          npm run format:check
+          npm run typecheck
+          npm test
+          npm run docs:check
+          npm audit --omit=dev --audit-level=high
+      - name: Set version (runner only)
+        run: npm version "$VERSION" --no-git-tag-version
+      - name: Pack and smoke-test
+        run: |
+          set -euo pipefail
+          npm pack --pack-destination "$RUNNER_TEMP"
+          mkdir "$RUNNER_TEMP/smoke" && cd "$RUNNER_TEMP/smoke"
+          npm init -y >/dev/null
+          npm pkg set type=module
+          npm install "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz"
+          cp "$GITHUB_WORKSPACE/scripts/smoke.mjs" .
+          node smoke.mjs
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          name=$(node -p "require('./package.json').name")
+          if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+            echo "::notice::$name@$VERSION is already on npm; skipping publish."
+          else
+            npm publish "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz" --access public --provenance --tag latest
+          fi
+      - name: Tag and GitHub release
+        run: |
+          set -euo pipefail
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "::notice::Release v$VERSION already exists."
+          else
+            gh release create "v$VERSION" "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz" \
+              --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes --latest
+          fi
+      - name: Summary
+        run: |
+          {
+            echo "### Published @grethel-labs/excaliplant@$VERSION"
+            echo ""
+            echo "- npm: https://www.npmjs.com/package/@grethel-labs/excaliplant/v/$VERSION"
+            echo "- release: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+          } >> "$GITHUB_STEP_SUMMARY"

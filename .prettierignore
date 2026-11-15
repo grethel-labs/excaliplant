@@ -2,5 +2,8 @@ node_modules/
 types/
 assets/
 docs/gallery/
+docs/gallery.md
+docs/assets/
+README.md
 package-lock.json
 src/layout/font_metrics.mjs

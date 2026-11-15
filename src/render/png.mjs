@@ -32,7 +32,9 @@ export function svgToPng(svg, options = {}) {
     background: options.background,
     font: {
       fontFiles: [EXCALIFONT_TTF_PATH],
-      loadSystemFonts: true,
+      // Scanning system fonts is slow; only do it when glyphs beyond the
+      // bundled Latin font (Greek, arrows, CJK, emoji) need a fallback.
+      loadSystemFonts: /[^\u0000-\u00ff]/.test(svg),
       defaultFontFamily: "Excalifont",
     },
   });

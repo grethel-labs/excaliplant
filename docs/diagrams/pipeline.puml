@@ -1,0 +1,18 @@
+@startuml
+left to right direction
+file "**PlantUML**\n.puml text" as src
+rectangle "**Preprocessor**\n!include · !procedure\n$variables · C4 stdlib" as pp
+rectangle "**Detect & parse**\n30 diagram modules" as parse
+rectangle "**Layout**\nELK · sequence · tree\nrailroad · timeline" as layout
+rectangle "**Draw**\nshapes · themes\ncreole rich text" as draw
+card "**Excalidraw**\neditable .excalidraw" as ex
+card "**SVG**\nroughjs + Excalifont" as svg
+card "**PNG**\nresvg" as png
+src --> pp
+pp --> parse
+parse --> layout
+layout --> draw
+draw --> ex
+ex --> svg
+svg --> png
+@enduml
