@@ -4,16 +4,12 @@ name: Pages
 # GitHub Pages: https://grethel-labs.github.io/excaliplant/
 
 on:
-  push:
+  # Runs after every Release run on main (publishing or not), so a version
+  # published by that run is already on npm when the page shows it.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
     branches: [main]
-    paths:
-      - "examples/**"
-      - "src/**"
-      - "scripts/site.mjs"
-      - "scripts/showcase.mjs"
-      - "assets/**"
-      - "package.json"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -26,9 +22,13 @@ concurrency:
 jobs:
   build:
     name: Build gallery
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: 22
