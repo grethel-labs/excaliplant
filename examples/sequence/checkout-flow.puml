@@ -9,7 +9,7 @@ end box
 database Orders as DB
 queue Events as Q
 
-C -> W : open checkout
+C -> W ++ : open checkout
 W -> API ++ : POST /orders
 API -> DB ++ : insert order
 DB --> API -- : order id
@@ -25,5 +25,5 @@ deactivate API
 ... some minutes later ...
 Q ->> W : order shipped
 W -> W : refresh view
-W --> C : "Your order is on the way"
+W --> C -- : "Your order is on the way"
 @enduml

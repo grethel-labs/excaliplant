@@ -89,6 +89,7 @@ const GROUP_KINDS = new Set([
  * @property {{ text: string, color: string | null, members: string[] } | null} box
  * @property {string[][]} activations Stack of callers for `return`.
  * @property {number} order
+ * @property {boolean} autoactivate `autoactivate on`: calls activate, dashed replies deactivate.
  */
 
 /**
@@ -464,6 +465,12 @@ const RULES = [
     });
     return true;
   },
+  (line, ctx) => {
+    const m = /^autoactivate\s+(on|off)$/i.exec(line);
+    if (!m) return false;
+    ctx.autoactivate = m[1].toLowerCase() === "on";
+    return true;
+  },
   // messages
   (line, ctx, _reader, src) => {
     let text = line;
@@ -529,6 +536,10 @@ const RULES = [
     const from = fromText ? ensureParticipant(ctx, fromText).id : "";
     const to = toText ? ensureParticipant(ctx, toText).id : "";
     const a = arrowOf(arrow.left, arrow.body, arrow.right);
+    if (ctx.autoactivate && from && to && from !== to && !lifecycle.target && !lifecycle.source) {
+      if (a.lineStyle === "dashed") lifecycle.source = "--";
+      else lifecycle.target = "++";
+    }
     if (lifecycle.target === "**" && to) {
       const p = ensureParticipant(ctx, to);
       if (p.createdAt === null) {
@@ -580,6 +591,7 @@ export function parseSequence(lines, module) {
     box: null,
     activations: [],
     order: 0,
+    autoactivate: false,
   };
   runRules(lines, RULES, ctx, module.diagnostics);
   if (model.meta.hide.has("footbox")) model.hideFootbox = true;

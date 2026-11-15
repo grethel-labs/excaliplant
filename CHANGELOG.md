@@ -11,9 +11,14 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 - Connectors are drawn with much less hand-drawn wobble (`edgeRoughness` per theme), so lines stay straight with crisp corners; mind map and JSON/YAML connectors are orthogonal instead of curved.
 - Graph diagrams with many unconnected elements are packed into a grid instead of one long row.
 - Floating notes may contain colons (`note "a: b" as N`).
+- Edge labels, multiplicities and container/package titles are placed collision-aware: they avoid arrowheads, crossing lines and other labels, and titles get a backdrop where a line must pass behind them.
+- State diagrams keep their main flow top-down: cycles are broken along a depth-first walk from the start state, so forks, joins and branches no longer flip upwards.
+- Sequence fragment tags and guards stay readable above activation bars; message labels get a backdrop only where a lifeline crosses them.
+- Ditaa arrowheads are drawn as real arrows that touch the box border.
 
 ### Added
 
+- `autoactivate on` for sequence diagrams.
 - Interactive gallery on GitHub Pages with type tabs, arrows, keyboard and swipe navigation, PlantUML source and SVG/`.excalidraw` downloads.
 - Animated README carousel with one slide per diagram type, plus more examples for sequence, class, state, use case, deployment and timing diagrams.
 

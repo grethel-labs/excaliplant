@@ -353,6 +353,9 @@ export async function layoutGraph(model, theme, options = {}) {
       "elk.layered.spacing.edgeEdgeBetweenLayers": "12",
       "elk.spacing.labelLabel": "4",
       "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
+      // Break cycles along a depth-first walk from the sources (e.g. [*]), so the
+      // main flow points downwards and only true back edges are reversed.
+      "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
       "elk.layered.crossingMinimization.forceNodeModelOrder": "false",
       "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
       "elk.layered.edgeLabels.sideSelection": "SMART_DOWN",

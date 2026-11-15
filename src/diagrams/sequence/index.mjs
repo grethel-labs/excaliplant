@@ -37,7 +37,14 @@ function drawSequence(laid, c) {
   const items = laid.items
     .map((it, i) => ({ it, i }))
     .sort((a, b) => layer[a.it.type] - layer[b.it.type] || a.i - b.i);
+  /** @type {(() => void)[]} */
+  const groupLabels = [];
+  let labelsDrawn = false;
   for (const { it } of items) {
+    if (!labelsDrawn && layer[it.type] > layer.activation) {
+      groupLabels.forEach((f) => f());
+      labelsDrawn = true;
+    }
     switch (it.type) {
       case "box": {
         const s = roleStyle(theme, "participantBox", { fill: it.color ?? undefined });
@@ -73,8 +80,6 @@ function drawSequence(laid, c) {
           ],
           { closed: true, fill: tagStyle.fill, stroke: s.stroke, strokeWidth: 1.5 },
         );
-        c.richText(it.tag, it.x + 8, it.y + 3, { color: tagStyle.text });
-        if (it.text) c.richText(it.text, it.x + tw + 16, it.y + 3, { color: s.text });
         for (const el of it.elses) {
           c.line(
             [
@@ -83,8 +88,14 @@ function drawSequence(laid, c) {
             ],
             { stroke: s.stroke, strokeWidth: 1, strokeStyle: "dashed" },
           );
-          if (el.text) c.richText(el.text, it.x + 10, el.y + 4, { color: s.text });
         }
+        // Tags and guard texts go on top of activation bars (see below).
+        groupLabels.push(() => {
+          c.richText(it.tag, it.x + 8, it.y + 3, { color: tagStyle.text });
+          if (it.text) c.richText(it.text, it.x + tw + 16, it.y + 3, { color: s.text });
+          for (const el of it.elses)
+            if (el.text) c.richText(el.text, it.x + 10, el.y + 4, { color: s.text });
+        });
         break;
       }
       case "lifeline": {
@@ -188,11 +199,21 @@ function drawSequence(laid, c) {
           end: it.arrow.endHead,
           roughness: theme.edgeRoughness,
         });
-        if (it.text)
+        if (it.text) {
+          // A light plate keeps crossing lifelines from running through the label.
+          if (it.plate)
+            c.rect(it.textX - 2, it.textY + 1, it.text.width + 4, it.text.height - 2, {
+              fill: theme.background,
+              stroke: "transparent",
+              strokeWidth: 1,
+              roughness: 0,
+              opacity: 80,
+            });
           c.richText(it.text, it.textX, it.textY, {
             color: it.arrow.color ?? msg.text,
             align: "left",
           });
+        }
         break;
       }
       case "note": {
@@ -294,6 +315,7 @@ function drawSequence(laid, c) {
       }
     }
   }
+  if (!labelsDrawn) groupLabels.forEach((f) => f());
 }
 
 export default defineDiagram({

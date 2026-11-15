@@ -17,7 +17,7 @@ import { roleStyle } from "../../draw/theme.mjs";
  *  | { type: "head", p: Participant, x: number, y: number, w: number, h: number, text: RichLayout, icon: [number, number] | null, foot: boolean }
  *  | { type: "lifeline", x: number, y1: number, y2: number, gaps: [number, number][], destroyed: boolean }
  *  | { type: "activation", x: number, y1: number, y2: number, color: string | null }
- *  | { type: "message", points: [number, number][], text: RichLayout | null, textX: number, textY: number, arrow: import("./parse.mjs").MessageArrow, self: boolean }
+ *  | { type: "message", points: [number, number][], text: RichLayout | null, textX: number, textY: number, arrow: import("./parse.mjs").MessageArrow, self: boolean, plate?: boolean }
  *  | { type: "note", x: number, y: number, w: number, h: number, text: RichLayout, shape: string, colors: import("../../syntax/color.mjs").ColorSpec }
  *  | { type: "divider", x1: number, x2: number, y: number, text: RichLayout | null }
  *  | { type: "delay", x1: number, x2: number, y: number, text: RichLayout | null }
@@ -262,7 +262,11 @@ export function layoutSequence(model, ctx) {
             arrow: e.arrow,
             self: false,
           });
-          touch(Math.min(x1, x2), Math.max(x1, x2));
+          // Leave room for activation bars between the fragment frame and the arrow.
+          touch(Math.min(x1, x2) - 12, Math.max(x1, x2) + 12);
+          const last = /** @type {any} */ (items[items.length - 1]);
+          if (text)
+            last.plate = cx.some((c) => c > last.textX - 2 && c < last.textX + text.width + 2);
           if (!e.parallel) y = arrowY + 16;
         }
         lastArrowY = arrowY;
