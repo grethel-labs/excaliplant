@@ -176,7 +176,7 @@ export function parseInline(text, base = {}) {
     if (stack.length > 1) stack.pop();
   };
 
-  for (let i = 0; i < text.length; ) {
+  for (let i = 0; i < text.length;) {
     const c = text[i];
     if (c === "~" && i + 1 < text.length) {
       buf += text[i + 1];
