@@ -64,13 +64,13 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "elkjs": "^0.11.1",
+    "elkjs": "^0.12.1",
     "roughjs": "^4.6.6"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "prettier": "^3.8.3",
-    "typescript": "^6.0.3"
+    "@types/node": "^26.6.6",
+    "prettier": "^3.10.1",
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=20"
