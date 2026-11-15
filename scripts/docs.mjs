@@ -3,7 +3,8 @@
 //
 //   docs/gallery/<kind>/<name>.svg    every example (Excalifont embedded)
 //   docs/gallery.md                    gallery page with sources and images
-//   docs/assets/*.png                  README screenshots and theme showcase
+//   docs/assets/carousel.svg           animated README carousel (one slide per diagram type)
+//   docs/assets/*.png                  theme showcase and pipeline picture
 //   README.md                          rendered from docs/README.template.md
 //
 // Usage: node scripts/docs.mjs [--check]
@@ -11,12 +12,11 @@
 //            PNGs are only checked for existence because rasterisation may
 //            differ slightly between platforms.
 
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { render, listDiagramTypes, THEME_NAMES } from "../src/index.mjs";
+import { render, THEME_NAMES } from "../src/index.mjs";
+import { ROOT, SITE_URL, TYPES, loadExamples, carouselSvg } from "./showcase.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const check = process.argv.includes("--check");
 /** @type {string[]} */
 const stale = [];
@@ -27,7 +27,7 @@ const stale = [];
  * @param {{ binary?: boolean }} [opts]
  */
 function emit(rel, content, opts = {}) {
-  const file = path.join(root, rel);
+  const file = path.join(ROOT, rel);
   if (check) {
     if (!existsSync(file)) stale.push(`${rel} (missing)`);
     else if (!opts.binary && readFileSync(file, "utf8") !== content) stale.push(rel);
@@ -37,84 +37,34 @@ function emit(rel, content, opts = {}) {
   writeFileSync(file, content);
 }
 
-/** Human titles and a one-line description per kind for the gallery. */
-const TYPE_NOTES = {
-  sequence:
-    "Participants, all arrow styles, activations, notes, fragments, dividers, autonumber, boxes.",
-  activity: "New syntax with if/switch/while/repeat/fork/split, partitions, notes and swimlanes.",
-  "legacy-activity": 'The classic `(*) --> "Activity"` syntax with sync bars and branches.',
-  class:
-    "Classes, interfaces, enums, generics, members, packages, all UML relations, IE crow's feet.",
-  object: "Objects with fields, maps (`key => value`) and links.",
-  usecase: "Actors, use cases, system boundaries, include/extend.",
-  component: "Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`.",
-  deployment: "Nodes, clouds, databases, queues, artifacts and nested deployment targets.",
-  state: "Composite states, concurrent regions, choice, fork/join, history, entry/exit actions.",
-  timing: "Robust, concise, clock, binary and analog signals with messages and constraints.",
-  gantt: "Tasks, dependencies, milestones, progress, resources, closed days, today marker.",
-  chronology: "Events and spans on a time line with links.",
-  mindmap: "OrgMode/Markdown outlines on both sides, colours, boxless nodes.",
-  wbs: "Work breakdown structures as org charts.",
-  files: "File trees from path lists with notes.",
-  json: "JSON documents as linked tables with highlights.",
-  yaml: "YAML documents as linked tables.",
-  nwdiag: "Networks, addresses, multi-homed nodes, groups and peer links.",
-  salt: "Wireframes: grids, buttons, inputs, check boxes, trees, tabs, group boxes.",
-  archimate: "ArchiMate elements by layer with icons, junctions and `Rel_*` macros.",
-  chen: "Chen ER diagrams: entities, weak entities, relationships, attributes, cardinalities.",
-  dot: "Graphviz DOT graphs laid out with ELK.",
-  ebnf: "EBNF grammars as railroad diagrams.",
-  regex: "Regular expressions as railroad diagrams.",
-  math: "AsciiMath formulas.",
-  latex: "LaTeX formulas.",
-  ditaa: "ASCII art boxes, lines, arrows and colour tags.",
-  chart: "Bar, line, area and scatter charts.",
-  creole: "Rich text with headings, lists, tables and links.",
-};
+const examples = loadExamples();
+const kinds = [...new Set(examples.map((e) => e.kind))];
+const titleOf = new Map(TYPES.map(([k, t]) => [k, t]));
+const noteOf = new Map(TYPES.map(([k, , n]) => [k, n]));
 
-const exampleRoot = path.join(root, "examples");
-const kinds = listDiagramTypes().map((t) => t.kind);
-/** @type {{ kind: string, name: string, source: string }[]} */
-const examples = [];
-for (const kind of kinds) {
-  const dir = path.join(exampleRoot, kind);
-  if (!existsSync(dir)) continue;
-  for (const file of readdirSync(dir)
-    .filter((f) => f.endsWith(".puml"))
-    .sort()) {
-    examples.push({
-      kind,
-      name: file.replace(/\.puml$/, ""),
-      source: readFileSync(path.join(dir, file), "utf8"),
-    });
-  }
+if (!check) {
+  rmSync(path.join(ROOT, "docs", "gallery"), { recursive: true, force: true });
+  rmSync(path.join(ROOT, "docs", "assets"), { recursive: true, force: true });
 }
 
-if (!check) rmSync(path.join(root, "docs", "gallery"), { recursive: true, force: true });
-
-// ── gallery ───────────────────────────────────────────────────────────
+// ── gallery + carousel ────────────────────────────────────────────────
 const gallery = [
   "# Diagram gallery",
   "",
-  "> Generated by `npm run docs` from [`examples/`](../examples). Every example is also a test fixture.",
+  `> Generated by \`npm run docs\` from [\`examples/\`](../examples). Every example is also a test fixture. Prefer clicking? Try the [interactive gallery](${SITE_URL}).`,
   "",
-  ...kinds.filter((k) => examples.some((e) => e.kind === k)).map((k) => `- [${k}](#${k})`),
+  kinds.map((k) => `[${titleOf.get(k)}](#${k})`).join(" · "),
   "",
 ];
+/** @type {{ kind: string, title: string, name: string, doc: any }[]} */
+const slides = [];
 for (const kind of kinds) {
-  const list = examples.filter((e) => e.kind === kind);
-  if (!list.length) continue;
-  gallery.push(
-    `## ${kind}`,
-    "",
-    TYPE_NOTES[/** @type {keyof typeof TYPE_NOTES} */ (kind)] ?? "",
-    "",
-  );
-  for (const ex of list) {
+  gallery.push(`## ${kind}`, "", `**${titleOf.get(kind)}** — ${noteOf.get(kind)}`, "");
+  for (const ex of examples.filter((e) => e.kind === kind)) {
     const result = await render(ex.source);
-    const svg = await result.toSvg();
-    const rel = `docs/gallery/${kind}/${ex.name}.svg`;
-    emit(rel, svg);
+    emit(`docs/gallery/${kind}/${ex.name}.svg`, await result.toSvg());
+    if (!slides.some((s) => s.kind === kind))
+      slides.push({ kind, title: ex.title, name: ex.name, doc: result.excalidraw });
     gallery.push(
       `### ${ex.name}`,
       "",
@@ -132,51 +82,36 @@ for (const kind of kinds) {
   }
 }
 emit("docs/gallery.md", `${gallery.join("\n").trimEnd()}\n`);
+emit("docs/assets/carousel.svg", carouselSvg(slides));
 
-// ── README screenshots ────────────────────────────────────────────────
-const SHOWCASE = [
-  ["sequence", "checkout-flow"],
-  ["class", "shop-domain"],
-  ["activity", "order-processing"],
-  ["component", "c4-container"],
-  ["state", "order-lifecycle"],
-  ["mindmap", "excaliplant"],
-  ["gantt", "release-plan"],
-  ["json", "api-response"],
-  ["usecase", "checkout"],
-  ["ebnf", "json-grammar"],
-  ["salt", "login-dialog"],
-  ["timing", "web-request"],
-];
-for (const [kind, name] of SHOWCASE) {
-  const ex = examples.find((e) => e.kind === kind && e.name === name);
-  if (!ex) throw new Error(`Showcase example ${kind}/${name} is missing`);
-  const result = await render(ex.source);
-  emit(`docs/assets/${kind}-${name}.png`, await result.toPng({ scale: 1.5 }), { binary: true });
-}
-
-const themeSource = readFileSync(path.join(root, "docs", "diagrams", "theme-demo.puml"), "utf8");
+// ── theme showcase and pipeline picture ──────────────────────────────
+const themeSource = readFileSync(path.join(ROOT, "docs", "diagrams", "theme-demo.puml"), "utf8");
 for (const theme of THEME_NAMES) {
   const result = await render(themeSource, { theme });
   emit(`docs/assets/theme-${theme}.png`, await result.toPng({ scale: 1.2 }), { binary: true });
 }
 const pipeline = await render(
-  readFileSync(path.join(root, "docs", "diagrams", "pipeline.puml"), "utf8"),
+  readFileSync(path.join(ROOT, "docs", "diagrams", "pipeline.puml"), "utf8"),
 );
 emit("docs/assets/pipeline.png", await pipeline.toPng({ scale: 1.5 }), { binary: true });
 
 // ── README ────────────────────────────────────────────────────────────
-const typeRows = listDiagramTypes()
-  .filter((t) => examples.some((e) => e.kind === t.kind))
-  .sort((a, b) => a.title.localeCompare(b.title))
-  .map(
-    (t) =>
-      `| [${t.title}](docs/gallery.md#${t.kind}) | ${t.starts.map((s) => `\`@start${s}\``).join(" ")} | ${TYPE_NOTES[/** @type {keyof typeof TYPE_NOTES} */ (t.kind)] ?? ""} |`,
-  );
+const counts = new Map(kinds.map((k) => [k, examples.filter((e) => e.kind === k).length]));
 const vars = {
   typeCount: String(kinds.length),
   exampleCount: String(examples.length),
-  typeTable: ["| Diagram | Start | Highlights |", "| --- | --- | --- |", ...typeRows].join("\n"),
+  siteUrl: SITE_URL,
+  typeChips: kinds
+    .map((k) => `<a href="${SITE_URL}#${k}"><kbd>${titleOf.get(k)}</kbd></a>`)
+    .join("\n  "),
+  typeTable: [
+    "| Diagram | Examples | Highlights |",
+    "| --- | --- | --- |",
+    ...kinds.map(
+      (k) =>
+        `| [${titleOf.get(k)}](${SITE_URL}#${k}) | [${counts.get(k)}](docs/gallery.md#${k}) | ${noteOf.get(k)} |`,
+    ),
+  ].join("\n"),
   themes: THEME_NAMES.map((t) => `\`${t}\``).join(", "),
   themeGrid: [
     "<table>",
@@ -189,7 +124,7 @@ const vars = {
     "</table>",
   ].join("\n"),
 };
-const template = readFileSync(path.join(root, "docs", "README.template.md"), "utf8");
+const template = readFileSync(path.join(ROOT, "docs", "README.template.md"), "utf8");
 const readme = template.replace(/\{\{(\w+)\}\}/g, (m, key) => {
   if (!(key in vars)) throw new Error(`Unknown README placeholder ${m}`);
   return vars[/** @type {keyof typeof vars} */ (key)];
@@ -206,6 +141,6 @@ if (check) {
   console.log("Generated docs are up to date.");
 } else {
   console.log(
-    `Generated ${examples.length} gallery entries, ${SHOWCASE.length + THEME_NAMES.length + 1} screenshots and README.md.`,
+    `Generated ${examples.length} gallery entries for ${kinds.length} diagram types, a ${slides.length}-slide carousel and README.md.`,
   );
 }

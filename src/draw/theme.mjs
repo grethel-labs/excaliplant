@@ -26,6 +26,7 @@
  * @property {string} muted Secondary text/line colour.
  * @property {number} fontSize
  * @property {number} roughness 0 = clean, 1 = sketchy, 2 = very sketchy.
+ * @property {number} edgeRoughness Roughness of connectors; low so lines stay straight and corners crisp.
  * @property {number} strokeWidth
  * @property {"solid" | "hachure" | "cross-hatch"} fillStyle
  * @property {{ fill: string, stroke: string }[]} palette Ordered hue pairs for series/branches.
@@ -145,6 +146,7 @@ export const THEMES = {
     muted: "#495057",
     fontSize: 16,
     roughness: 1,
+    edgeRoughness: 0.3,
     strokeWidth: 2,
     fillStyle: "solid",
     palette: Object.values(LIGHT),
@@ -157,6 +159,7 @@ export const THEMES = {
     muted: "#495057",
     fontSize: 16,
     roughness: 0,
+    edgeRoughness: 0,
     strokeWidth: 1.5,
     fillStyle: "solid",
     palette: Object.values(LIGHT),
@@ -169,6 +172,7 @@ export const THEMES = {
     muted: "#495057",
     fontSize: 16,
     roughness: 1,
+    edgeRoughness: 0.3,
     strokeWidth: 2,
     fillStyle: "hachure",
     palette: Object.values(LIGHT),
@@ -188,6 +192,7 @@ export const THEMES = {
     muted: "#495057",
     fontSize: 16,
     roughness: 1,
+    edgeRoughness: 0.3,
     strokeWidth: 2,
     fillStyle: "solid",
     palette: Array(6).fill({ fill: "#ffffff", stroke: "#1e1e1e" }),
@@ -207,6 +212,7 @@ export const THEMES = {
     muted: "#adb5bd",
     fontSize: 16,
     roughness: 1,
+    edgeRoughness: 0.3,
     strokeWidth: 2,
     fillStyle: "solid",
     palette: Object.values(DARK),
@@ -219,6 +225,7 @@ export const THEMES = {
     muted: "#c5d7f7",
     fontSize: 16,
     roughness: 1,
+    edgeRoughness: 0.3,
     strokeWidth: 2,
     fillStyle: "solid",
     palette: Array(6).fill({ fill: "#0e4aa8", stroke: "#ffffff" }),
@@ -273,7 +280,10 @@ export function createTheme(base, options = {}) {
     palette: src.palette.slice(),
     roles: Object.fromEntries(Object.entries(src.roles).map(([k, v]) => [k, { ...v }])),
   };
-  if (options.sketch === false) theme.roughness = 0;
+  if (options.sketch === false) {
+    theme.roughness = 0;
+    theme.edgeRoughness = 0;
+  }
   if (options.sketch === true && theme.roughness === 0) theme.roughness = 1;
   return theme;
 }

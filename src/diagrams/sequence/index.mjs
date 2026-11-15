@@ -186,7 +186,7 @@ function drawSequence(laid, c) {
           strokeStyle: it.arrow.lineStyle,
           start: it.arrow.startHead,
           end: it.arrow.endHead,
-          roughness: Math.min(theme.roughness, 0.6),
+          roughness: theme.edgeRoughness,
         });
         if (it.text)
           c.richText(it.text, it.textX, it.textY, {

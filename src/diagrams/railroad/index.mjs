@@ -347,7 +347,7 @@ function box(r, fs, theme) {
   const ink = theme.ink;
   const track = { stroke: theme.muted, strokeWidth: 2 };
   /** @param {import("../../draw/canvas.mjs").Canvas} c @param {[number, number][]} pts */
-  const path = (c, pts) => c.line(pts, { ...track, roughness: Math.min(theme.roughness, 0.8) });
+  const path = (c, pts) => c.line(pts, { ...track, roughness: theme.edgeRoughness });
   switch (r.k) {
     case "skip":
       return { w: 0, up: 0, down: 0, draw: () => {} };
@@ -494,7 +494,7 @@ function box(r, fs, theme) {
               ...track,
               strokeWidth: 1.5,
               end: "arrow",
-              roughness: Math.min(theme.roughness, 0.8),
+              roughness: theme.edgeRoughness,
             },
           );
           if (lbl) c.richText(lbl, x + (w - lbl.width) / 2, by + 2, { color: theme.muted });

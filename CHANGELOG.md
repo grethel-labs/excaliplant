@@ -6,6 +6,19 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ## Unreleased
 
+### Changed
+
+- Connectors are drawn with much less hand-drawn wobble (`edgeRoughness` per theme), so lines stay straight with crisp corners; mind map and JSON/YAML connectors are orthogonal instead of curved.
+- Graph diagrams with many unconnected elements are packed into a grid instead of one long row.
+- Floating notes may contain colons (`note "a: b" as N`).
+
+### Added
+
+- Interactive gallery on GitHub Pages with type tabs, arrows, keyboard and swipe navigation, PlantUML source and SVG/`.excalidraw` downloads.
+- Animated README carousel with one slide per diagram type, plus more examples for sequence, class, state, use case, deployment and timing diagrams.
+
+## 1.0.0
+
 ### Changed — complete rewrite (breaking)
 
 - New architecture: one small module per diagram type (`detect`, `parse`, `layout`, `draw`) on a shared core. The 0.x class hierarchy (`BaseDiagramModule`, `*Assets`, `*Docs`, …) and its exports are gone.

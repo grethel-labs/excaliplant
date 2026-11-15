@@ -220,7 +220,10 @@ export class Canvas {
    */
   arrow(points, style = {}) {
     if (points.length < 2) return null;
-    const el = this.linear("arrow", points, style);
+    const el = this.linear("arrow", points, {
+      ...style,
+      roughness: style.roughness ?? this.theme.edgeRoughness,
+    });
     el.elbowed = false;
     const sw = el.strokeWidth;
     el.startArrowhead = this.head(style.start ?? null, points[1], points[0], el, sw);

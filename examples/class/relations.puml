@@ -1,0 +1,30 @@
+@startuml
+title All class relations
+namespace shapes {
+  abstract class Shape {
+    + area() : double
+  }
+  class Circle
+  class Square
+  interface Drawable
+  enum Color {
+    RED
+    GREEN
+  }
+}
+class Canvas
+class Layer
+class Brush
+class Logger
+Shape <|-- Circle
+Shape <|-- Square
+Drawable <|.. Shape
+Canvas "1" *-- "many" Layer : layers
+Layer o-- Shape : contains
+Canvas --> Brush : uses
+Canvas ..> Logger : <<depends>>
+Shape --> Color
+Brush -- Color
+note "Composition: a layer cannot\nlive without its canvas." as N1
+N1 .. Canvas
+@enduml
