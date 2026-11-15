@@ -20,6 +20,42 @@ mkdirSync(path.join(out, "d"), { recursive: true });
 const pkg = JSON.parse(
   (await import("node:fs")).readFileSync(path.join(ROOT, "package.json"), "utf8"),
 );
+const version = await publishedVersion(pkg.name);
+
+/**
+ * The version shown on the page. package.json stays `0.0.0-development`
+ * (tags are the source of truth), so ask npm first, then fall back to the
+ * latest `v*` tag. `SITE_VERSION` overrides both.
+ * @param {string} name
+ * @returns {Promise<string | null>}
+ */
+async function publishedVersion(name) {
+  if (process.env.SITE_VERSION) return process.env.SITE_VERSION.replace(/^v/, "");
+  try {
+    const res = await fetch(`https://registry.npmjs.org/${name.replace("/", "%2f")}/latest`, {
+      signal: AbortSignal.timeout(10_000),
+      headers: { "cache-control": "no-cache" },
+    });
+    if (res.ok) {
+      const v = (await res.json()).version;
+      if (typeof v === "string" && /^\d+\.\d+\.\d+/.test(v)) return v;
+    }
+  } catch {
+    // offline: fall through to git tags
+  }
+  try {
+    const { execFileSync } = await import("node:child_process");
+    const tags = execFileSync("git", ["tag", "--list", "v[0-9]*", "--sort=-v:refname"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    const latest = tags.split("\n")[0]?.trim();
+    if (latest) return latest.replace(/^v/, "");
+  } catch {
+    // not a git checkout
+  }
+  return null;
+}
 const examples = loadExamples();
 /** @type {{ kind: string, title: string, note: string, name: string, source: string }[]} */
 const slides = [];
@@ -70,6 +106,7 @@ const html = `<!doctype html>
   header { max-width: 1200px; margin: 0 auto; padding: 28px 20px 8px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; }
   h1 { font: 40px Excalifont, system-ui, sans-serif; margin: 0; }
   header p { margin: 0; color: var(--muted); flex: 1 1 320px; }
+  header p a { color: var(--accent); }
   header nav a { color: var(--accent); text-decoration: none; margin-left: 16px; }
   .install { font: 13px ui-monospace, monospace; background: var(--code); padding: 6px 10px; border-radius: 6px; }
   .tabs { max-width: 1200px; margin: 16px auto 0; padding: 0 20px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: thin; }
@@ -103,7 +140,7 @@ const html = `<!doctype html>
 <body>
 <header>
   <h1>excaliplant</h1>
-  <p>PlantUML in, hand-drawn diagrams out — ${kinds.length} diagram types rendered as editable Excalidraw scenes, SVG and PNG. Version ${esc(pkg.version === "0.0.0-development" ? "latest" : pkg.version)}.</p>
+  <p>PlantUML in, hand-drawn diagrams out — ${kinds.length} diagram types rendered as editable Excalidraw scenes, SVG and PNG. ${version ? `Version <a href="https://www.npmjs.com/package/${pkg.name}/v/${esc(version)}">${esc(version)}</a>.` : ""}</p>
   <span class="install">npm i @grethel-labs/excaliplant</span>
   <nav><a href="https://github.com/grethel-labs/excaliplant">GitHub</a><a href="https://www.npmjs.com/package/@grethel-labs/excaliplant">npm</a></nav>
 </header>

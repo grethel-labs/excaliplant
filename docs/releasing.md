@@ -8,6 +8,7 @@ PR opened ──► pr-labels.yml   exactly one release:* label (derived from th
 merge     ──► release.yml     label of the merged PR → next version from the latest v* tag
                               → full gate → npm version (runner only) → pack + smoke
                               → npm publish --provenance → tag + GitHub release
+          ──► pages.yml       after release.yml: rebuild the gallery with the version now on npm
 ```
 
 | Label           | Effect on merge           |
