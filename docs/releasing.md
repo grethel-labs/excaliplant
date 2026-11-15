@@ -25,12 +25,15 @@ label automatically; otherwise `release:patch` is applied.
 - **Tags are the source of truth.** `package.json` keeps `0.0.0-development`; the release job sets the real version only inside the runner. Nothing is committed or force-pushed back to `main`, so branch protection stays strict and no bot keys are needed.
 - **Idempotent.** Re-running a release skips an already published npm version and an existing GitHub release.
 - **Manual releases.** `Actions → Release → Run workflow` with a bump input.
+- **Workflow changes.** GitHub does not let `GITHUB_TOKEN` create a tag on a commit that changes `.github/workflows/`. If such a PR is released, npm publishing still succeeds and the job prints the `gh release create …` command a maintainer runs once. Prefer `release:none` for CI-only PRs.
 
 ## npm authentication
 
-The publish step supports both:
+Publishing uses npm **trusted publishing** (OIDC): npmjs.com trusts
+`grethel-labs/excaliplant`, workflow `release.yml`, environment `npm`. The job
+requests a short-lived identity token (`id-token: write`), so no npm token is
+stored in GitHub. Provenance statements are generated automatically.
 
-1. **Trusted publishing (recommended):** configure the package on npmjs.com to trust `grethel-labs/excaliplant`, workflow `release.yml`, environment `npm`. No secret needed.
-2. **Token:** an automation token in the `NPM_TOKEN` repository (or `npm` environment) secret.
-
-Provenance statements are generated in both cases (`id-token: write`).
+If the trusted publisher configuration on npmjs.com is removed or changed,
+publishing fails with `E404`/`E403` on the `PUT` request; restore the
+configuration rather than adding a token.
