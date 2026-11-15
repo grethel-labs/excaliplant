@@ -1,0 +1,18 @@
+@startuml
+|Customer|
+start
+:Submit request;
+|#e7f5ff|Support|
+:Triage ticket;
+if (Bug?) then (yes)
+  |Engineering|
+  :Fix issue;
+  :Deploy;
+else (no)
+  |Support|
+  :Answer question;
+endif
+|Customer|
+:Confirm resolution;
+stop
+@enduml

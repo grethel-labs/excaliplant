@@ -1,15 +1,9 @@
 node_modules/
-*.log
-.DS_Store
-
-# Generated docs / artefacts (rebuilt by `npm run build`).
-docs/api/
-docs/ressources/generated/
-src/diagrams/*/tests/output/
-README.md
-
-# Vendored fonts / binary assets.
+types/
 assets/
-
-# Lockfile.
+docs/gallery/
+docs/gallery.md
+docs/assets/
+README.md
 package-lock.json
+src/layout/font_metrics.mjs

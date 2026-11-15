@@ -1,48 +1,23 @@
-# Contributing to excaliplant
+# Contributing
 
-Thanks for considering a contribution! This file captures the
-ground-rules; everything else lives in the README and inline JSDoc.
-
-## Quick start
+Thanks for helping! The short version:
 
 ```sh
-npm install
-npm test           # node --test, ~90 cases
-npm run typecheck  # tsc --checkJs
-npm run build      # regenerate docs + API reference
+npm ci
+npm run check      # format, types, tests, docs drift
 ```
 
-`npm install` wires up Husky. The pre-commit hook formats staged
-files with Prettier and runs the type checker.
+## Reporting PlantUML that renders badly
 
-## Adding parser support for a new PlantUML construct
+Open an issue with the smallest PlantUML snippet that shows the problem and,
+if possible, what PlantUML itself draws. Screenshots of excaliplant's output
+help a lot (`npx excaliplant input.puml -o out.png`).
 
-1. Drop a new plugin under the owning diagram module, for example
-   `src/diagrams/sequence/plugins/` or `src/diagrams/<kind>/plugins/`.
-   A plugin is `{ name, tryLine?, tryStart? }` — see
-   `src/util/parser_engine.mjs` for the contract.
-2. Register it in the corresponding module parser contract under
-   `src/diagrams/<kind>/parser.mjs`.
-3. Add a regression test under `tests/`.
+## Making changes
 
-The engine itself has no PlantUML-specific knowledge; you should
-never need to touch it for a new construct.
-
-## Pull request checklist
-
-- `npm test` passes locally.
-- `npm run typecheck` passes locally.
-- `npm run format:check` passes (or run `npm run format`).
-- New behaviour is covered by a test in `tests/`.
-- User-visible changes are mentioned in `CHANGELOG.md` under the
-  next unreleased section.
-
-## Reporting security issues
-
-Please **do not** open a public issue for security problems. See
-[`SECURITY.md`](./SECURITY.md) for the private disclosure channel.
-
-## License
-
-By contributing you agree that your contribution will be licensed
-under the [MIT License](./LICENSE) covering the rest of the project.
+1. Read [AGENTS.md](AGENTS.md) — it describes the architecture and rules for humans and agents alike.
+2. Add or update an example in `examples/<kind>/`; it becomes a test and a gallery entry.
+3. Add unit tests for tricky syntax in `test/`.
+4. Run `npm run docs` and commit the regenerated `README.md`, `docs/gallery*` and `docs/assets/`.
+5. Add a line to `CHANGELOG.md` under "Unreleased" for user-visible changes.
+6. Open a PR with one `release:*` label (or a `MAJOR`/`MINOR`/`PATCH`/`NONE` token in the branch name). See [docs/releasing.md](docs/releasing.md).

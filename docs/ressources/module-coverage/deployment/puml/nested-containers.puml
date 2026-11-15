@@ -1,9 +1,0 @@
-@startuml
-node "Kubernetes" {
-  cloud "Namespace" {
-    frame "Pod" {
-      [API]
-    }
-  }
-}
-@enduml

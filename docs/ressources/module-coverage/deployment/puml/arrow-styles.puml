@@ -1,8 +1,0 @@
-@startuml
-node A
-node B
-A --> B
-A ..> B
-A --* B
-A -[#red,dashed]-> B : styled
-@enduml

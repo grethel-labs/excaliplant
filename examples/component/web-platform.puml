@@ -1,0 +1,23 @@
+@startuml
+title Web platform
+package "Frontend" {
+  [Web App] as web
+  [Mobile App] as mobile
+}
+node "Backend" {
+  [API Gateway] as gw
+  [Order Service] as orders
+  [Billing Service] as billing
+}
+database "PostgreSQL" as db
+queue "Events" as bus
+() "REST" as rest
+web --> rest
+mobile --> rest
+rest - gw
+gw --> orders : routes
+gw --> billing
+orders --> db
+billing ..> bus : publishes
+orders ..> bus : subscribes
+@enduml

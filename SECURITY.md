@@ -3,10 +3,10 @@
 `@grethel-labs/excaliplant` parses untrusted PlantUML text and emits
 Excalidraw JSON / SVG / PNG. We treat the parser surface as a trust
 boundary and ship a dedicated security test suite
-([`tests/security.test.mjs`](tests/security.test.mjs)) covering XSS,
-ReDoS, prototype pollution, deeply nested input, oversized input, null
-bytes, RTL override / zero-width characters, surrogate pairs, and
-filesystem isolation.
+([`test/security.test.mjs`](test/security.test.mjs)) covering SVG
+injection, unsafe links, ReDoS-style pathological lines, prototype
+pollution, preprocessor explosions, resource limits and file-system
+isolation of `!include`.
 
 ## Supported versions
 
@@ -34,7 +34,7 @@ patched release within 30 days for confirmed high/critical issues.
 
 ## Hardening recommendations for consumers
 
-- Treat `renderPlantUml(input)` like any other untrusted-input parser.
+- Treat `render(input)` like any other untrusted-input parser.
   Run it inside a worker / isolated process if your input source is
   hostile.
 - The SVG output **inlines the Excalifont woff2** as a `data:` URL;
@@ -46,24 +46,19 @@ patched release within 30 days for confirmed high/critical issues.
 
 ## Built-in hardening
 
-These limits are enforced automatically and don't need to be enabled:
+These protections are always on:
 
-- **CLI stdin / file input cap**: `bin/excaliplant.mjs` rejects input
-  larger than `--max-input-bytes` (default 10 MiB, ceiling 200 MiB).
-- **Render-width bounds**: PNG and canvas-SVG widths are clamped to
-  `[16, 16000]` px to bound `@resvg/resvg-js` memory.
-- **Stack-trace gating**: the CLI prints a one-line error by default.
-  Set `DEBUG=1` to opt back into full stack traces.
-- **No install scripts**: the npm package declares no
-  `pre/install/postinstall` hooks; nothing executes at `npm install`
-  time beyond the bundled JS being placed on disk.
-- **Provenance**: releases are published with `npm publish
---provenance`. Consumers can verify the package origin via
-  `npm audit signatures`.
-- **Pinned third-party Actions**: `softprops/action-gh-release` and
-  `peaceiris/actions-gh-pages` are pinned by commit SHA in
-  `.github/workflows/release.yml`.
-- **Auto-patch dependency PRs require human review**: the
-  `auto-patch-deps` workflow opens a PR but no longer auto-merges, so
-  a malicious patch release that passes audit/tests still cannot land
-  on `main` without an approving review.
+- **Resource limits** (`DEFAULT_LIMITS`, overridable per call): input size
+  (2 MiB in the API, `--max-input-bytes` up to 200 MiB in the CLI), lines,
+  line length, preprocessor steps/recursion/loop iterations, nodes, edges,
+  drawing elements and PNG width (`[16, 16000]` px).
+- **No ambient I/O**: rendering never reads files or the network. `!include`
+  works only through a resolver you pass in; the CLI's `--include-dir`
+  confines includes to one directory tree. `!includeurl`/`!import` are refused.
+- **Escaped output**: all SVG text and attributes are escaped, colours are
+  validated, and links are limited to `http(s)` and `mailto`.
+- **No install scripts**: the package declares no install hooks.
+- **Provenance**: releases are published with `npm publish --provenance`
+  from GitHub Actions; verify with `npm audit signatures`.
+- **Reviewed dependency updates**: Dependabot PRs go through the same CI and
+  review as any other change.

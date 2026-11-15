@@ -1,0 +1,15 @@
+@startuml
+!include <C4/C4_Container>
+title Internet banking (C4 container view)
+Person(customer, "Customer", "A bank customer")
+System_Boundary(bank, "Internet Banking") {
+  Container(web, "Web App", "React", "Delivers the SPA")
+  Container(api, "API", "Kotlin", "JSON/HTTPS API")
+  ContainerDb(db, "Database", "PostgreSQL", "Accounts, transactions")
+}
+System_Ext(mail, "E-mail system", "Sends notifications")
+Rel(customer, web, "Uses", "HTTPS")
+Rel(web, api, "Calls", "JSON")
+Rel(api, db, "Reads/writes", "JDBC")
+Rel(api, mail, "Sends e-mails", "SMTP")
+@enduml

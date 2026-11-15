@@ -1,25 +1,17 @@
-# Pull request
-
 ## Summary
 
-<!-- One paragraph describing what this PR changes and why. -->
+<!-- What changes and why. Screenshots of rendered diagrams are very welcome. -->
 
-## Type of change
+## Release
 
-- [ ] Bug fix
-- [ ] Feature
-- [ ] Refactor / internal cleanup
-- [ ] Docs / build only
-- [ ] Dependency update
+<!-- Exactly one label: release:major | release:minor | release:patch | release:none.
+     It is derived from MAJOR/MINOR/PATCH/NONE in the branch name if you do not set it. -->
 
 ## Checklist
 
-- [ ] `npm test` passes locally (full 79+ suite).
-- [ ] If parser/renderer behaviour changed: regression test added.
-- [ ] If a new public export was added: `index.mjs` re-exports it AND `tests/self_introspection.test.mjs` still passes.
-- [ ] No edits to `README.md` or `docs/ressources/generated/` — those are rebuilt by CI.
-- [ ] If touching the public API: JSDoc updated; TypeDoc still builds (`npm run build:api`).
-
-## Notes for reviewers
-
-<!-- Anything reviewers should focus on, manual test cases, screenshots of rendered diagrams, etc. -->
+- [ ] `npm run check` passes (format, types, tests, docs drift).
+- [ ] New syntax or behaviour has an example in `examples/<kind>/` and/or a test in `test/`.
+- [ ] I looked at the rendered output (`npm run docs` or `npx excaliplant … -o out.png`).
+- [ ] Regenerated docs are committed (`npm run docs`).
+- [ ] `CHANGELOG.md` updated for user-visible changes.
+- [ ] Security-relevant changes have a case in `test/security.test.mjs`.

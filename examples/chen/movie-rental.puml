@@ -1,0 +1,26 @@
+@startchen
+entity CUSTOMER {
+  Number <<key>>
+  Name {
+    FirstName
+    LastName
+  }
+  Phone <<multi>>
+  Age <<derived>>
+}
+entity MOVIE {
+  Code <<key>>
+  Title
+}
+entity COPY <<weak>> {
+  CopyNo <<partial>>
+}
+relationship RENTS {
+  Date
+}
+relationship HAS <<identifying>>
+RENTS -N- CUSTOMER
+RENTS =M= COPY
+MOVIE -1- HAS
+HAS =N= COPY
+@endchen

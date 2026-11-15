@@ -1,272 +1,244 @@
 #!/usr/bin/env node
-// excaliplant CLI.
-//
-// Usage:
-//   excaliplant [--svg|--png|--excalidraw] [-o <out>] [--width N] [<input>]
-//
-// If <input> is omitted, PlantUML is read from stdin.
-// If -o is omitted, output is written to stdout (binary for PNG).
-//
-// Examples:
-//   excaliplant diagram.puml                       # excalidraw → stdout
-//   excaliplant -o diagram.excalidraw diagram.puml
-//   excaliplant --svg diagram.puml > out.svg
-//   cat diagram.puml | excaliplant --png -o out.png --width 4800
+// excaliplant CLI: file/stdin I/O and option parsing only. All rendering
+// logic lives in src/.
 
-import { readFile, writeFile } from "node:fs/promises";
-import { renderPlantUml } from "../index.mjs";
+import { readFileSync, writeFileSync, realpathSync, statSync } from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { render, renderAll, listDiagramTypes, THEME_NAMES } from "../src/index.mjs";
 
-// Hard limits to keep the CLI from being weaponised as a memory bomb.
-const DEFAULT_MAX_INPUT_BYTES = 10 * 1024 * 1024; // 10 MiB of PlantUML
-const MAX_INPUT_BYTES_CEILING = 200 * 1024 * 1024; // hard ceiling for --max-input-bytes
-const MAX_RENDER_WIDTH = 16000; // PNG/SVG canvas width upper bound
-const MIN_RENDER_WIDTH = 16;
-
-const HELP = `excaliplant — PlantUML → Excalidraw / SVG / PNG renderer.
+const HELP = `excaliplant — render PlantUML as hand-drawn Excalidraw, SVG or PNG
 
 Usage:
-  excaliplant [options] [<input>]
+  excaliplant [input.puml] [-o output] [options]
+  cat diagram.puml | excaliplant -f svg > diagram.svg
 
 Options:
-  --excalidraw     Emit Excalidraw JSON (default).
-  --svg            Emit a sketchy SVG.
-  --png            Emit a sketchy PNG.
-  -o, --out <f>    Write to file <f> instead of stdout.
-  --width <n>      PNG width (default 4800) / SVG canvas width (default 1200).
-                   Clamped to [${MIN_RENDER_WIDTH}, ${MAX_RENDER_WIDTH}].
-  --label <s>      Source label written to appState.name.
-  --no-canvas      For --svg: emit a tightly-cropped SVG without the 4:3 letterbox.
-  --rng-seed <n>   Override the deterministic seed (use --rng-seed=random for non-determinism).
-  --style <file>   Load a JSON or YAML style override (see style.example.json).
-  --max-input-bytes <N>
-                   Reject stdin/file input larger than N bytes
-                   (default ${DEFAULT_MAX_INPUT_BYTES}, ceiling ${MAX_INPUT_BYTES_CEILING}).
-  -h, --help       Show this message.
-  -v, --version    Show package version.
-
-Exit codes:
-   0 success
-   1 input error (oversized, parse error, render failure)
-   2 CLI argument error
-  64 unexpected internal error
-
-Set DEBUG=1 to print full stack traces on failure.
+  -o, --output <file>       Output file (format from extension unless -f is given).
+                            With --all, "{n}" in the name is replaced by the block number.
+  -f, --format <fmt>        excalidraw | svg | png (default: from extension, else excalidraw)
+  -t, --theme <name>        ${THEME_NAMES.join(" | ")} (default: sketch)
+      --clean               Clean strokes instead of the hand-drawn look
+      --width <px>          PNG width in pixels (16–16000)
+      --scale <n>           PNG scale relative to the SVG size (default 2)
+      --background <color>  Background colour for SVG/PNG
+      --seed <value>        Seed for stroke wobble and element ids
+      --page <n>            Page of a newpage document (0-based)
+      --all                 Render every @start…@end block
+      --include-dir <dir>   Allow !include of files below <dir>
+  -D, --define NAME=value   Predefine a preprocessor variable (repeatable)
+      --strict              Fail on unrecognised lines
+      --max-input-bytes <n> Input size limit (default 2 MiB, max 200 MiB)
+      --list-types          List supported diagram types
+  -q, --quiet               Do not print warnings
+  -h, --help                Show this help
+  -v, --version             Show the version
 `;
 
-/**
- * Print a one-line error and exit with the given code.
- * @param {number} code
- * @param {string} msg
- * @internal
- */
-function die(code, msg) {
-  process.stderr.write(`excaliplant: ${msg}\n`);
-  process.exit(code);
-}
+const MAX_INPUT_CEILING = 200 * 1024 * 1024;
 
 /**
- * Parse a CLI argument that must be a positive integer.
- * @param {string} raw
- * @param {string} flag
- * @returns {number}
- * @internal
- */
-function parsePositiveInt(raw, flag) {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
-    die(2, `${flag} expects a positive integer (got ${JSON.stringify(raw)})`);
-  }
-  return n;
-}
-
-/**
- * Parse `process.argv.slice(2)` into a normalised options object.
- * Validates ranges and exits with code 2 on bad input.
  * @param {string[]} argv
- * @returns {object}
- * @internal
  */
 function parseArgs(argv) {
-  const opts = { format: "excalidraw", canvas: true, maxInputBytes: DEFAULT_MAX_INPUT_BYTES };
+  /** @type {Record<string, any>} */
+  const opts = { defines: {} };
+  /** @type {string[]} */
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
+    const next = () => {
+      const v = argv[++i];
+      if (v === undefined) throw new Error(`Missing value for ${a}`);
+      return v;
+    };
     switch (a) {
-      case "--excalidraw":
-        opts.format = "excalidraw";
-        break;
-      case "--svg":
-        opts.format = "svg";
-        break;
-      case "--png":
-        opts.format = "png";
-        break;
       case "-o":
-      case "--out":
-        opts.out = argv[++i];
+      case "--output":
+        opts.output = next();
         break;
-      case "--width": {
-        const w = parsePositiveInt(argv[++i], "--width");
-        if (w < MIN_RENDER_WIDTH || w > MAX_RENDER_WIDTH) {
-          die(2, `--width out of range [${MIN_RENDER_WIDTH}, ${MAX_RENDER_WIDTH}] (got ${w})`);
-        }
-        opts.width = w;
+      case "-f":
+      case "--format":
+        opts.format = next().toLowerCase();
+        break;
+      case "-t":
+      case "--theme":
+        opts.theme = next();
+        break;
+      case "--clean":
+        opts.sketch = false;
+        break;
+      case "--width":
+        opts.width = Number(next());
+        break;
+      case "--scale":
+        opts.scale = Number(next());
+        break;
+      case "--background":
+        opts.background = next();
+        break;
+      case "--seed":
+        opts.seed = next();
+        break;
+      case "--page":
+        opts.page = Number(next());
+        break;
+      case "--all":
+        opts.all = true;
+        break;
+      case "--include-dir":
+        opts.includeDir = next();
+        break;
+      case "-D":
+      case "--define": {
+        const [k, ...v] = next().split("=");
+        opts.defines[k] = v.join("=");
         break;
       }
-      case "--label":
-        opts.label = argv[++i];
+      case "--strict":
+        opts.strict = true;
         break;
-      case "--no-canvas":
-        opts.canvas = false;
+      case "--max-input-bytes":
+        opts.maxInputBytes = Number(next());
         break;
-      case "--rng-seed":
-        opts.rngSeed = argv[++i];
+      case "--list-types":
+        opts.listTypes = true;
         break;
-      case "--style":
-        opts.styleFile = argv[++i];
+      case "-q":
+      case "--quiet":
+        opts.quiet = true;
         break;
-      case "--max-input-bytes": {
-        const n = parsePositiveInt(argv[++i], "--max-input-bytes");
-        if (n > MAX_INPUT_BYTES_CEILING) {
-          die(2, `--max-input-bytes exceeds ceiling ${MAX_INPUT_BYTES_CEILING}`);
-        }
-        opts.maxInputBytes = n;
-        break;
-      }
       case "-h":
       case "--help":
         opts.help = true;
         break;
       case "-v":
       case "--version":
-        opts.versionFlag = true;
+        opts.version = true;
         break;
       default:
-        if (a.startsWith("-")) die(2, `unknown option: ${a}`);
+        if (a.startsWith("-") && a !== "-") throw new Error(`Unknown option ${a}`);
         positional.push(a);
     }
   }
-  if (positional.length > 1) die(2, "expected at most one positional <input> path");
   opts.input = positional[0];
   return opts;
 }
 
 /**
- * Read the PlantUML source either from the named file or from stdin,
- * enforcing the configured byte cap.
- * @param {string|undefined} file
- * @param {number} maxBytes
- * @returns {Promise<string>}
- * @internal
+ * Resolver for `!include` restricted to one directory tree.
+ * @param {string} root
  */
-async function readInput(file, maxBytes) {
-  if (file) {
-    // Stat first so we don't load multi-GB files into memory.
-    const { stat } = await import("node:fs/promises");
-    const st = await stat(file);
-    if (st.size > maxBytes) {
-      die(
-        1,
-        `input file ${file} is ${st.size} bytes, exceeds limit ${maxBytes} (raise with --max-input-bytes)`,
-      );
+function includeResolver(root) {
+  const base = realpathSync(root);
+  return (/** @type {string} */ target, /** @type {{ kind: string }} */ ctx) => {
+    if (ctx.kind !== "file") return null;
+    try {
+      const resolved = realpathSync(path.resolve(base, target));
+      if (resolved !== base && !resolved.startsWith(base + path.sep)) return null;
+      if (statSync(resolved).size > 2 * 1024 * 1024) return null;
+      return readFileSync(resolved, "utf8");
+    } catch {
+      return null;
     }
-    return readFile(file, "utf8");
+  };
+}
+
+async function readStdin(limit) {
+  /** @type {Buffer[]} */
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of process.stdin) {
+    size += chunk.length;
+    if (size > limit) throw new Error(`Input exceeds ${limit} bytes`);
+    chunks.push(chunk);
   }
-  return new Promise((resolve, reject) => {
-    let total = 0;
-    const chunks = [];
-    process.stdin.on("data", (chunk) => {
-      total += chunk.length;
-      if (total > maxBytes) {
-        process.stdin.destroy();
-        reject(
-          new Error(
-            `stdin exceeded ${maxBytes} bytes (raise with --max-input-bytes); aborted at ${total}`,
-          ),
-        );
-        return;
-      }
-      chunks.push(chunk);
-    });
-    process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    process.stdin.on("error", reject);
-  });
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 /**
- * CLI entry point. Wired into `bin/excaliplant.mjs` shebang.
- * @returns {Promise<void>}
- * @internal
+ * @param {import("../src/api.mjs").RenderResult} result
+ * @param {Record<string, any>} opts
+ * @param {string} format
  */
+async function encode(result, opts, format) {
+  if (format === "svg") return result.toSvg({ background: opts.background });
+  if (format === "png")
+    return result.toPng({ width: opts.width, scale: opts.scale, background: opts.background });
+  return `${JSON.stringify(result.excalidraw, null, 2)}\n`;
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
-  if (opts.help) {
-    process.stdout.write(HELP);
+  if (opts.help) return void process.stdout.write(HELP);
+  if (opts.version) {
+    const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    return void process.stdout.write(`${pkg.version}\n`);
+  }
+  if (opts.listTypes) {
+    for (const t of listDiagramTypes())
+      process.stdout.write(`${t.kind.padEnd(16)} @start${t.starts.join(", @start")}  ${t.title}\n`);
     return;
   }
-  if (opts.versionFlag) {
-    const { readFile: rf } = await import("node:fs/promises");
-    const url = new URL("../package.json", import.meta.url);
-    const pkg = JSON.parse(await rf(url, "utf8"));
-    process.stdout.write(`${pkg.version}\n`);
-    return;
+  const limit = Math.min(
+    MAX_INPUT_CEILING,
+    Number.isFinite(opts.maxInputBytes) && opts.maxInputBytes > 0
+      ? opts.maxInputBytes
+      : 10 * 1024 * 1024,
+  );
+  let source;
+  if (!opts.input || opts.input === "-") source = await readStdin(limit);
+  else {
+    if (statSync(opts.input).size > limit) throw new Error(`Input exceeds ${limit} bytes`);
+    source = readFileSync(opts.input, "utf8");
   }
-
-  let text;
-  try {
-    text = await readInput(opts.input, opts.maxInputBytes);
-  } catch (e) {
-    die(1, e?.message || String(e));
-  }
-
-  if (opts.styleFile) {
-    const { loadStyleFromFile } = await import("../src/general/style/style.mjs");
-    loadStyleFromFile(opts.styleFile);
-  }
-
-  // Build deterministic / overridable RNG.
-  let rng;
-  if (opts.rngSeed === "random") {
-    rng = Math.random;
-  } else if (opts.rngSeed != null) {
-    const { createSeededRng } = await import("../src/general/render/rng.mjs");
-    rng = createSeededRng(Number(opts.rngSeed) >>> 0);
-  }
-
-  const result = renderPlantUml(text, {
-    sourceLabel: opts.label ?? opts.input ?? "stdin",
-    rng,
-  });
-
-  let payload;
-  if (opts.format === "excalidraw") {
-    const doc = await result;
-    payload = JSON.stringify(doc, null, 2);
-  } else if (opts.format === "svg") {
-    const svgOpts = { canvas: opts.canvas };
-    if (opts.width) svgOpts.width = opts.width;
-    payload = await result.toSvg(svgOpts);
-  } else if (opts.format === "png") {
-    const pngOpts = {};
-    if (opts.width) pngOpts.width = opts.width;
-    payload = await result.toPng(pngOpts);
-  }
-
-  if (opts.out) {
-    await writeFile(opts.out, payload);
-  } else if (opts.format === "png") {
-    process.stdout.write(payload);
-  } else {
-    process.stdout.write(`${payload}\n`);
+  const ext = opts.output ? path.extname(opts.output).slice(1).toLowerCase() : "";
+  const format = opts.format ?? (ext === "svg" || ext === "png" ? ext : "excalidraw");
+  if (!["svg", "png", "excalidraw", "json"].includes(format))
+    throw new Error(`Unknown format ${format}`);
+  const renderOptions = {
+    theme: opts.theme,
+    sketch: opts.sketch,
+    seed: opts.seed,
+    page: opts.page,
+    strict: opts.strict,
+    defines: opts.defines,
+    filename: opts.input ? path.basename(opts.input) : "",
+    limits: { maxInputBytes: limit },
+    include: opts.includeDir ? includeResolver(opts.includeDir) : undefined,
+  };
+  const results = opts.all
+    ? await renderAll(source, renderOptions)
+    : [await render(source, renderOptions)];
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (!opts.quiet)
+      for (const d of r.diagnostics)
+        process.stderr.write(`warning${d.line ? ` (line ${d.line})` : ""}: ${d.message}\n`);
+    const data = await encode(r, opts, format);
+    if (!opts.output) {
+      if (format === "png" && process.stdout.isTTY)
+        throw new Error("Refusing to write PNG to a terminal; use -o");
+      process.stdout.write(data);
+      continue;
+    }
+    const file =
+      results.length > 1
+        ? opts.output.includes("{n}")
+          ? opts.output.replace("{n}", String(i + 1))
+          : opts.output.replace(/(\.[^.]+)?$/, `-${i + 1}$1`)
+        : opts.output;
+    writeFileSync(file, data);
   }
 }
 
-main().catch((e) => {
-  if (process.env.DEBUG) {
-    console.error(e?.stack || e);
-  } else {
-    console.error(`excaliplant: ${e?.message || e}`);
-    console.error("  (set DEBUG=1 to see the full stack trace)");
-  }
-  process.exit(64);
+// Closing the pipe early (`| head`) is not an error.
+process.stdout.on("error", (err) => {
+  if (/** @type {NodeJS.ErrnoException} */ (err).code === "EPIPE") process.exit(0);
+  throw err;
+});
+
+main().catch((err) => {
+  process.stderr.write(`excaliplant: ${err?.message ?? err}\n`);
+  process.exitCode = 1;
 });

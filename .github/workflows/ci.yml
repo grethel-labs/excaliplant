@@ -1,25 +1,47 @@
 name: CI
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_call:
 
-# Default permission scope: read-only. The single job that needs to push
-# (pr-docs-rebuild) re-asserts `contents: write` locally so the rest of
-# the matrix runs with the minimum privileges.
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  quality:
+    name: Format, types, docs, audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck
+      - name: Generated docs are up to date
+        run: npm run docs:check
+      - run: npm audit --omit=dev --audit-level=high
+
   test:
-    name: Test (Node ${{ matrix.node }} / ${{ matrix.os }})
+    name: Test (Node ${{ matrix.node }}, ${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        node: ["18", "20", "22"]
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
+        node: [20, 22, 24]
+        include:
+          - os: macos-latest
+            node: 22
+          - os: windows-latest
+            node: 22
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -30,160 +52,24 @@ jobs:
       - run: npm ci
       - run: npm test
 
-  typecheck:
-    name: Type check (tsc --checkJs)
+  package:
+    name: Pack and smoke-install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-
-  audit:
-    name: npm audit (production)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm audit --omit=dev --audit-level=high
-
-  audit-dev:
-    name: npm audit (dev, non-blocking)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm audit --audit-level=moderate || true
-
-  security-tests:
-    name: Security tests (Node ${{ matrix.node }})
-    needs: [test]
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ["18", "20", "22"]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
-      - run: node --test tests/security.test.mjs
-
-  # ---------------------------------------------------------------
-  # PR docs rebuild + auto-amend
-  # ---------------------------------------------------------------
-  # Runs ONLY on same-repository pull requests. Rebuilds the docs against
-  # the PR HEAD, emits a warning if the committed manifest is stale, and
-  # amends regenerated docs back onto the PR branch when needed.
-  pr-docs-rebuild:
-    name: Rebuild docs + amend PR
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-    needs: [test]
-    runs-on: ubuntu-latest
-    # Force-pushes regenerated docs back onto the PR head, so this job
-    # is the only one that needs write access to the repository.
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-          ssh-key: ${{ secrets.BOT_SSH_KEY }}
-          persist-credentials: true
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-
-      # Verify that any committed README.md / generated artefact is the
-      # bit-exact output of `npm run build:docs`. The guard is warn-only:
-      # the rebuild step below will amend the generated version back onto
-      # the PR branch if anything drifted.
-      - name: "Guard: generated files must match build manifest"
-        run: node docs/scripts/check-build-manifest.mjs
-
-      - name: Rebuild docs
-        run: npm run build:docs
-
-      - name: Detect drift
-        id: drift
+      - name: Pack
+        run: npm pack --pack-destination "$RUNNER_TEMP"
+      - name: Install into a clean project and smoke-test
         run: |
-          if git diff --quiet -- README.md docs/.build-manifest.json docs/ressources/generated/; then
-            echo "drifted=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "drifted=true" >> "$GITHUB_OUTPUT"
-            echo "Drift detected:"
-            git --no-pager diff --stat -- README.md docs/.build-manifest.json docs/ressources/generated/
-          fi
-
-      - name: Amend + force-push regenerated docs
-        if: steps.drift.outputs.drifted == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/.build-manifest.json docs/ressources/generated/
-          # Amend onto whatever the PR's head commit currently is. Use
-          # --no-edit so the user's commit message stays intact. Because
-          # checkout authenticated via BOT_SSH_KEY, this push starts a new
-          # CI run for the amended head commit.
-          git commit --amend --no-edit
-          git push --force-with-lease origin "HEAD:${{ github.event.pull_request.head.ref }}"
-
-  # main-docs-rebuild was removed: direct pushes to main are now blocked
-  # by the "main: PR-only" ruleset. Doc drift is prevented by the
-  # pr-docs-rebuild job that amends the regenerated README onto the PR
-  # head commit before merge.
-
-  pack-smoke:
-    name: Pack + smoke install (${{ matrix.os }})
-    needs: [test]
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - name: npm pack
-        id: pack
-        run: |
-          mkdir -p tarball
-          npm pack --pack-destination "$PWD/tarball"
-          TARBALL=$(ls tarball/grethel-labs-excaliplant-*.tgz | head -1)
-          echo "tarball=$PWD/$TARBALL" >> "$GITHUB_OUTPUT"
-      - name: Smoke-install in clean project
-        env:
-          TARBALL: ${{ steps.pack.outputs.tarball }}
-        run: |
-          mkdir smoke-test
-          cp scripts/smoke.mjs smoke-test/
-          cd smoke-test
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/smoke" && cd "$RUNNER_TEMP/smoke"
           npm init -y >/dev/null
           npm pkg set type=module
-          npm install "$TARBALL"
+          npm install "$RUNNER_TEMP"/grethel-labs-excaliplant-*.tgz
+          cp "$GITHUB_WORKSPACE/scripts/smoke.mjs" .
           node smoke.mjs

@@ -1,87 +1,62 @@
 {
   "name": "@grethel-labs/excaliplant",
-  "version": "0.19.5",
-  "description": "PlantUML → ELK layout → Excalidraw renderer with a plugin-based parser.",
+  "version": "0.0.0-development",
+  "description": "Render PlantUML as hand-drawn Excalidraw diagrams, SVG and PNG.",
   "type": "module",
-  "main": "index.mjs",
+  "main": "./src/index.mjs",
+  "types": "./types/index.d.mts",
   "bin": {
     "excaliplant": "bin/excaliplant.mjs"
   },
+  "exports": {
+    ".": {
+      "types": "./types/index.d.mts",
+      "default": "./src/index.mjs"
+    },
+    "./svg": "./src/render/svg.mjs",
+    "./png": "./src/render/png.mjs",
+    "./preprocess": "./src/core/preprocess/preprocessor.mjs",
+    "./registry": "./src/core/registry.mjs",
+    "./package.json": "./package.json"
+  },
   "files": [
-    "index.mjs",
     "bin/",
     "src/",
-    "assets/arrowheads/",
+    "types/",
     "assets/fonts/",
     "README.md",
-    "CHANGELOG.md",
     "LICENSE",
     "SECURITY.md",
     "THIRD_PARTY_NOTICES.md"
   ],
-  "exports": {
-    ".": "./index.mjs",
-    "./parser/plantuml": "./src/main/parser.mjs",
-    "./parser/engine": "./src/util/parser_engine.mjs",
-    "./layout": "./src/general/layout/elk_layout.mjs",
-    "./render": "./src/general/render/excalidraw.mjs",
-    "./render/excalidraw": "./src/general/render/excalidraw.mjs",
-    "./render/svg": "./src/general/render/svg.mjs",
-    "./render/canvas-svg": "./src/general/render/canvas_svg.mjs",
-    "./render/png": "./src/general/render/png.mjs",
-    "./render/schema": "./src/general/render/schema.mjs",
-    "./render/rng": "./src/general/render/rng.mjs",
-    "./diagrams": "./src/diagrams/index.mjs",
-    "./diagrams/base": "./src/diagrams/base/index.mjs",
-    "./main/parser": "./src/main/parser.mjs",
-    "./main/pipeline": "./src/main/pipeline.mjs",
-    "./main/registry": "./src/main/registry.mjs",
-    "./modules": "./src/main/builtin.mjs",
-    "./modules/diagrams": "./src/diagrams/index.mjs",
-    "./modules/base": "./src/diagrams/base/index.mjs",
-    "./modules/dependencies": "./src/main/dependencies.mjs",
-    "./modules/registry": "./src/main/registry.mjs",
-    "./modules/introspection": "./src/main/introspection.mjs",
-    "./platform/security": "./src/general/platform/security_base.mjs",
-    "./platform/diagnostics": "./src/general/platform/diagnostics.mjs",
-    "./platform/assets": "./src/general/platform/asset_base.mjs",
-    "./platform/services": "./src/general/platform/services.mjs",
-    "./model": "./src/general/model/diagram.mjs",
-    "./style": "./src/general/style/style.mjs"
-  },
   "scripts": {
-    "pretest": "node scripts/clean-test-output.mjs",
-    "test": "node --test tests/edge_cases.test.mjs tests/functional_more.test.mjs tests/merge_driver.test.mjs tests/modular_architecture.test.mjs tests/plantuml.test.mjs tests/security.test.mjs tests/self_introspection.test.mjs tests/module_coverage.test.mjs tests/sequence_components.test.mjs tests/class_components.test.mjs tests/component_components.test.mjs tests/deployment_components.test.mjs tests/usecase_components.test.mjs tests/object_components.test.mjs tests/state_components.test.mjs src/diagrams/timing/tests/timing_components.test.mjs src/diagrams/regex/tests/regex_components.test.mjs src/diagrams/ebnf/tests/ebnf_components.test.mjs src/diagrams/json/tests/json_components.test.mjs src/diagrams/yaml/tests/yaml_components.test.mjs src/diagrams/math/tests/math_components.test.mjs src/diagrams/nwdiag/tests/nwdiag_components.test.mjs src/diagrams/salt/tests/salt_components.test.mjs src/diagrams/archimate/tests/archimate_components.test.mjs src/diagrams/gantt/tests/gantt_components.test.mjs src/diagrams/mindmap/tests/mindmap_components.test.mjs src/diagrams/wbs/tests/wbs_components.test.mjs src/diagrams/chronology/tests/chronology_components.test.mjs src/diagrams/files/tests/files_components.test.mjs src/diagrams/ie/tests/ie_components.test.mjs src/diagrams/chen/tests/chen_components.test.mjs src/diagrams/ditaa/tests/ditaa_components.test.mjs src/diagrams/chart/tests/chart_components.test.mjs tests/style.test.mjs",
+    "test": "node scripts/test.mjs",
     "typecheck": "tsc -p tsconfig.json",
-    "build:docs": "node docs/scripts/build-docs.mjs",
-    "build:api": "node docs/scripts/build-docs.mjs",
-    "build": "npm run test && npm run build:docs && npm run build:api && tsc -p tsconfig.json --emitDeclarationOnly",
+    "types": "tsc -p tsconfig.types.json",
+    "docs": "node scripts/docs.mjs",
+    "docs:check": "node scripts/docs.mjs --check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky && node scripts/setup-merge-drivers.mjs",
-    "prepublishOnly": "node scripts/prepublish-guard.mjs && npm test && npm run typecheck && npm run format:check && npm run build"
-  },
-  "lint-staged": {
-    "*.{mjs,js,cjs,ts,json,yml,yaml,md}": "prettier --write"
+    "check": "npm run format:check && npm run typecheck && npm test && npm run docs:check",
+    "prepack": "npm run types"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/grethel-labs/excaliplant.git"
   },
-  "homepage": "https://github.com/grethel-labs/excaliplant",
+  "homepage": "https://github.com/grethel-labs/excaliplant#readme",
   "bugs": "https://github.com/grethel-labs/excaliplant/issues",
   "keywords": [
     "plantuml",
     "excalidraw",
     "diagram",
-    "elk",
-    "renderer",
+    "uml",
+    "sequence-diagram",
+    "class-diagram",
     "svg",
     "png",
-    "uml",
-    "javascript",
-    "js",
-    "sequence-diagram"
+    "elk",
+    "hand-drawn"
   ],
   "publishConfig": {
     "access": "public",
@@ -89,20 +64,16 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "elkjs": "^0.11.1",
+    "elkjs": "^0.12.1",
     "roughjs": "^4.6.6"
   },
-  "engines": {
-    "node": ">=18"
-  },
-  "license": "MIT",
   "devDependencies": {
-    "@types/node": "^26.0.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^17.0.7",
-    "nunjucks": "^3.2.4",
-    "prettier": "^3.8.3",
-    "tree-node-cli": "^3.0.0",
-    "typescript": "^6.0.3"
-  }
+    "@types/node": "^26.6.6",
+    "prettier": "^3.10.1",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
 }

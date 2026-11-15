@@ -1,130 +1,141 @@
 name: Release
 
+# Publishes to npm when a pull request is merged into main.
+#
+#   1. Read the release:* label of the merged PR (or the manual input).
+#   2. Compute the next version from the latest v* tag.
+#   3. Run the full quality gate, set the version in the runner only
+#      (nothing is committed back), pack and smoke-test the tarball.
+#   4. npm publish with provenance, then create the tag + GitHub release.
+#
+# Every step is idempotent: re-running a failed release skips an already
+# published version and only creates what is missing.
+
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  publish:
+  plan:
+    name: Plan release
     runs-on: ubuntu-latest
+    outputs:
+      bump: ${{ steps.bump.outputs.bump }}
+      version: ${{ steps.version.outputs.version }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Determine bump
+        id: bump
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            bump="${{ inputs.bump }}"
+          else
+            labels=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+              --jq '[.[0].labels[]?.name | select(startswith("release:"))] | join(",")' || true)
+            case "$labels" in
+              release:major) bump=major ;;
+              release:minor) bump=minor ;;
+              release:patch) bump=patch ;;
+              *) bump=none ;;
+            esac
+            echo "Merged PR release label: ${labels:-<none>}"
+          fi
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+      - name: Compute version
+        id: version
+        if: steps.bump.outputs.bump != 'none'
+        run: |
+          set -euo pipefail
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          version=$(node scripts/next-version.mjs "${{ steps.bump.outputs.bump }}" "$latest")
+          echo "Latest tag: ${latest:-<none>} → next version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish v${{ needs.plan.outputs.version }}
+    needs: plan
+    if: needs.plan.outputs.bump != 'none'
+    runs-on: ubuntu-latest
+    environment: npm
     permissions:
       contents: write
       id-token: write
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-          registry-url: "https://registry.npmjs.org"
-      - name: Verify package.json version matches tag
+          registry-url: https://registry.npmjs.org
+      - name: Use an npm with trusted publishing support
+        run: npm install -g npm@11
+      - run: npm ci
+      - name: Quality gate
         run: |
-          PKG_VERSION="v$(node -p "require('./package.json').version")"
-          if [ "$PKG_VERSION" != "${GITHUB_REF_NAME}" ]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${PKG_VERSION}"
-            exit 1
-          fi
-      - name: Check npm token and publication state
-        id: npm_state
+          npm run format:check
+          npm run typecheck
+          npm test
+          npm run docs:check
+          npm audit --omit=dev --audit-level=high
+      - name: Set version (runner only)
+        run: npm version "$VERSION" --no-git-tag-version
+      - name: Pack and smoke-test
+        run: |
+          set -euo pipefail
+          npm pack --pack-destination "$RUNNER_TEMP"
+          mkdir "$RUNNER_TEMP/smoke" && cd "$RUNNER_TEMP/smoke"
+          npm init -y >/dev/null
+          npm pkg set type=module
+          npm install "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz"
+          cp "$GITHUB_WORKSPACE/scripts/smoke.mjs" .
+          node smoke.mjs
+      - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          PKG_NAME="$(node -p "require('./package.json').name")"
-          PKG_VERSION="$(node -p "require('./package.json').version")"
-
-          if npm view "${PKG_NAME}@${PKG_VERSION}" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::${PKG_NAME}@${PKG_VERSION} is already published; npm publish will be skipped."
-            exit 0
+          name=$(node -p "require('./package.json').name")
+          if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+            echo "::notice::$name@$VERSION is already on npm; skipping publish."
+          else
+            npm publish "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz" --access public --provenance --tag latest
           fi
-
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::error::Missing NPM_TOKEN repository secret."
-            exit 1
+      - name: Tag and GitHub release
+        run: |
+          set -euo pipefail
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "::notice::Release v$VERSION already exists."
+          else
+            gh release create "v$VERSION" "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz" \
+              --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes --latest
           fi
-
-          if ! npm whoami --registry=https://registry.npmjs.org >/dev/null 2>&1; then
-            echo "::error::NPM_TOKEN is invalid, expired, or lacks registry access."
-            exit 1
-          fi
-
-          echo "published=false" >> "$GITHUB_OUTPUT"
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run format:check
-      - run: npm test
-      - name: npm audit (production, fail on high)
-        run: npm audit --omit=dev --audit-level=high
-      - run: npm run build
-      - name: Commit generated docs (keeps working tree clean for prepublishOnly)
+      - name: Summary
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/API.md docs/module-coverage.md docs/.build-manifest.json docs/ressources/generated/ docs/ressources/module-coverage/
-          git diff --cached --quiet || git commit -m "docs: regenerate for ${GITHUB_REF_NAME} [skip ci]"
-      - name: Pack + smoke-install (clean project)
-        run: |
-          set -eux
-          mkdir -p tarball
-          npm pack --pack-destination "$PWD/tarball"
-          TARBALL=$(ls tarball/grethel-labs-excaliplant-*.tgz | head -1)
-          mkdir smoke-test
-          cp scripts/smoke.mjs smoke-test/
-          cd smoke-test
-          npm init -y >/dev/null
-          npm pkg set type=module
-          npm install "$PWD/../$TARBALL"
-          node smoke.mjs
-          cd ..
-          rm -rf smoke-test tarball
-      - name: Publish to npm (with provenance)
-        if: steps.npm_state.outputs.published != 'true'
-        run: EXCALIPLANT_ALLOW_UNTAGGED=1 npm publish --access public --provenance --tag latest
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
-        with:
-          make_latest: true
-          generate_release_notes: true
-          overwrite_files: true
-          files: |
-            docs/ressources/generated/svg/*.svg
-            docs/ressources/generated/png/*.png
-            docs/ressources/generated/puml/*.puml
-
-  pages:
-    needs: publish
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build:api
-      - name: Stage versioned + latest API docs
-        run: |
-          set -eux
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Keep a fixed /<version>/ docs snapshot alongside moving /latest/.
-          # docs/API.md is the single-page markdown reference generated by
-          # npm run build:api (replaces the former TypeDoc HTML site).
-          mkdir -p _site/"$VERSION"
-          cp docs/API.md _site/"$VERSION"/index.md
-          rm -rf _site/latest
-          mkdir -p _site/latest
-          cp docs/API.md _site/latest/index.md
-          echo "$VERSION" > _site/VERSION
-      - name: Publish to gh-pages
-        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./_site
-          keep_files: true
-          commit_message: "docs: publish API docs for ${{ github.ref_name }}"
+          {
+            echo "### Published @grethel-labs/excaliplant@$VERSION"
+            echo ""
+            echo "- npm: https://www.npmjs.com/package/@grethel-labs/excaliplant/v/$VERSION"
+            echo "- release: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+          } >> "$GITHUB_STEP_SUMMARY"

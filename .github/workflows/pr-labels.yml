@@ -1,0 +1,61 @@
+name: Release label
+
+# Every pull request into main carries exactly one release label. When none is
+# set, it is derived from a MAJOR / MINOR / PATCH / NONE token in the branch
+# name (default: release:patch). The release workflow reads the label of the
+# merged PR to decide the next version.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, labeled, unlabeled, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  label:
+    name: Exactly one release label
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Ensure release labels exist
+        if: env.SAME_REPO == 'true'
+        run: |
+          gh label create "release:major" -R "$REPO" --color b60205 --description "Breaking change → next major version" --force
+          gh label create "release:minor" -R "$REPO" --color 0e8a16 --description "New feature → next minor version" --force
+          gh label create "release:patch" -R "$REPO" --color 1d76db --description "Fix → next patch version" --force
+          gh label create "release:none" -R "$REPO" --color cccccc --description "Merge without publishing" --force
+
+      - name: Derive label from branch name when missing
+        if: env.SAME_REPO == 'true'
+        run: |
+          set -euo pipefail
+          current=$(gh pr view "$PR" -R "$REPO" --json labels --jq '[.labels[].name | select(startswith("release:"))] | length')
+          if [ "$current" -eq 0 ]; then
+            lower=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]')
+            label="release:patch"
+            for kind in major minor patch none; do
+              if printf '%s' "$lower" | grep -Eq "(^|[^a-z])${kind}([^a-z]|$)"; then label="release:${kind}"; break; fi
+            done
+            echo "Labelling PR #$PR with $label (from branch '$BRANCH')"
+            gh pr edit "$PR" -R "$REPO" --add-label "$label"
+          fi
+
+      - name: Validate
+        run: |
+          set -euo pipefail
+          labels=$(gh pr view "$PR" -R "$REPO" --json labels --jq '[.labels[].name | select(startswith("release:"))] | join(",")')
+          count=$(printf '%s' "$labels" | awk -F, 'NF{print NF}')
+          if [ "${count:-0}" -ne 1 ]; then
+            echo "::error::Pull requests need exactly one of release:major, release:minor, release:patch, release:none (found: ${labels:-none})."
+            exit 1
+          fi
+          echo "Release label: $labels"

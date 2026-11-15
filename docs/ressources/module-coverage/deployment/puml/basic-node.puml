@@ -1,3 +1,0 @@
-@startuml
-node "Server" as srv
-@enduml

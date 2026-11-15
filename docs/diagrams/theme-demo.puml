@@ -1,0 +1,11 @@
+@startuml
+left to right direction
+actor User
+component "Web App" as web
+database "Orders" as db
+cloud "Payments" as pay
+User --> web : browse
+web --> db : SQL
+web ..> pay : charge
+note bottom of db : nightly backup
+@enduml
