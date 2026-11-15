@@ -111,9 +111,9 @@ jobs:
           npm install "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz"
           cp "$GITHUB_WORKSPACE/scripts/smoke.mjs" .
           node smoke.mjs
+      # Authenticates via npm trusted publishing (OIDC, `id-token: write`);
+      # no long-lived npm token is used.
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           name=$(node -p "require('./package.json').name")
@@ -128,8 +128,13 @@ jobs:
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             echo "::notice::Release v$VERSION already exists."
           else
-            gh release create "v$VERSION" "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz" \
-              --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes --latest
+            # GITHUB_TOKEN may not tag commits that change workflow files;
+            # in that case a maintainer runs the printed command once.
+            if ! gh release create "v$VERSION" "$RUNNER_TEMP/grethel-labs-excaliplant-$VERSION.tgz" \
+              --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes --latest; then
+              echo "::error::npm publish succeeded, but the GitHub release could not be created. Run locally: gh release create v$VERSION --target $GITHUB_SHA --title v$VERSION --generate-notes --latest"
+              exit 1
+            fi
           fi
       - name: Summary
         run: |
