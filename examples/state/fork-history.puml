@@ -1,0 +1,25 @@
+@startuml
+title Media player
+state Playing {
+  [*] --> Buffering
+  Buffering --> Streaming : buffer full
+  Streaming --> Buffering : underrun
+  Streaming : entry / start audio
+  Streaming : exit / stop audio
+  [H] --> Streaming
+}
+state fork_state <<fork>>
+state join_state <<join>>
+[*] --> Idle
+Idle --> fork_state : open file
+fork_state --> LoadingMeta
+fork_state --> LoadingCover
+LoadingMeta --> join_state
+LoadingCover --> join_state
+join_state --> Playing
+Playing --> Paused : pause
+Paused --> Playing[H] : resume
+Playing --> Idle : stop
+Idle --> [*]
+note left of Paused : keeps position
+@enduml

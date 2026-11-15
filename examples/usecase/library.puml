@@ -1,0 +1,22 @@
+@startuml
+left to right direction
+actor Member as m
+actor Librarian as l
+actor/ "Payment Service" as pay
+package Library {
+  usecase "Search catalog" as search
+  usecase "Borrow book" as borrow
+  usecase "Return book" as ret
+  usecase "Pay fine" as fine
+  usecase "Manage inventory" as inv
+}
+m --> search
+m --> borrow
+m --> ret
+ret <.. fine : <<extend>>
+borrow ..> search : <<include>>
+l --> inv
+l --> ret
+fine --> pay
+note right of fine : only when overdue
+@enduml

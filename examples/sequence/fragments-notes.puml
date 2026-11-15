@@ -1,0 +1,31 @@
+@startuml
+title Fragments and notes
+participant Client
+participant Cache #e7f5ff
+participant Service
+database Store
+Client -> Cache : get(key)
+alt hit
+  Cache --> Client : value
+else miss
+  Cache -> Service ++ : load(key)
+  loop up to 3 retries
+    Service -> Store : query
+    Store --> Service : rows
+  end
+  opt rows found
+    Service -> Cache : put(key, value)
+  end
+  Service --> Cache -- : value
+  Cache --> Client : value
+end
+break timeout
+  Client -[#red]> Client : abort
+end
+critical consistency
+  Service -> Store : commit
+end
+hnote over Service : idle
+||30||
+rnote over Client, Store : end of request
+@enduml

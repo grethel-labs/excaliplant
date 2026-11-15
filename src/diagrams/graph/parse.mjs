@@ -576,12 +576,15 @@ function noteRule(line, ctx, reader) {
   if (!m) return false;
   let rest = m[1];
   const { model } = ctx;
-  const col = takeColor(rest.replace(/:.*$/, ""));
+  const col = takeColor(
+    /^\s*"/.test(rest) ? rest.replace(/^\s*"[^"]*"/, "") : rest.replace(/:.*$/, ""),
+  );
   const colors = parseColorSpec(col.color);
   rest = rest.replace(/\s#[^\s:]+/, "");
   /** @type {string | null} */
   let text = null;
-  const colon = /^(.*?)\s*:\s*(.*)$/.exec(rest);
+  // A quoted floating note (`note "a: b" as N`) keeps its colons.
+  const colon = /^\s*"/.test(rest) ? null : /^(.*?)\s*:\s*(.*)$/.exec(rest);
   if (colon) {
     rest = colon[1];
     text = colon[2];

@@ -260,7 +260,7 @@ function drawNwdiag(laid, c) {
           [x, top],
           [x, bottom],
         ],
-        { stroke: theme.muted, strokeWidth: 1.5 },
+        { stroke: theme.muted, strokeWidth: 1.5, roughness: theme.edgeRoughness },
       );
       const addr = p.n.addresses.get(model.networks[ni].id);
       if (addr)
@@ -279,7 +279,7 @@ function drawNwdiag(laid, c) {
         [nodeX(pa.col), nodeY(pa.row)],
         [nodeX(pb.col), nodeY(pb.row)],
       ],
-      { stroke: theme.muted, strokeWidth: 1.5 },
+      { stroke: theme.muted, strokeWidth: 1.5, roughness: theme.edgeRoughness },
     );
   }
   placed.forEach((p, i) => {

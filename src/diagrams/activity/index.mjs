@@ -93,7 +93,7 @@ function drawActivity(laid, c) {
       strokeWidth: 1.5,
       strokeStyle: e.style?.lineStyle ?? "solid",
       end: intoJunction ? null : "triangle",
-      roughness: Math.min(theme.roughness, 0.6),
+      roughness: theme.edgeRoughness,
       from: ids.get(e.from.id) ?? null,
       to: ids.get(e.to.id) ?? null,
     });

@@ -187,11 +187,12 @@ function drawTree(laid, c) {
           k.x - (dir * k.w) / 2,
           k.y + (k.boxless ? k.h / 2 : 0),
         ]);
-        const mx = (a[0] + b[0]) / 2;
+        // Siblings share one vertical trunk next to the parent: crisp right angles.
+        const mx = a[0] + (dir * H_GAP) / 2;
         c.line([a, [mx, a[1]], [mx, b[1]], b], {
           stroke,
           strokeWidth: Math.max(1.5, 3 - k.depth * 0.5),
-          curved: true,
+          roughness: theme.edgeRoughness,
         });
       } else if (n.depth === 0) {
         const busY = n.y + n.h / 2 + 20;
@@ -202,7 +203,7 @@ function drawTree(laid, c) {
             [k.x, busY],
             [k.x, k.y - k.h / 2],
           ],
-          { stroke: theme.muted, strokeWidth: 1.5 },
+          { stroke: theme.muted, strokeWidth: 1.5, roughness: theme.edgeRoughness },
         );
       } else {
         const sx = n.x - n.w / 2 + 12;
@@ -212,7 +213,7 @@ function drawTree(laid, c) {
             [sx, k.y],
             [k.x - k.w / 2, k.y],
           ],
-          { stroke: theme.muted, strokeWidth: 1.5 },
+          { stroke: theme.muted, strokeWidth: 1.5, roughness: theme.edgeRoughness },
         );
       }
       drawEdges(k);

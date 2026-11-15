@@ -215,7 +215,6 @@ function drawData(laid, c) {
           stroke: theme.muted,
           strokeWidth: 1.5,
           end: "arrow",
-          curved: true,
         });
         draw(target);
       }

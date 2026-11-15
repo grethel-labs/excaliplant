@@ -52,49 +52,78 @@ function parseDitaa(lines, module) {
 function trace(model) {
   const g = model.grid;
   const at = (/** @type {number} */ r, /** @type {number} */ c) => g[r]?.[c] ?? " ";
-  /** @type {{ x1: number, y1: number, x2: number, y2: number, dashed: boolean }[]} */
+  /** @type {{ x1: number, y1: number, x2: number, y2: number, dashed: boolean, startHead: boolean, endHead: boolean }[]} */
   const segments = [];
   /** @type {boolean[][]} */
   const used = g.map((r) => r.map(() => false));
-  // horizontal runs
+  // Line runs. Arrowhead characters at either end belong to the run, so the
+  // segment becomes a real arrow whose tip reaches the neighbouring border.
+  /** @param {number} r @param {number} c */
+  const isH = (r, c) => H.has(at(r, c));
+  /** @param {number} r @param {number} c */
+  const isV = (r, c) => V.has(at(r, c));
   for (let r = 0; r < g.length; r++) {
     let c = 0;
     while (c < g[r].length) {
-      if (
-        H.has(at(r, c)) &&
-        (at(r, c) === "-" || at(r, c) === "=" || (H.has(at(r, c + 1)) && /[-=]/.test(at(r, c + 1))))
-      ) {
-        const start = c;
-        let dashed = false;
-        while (H.has(at(r, c)) || (at(r, c) === "<" && c === start) || at(r, c) === ">") {
-          if (at(r, c) === "=") dashed = true;
-          c++;
-          if (at(r, c - 1) === ">") break;
-        }
-        if (c - start >= 2 || /[-=]/.test(at(r, start))) {
-          segments.push({ x1: start, y1: r, x2: c - 1, y2: r, dashed });
-          for (let k = start; k < c; k++) if (!CORNER.has(at(r, k))) used[r][k] = true;
-        }
-      } else c++;
+      const ch = at(r, c);
+      const opensWithHead = ch === "<" && /[-=]/.test(at(r, c + 1));
+      if (!opensWithHead && !(isH(r, c) && (/[-=]/.test(ch) || /[-=]/.test(at(r, c + 1))))) {
+        c++;
+        continue;
+      }
+      const start = c;
+      let dashed = false;
+      if (opensWithHead) c++;
+      while (isH(r, c)) {
+        if (at(r, c) === "=") dashed = true;
+        c++;
+      }
+      const endHead = at(r, c) === ">" && /[-=]/.test(at(r, c - 1));
+      if (endHead) c++;
+      if (c - start >= 2 || /[-=]/.test(at(r, start))) {
+        segments.push({
+          x1: start,
+          y1: r,
+          x2: c - 1,
+          y2: r,
+          dashed,
+          startHead: opensWithHead,
+          endHead,
+        });
+        for (let k = start; k < c; k++) if (!CORNER.has(at(r, k))) used[r][k] = true;
+      }
     }
   }
-  // vertical runs
-  for (let c = 0; c < Math.max(...g.map((r) => r.length), 0); c++) {
+  for (let c = 0; c < Math.max(...g.map((row) => row.length), 0); c++) {
     let r = 0;
     while (r < g.length) {
-      if (V.has(at(r, c)) && (at(r, c) === "|" || at(r, c) === ":" || /[|:]/.test(at(r + 1, c)))) {
-        const start = r;
-        let dashed = false;
-        while (V.has(at(r, c)) || at(r, c) === "^" || at(r, c) === "v") {
-          if (at(r, c) === ":") dashed = true;
-          r++;
-          if (at(r - 1, c) === "v") break;
-        }
-        if (r - start >= 2 || /[|:]/.test(at(start, c))) {
-          segments.push({ x1: c, y1: start, x2: c, y2: r - 1, dashed });
-          for (let k = start; k < r; k++) if (!CORNER.has(at(k, c))) used[k][c] = true;
-        }
-      } else r++;
+      const ch = at(r, c);
+      const opensWithHead = ch === "^" && /[|:]/.test(at(r + 1, c));
+      if (!opensWithHead && !(isV(r, c) && (/[|:]/.test(ch) || /[|:]/.test(at(r + 1, c))))) {
+        r++;
+        continue;
+      }
+      const start = r;
+      let dashed = false;
+      if (opensWithHead) r++;
+      while (isV(r, c)) {
+        if (at(r, c) === ":") dashed = true;
+        r++;
+      }
+      const endHead = at(r, c) === "v" && /[|:]/.test(at(r - 1, c));
+      if (endHead) r++;
+      if (r - start >= 2 || /[|:]/.test(at(start, c))) {
+        segments.push({
+          x1: c,
+          y1: start,
+          x2: c,
+          y2: r - 1,
+          dashed,
+          startHead: opensWithHead,
+          endHead,
+        });
+        for (let k = start; k < r; k++) if (!CORNER.has(at(k, c))) used[k][c] = true;
+      }
     }
   }
   // boxes: '+' (or rounded corner) top-left with matching corners
@@ -163,6 +192,7 @@ function trace(model) {
   for (let r = 0; r < g.length; r++) {
     for (let c = 0; c < g[r].length; c++) {
       const ch = at(r, c);
+      if (used[r][c]) continue;
       if (ch === ">" && H.has(at(r, c - 1))) heads.push({ r, c, dir: "right" });
       else if (ch === "<" && H.has(at(r, c + 1))) heads.push({ r, c, dir: "left" });
       else if (ch === "^" && V.has(at(r + 1, c))) heads.push({ r, c, dir: "up" });
@@ -207,7 +237,7 @@ function trace(model) {
       else c++;
     }
   }
-  return { segments, boxes, heads, points, texts };
+  return { segments, boxes, heads, points, texts, grid: g };
 }
 
 /**
@@ -270,13 +300,49 @@ function drawDitaa(laid, c) {
         (s.x1 === s.x2 && (s.x1 === b.c1 || s.x1 === b.c2) && s.y1 >= b.r1 && s.y2 <= b.r2),
     );
     if (inBox) continue;
-    c.line(
-      [
-        [px(s.x1), py(s.y1)],
-        [px(s.x2), py(s.y2)],
-      ],
-      { stroke: ink, strokeWidth: 1.5, strokeStyle: s.dashed ? "dashed" : "solid" },
-    );
+    const horizontal = s.y1 === s.y2;
+    /** @type {[number, number]} */
+    const a = [px(s.x1), py(s.y1)];
+    /** @type {[number, number]} */
+    const b = [px(s.x2), py(s.y2)];
+    // Arrow tips reach the edge of their cell, or the border line right behind it.
+    const tip = (
+      /** @type {[number, number]} */ p,
+      /** @type {number} */ dir,
+      /** @type {number} */ r,
+      /** @type {number} */ col,
+    ) => {
+      const nr = horizontal ? r : r + dir;
+      const nc = horizontal ? col + dir : col;
+      const border = /[|+\-=:]/.test(laid.grid[nr]?.[nc] ?? " ");
+      const reach = border ? (horizontal ? CW : CH) : (horizontal ? CW : CH) / 2;
+      return /** @type {[number, number]} */ (
+        horizontal ? [p[0] + dir * reach, p[1]] : [p[0], p[1] + dir * reach]
+      );
+    };
+    if (s.startHead) {
+      const t = tip(a, -1, s.y1, s.x1);
+      a[0] = t[0];
+      a[1] = t[1];
+    }
+    if (s.endHead) {
+      const t = tip(b, 1, s.y2, s.x2);
+      b[0] = t[0];
+      b[1] = t[1];
+    }
+    const style = {
+      stroke: ink,
+      strokeWidth: 1.5,
+      strokeStyle: /** @type {"dashed" | "solid"} */ (s.dashed ? "dashed" : "solid"),
+      roughness: c.theme.edgeRoughness,
+    };
+    if (s.startHead || s.endHead)
+      c.arrow([a, b], {
+        ...style,
+        start: s.startHead ? "triangle" : null,
+        end: s.endHead ? "triangle" : null,
+      });
+    else c.line([a, b], style);
   }
   for (const h of laid.heads) {
     const x = px(h.c);
