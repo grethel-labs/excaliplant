@@ -59,6 +59,8 @@ function makePseudo(node, kind) {
   node.role = "pseudo";
   node.shape = kind === "choice" ? "diamond" : "circle";
   node.data.round = kind !== "fork" && kind !== "join";
+  if (kind === "choice") node.data.ports = "decision";
+  if (kind === "fork" || kind === "join") node.data.ports = "bar";
   node.data.draw = drawPseudo;
 }
 

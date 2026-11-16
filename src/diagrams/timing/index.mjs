@@ -296,7 +296,8 @@ function drawTiming(laid, c) {
       strokeWidth: 1,
       opacity: 70,
     });
-    if (h.text) c.text(h.text, xOf(h.t1) + 4, 2, { size: fs * 0.8, color: theme.muted });
+    // Caption below the signals so it never collides with state names.
+    if (h.text) c.text(h.text, xOf(h.t1) + 4, total + 4, { size: fs * 0.8, color: theme.muted });
   }
   for (const t of ticks)
     c.line(
@@ -445,11 +446,18 @@ function drawTiming(laid, c) {
     const p1 = /** @type {[number, number]} */ ([xOf(m.t1), a.top + a.h / 2]);
     const p2 = /** @type {[number, number]} */ ([xOf(m.t2), b.top + b.h / 2]);
     c.arrow([p1, p2], { stroke: ink, strokeWidth: 1.5, end: "arrow" });
-    if (m.text)
-      c.text(m.text, (p1[0] + p2[0]) / 2 + 4, (p1[1] + p2[1]) / 2 - fs, {
-        size: fs * 0.8,
-        color: ink,
+    if (m.text) {
+      const t = layoutText(m.text, { fontSize: fs * 0.8 });
+      const tx = (p1[0] + p2[0]) / 2 + 6;
+      const ty = (p1[1] + p2[1]) / 2 - t.height / 2;
+      c.rect(tx - 2, ty, t.width + 4, t.height, {
+        fill: theme.background,
+        stroke: "transparent",
+        strokeWidth: 1,
+        roughness: 0,
       });
+      c.richText(t, tx, ty, { color: ink });
+    }
   }
   for (const k of model.constraints) {
     const g = k.signal ? geo.get(k.signal) : null;

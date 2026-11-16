@@ -6,6 +6,7 @@ $svc --> Gateway : ok
 !endprocedure
 !function $upper($s) !return %upper($s)
 title Health check (generated with the preprocessor)
+autoactivate on
 participant Gateway
 !foreach $s in $services
 participant "$upper($s)" as $s

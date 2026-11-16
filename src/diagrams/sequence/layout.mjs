@@ -38,6 +38,8 @@ const ICON_KINDS = new Set([
   "queue",
 ]);
 const MIN_GAP = 40;
+/** Half the extent of the red destroy cross; arrows stop at its rim. */
+export const DESTROY_HALF = 9;
 
 /**
  * @param {SequenceModel} model
@@ -245,6 +247,8 @@ export function layoutSequence(model, ctx) {
             activate(e.to, arrowY, null);
             if (!creating) x2 = attach(e.to, -dir);
           }
+          // The arrow ends at the rim of the destroy cross instead of under it.
+          if (e.lifecycle.target === "!!" && e.to) x2 = center(e.to) - dir * (DESTROY_HALF + 1);
           if (e.edge === "left" && e.edgeSide === "from") x1 = edgeX(e.to);
           items.push({
             type: "message",
@@ -264,9 +268,6 @@ export function layoutSequence(model, ctx) {
           });
           // Leave room for activation bars between the fragment frame and the arrow.
           touch(Math.min(x1, x2) - 12, Math.max(x1, x2) + 12);
-          const last = /** @type {any} */ (items[items.length - 1]);
-          if (text)
-            last.plate = cx.some((c) => c > last.textX - 2 && c < last.textX + text.width + 2);
           if (!e.parallel) y = arrowY + 16;
         }
         lastArrowY = arrowY;
@@ -502,6 +503,7 @@ export function layoutSequence(model, ctx) {
       });
     }
   });
+  markCrossedLabels(items);
   const bottom = model.hideFootbox ? footY : footY + headH;
   for (const box of model.boxes) {
     const members = box.members.filter((m) => index.has(m));
@@ -522,6 +524,30 @@ export function layoutSequence(model, ctx) {
     });
   }
   return { items };
+}
+
+/**
+ * Flags every message label that a lifeline or an activation bar runs through, so the
+ * drawer can put a plate behind exactly those labels. Needs the finished item list
+ * because bars are only emitted once they close and lifelines end at a destroy.
+ * @param {SeqItem[]} items
+ */
+function markCrossedLabels(items) {
+  /** @type {{ x1: number, x2: number, y1: number, y2: number }[]} */
+  const obstacles = [];
+  for (const it of items) {
+    if (it.type === "lifeline") obstacles.push({ x1: it.x, x2: it.x, y1: it.y1, y2: it.y2 });
+    else if (it.type === "activation")
+      obstacles.push({ x1: it.x, x2: it.x + 10, y1: it.y1, y2: it.y2 });
+  }
+  for (const it of items) {
+    if (it.type !== "message" || !it.text) continue;
+    const x1 = it.textX - 4;
+    const x2 = it.textX + it.text.width + 4;
+    const y1 = it.textY;
+    const y2 = it.textY + it.text.height;
+    it.plate = obstacles.some((o) => o.x2 > x1 && o.x1 < x2 && o.y2 > y1 && o.y1 < y2);
+  }
 }
 
 /**

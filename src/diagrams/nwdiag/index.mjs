@@ -197,6 +197,20 @@ function layoutNwdiag(model, ctx) {
       h: Math.max(44, text.height + 22),
     };
   });
+  // Networked nodes take consecutive columns; peer-only nodes (e.g. the
+  // internet cloud) share their partner's column so the link stays vertical.
+  let col = 0;
+  for (const p of placed) if (p.nets.length || p.row !== -1) p.col = col++;
+  for (const p of placed) {
+    if (p.row !== -1) continue;
+    const partner = model.peers.find((pr) => pr.includes(p.n.id));
+    const other =
+      partner &&
+      placed.find(
+        (q) => q.n.id === (partner[0] === p.n.id ? partner[1] : partner[0]) && q.row !== -1,
+      );
+    p.col = other ? other.col : col++;
+  }
   return { model, placed, colW, rowH, netLabelW, fs };
 }
 

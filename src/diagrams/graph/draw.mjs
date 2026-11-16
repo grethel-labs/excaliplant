@@ -7,6 +7,7 @@ import { shape as shapeDef, arc } from "../../draw/shapes.mjs";
 import { roleStyle } from "../../draw/theme.mjs";
 import { TRANSPARENT, mixColors } from "../../syntax/color.mjs";
 import { Obstacles, alongPolyline, nearEnd, segmentInBox } from "../../layout/labels.mjs";
+import { tabWidth } from "./route.mjs";
 
 /** @typedef {import("../../model/graph.mjs").GraphModel} GraphModel */
 /** @typedef {import("../../model/graph.mjs").GraphNode} GraphNode */
@@ -39,6 +40,20 @@ export function drawGraph(model, canvas) {
         { weight: 3, owner: `node:${n.id}` },
       );
   }
+  // Container outlines: labels should not sit on a frame line.
+  for (const n of nodes) {
+    if (!n.container) continue;
+    const owner = `title:${n.id}`;
+    const t = 3;
+    const tab = n.shape === "package" || n.shape === "folder" ? n.headerHeight : 0;
+    for (const box of [
+      { x: n.x, y: n.y + tab, w: n.width, h: t },
+      { x: n.x, y: n.y + n.height - t, w: n.width, h: t },
+      { x: n.x, y: n.y, w: t, h: n.height },
+      { x: n.x + n.width - t, y: n.y, w: t, h: n.height },
+    ])
+      obstacles.addBox(box, { weight: 6, owner });
+  }
   /** @type {{ edge: import("../../model/graph.mjs").GraphEdge, from: GraphNode, to: GraphNode, pts: [number, number][] }[]} */
   const visible = [];
   for (const edge of model.edges) {
@@ -62,9 +77,25 @@ export function drawGraph(model, canvas) {
     const id = canvas.group(() => drawNode(node, canvas, theme, headers));
     if (id) ids.set(node.id, id);
   }
-  for (const v of visible) drawEdge(v.edge, v.from, v.to, canvas, ids, v.pts, obstacles);
+  // Edge label backdrops take the colour of the innermost container below them.
+  const containers = nodes.filter((n) => n.container).sort((a, b) => b.depth - a.depth);
+  /** @param {number} px @param {number} py */
+  const backgroundAt = (px, py) => {
+    const c = containers.find(
+      (n) =>
+        px >= n.x &&
+        px <= n.x + n.width &&
+        py >= n.y &&
+        py <= n.y + n.height &&
+        n.data.fill &&
+        n.data.fill !== TRANSPARENT,
+    );
+    return c ? c.data.fill : theme.background;
+  };
+  for (const v of visible)
+    drawEdge(v.edge, v.from, v.to, canvas, ids, v.pts, obstacles, backgroundAt);
   // Container titles last: placed where lines cross least, drawn above the lines.
-  for (const draw of headers) draw.call(null, obstacles);
+  for (const draw of headers) draw.call(null, obstacles, backgroundAt);
 }
 
 /**
@@ -107,6 +138,7 @@ export function drawNode(node, canvas, theme, headers = null) {
     const fill =
       node.colors.fill ??
       (s.fill === TRANSPARENT ? TRANSPARENT : mixColors(s.fill, theme.background, 0.6));
+    node.data.fill = fill;
     return drawContainer(node, canvas, { ...style, fill }, s.text, headers);
   }
   if (geo?.kind === "class") return drawClass(node, canvas, style, s.text, theme);
@@ -149,8 +181,18 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
   const geo = node.data.geo;
   const def = shapeDef(node.shape === "package" ? "rectangle" : node.shape);
   let id;
+  // Title plates match what lies below them: the container's own fill, else
+  // (unfilled frames, packages …) the fill of the container around it.
+  /** @type {((px: number, py: number) => string) | null} */
+  let backgroundAt = null;
+  const plateFill = (/** @type {{ x: number, y: number, w: number, h: number }} */ box) =>
+    style.fill && style.fill !== TRANSPARENT
+      ? style.fill
+      : backgroundAt
+        ? backgroundAt(box.x + box.w / 2, box.y + box.h / 2)
+        : canvas.theme.background;
   if (node.shape === "package" || node.shape === "folder") {
-    const tabW = Math.min(w * 0.6, geo.minWidth);
+    const tabW = tabWidth(node);
     const tabH = geo.headerHeight;
     canvas.line(
       [
@@ -162,7 +204,8 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
       { ...style, closed: true },
     );
     id = canvas.rect(x, y + tabH, w, h - tabH, style);
-    const drawTab = (/** @type {Obstacles | null} */ obstacles) => {
+    const drawTab = (/** @type {Obstacles | null} */ obstacles, /** @type {any} */ bg = null) => {
+      backgroundAt = bg;
       const bw = Math.max(0, ...geo.blocks.map((/** @type {any} */ b) => b.width));
       const bh = geo.blocks.reduce(
         (/** @type {number} */ sum, /** @type {any} */ b) => sum + b.height,
@@ -171,11 +214,11 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
       const box = { x: x + 8, y: y + 5, w: bw + 8, h: bh + 4 };
       if (obstacles?.segments.some((sg) => segmentInBox(sg.a, sg.b, box) > 0)) {
         canvas.rect(box.x, box.y, box.w, box.h, {
-          fill: canvas.theme.background,
+          // Same colour as the container so only the crossing line disappears.
+          fill: plateFill(box),
           stroke: TRANSPARENT,
           strokeWidth: 1,
           roughness: 0,
-          opacity: 85,
         });
       }
       let ty = y + 7;
@@ -203,14 +246,34 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
       ],
       { ...style, fill: undefined },
     );
-    for (const b of geo.blocks) {
-      canvas.richText(b, x + 10, ty - 4, { color: textColor, align: "left" });
-      ty += b.height;
-    }
+    const frameTop = ty - 4;
+    const drawFrameTitle = (
+      /** @type {Obstacles | null} */ obstacles,
+      /** @type {any} */ bg = null,
+    ) => {
+      backgroundAt = bg;
+      const box = { x: x + 6, y: frameTop - 2, w: lw - 8, h: lh - 6 };
+      if (obstacles?.segments.some((sg) => segmentInBox(sg.a, sg.b, box) > 0)) {
+        canvas.rect(box.x, box.y, box.w, box.h, {
+          fill: plateFill(box),
+          stroke: TRANSPARENT,
+          strokeWidth: 1,
+          roughness: 0,
+        });
+      }
+      let cy = frameTop;
+      for (const b of geo.blocks) {
+        canvas.richText(b, x + 10, cy, { color: textColor, align: "left" });
+        cy += b.height;
+      }
+    };
+    if (headers) headers.push(drawFrameTitle);
+    else drawFrameTitle(null);
     return id;
   }
   const top = ty;
-  const drawTitle = (/** @type {Obstacles | null} */ obstacles) => {
+  const drawTitle = (/** @type {Obstacles | null} */ obstacles, /** @type {any} */ bg = null) => {
+    backgroundAt = bg;
     const bw = Math.max(0, ...geo.blocks.map((/** @type {any} */ b) => b.width));
     const bh = geo.blocks.reduce(
       (/** @type {number} */ sum, /** @type {any} */ b) => sum + b.height,
@@ -218,23 +281,27 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
     );
     // Prefer the centre, then the corners, whichever is crossed by fewest lines.
     const xs = [x + (w - bw) / 2, x + 14, x + w - bw - 14];
-    const box = obstacles
-      ? obstacles.place(
-          xs.map((cx, i) => ({ x: cx - 4, y: top - 2, w: bw + 8, h: bh + 4, penalty: i * 30 })),
-          { owner: `title:${node.id}` },
-        )
-      : { x: xs[0] - 4, y: top - 2, w: bw + 8, h: bh + 4 };
+    const chosen = node.data.titleBox;
+    const box = chosen
+      ? { x: x + chosen.dx, y: y + chosen.dy, w: chosen.w, h: chosen.h }
+      : obstacles
+        ? obstacles.place(
+            xs.map((cx, i) => ({ x: cx - 4, y: top - 2, w: bw + 8, h: bh + 4, penalty: i * 30 })),
+            { owner: `title:${node.id}` },
+          )
+        : { x: xs[0] - 4, y: top - 2, w: bw + 8, h: bh + 4 };
+    if (chosen) obstacles?.addBox(box, { weight: 2, owner: `title:${node.id}` });
     // A plate only where a line actually runs behind the title.
     const crossed = obstacles
       ? obstacles.segments.some((sg) => segmentInBox(sg.a, sg.b, box) > 0)
       : false;
     if (crossed) {
       canvas.rect(box.x, box.y, box.w, box.h, {
-        fill: canvas.theme.background,
+        // Same colour as the container so only the crossing line disappears.
+        fill: plateFill(box),
         stroke: TRANSPARENT,
         strokeWidth: 1,
         roughness: 0,
-        opacity: 85,
       });
     }
     let cy = top;
@@ -480,7 +547,16 @@ function clip(p, q, node) {
  * @param {Canvas} canvas
  * @param {Map<string, string>} ids
  */
-export function drawEdge(edge, from, to, canvas, ids, points = null, obstacles = null) {
+export function drawEdge(
+  edge,
+  from,
+  to,
+  canvas,
+  ids,
+  points = null,
+  obstacles = null,
+  backgroundAt = null,
+) {
   const theme = canvas.theme;
   const s = roleStyle(theme, edge.role === "note" ? "edge" : edge.role, {
     stroke: edge.color ?? undefined,
@@ -517,11 +593,10 @@ export function drawEdge(edge, from, to, canvas, ids, points = null, obstacles =
     const laid = edge.data.labelLayout;
     canvas.group(() => {
       canvas.rect(b.x, b.y, b.width, b.height, {
-        fill: theme.background,
+        fill: backgroundAt ? backgroundAt(b.x + b.width / 2, b.y + b.height / 2) : theme.background,
         stroke: TRANSPARENT,
         strokeWidth: 1,
         roughness: 0,
-        opacity: 85,
       });
       const arrowW = edge.data.labelArrow ? 14 : 0;
       const tx = b.x + (b.width - laid.width - arrowW) / 2;
@@ -560,7 +635,9 @@ export function drawEdge(edge, from, to, canvas, ids, points = null, obstacles =
     const h = laid.height;
     // Beside the line, beyond the arrowhead, away from other labels and lines.
     const box = obstacles
-      ? obstacles.place(nearEnd(tip, prev, w, h), { owner: edge.id })
+      ? obstacles.place(nearEnd(tip, prev, w, h, !!(atStart ? edge.startHead : edge.endHead)), {
+          owner: edge.id,
+        })
       : (() => {
           const b = edge[`${which}Box`];
           return b ? { x: b.x, y: b.y, w: b.width, h: b.height } : null;

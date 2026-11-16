@@ -61,7 +61,7 @@ participant Client
 participant Cache #e7f5ff
 participant Service
 database Store
-Client -> Cache : get(key)
+Client -> Cache ++ : get(key)
 alt hit
   Cache --> Client : value
 else miss
@@ -76,6 +76,7 @@ else miss
   Service --> Cache -- : value
   Cache --> Client : value
 end
+deactivate Cache
 break timeout
   Client -[#red]> Client : abort
 end
@@ -137,6 +138,7 @@ $svc --> Gateway : ok
 !endprocedure
 !function $upper($s) !return %upper($s)
 title Health check (generated with the preprocessor)
+autoactivate on
 participant Gateway
 !foreach $s in $services
 participant "$upper($s)" as $s
@@ -1251,7 +1253,7 @@ f(x) = sqrt(x^2 + 1) / (2 pi)
 @startlatex
 \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
 x_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
-\left( \sum_{k=0}^{n} \binom k \right) \leq \lim_{n \to \infty} a_n
+\left( \sum_{k=0}^{n} \binom{n}{k} \right) \leq \lim_{n \to \infty} a_n
 @endlatex
 ```
 

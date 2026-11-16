@@ -1,5 +1,5 @@
 @startlatex
 \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
 x_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
-\left( \sum_{k=0}^{n} \binom k \right) \leq \lim_{n \to \infty} a_n
+\left( \sum_{k=0}^{n} \binom{n}{k} \right) \leq \lim_{n \to \infty} a_n
 @endlatex

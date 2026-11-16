@@ -11,11 +11,14 @@ import { LineReader } from "../../syntax/reader.mjs";
 import { textWidth } from "../../layout/measure.mjs";
 import { LimitError } from "../../core/errors.mjs";
 
+/** Integral signs take their limits beside the glyph (TeX `\nolimits`), other big operators above and below. */
+const SIDE_LIMIT_OPS = new Set(["∫", "∮", "∬"]);
+
 /**
  * @typedef {(
  *  | { t: "row", items: MNode[] }
  *  | { t: "sym", text: string, italic?: boolean, op?: boolean }
- *  | { t: "frac", n: MNode, d: MNode }
+ *  | { t: "frac", n: MNode, d: MNode, bar?: boolean }
  *  | { t: "script", base: MNode, sup: MNode | null, sub: MNode | null }
  *  | { t: "sqrt", body: MNode, index: MNode | null }
  *  | { t: "fence", open: string, close: string, body: MNode }
@@ -131,6 +134,8 @@ const SYMBOLS = new Map(
     rangle: "⟩",
   }),
 );
+/** Binary operators and relations that get TeX-style spacing; letters, `∞`, `∂` and friends do not. */
+const SPACED_SYMBOLS = new Set([..."·×÷±∓≤≥≠≈≡∼∝∈∉⊂⊆⊃∪∩∧∨→←⇒⇐↔⇔↦∘⋆∗"]);
 const ASCII_OPS = new Map([
   ["<=", "≤"],
   [">=", "≥"],
@@ -189,6 +194,21 @@ const FUNCS = new Set([
 
 // ── LaTeX ─────────────────────────────────────────────────────────────
 
+// Private-use markers for the infix commands; they never reach the layout.
+const CHOOSE = "\uE000choose";
+const OVER = "\uE000over";
+const INFIX = new Set([CHOOSE, OVER]);
+
+/**
+ * Binomial coefficient: two stacked rows without a rule inside brackets.
+ * @param {MNode} n
+ * @param {MNode} d
+ * @returns {MNode}
+ */
+function binomial(n, d) {
+  return { t: "fence", open: "(", close: ")", body: { t: "frac", n, d, bar: false } };
+}
+
 /**
  * @param {string} src
  * @returns {MNode}
@@ -205,6 +225,8 @@ export function parseLatex(src) {
       i++;
       return r;
     }
+    // A missing argument (`\binom k`) must not swallow `}` or `\right`.
+    if (src[i] === "}" || src.startsWith("\\right", i)) return { t: "row", items: [] };
     return atom() ?? { t: "row", items: [] };
   };
   /** @param {string} end @returns {MNode} */
@@ -218,7 +240,22 @@ export function parseLatex(src) {
       if (!a) continue;
       items.push(scripts(a));
     }
-    return { t: "row", items };
+    return infix(items);
+  };
+  /**
+   * TeX's infix `{n \choose k}` / `{a \over b}` split a group in two halves.
+   * @param {MNode[]} items
+   * @returns {MNode}
+   */
+  const infix = (items) => {
+    const at = items.findIndex((it) => it.t === "sym" && INFIX.has(it.text));
+    if (at < 0) return { t: "row", items };
+    const kind = /** @type {{ text: string }} */ (items[at]).text;
+    /** @type {MNode} */
+    const n = { t: "row", items: items.slice(0, at) };
+    const d = infix(items.slice(at + 1));
+    if (kind === OVER) return { t: "frac", n, d };
+    return binomial(n, d);
   };
   /** @param {MNode} base @returns {MNode} */
   const scripts = (base) => {
@@ -254,6 +291,10 @@ export function parseLatex(src) {
       i += cmd.length + 1;
       if (cmd === "frac" || cmd === "dfrac" || cmd === "tfrac")
         return { t: "frac", n: group(), d: group() };
+      if (cmd === "binom" || cmd === "dbinom" || cmd === "tbinom")
+        return binomial(group(), group());
+      if (cmd === "choose") return { t: "sym", text: CHOOSE };
+      if (cmd === "over") return { t: "sym", text: OVER };
       if (cmd === "sqrt") {
         let index = null;
         if (src[i] === "[") {
@@ -290,7 +331,7 @@ export function parseLatex(src) {
         return {
           t: "sym",
           text: /** @type {string} */ (SYMBOLS.get(cmd)),
-          op: !/^[a-zA-Z]+$/.test(cmd) || cmd.length > 2,
+          op: SPACED_SYMBOLS.has(/** @type {string} */ (SYMBOLS.get(cmd))),
         };
       if ("{}%$#_&".includes(cmd)) return { t: "sym", text: cmd };
       return { t: "sym", text: cmd };
@@ -498,7 +539,7 @@ function mbox(n, fs, ink) {
       };
     }
     case "row": {
-      const parts = n.items.map((it) => mbox(it, fs, ink));
+      const parts = n.items.map((it, k) => mbox(unaryMinus(n.items, k), fs, ink));
       return {
         w: parts.reduce((s, p) => s + p.w, 0),
         asc: Math.max(fs * 0.72, ...parts.map((p) => p.asc)),
@@ -523,13 +564,14 @@ function mbox(n, fs, ink) {
         desc: den.asc + den.desc + 4 - axis,
         draw: (c, x, base) => {
           const by = base - axis;
-          c.line(
-            [
-              [x + 2, by],
-              [x + w - 2, by],
-            ],
-            { stroke: ink, strokeWidth: 1.5, roughness: 0.5 },
-          );
+          if (n.bar !== false)
+            c.line(
+              [
+                [x + 2, by],
+                [x + w - 2, by],
+              ],
+              { stroke: ink, strokeWidth: 1.5, roughness: 0.5 },
+            );
           num.draw(c, x + (w - num.w) / 2, by - num.desc - 4);
           den.draw(c, x + (w - den.w) / 2, by + den.asc + 4);
         },
@@ -540,7 +582,9 @@ function mbox(n, fs, ink) {
       const sup = n.sup ? mbox(n.sup, fs * 0.65, ink) : null;
       const sub = n.sub ? mbox(n.sub, fs * 0.65, ink) : null;
       const raise = base.asc * 0.55;
-      const drop = base.desc + (sub ? sub.asc * 0.4 : 0);
+      // The subscript hangs right under the base line like in TeX; only tall
+      // bases (fractions, brackets) push it further down.
+      const drop = Math.max(fs * 0.2, base.desc - fs * 0.05);
       return {
         w: base.w + Math.max(sup?.w ?? 0, sub?.w ?? 0) + 2,
         asc: Math.max(base.asc, sup ? raise + sup.asc : 0),
@@ -656,6 +700,7 @@ function mbox(n, fs, ink) {
       const opW = textWidth(n.op, ofs);
       const sup = n.sup ? mbox(n.sup, fs * 0.65, ink) : null;
       const sub = n.sub ? mbox(n.sub, fs * 0.65, ink) : null;
+      if (SIDE_LIMIT_OPS.has(n.op)) return integralBox(n, fs, ink, ofs, opW, sup, sub);
       const w = Math.max(opW, sup?.w ?? 0, sub?.w ?? 0) + fs * 0.3;
       const asc = (word ? fs * 0.72 : ofs * 0.75) + (sup ? sup.asc + sup.desc + 2 : 0);
       const desc = (word ? fs * 0.24 : ofs * 0.25) + (sub ? sub.asc + sub.desc + 2 : 0);
@@ -676,6 +721,51 @@ function mbox(n, fs, ink) {
       };
     }
   }
+}
+
+/**
+ * A sign at the start of a row or after another operator is unary and gets no
+ * binary-operator spacing (`-\infty`, `e^{-x}`).
+ * @param {MNode[]} items
+ * @param {number} k
+ * @returns {MNode}
+ */
+function unaryMinus(items, k) {
+  const it = items[k];
+  if (it.t !== "sym" || !it.op || (it.text !== "-" && it.text !== "+")) return it;
+  const prev = items[k - 1];
+  return !prev || (prev.t === "sym" && prev.op) ? { ...it, op: false } : it;
+}
+
+/**
+ * Integral sign with its limits beside the glyph: the upper limit sits at the
+ * top right, the lower one at the bottom, tucked slightly under the upper one.
+ * The glyph is lowered so that it straddles the baseline like in TeX.
+ * @param {Extract<MNode, { t: "big" }>} n
+ * @param {number} fs
+ * @param {string} ink
+ * @param {number} ofs glyph font size
+ * @param {number} opW glyph advance width
+ * @param {MBox | null} sup
+ * @param {MBox | null} sub
+ * @returns {MBox}
+ */
+function integralBox(n, fs, ink, ofs, opW, sup, sub) {
+  const top = ofs * 0.8;
+  const bottom = ofs * 0.3;
+  const supX = opW * 0.62;
+  const subX = opW * 0.45;
+  const w = Math.max(supX + (sup?.w ?? 0), subX + (sub?.w ?? 0)) + fs * 0.1;
+  return {
+    w,
+    asc: top + (sup ? sup.asc * 0.4 : 0),
+    desc: bottom + (sub ? sub.desc + sub.asc * 0.2 : 0),
+    draw: (c, x, b) => {
+      c.text(n.op, x, b - ofs * 0.95 + ofs * 0.3, { size: ofs, color: ink });
+      if (sup) sup.draw(c, x + supX, b - top + sup.asc * 0.6);
+      if (sub) sub.draw(c, x + subX, b + bottom + sub.asc * 0.3);
+    },
+  };
 }
 
 /**

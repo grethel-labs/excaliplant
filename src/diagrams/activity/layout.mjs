@@ -10,6 +10,7 @@
  */
 
 import { layoutText } from "../../layout/measure.mjs";
+import { Obstacles } from "../../layout/labels.mjs";
 import { roleStyle } from "../../draw/theme.mjs";
 
 /** @typedef {import("./parse.mjs").Item} Item */
@@ -45,6 +46,7 @@ import { roleStyle } from "../../draw/theme.mjs";
  * @property {ArrowStyle | null} style
  * @property {{ x: number } | null} via Detour column (loops, bypasses).
  * @property {[number, number][]} points
+ * @property {{ x: number, y: number, w: number, h: number } | null} labelBox Placed label, set after routing.
  */
 
 /**
@@ -59,8 +61,17 @@ import { roleStyle } from "../../draw/theme.mjs";
  * @property {number} height
  */
 
-const GAP = 28;
+/** Vertical gap between stacked nodes; equals the room a full arrowhead needs. */
+const GAP = 30;
 const BRANCH_GAP = 36;
+/** Last segment of a headed edge, so the renderer keeps the head at full size. */
+const HEAD_ROOM = 30;
+/** Run-up of a jogging edge before it turns sideways, below its source. */
+const JOG_ROOM = 12;
+/** Distance of a label from a vertical edge; clears the arrowhead's wings. */
+const LABEL_SIDE = 10;
+/** Largest offset of a middle branch that is snapped onto the head's axis. */
+const SNAP_AXIS = 24;
 
 /**
  * @param {import("./parse.mjs").ActivityModel} model
@@ -144,6 +155,7 @@ export function layoutActivity(model, ctx) {
     style: o.style ?? null,
     via: o.via !== undefined && o.via !== null ? { x: o.via } : null,
     points: [],
+    labelBox: null,
   });
 
   /** @param {LNode} n @returns {Frame} */
@@ -214,6 +226,14 @@ export function layoutActivity(model, ctx) {
         axes.push(x - b.frame.minX);
         x += widths[i] + BRANCH_GAP;
       });
+      // A middle branch a few pixels off the head's axis would get a tiny
+      // jog; centre the row on it so that edge runs straight.
+      const nearest = axes.reduce(
+        (m, a, i) => (widths[i] > 0 && Math.abs(a) < Math.abs(m) ? a : m),
+        Infinity,
+      );
+      if (!fromBar && Math.abs(nearest) < SNAP_AXIS)
+        for (let i = 0; i < axes.length; i++) axes[i] -= nearest;
     }
     let bottom = top;
     branches.forEach((b, i) => {
@@ -444,7 +464,7 @@ export function layoutActivity(model, ctx) {
         const top = head.h + GAP;
         shift(body, 0, top);
         absorb(f, body);
-        const left = Math.min(f.minX, -head.w / 2) - 24;
+        const left = Math.min(f.minX, -head.w / 2) - HEAD_ROOM;
         const right = Math.max(f.maxX, head.w / 2) + 24;
         const back = item.backward.find((b) => b.t === "action");
         const backLabel = back && back.t === "action" ? back.text : null;
@@ -496,7 +516,7 @@ export function layoutActivity(model, ctx) {
           for (const ex of body.exits ?? [])
             f.edges.push(edge(ex.node, ex.side, cond, "top", { fromDx: ex.dx }));
         } else f.edges.push(edge(head, "bottom", cond, "top"));
-        const left = Math.min(f.minX, -cond.w / 2) - 24;
+        const left = Math.min(f.minX, -cond.w / 2) - HEAD_ROOM;
         const back = item.backward.find((b) => b.t === "action");
         f.edges.push(
           edge(cond, "left", head, "left", {
@@ -612,27 +632,59 @@ export function layoutActivity(model, ctx) {
       }
     }
   }
+  /** Edges that end in an arrowhead; joins into junctions and kills stay bare. @param {LEdge} e */
+  const headed = (e) =>
+    e.to.kind !== "junction" && e.to.kind !== "kill" && !e.style?.hidden && e.from !== e.to;
+
+  /**
+   * Vertical room (source port to target port) an edge into a top port needs
+   * for a run-up, the sideways jog and a full-size arrowhead.
+   * @param {LEdge} e
+   * @returns {number}
+   */
+  const roomNeeded = (e) => {
+    if (e.toSide !== "top" || !headed(e)) return 0;
+    const a = port(e.from, e.fromSide, e.fromDx);
+    const b = port(e.to, e.toSide, e.toDx);
+    if (e.via) return HEAD_ROOM + (e.fromSide === "bottom" ? 14 : 8);
+    const jogs = e.fromSide === "bottom" && Math.abs(a[0] - b[0]) >= 1;
+    return jogs ? HEAD_ROOM + JOG_ROOM : HEAD_ROOM;
+  };
+  // Push everything below a too-short edge down, so jogging edges keep a full
+  // arrowhead instead of squeezing it into the gap between two rows.
+  for (let pass = 0; pass < 24; pass++) {
+    let changed = false;
+    for (const e of [...frame.edges].sort((p, q) => p.to.y - q.to.y)) {
+      const need = roomNeeded(e);
+      if (!need) continue;
+      const a = port(e.from, e.fromSide, e.fromDx);
+      const b = port(e.to, e.toSide, e.toDx);
+      if (b[1] <= a[1]) continue;
+      const deficit = need - (b[1] - a[1]);
+      if (deficit <= 0.5) continue;
+      for (const n of frame.nodes) if (n.y - n.h / 2 > a[1] + 0.5) n.y += deficit;
+      changed = true;
+    }
+    if (!changed) break;
+  }
+
   for (const e of frame.edges) {
     const a = port(e.from, e.fromSide, e.fromDx);
     const b = port(e.to, e.toSide, e.toDx);
+    const lead = headed(e) ? HEAD_ROOM : 0;
     /** @type {[number, number][]} */
     let pts;
     if (e.via) {
       const vx = e.via.x;
-      if (e.fromSide === "bottom") pts = [a, [a[0], a[1] + 14], [vx, a[1] + 14], [vx, b[1]], b];
-      else pts = [a, [vx, a[1]], [vx, b[1]], b];
-      if (e.toSide === "top")
-        pts = [
-          a,
-          [vx, a[1]],
-          [vx, b[1] - (e.to.kind === "junction" ? 0 : 14)],
-          [b[0], b[1] - (e.to.kind === "junction" ? 0 : 14)],
-          b,
-        ];
+      const into = e.toSide === "top" ? b[1] - (e.to.kind === "junction" ? 0 : lead || 14) : b[1];
+      if (e.fromSide === "bottom") pts = [a, [a[0], a[1] + 14], [vx, a[1] + 14], [vx, into]];
+      else pts = [a, [vx, a[1]], [vx, into]];
+      if (e.toSide === "top") pts.push([b[0], into]);
+      pts.push(b);
     } else if (e.fromSide === "bottom" && e.toSide === "top") {
       if (Math.abs(a[0] - b[0]) < 1) pts = [a, b];
       else {
-        const mid = Math.max(a[1] + 8, b[1] - 14);
+        const mid = lead ? Math.max(a[1] + JOG_ROOM, b[1] - lead) : Math.max(a[1] + 8, b[1] - 14);
         pts = [a, [a[0], mid], [b[0], mid], b];
       }
     } else if (e.toSide === "top") pts = [a, [b[0], a[1]], b];
@@ -646,6 +698,8 @@ export function layoutActivity(model, ctx) {
       ];
     e.points = dedupe(pts);
   }
+
+  placeLabels(frame.nodes, frame.edges, headed);
 
   // Groups become rectangles around their nodes.
   const groups = frame.groups.map((g) => {
@@ -674,4 +728,51 @@ function dedupe(pts) {
     if (!last || Math.abs(last[0] - p[0]) > 0.5 || Math.abs(last[1] - p[1]) > 0.5) out.push(p);
   }
   return out;
+}
+
+/**
+ * Place edge labels beside the first segments of their edges, away from nodes,
+ * other edges, arrowheads and each other.
+ * @param {LNode[]} nodes
+ * @param {LEdge[]} edges
+ * @param {(e: LEdge) => boolean} headed
+ */
+function placeLabels(nodes, edges, headed) {
+  const obstacles = new Obstacles();
+  for (const n of nodes)
+    if (n.w > 0 && n.h > 0)
+      obstacles.addBox({ x: n.x - n.w / 2, y: n.y - n.h / 2, w: n.w, h: n.h }, { weight: 1 });
+  edges.forEach((e, i) => {
+    if (e.style?.hidden || e.points.length < 2) return;
+    obstacles.addPolyline(e.points, { owner: String(i) });
+    if (headed(e)) obstacles.addHead(e.points[e.points.length - 1], e.points[e.points.length - 2]);
+  });
+  edges.forEach((e, i) => {
+    if (!e.label || e.points.length < 2) return;
+    const { width: w, height: h } = e.label;
+    /** @type {{ x: number, y: number, w: number, h: number, penalty: number }[]} */
+    const out = [];
+    const segments = Math.min(2, e.points.length - 1);
+    for (let k = 0; k < segments; k++) {
+      const [a, b] = [e.points[k], e.points[k + 1]];
+      const horizontal = Math.abs(a[1] - b[1]) < 0.5;
+      const sign = Math.sign(horizontal ? b[0] - a[0] : b[1] - a[1]) || 1;
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      // Distances from the segment start; the first one is the classic spot.
+      for (const [j, off] of [0, 4, 10, 18, 28].entries()) {
+        if (j && off + (horizontal ? w : h) > len) break;
+        const base = k * 60 + j * 3;
+        if (horizontal) {
+          const x = sign > 0 ? a[0] + 6 + off : a[0] - w - 6 - off;
+          out.push({ x, y: a[1] - h - 2, w, h, penalty: base });
+          out.push({ x, y: a[1] + 3, w, h, penalty: base + 4 });
+        } else {
+          const y = sign > 0 ? a[1] + 4 + off : a[1] - h - 4 - off;
+          out.push({ x: a[0] + LABEL_SIDE, y, w, h, penalty: base });
+          out.push({ x: a[0] - w - LABEL_SIDE, y, w, h, penalty: base + 2 });
+        }
+      }
+    }
+    e.labelBox = obstacles.place(out, { owner: String(i) });
+  });
 }

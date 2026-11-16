@@ -4,7 +4,7 @@ participant Client
 participant Cache #e7f5ff
 participant Service
 database Store
-Client -> Cache : get(key)
+Client -> Cache ++ : get(key)
 alt hit
   Cache --> Client : value
 else miss
@@ -19,6 +19,7 @@ else miss
   Service --> Cache -- : value
   Cache --> Client : value
 end
+deactivate Cache
 break timeout
   Client -[#red]> Client : abort
 end
