@@ -150,6 +150,8 @@ function drawChrono(laid, c) {
     ],
     { stroke: axis.stroke, strokeWidth: 2, end: "arrow" },
   );
+  /** @type {(() => void)[]} Tick dates are drawn last, above spans and connectors. */
+  const tickLabels = [];
   // ticks at month starts
   for (let d = min; d <= max; d++) {
     const date = dayDate(d);
@@ -162,10 +164,16 @@ function drawChrono(laid, c) {
       ],
       { stroke: axis.stroke, strokeWidth: 1.5 },
     );
-    c.text(date.toISOString().slice(0, 10), x, y0 + 8, {
-      size: fs * 0.7,
-      color: theme.muted,
-      align: "center",
+    tickLabels.push(() => {
+      const label = date.toISOString().slice(0, 10);
+      const w = layoutText(label, { fontSize: fs * 0.7 }).width;
+      c.rect(x - w / 2 - 2, y0 + 12, w + 4, fs * 0.7 * 1.25, {
+        fill: theme.background,
+        stroke: "transparent",
+        strokeWidth: 1,
+        roughness: 0,
+      });
+      c.text(label, x, y0 + 12, { size: fs * 0.7, color: theme.muted, align: "center" });
     });
   }
   /** @type {Map<string, { x: number, y: number }>} */
@@ -231,6 +239,7 @@ function drawChrono(laid, c) {
       c.richText(t, lx, top - t.height / 2, { color: theme.muted });
     }
   }
+  for (const draw of tickLabels) draw();
 }
 
 export default defineDiagram({

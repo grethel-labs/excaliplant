@@ -70,6 +70,7 @@ function resolve(ctx, token, side) {
         keyword: "bar",
       });
       n.data.fixed = [120, 8];
+      n.data.ports = "bar";
       n.data.draw = (/** @type {any} */ c, /** @type {any} */ node) =>
         c.rect(node.x, node.y, node.width, node.height, {
           fill: c.theme.ink,
@@ -117,6 +118,7 @@ const RULES = [
       keyword: "if",
     });
     d.data.round = true;
+    d.data.ports = "decision";
     if (ctx.last) ctx.model.connect(ctx.last.id, d.id, { endHead: "triangle" });
     const state = /** @type {any} */ (ctx);
     state.ifs ??= [];

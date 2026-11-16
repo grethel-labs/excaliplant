@@ -135,20 +135,39 @@ function layoutData(model, ctx) {
     const kidsH = kids.reduce((s, k) => s + span(k), 0) + 20 * Math.max(0, kids.length - 1);
     return Math.max(t.h, kidsH);
   };
-  /** @param {Table} t @param {number} x @param {number} top */
+  /**
+   * Children start level with the row that points at them, so the connector
+   * is a straight line whenever the siblings above leave room.
+   * @param {Table} t @param {number} x @param {number} top
+   */
   const place = (t, x, top) => {
-    const s = span(t);
     t.x = x;
-    t.y = top + Math.max(0, (Math.min(s, t.h * 2) - t.h) / 2) * 0;
-    let y = top;
+    t.y = top;
+    let slot = top;
+    let rowTop = top;
     for (const r of t.rows) {
-      if (!r.child) continue;
-      place(r.child, x + t.w + 60, y);
-      y += span(r.child) + 20;
+      const rh = Math.max(r.key?.height ?? 0, r.value?.height ?? fs * 1.25) + 8;
+      if (r.child) {
+        const attach = firstRowHeight(r.child, fs) / 2;
+        const y = Math.max(slot, rowTop + rh / 2 - attach);
+        place(r.child, x + t.w + 60, y);
+        slot = y + span(r.child) + 20;
+      }
+      rowTop += rh;
     }
   };
   place(root, 0, 0);
   return { root, fs };
+}
+
+/**
+ * Height of a table's first row; connectors attach at its middle.
+ * @param {Table} t
+ * @param {number} fs
+ */
+function firstRowHeight(t, fs) {
+  const r = t.rows[0];
+  return Math.max(r.key?.height ?? 0, r.value?.height ?? fs * 1.25) + 8;
 }
 
 /**
@@ -207,10 +226,13 @@ function drawData(laid, c) {
         const target = /** @type {Table} */ (r.child);
         const b = /** @type {[number, number]} */ ([
           target.x,
-          target.y + Math.min(target.h / 2, 20),
+          target.y + firstRowHeight(target, laid.fs) / 2,
         ]);
         const a = /** @type {[number, number]} */ ([t.x + t.w - 5, cy]);
-        const mx = (a[0] + b[0]) / 2;
+        // Lower rows turn earlier, so connectors of one table never cross.
+        const kids = t.rows.filter((q) => q.child);
+        const k = kids.indexOf(r);
+        const mx = a[0] + ((b[0] - a[0]) * (kids.length - k)) / (kids.length + 1);
         c.arrow([a, [mx, a[1]], [mx, b[1]], b], {
           stroke: theme.muted,
           strokeWidth: 1.5,

@@ -25,7 +25,8 @@ function drawActivity(laid, c) {
   if (laid.lanes.length) {
     const s = roleStyle(theme, "swimlane");
     const total = laid.lanes.reduce((m, l) => Math.max(m, l.x + l.w), 0);
-    for (const l of laid.lanes) {
+    // Fills first: they are translucent but still tint any rule drawn below them.
+    for (const l of laid.lanes)
       if (l.fill)
         c.rect(l.x, 0, l.w, laid.height, {
           fill: l.fill,
@@ -33,6 +34,7 @@ function drawActivity(laid, c) {
           roughness: 0,
           opacity: 50,
         });
+    for (const l of laid.lanes) {
       c.richText(l.label, l.x + (l.w - l.label.width) / 2, 8, { color: s.text });
       c.line(
         [
@@ -97,13 +99,8 @@ function drawActivity(laid, c) {
       from: ids.get(e.from.id) ?? null,
       to: ids.get(e.to.id) ?? null,
     });
-    if (e.label) {
-      const [a, b] = e.points;
-      const horizontal = Math.abs(a[1] - b[1]) < 0.5;
-      const lx = horizontal ? (b[0] > a[0] ? a[0] + 6 : a[0] - e.label.width - 6) : a[0] + 6;
-      const ly = horizontal ? a[1] - e.label.height - 2 : a[1] + 4;
-      c.richText(e.label, lx, ly, { color: ink, align: "left" });
-    }
+    if (e.label && e.labelBox)
+      c.richText(e.label, e.labelBox.x, e.labelBox.y, { color: ink, align: "left" });
   }
 }
 

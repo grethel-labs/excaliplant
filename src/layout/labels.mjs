@@ -157,7 +157,21 @@ export function alongPolyline(points, w, h, o = {}) {
   const keep = o.keepFromEnds ?? 26;
   /** @type {(Box & { penalty: number })[]} */
   const out = [];
-  const pref = o.preferred ?? null;
+  // A layout-time position only helps while it still sits next to the line.
+  const pref =
+    o.preferred &&
+    points.some(
+      (p, i) =>
+        i > 0 &&
+        segmentInBox(points[i - 1], p, {
+          x: o.preferred.x - 14,
+          y: o.preferred.y - 14,
+          w: o.preferred.w + 28,
+          h: o.preferred.h + 28,
+        }) > 0,
+    )
+      ? o.preferred
+      : null;
   if (pref) out.push({ ...pref, penalty: 0 });
   const total = points.reduce(
     (s, p, i) => (i ? s + Math.hypot(p[0] - points[i - 1][0], p[1] - points[i - 1][1]) : 0),
@@ -212,15 +226,17 @@ export function alongPolyline(points, w, h, o = {}) {
  * @param {Point} from
  * @param {number} w
  * @param {number} h
+ * @param {boolean} [headed] The end carries an arrowhead / diamond; labels keep clear of it.
  * @returns {(Box & { penalty: number })[]}
  */
-export function nearEnd(tip, from, w, h) {
+export function nearEnd(tip, from, w, h, headed = true) {
   const len = Math.hypot(tip[0] - from[0], tip[1] - from[1]) || 1;
   const ux = (tip[0] - from[0]) / len;
   const uy = (tip[1] - from[1]) / len;
   /** @type {(Box & { penalty: number })[]} */
   const out = [];
-  for (const back of [26, 34, 44]) {
+  const near = headed ? 26 : 12;
+  for (const back of [near, near + 8, near + 18]) {
     const px = tip[0] - ux * back;
     const py = tip[1] - uy * back;
     for (const side of [1, -1]) {
@@ -229,7 +245,7 @@ export function nearEnd(tip, from, w, h) {
       const ny = ux * side;
       const cx = px + nx * (Math.abs(ny) > 0.5 ? h / 2 + 4 : w / 2 + 5);
       const cy = py + ny * (Math.abs(ny) > 0.5 ? h / 2 + 4 : w / 2 + 5);
-      out.push({ x: cx - w / 2, y: cy - h / 2, w, h, penalty: back - 26 });
+      out.push({ x: cx - w / 2, y: cy - h / 2, w, h, penalty: back - near });
     }
   }
   return out;

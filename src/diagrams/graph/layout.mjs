@@ -9,6 +9,7 @@ import ELK from "elkjs/lib/elk.bundled.js";
 import { layoutText } from "../../layout/measure.mjs";
 import { shape as shapeDef } from "../../draw/shapes.mjs";
 import { roleStyle } from "../../draw/theme.mjs";
+import { tidyRoutes } from "./route.mjs";
 
 /** @typedef {import("../../model/graph.mjs").GraphModel} GraphModel */
 /** @typedef {import("../../model/graph.mjs").GraphNode} GraphNode */
@@ -275,6 +276,87 @@ export async function layoutGraph(model, theme, options = {}) {
   const visible = [...model.nodes.values()].filter((n) => !n.removed);
   const fs = theme.fontSize;
 
+  // Decision diamonds and fork/join bars get side-fixed ports: flow enters on
+  // the top (left in LR), the first branch leaves at the bottom, further
+  // branches leave sideways — never back out of the top.
+  /** @type {Map<string, { id: string, side: string }[]>} */
+  const ports = new Map();
+  /** @type {Map<string, string>} */
+  const portOf = new Map();
+  const IN = lr ? "WEST" : "NORTH";
+  const OUT = lr ? "EAST" : "SOUTH";
+  const SIDES = lr ? ["SOUTH", "NORTH"] : ["EAST", "WEST"];
+  for (const n of visible) {
+    const kind = n.data.ports;
+    if (kind !== "decision" && kind !== "bar") continue;
+    /** @type {{ id: string, side: string }[]} */
+    const list = [];
+    let outs = 0;
+    for (const e of model.edges) {
+      if (e.to === n.id && e.from !== n.id) {
+        const id = `${e.id}@in`;
+        list.push({ id, side: IN });
+        portOf.set(`${e.id}:to`, id);
+      }
+    }
+    for (const e of model.edges) {
+      if (e.from === n.id && e.to !== n.id) {
+        const id = `${e.id}@out`;
+        const side = kind === "bar" || outs === 0 ? OUT : SIDES[(outs - 1) % 2];
+        outs++;
+        list.push({ id, side });
+        portOf.set(`${e.id}:from`, id);
+      }
+    }
+    ports.set(n.id, list);
+  }
+
+  // Icon shapes with the label underneath (actors, boundaries, interfaces …):
+  // connectors attach to the icon, never to the label below it.
+  /** @type {Map<string, { id: string, x: number, y: number, side: string }[]>} */
+  const iconPorts = new Map();
+  for (const n of visible) {
+    const geo = n.data.geo;
+    if (geo?.placement !== "below" || !geo.blocks?.length || n.container) continue;
+    const [iw, ih] = geo.icon;
+    const left = (n.width - iw) / 2;
+    /** @type {{ id: string, x: number, y: number, side: string }[]} */
+    const list = [];
+    /** @type {{ id: string, side: string, outgoing: boolean }[]} */
+    const wanted = [];
+    for (const e of model.edges) {
+      for (const end of /** @type {const} */ (["from", "to"])) {
+        if (e[end] !== n.id || e.from === e.to) continue;
+        const outgoing = end === "from";
+        const side = lr ? (outgoing ? "EAST" : "WEST") : outgoing ? "SOUTH" : "NORTH";
+        wanted.push({ id: `${e.id}@${end}@icon`, side, outgoing });
+        portOf.set(`${e.id}:${end}`, `${e.id}@${end}@icon`);
+      }
+    }
+    for (const w of wanted) {
+      const same = wanted.filter((p) => p.side === w.side);
+      const k = same.indexOf(w);
+      // Spread the ends along the icon so arrowheads side by side do not overlap.
+      const step = Math.min(24, iw / Math.max(1, same.length - 1));
+      const spread = (k - (same.length - 1) / 2) * step;
+      const x = w.side === "EAST" ? left + iw : w.side === "WEST" ? left : n.width / 2 + spread;
+      const y = w.side === "NORTH" ? 0 : w.side === "SOUTH" ? n.height : ih / 2 + spread;
+      list.push({ id: w.id, x, y, side: w.side });
+    }
+    if (list.length) iconPorts.set(n.id, list);
+  }
+
+  const spacing = {
+    "elk.spacing.nodeNode": String(options.nodeSpacing ?? 44),
+    "elk.layered.spacing.nodeNodeBetweenLayers": String(options.layerSpacing ?? 64),
+    "elk.spacing.edgeNode": "32",
+    "elk.spacing.edgeEdge": "14",
+    "elk.spacing.edgeLabel": "4",
+    "elk.layered.spacing.edgeNodeBetweenLayers": "32",
+    "elk.layered.spacing.edgeEdgeBetweenLayers": "12",
+    "elk.spacing.labelLabel": "4",
+  };
+
   /** @param {GraphNode} n @returns {any} */
   const toElk = (n) => {
     const kids = n.children.filter((c) => !c.removed);
@@ -285,10 +367,49 @@ export async function layoutGraph(model, theme, options = {}) {
         id: n.id,
         layoutOptions: {
           "elk.padding": `[top=${top},left=20,bottom=20,right=20]`,
+          // Spacing options are not inherited by compound nodes; repeat them so
+          // edges inside containers keep room for a full arrowhead.
+          ...spacing,
           "elk.nodeSize.constraints": "MINIMUM_SIZE",
           "elk.nodeSize.minimum": `(${Math.max(geo.minWidth, 100)}, ${top + 40})`,
         },
         children: kids.map(toElk),
+      };
+    }
+    const own = ports.get(n.id);
+    if (own) {
+      return {
+        id: n.id,
+        width: n.width,
+        height: n.height,
+        layoutOptions: {
+          "elk.portConstraints": "FIXED_SIDE",
+          // Diamonds: branches leave from the corners; bars: spread along the bar.
+          "elk.portAlignment.default": n.data.ports === "bar" ? "DISTRIBUTED" : "CENTER",
+        },
+        ports: own.map((p) => ({
+          id: p.id,
+          width: 0,
+          height: 0,
+          layoutOptions: { "elk.port.side": p.side },
+        })),
+      };
+    }
+    const icon = iconPorts.get(n.id);
+    if (icon) {
+      return {
+        id: n.id,
+        width: n.width,
+        height: n.height,
+        layoutOptions: { "elk.portConstraints": "FIXED_POS" },
+        ports: icon.map((p) => ({
+          id: p.id,
+          x: p.x,
+          y: p.y,
+          width: 0,
+          height: 0,
+          layoutOptions: { "elk.port.side": p.side },
+        })),
       };
     }
     return { id: n.id, width: n.width, height: n.height };
@@ -329,8 +450,12 @@ export async function layoutGraph(model, theme, options = {}) {
       }
       return {
         id: e.id,
-        sources: [reverse ? e.to : e.from],
-        targets: [reverse ? e.from : e.to],
+        sources: [
+          reverse ? (portOf.get(`${e.id}:to`) ?? e.to) : (portOf.get(`${e.id}:from`) ?? e.from),
+        ],
+        targets: [
+          reverse ? (portOf.get(`${e.id}:from`) ?? e.from) : (portOf.get(`${e.id}:to`) ?? e.to),
+        ],
         labels,
         layoutOptions:
           e.length === 1 && !e.data.note ? { "elk.layered.priority.direction": "0" } : {},
@@ -344,14 +469,7 @@ export async function layoutGraph(model, theme, options = {}) {
       "elk.direction": lr ? "RIGHT" : "DOWN",
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",
       "elk.edgeRouting": routing,
-      "elk.spacing.nodeNode": String(options.nodeSpacing ?? 44),
-      "elk.layered.spacing.nodeNodeBetweenLayers": String(options.layerSpacing ?? 64),
-      "elk.spacing.edgeNode": "22",
-      "elk.spacing.edgeEdge": "14",
-      "elk.spacing.edgeLabel": "4",
-      "elk.layered.spacing.edgeNodeBetweenLayers": "22",
-      "elk.layered.spacing.edgeEdgeBetweenLayers": "12",
-      "elk.spacing.labelLabel": "4",
+      ...spacing,
       "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
       // Break cycles along a depth-first walk from the sources (e.g. [*]), so the
       // main flow points downwards and only true back edges are reversed.
@@ -424,6 +542,7 @@ export async function layoutGraph(model, theme, options = {}) {
     }
   };
   nested(result);
+  tidyRoutes(model);
   packComponents(model);
   return model;
 }

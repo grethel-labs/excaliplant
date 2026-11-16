@@ -22,6 +22,10 @@ import { score } from "../detect.mjs";
  * )} Widget
  */
 
+/** Inset of a group caption from the frame's left edge, and its plate padding. */
+const GROUP_TITLE_INSET = 10;
+const GROUP_TITLE_PAD = 8;
+
 /**
  * Split on top-level `|` (outside `{}` and `[]`/`""`).
  * @param {string} s
@@ -169,6 +173,11 @@ function measure(wd, fs) {
     wd.w = wd.colW.reduce((s, x) => s + x, 0);
     wd.h = wd.rowH.reduce((s, x) => s + x, 0) + (wd.kind === "group" ? fs * 1.4 : 0);
     if (wd.kind === "scroll") wd.w += 14;
+    if (wd.kind === "group" && wd.title) {
+      // The caption plate sits 10px in from the left edge and needs 10px on its right.
+      const t = layoutText(wd.title, { fontSize: fs * 0.9 });
+      wd.w = Math.max(wd.w, t.width + GROUP_TITLE_INSET * 2 + GROUP_TITLE_PAD);
+    }
     return;
   }
   wd.laid = wd.text ? layoutText(wd.text, { fontSize: fs, align: "left" }) : null;
@@ -225,16 +234,18 @@ function draw(c, wd, x, y, cw, fs) {
     case "grid": {
       let top = y;
       if (wd.kind === "group") {
-        c.rect(x, y + fs * 0.6, wd.w, wd.h - fs * 0.6, { ...soft, rounded: true });
+        // Square like the other salt frames: Excalidraw's adaptive corner radius would
+        // turn a narrow, tall group into a pill.
+        c.rect(x, y + fs * 0.6, wd.w, wd.h - fs * 0.6, { ...soft, rounded: false });
         if (wd.title) {
           const t = layoutText(wd.title, { fontSize: fs * 0.9 });
-          c.rect(x + 10, y, t.width + 8, t.height, {
+          c.rect(x + GROUP_TITLE_INSET, y, t.width + GROUP_TITLE_PAD, t.height, {
             fill: theme.background,
             stroke: "transparent",
             strokeWidth: 1,
             roughness: 0,
           });
-          c.richText(t, x + 14, y, { color: ink });
+          c.richText(t, x + GROUP_TITLE_INSET + GROUP_TITLE_PAD / 2, y, { color: ink });
         }
         top += fs * 1.4;
       }

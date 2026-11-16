@@ -216,7 +216,20 @@ function drawChart(laid, c) {
     model.series.forEach((s, si) => {
       const pal = paletteAt(theme, si);
       const y = 10 + si * (fs * 1.6);
-      c.rect(lx, y, 14, 14, { fill: s.color ?? pal.fill, stroke: s.color ?? pal.stroke });
+      const stroke = s.color ?? pal.stroke;
+      if (s.kind === "line") {
+        // Same glyph as in the plot: a short stroke with a point marker.
+        c.line(
+          [
+            [lx - 2, y + 7],
+            [lx + 18, y + 7],
+          ],
+          { stroke, strokeWidth: 2.5 },
+        );
+        c.ellipse(lx + 3.5, y + 3.5, 7, 7, { fill: stroke, stroke, fillStyle: "solid" });
+      } else if (s.kind === "scatter")
+        c.ellipse(lx + 1, y + 1, 12, 12, { fill: s.color ?? pal.fill, stroke, fillStyle: "solid" });
+      else c.rect(lx, y, 14, 14, { fill: s.color ?? pal.fill, stroke });
       c.text(s.name, lx + 22, y - 2, { size: fs, color: theme.ink });
     });
   }

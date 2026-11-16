@@ -9,7 +9,7 @@ import { SHAPES } from "../../draw/shapes.mjs";
 import { mixColors, TRANSPARENT } from "../../syntax/color.mjs";
 import { score } from "../detect.mjs";
 import { parseSequence } from "./parse.mjs";
-import { layoutSequence } from "./layout.mjs";
+import { layoutSequence, DESTROY_HALF } from "./layout.mjs";
 
 /** @typedef {import("../../draw/canvas.mjs").Canvas} Canvas */
 /** @typedef {import("./layout.mjs").SeqItem} SeqItem */
@@ -70,16 +70,6 @@ function drawSequence(laid, c) {
         });
         const tw = it.tag.width + 16;
         const th = it.tag.height + 6;
-        c.line(
-          [
-            [it.x, it.y],
-            [it.x + tw + 8, it.y],
-            [it.x + tw + 8, it.y + th - 6],
-            [it.x + tw, it.y + th],
-            [it.x, it.y + th],
-          ],
-          { closed: true, fill: tagStyle.fill, stroke: s.stroke, strokeWidth: 1.5 },
-        );
         for (const el of it.elses) {
           c.line(
             [
@@ -89,12 +79,35 @@ function drawSequence(laid, c) {
             { stroke: s.stroke, strokeWidth: 1, strokeStyle: "dashed" },
           );
         }
-        // Tags and guard texts go on top of activation bars (see below).
+        // Tag pentagon and guard texts sit above lifelines and activation bars.
+        const plate = (/** @type {number} */ x, /** @type {number} */ y, /** @type {any} */ t) =>
+          c.rect(x - 2, y + 1, t.width + 4, t.height - 2, {
+            fill: theme.background,
+            stroke: TRANSPARENT,
+            strokeWidth: 1,
+            roughness: 0,
+          });
         groupLabels.push(() => {
+          c.line(
+            [
+              [it.x, it.y],
+              [it.x + tw + 8, it.y],
+              [it.x + tw + 8, it.y + th - 6],
+              [it.x + tw, it.y + th],
+              [it.x, it.y + th],
+            ],
+            { closed: true, fill: tagStyle.fill, stroke: s.stroke, strokeWidth: 1.5 },
+          );
           c.richText(it.tag, it.x + 8, it.y + 3, { color: tagStyle.text });
-          if (it.text) c.richText(it.text, it.x + tw + 16, it.y + 3, { color: s.text });
-          for (const el of it.elses)
-            if (el.text) c.richText(el.text, it.x + 10, el.y + 4, { color: s.text });
+          if (it.text) {
+            plate(it.x + tw + 16, it.y + 3, it.text);
+            c.richText(it.text, it.x + tw + 16, it.y + 3, { color: s.text });
+          }
+          for (const el of it.elses) {
+            if (!el.text) continue;
+            plate(it.x + 10, el.y + 4, el.text);
+            c.richText(el.text, it.x + 10, el.y + 4, { color: s.text });
+          }
         });
         break;
       }
@@ -202,12 +215,11 @@ function drawSequence(laid, c) {
         if (it.text) {
           // A light plate keeps crossing lifelines from running through the label.
           if (it.plate)
-            c.rect(it.textX - 2, it.textY + 1, it.text.width + 4, it.text.height - 2, {
+            c.rect(it.textX - 4, it.textY - 1, it.text.width + 8, it.text.height + 2, {
               fill: theme.background,
               stroke: "transparent",
               strokeWidth: 1,
               roughness: 0,
-              opacity: 80,
             });
           c.richText(it.text, it.textX, it.textY, {
             color: it.arrow.color ?? msg.text,
@@ -299,15 +311,15 @@ function drawSequence(laid, c) {
         const st = { stroke: "#c92a2a", strokeWidth: 2 };
         c.line(
           [
-            [it.x - 9, it.y - 9],
-            [it.x + 9, it.y + 9],
+            [it.x - DESTROY_HALF, it.y - DESTROY_HALF],
+            [it.x + DESTROY_HALF, it.y + DESTROY_HALF],
           ],
           st,
         );
         c.line(
           [
-            [it.x + 9, it.y - 9],
-            [it.x - 9, it.y + 9],
+            [it.x + DESTROY_HALF, it.y - DESTROY_HALF],
+            [it.x - DESTROY_HALF, it.y + DESTROY_HALF],
           ],
           st,
         );

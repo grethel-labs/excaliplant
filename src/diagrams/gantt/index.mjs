@@ -494,7 +494,23 @@ function drawGantt(laid, c) {
     }
   }
 
-  /** @type {Map<string, { x1: number, x2: number, y: number }>} */
+  // The today marker sits behind the bars so progress labels stay readable.
+  if (model.today !== null && model.today >= first && model.today <= last) {
+    const x = xOf(model.today) + dayW / 2;
+    c.line(
+      [
+        [x, headerH - 6],
+        [x, height],
+      ],
+      {
+        stroke: model.todayColor ?? "#e03131",
+        strokeWidth: 2,
+        strokeStyle: "dashed",
+        roughness: 0,
+      },
+    );
+  }
+  /** @type {Map<string, { x1: number, x2: number, y: number, row: number }>} */
   const boxes = new Map();
   let i = 0;
   for (const t of model.tasks.values()) {
@@ -514,7 +530,7 @@ function drawGantt(laid, c) {
         fillStyle: "solid",
         link: t.link,
       });
-      boxes.set(t.id, { x1: x1 - s / 2, x2: x1 + s / 2, y: y + rowH / 2 });
+      boxes.set(t.id, { x1: x1 - s / 2, x2: x1 + s / 2, y: y + rowH / 2, row: t.row });
       continue;
     }
     const bh = rowH - 12;
@@ -538,7 +554,7 @@ function drawGantt(laid, c) {
         size: fs * 0.8,
         color: theme.muted,
       });
-    boxes.set(t.id, { x1, x2, y: y + rowH / 2 });
+    boxes.set(t.id, { x1, x2, y: y + rowH / 2, row: t.row });
   }
 
   const edge = roleStyle(theme, "edge");
@@ -548,40 +564,61 @@ function drawGantt(laid, c) {
     if (!a || !b) continue;
     const xa = a.x2;
     const xb = b.x1;
-    const pts = /** @type {[number, number][]} */ (
-      xb - xa >= 12
+    const lo = Math.min(a.row, b.row);
+    const hi = Math.max(a.row, b.row);
+    // Bars in the rows the connector passes; its vertical leg must avoid them.
+    const between = [...boxes.values()].filter((o) => o.row > lo && o.row < hi);
+    const blocked = (/** @type {number} */ vx) =>
+      between.some((o) => vx >= o.x1 - 4 && vx <= o.x2 + 4);
+    // First free vertical lane right of the predecessor (bounded search).
+    let vx = xa + 10;
+    for (let cand = xa + 10; cand < xa + 2000; cand += 4) {
+      if (!blocked(cand)) {
+        vx = cand;
+        break;
+      }
+    }
+    const down = b.y > a.y ? 1 : -1;
+    // Row gap directly below (or above) the predecessor; no bar reaches into it.
+    const gap = a.y + (down * rowH) / 2;
+    // Fallback lane left of the target start: leave the predecessor, cross its row
+    // gap and enter the target from the left. Avoids walking around neighbours
+    // that start at the same day as the target.
+    let lx = NaN;
+    for (let cand = xb - 16; cand >= xb - 76; cand -= 4) {
+      if (!blocked(cand)) {
+        lx = cand;
+        break;
+      }
+    }
+    /** @type {[number, number][]} */
+    const pts =
+      vx <= xb - 14
         ? [
             [xa, a.y],
-            [xa + 6, a.y],
-            [xa + 6, b.y],
+            [vx, a.y],
+            [vx, b.y],
             [xb, b.y],
           ]
-        : [
-            [xa, a.y],
-            [xa + 6, a.y],
-            [xa + 6, (a.y + b.y) / 2],
-            [xb - 8, (a.y + b.y) / 2],
-            [xb - 8, b.y],
-            [xb, b.y],
-          ]
-    );
+        : Number.isFinite(lx)
+          ? [
+              [xa, a.y],
+              [xa + 6, a.y],
+              [xa + 6, gap],
+              [lx, gap],
+              [lx, b.y],
+              [xb, b.y],
+            ]
+          : [
+              // Lane lies beyond the target start: drop along the row gap above it.
+              [xa, a.y],
+              [vx, a.y],
+              [vx, b.y - (down * rowH) / 2],
+              [xb - 16, b.y - (down * rowH) / 2],
+              [xb - 16, b.y],
+              [xb, b.y],
+            ];
     c.arrow(pts, { stroke: edge.stroke, strokeWidth: 1.2, end: "triangle", roughness: 0 });
-  }
-
-  if (model.today !== null && model.today >= first && model.today <= last) {
-    const x = xOf(model.today) + dayW / 2;
-    c.line(
-      [
-        [x, headerH - 6],
-        [x, height],
-      ],
-      {
-        stroke: model.todayColor ?? "#e03131",
-        strokeWidth: 2,
-        strokeStyle: "dashed",
-        roughness: 0,
-      },
-    );
   }
 }
 
