@@ -8,6 +8,7 @@
 // Generated (committed, do not edit):
 //   skills/                                      the skill for every tool plus manifest.json
 //   integrations/claude-plugin/skills/           copy of the skill inside the Claude Code plugin
+//   integrations/codex-plugin/skills/            copy of the skill inside the Codex plugin
 //   integrations/gemini-extension/GEMINI.md      context file of the Gemini CLI extension
 //
 // Everything is deterministic: no network, no clock. The package version is a
@@ -49,6 +50,7 @@ const MAX_EXAMPLE_BYTES = 3500;
 const GENERATED_ROOTS = [
   "skills",
   "integrations/claude-plugin/skills",
+  "integrations/codex-plugin/skills",
   "integrations/gemini-extension/GEMINI.md",
 ];
 
@@ -259,6 +261,7 @@ export async function buildTree() {
   for (const [rel, content] of skill) {
     tree.set(`skills/excaliplant/${rel}`, content);
     tree.set(`integrations/claude-plugin/skills/excaliplant/${rel}`, content);
+    tree.set(`integrations/codex-plugin/skills/excaliplant/${rel}`, content);
   }
   tree.set("skills/manifest.json", await pretty(JSON.stringify(manifest), "manifest.json"));
   tree.set(
@@ -383,9 +386,31 @@ export function packEntries(tree, version) {
   const artefacts = new Map();
   artefacts.set(`excaliplant-skill-${version}.zip`, under("excaliplant/"));
   artefacts.set(`excaliplant-agents-skills-${version}.zip`, under(".agents/skills/excaliplant/"));
+  // The in-repo plugin has no MCP server (the Claude directory requires launchers
+  // pinned to an exact version, which a committed file cannot be); the release
+  // archive carries one pinned to this release.
+  const mcp = {
+    mcpServers: {
+      excaliplant: {
+        command: "npx",
+        args: ["-y", "-p", `@grethel-labs/excaliplant@${version}`, "excaliplant-mcp"],
+      },
+    },
+  };
   artefacts.set(`excaliplant-claude-plugin-${version}.zip`, [
     { path: ".claude-plugin/plugin.json", data: `${JSON.stringify(plugin, null, 2)}\n` },
-    { path: ".mcp.json", data: read("integrations/claude-plugin/.mcp.json") },
+    { path: ".mcp.json", data: `${JSON.stringify(mcp, null, 2)}\n` },
+    { path: "README.md", data: read("integrations/claude-plugin/README.md") },
+    { path: "LICENSE", data: read("integrations/claude-plugin/LICENSE") },
+    ...under("skills/excaliplant/"),
+  ]);
+  // Skills-only package for the OpenAI plugin portal / Codex marketplaces.
+  const codexPlugin = JSON.parse(read("integrations/codex-plugin/plugin.json"));
+  codexPlugin.version = version;
+  artefacts.set(`excaliplant-codex-plugin-${version}.zip`, [
+    { path: "plugin.json", data: `${JSON.stringify(codexPlugin, null, 2)}\n` },
+    { path: "README.md", data: read("integrations/codex-plugin/README.md") },
+    { path: "LICENSE", data: read("integrations/codex-plugin/LICENSE") },
     ...under("skills/excaliplant/"),
   ]);
   artefacts.set(`excaliplant-gemini-extension-${version}.zip`, [

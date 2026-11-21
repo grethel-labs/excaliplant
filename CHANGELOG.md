@@ -8,6 +8,8 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Changed
 
+- The Claude Code plugin no longer bundles an unpinned MCP launcher (the Claude directory blocks those); the release archive carries one pinned to the release, and the plugin has a README, a LICENSE and an icon.
+
 - Connectors are drawn with much less hand-drawn wobble (`edgeRoughness` per theme), so lines stay straight with crisp corners; mind map and JSON/YAML connectors are orthogonal instead of curved.
 - Graph diagrams with many unconnected elements are packed into a grid instead of one long row.
 - Floating notes may contain colons (`note "a: b" as N`).
@@ -33,6 +35,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 - `excaliplant markdown` renders ` ```plantuml ` blocks in Markdown files (inline SVG or asset files, idempotent, `--check` for CI); `@grethel-labs/excaliplant/markdown`, `/markdown-it` and `/remark` plugins; a GitHub Action (`action.yml`).
 - MCP server: `excaliplant mcp` / `excaliplant-mcp` (stdio, optional local HTTP) with `render_plantuml`, `validate_plantuml`, `list_diagram_types` and `get_example`; published to the MCP registry with each release.
 - Agent skill for Claude Code, Claude, Codex, Gemini CLI, opencode, Cursor, Copilot, Antigravity and rule files for Windsurf, Cline and Roo: `excaliplant skills install`, a Claude Code plugin marketplace, a Gemini CLI extension and release archives. The skill ships a snapshot of Excalidraw's element typings that a weekly workflow keeps current.
+- Codex plugin and marketplace (`codex plugin marketplace add grethel-labs/excaliplant`), a skills-only plugin ZIP for the OpenAI plugin portal, and a publishing guide for the Claude and Codex directories, the Gemini CLI gallery, skills.sh and Markdown ecosystems (`docs/publishing.md`).
 - VS Code extension: live Markdown preview of `plantuml` blocks, commands to export `.puml` files and a side preview; attached to each release as `.vsix` and published to the Marketplace and Open VSX.
 - Obsidian plugin: renders `plantuml` code blocks in notes (desktop and mobile), exports `.excalidraw`/SVG/PNG; mirrored to `grethel-labs/excaliplant-obsidian` with each release.
 

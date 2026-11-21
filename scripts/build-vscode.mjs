@@ -242,12 +242,14 @@ export async function packageVsix(options = {}) {
 }
 
 /**
- * Regenerate `icon.png` (128x128) from a diagram rendered by excaliplant itself.
- * The output is deterministic. Needs the repository's own dependencies.
+ * Regenerate `icon.png` (128x128 by default) from a diagram rendered by
+ * excaliplant itself. The output is deterministic. Needs the repository's own
+ * dependencies.
  * @param {string} [outfile]
+ * @param {number} [size] Edge length in pixels; the drawing scales with it.
  * @returns {Promise<string>} Path of the written file.
  */
-export async function generateIcon(outfile = path.join(EXT_DIR, "icon.png")) {
+export async function generateIcon(outfile = path.join(EXT_DIR, "icon.png"), size = 128) {
   const { render } = await import(pathToFileURL(path.join(ROOT, "src", "api.mjs")).href);
   const { svgToPng } = await import(
     pathToFileURL(path.join(ROOT, "src", "render", "png.mjs")).href
@@ -267,7 +269,7 @@ export async function generateIcon(outfile = path.join(EXT_DIR, "icon.png")) {
     `viewBox="0 0 128 128" width="128" height="128">` +
     `<rect x="2" y="2" width="124" height="124" rx="24" fill="#ffffff" stroke="#1971c2" stroke-width="4"/>` +
     `${inner}</svg>`;
-  writeFileSync(outfile, svgToPng(svg, { width: 128 }));
+  writeFileSync(outfile, svgToPng(svg, { width: size }));
   return outfile;
 }
 

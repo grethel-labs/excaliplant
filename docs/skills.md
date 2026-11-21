@@ -184,3 +184,5 @@ Verified against documentation (links), or by running the tool, on 2026-11-16:
 | Ollama               | [Modelfile](https://docs.ollama.com/modelfile)                                                                                                                                                                               | `SYSTEM """..."""`; no skill or MCP-client support was found in the docs                                                                                                               |
 
 Not verified: skills inside claude.ai or ChatGPT sandboxes with restricted networking, the Gemini CLI install from a GitHub URL (it works with the same manifest at the repository root and falls back to the source archive of the latest release), and whether Windsurf, Cline and Roo have skill support. The Gemini CLI documentation notes that Antigravity CLI replaces Gemini CLI on 2026-06-18; both are covered, but the Gemini paths may change.
+
+To get the skill and plugins into the public Claude and Codex directories, the Gemini CLI gallery and other listings, see [`publishing.md`](publishing.md).
