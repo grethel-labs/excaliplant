@@ -1,0 +1,26 @@
+{
+  "$comment": "Hand-maintained values that Excalidraw's typings do not spell out as literals. Re-check when the spec snapshot is refreshed.",
+  "file": {
+    "type": "excalidraw",
+    "version": 2,
+    "keys": ["type", "version", "source", "elements", "appState", "files"]
+  },
+  "fontFamily": {
+    "Virgil": 1,
+    "Helvetica": 2,
+    "Cascadia": 3,
+    "Excalifont": 5,
+    "Nunito": 6,
+    "Lilita One": 7,
+    "Comic Shanns": 8,
+    "Liberation Sans": 9,
+    "Assistant": 10
+  },
+  "textAlign": ["left", "center", "right"],
+  "verticalAlign": ["top", "middle", "bottom"],
+  "roundnessType": {
+    "LEGACY": 1,
+    "PROPORTIONAL_RADIUS": 2,
+    "ADAPTIVE_RADIUS": 3
+  }
+}

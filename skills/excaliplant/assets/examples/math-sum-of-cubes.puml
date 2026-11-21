@@ -1,0 +1,4 @@
+@startmath
+sum_(i=1)^n i^3=((n(n+1))/2)^2
+f(x) = sqrt(x^2 + 1) / (2 pi)
+@endmath

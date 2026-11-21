@@ -1,0 +1,23 @@
+/* Styles for PlantUML diagrams in the built-in Markdown preview. */
+.excaliplant {
+  margin: 1em 0;
+  overflow-x: auto;
+}
+.excaliplant svg {
+  max-width: 100%;
+  height: auto;
+}
+.excaliplant-pending {
+  padding: 0.6em 0.9em;
+  opacity: 0.65;
+  font-style: italic;
+}
+.excaliplant-pending::before {
+  content: "Rendering PlantUML diagram\2026";
+}
+pre.excaliplant-error {
+  white-space: pre-wrap;
+  color: var(--vscode-errorForeground, #f14c4c);
+  border-left: 3px solid var(--vscode-errorForeground, #f14c4c);
+  padding: 0.4em 0.8em;
+}

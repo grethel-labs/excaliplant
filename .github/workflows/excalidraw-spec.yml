@@ -1,0 +1,48 @@
+name: Excalidraw spec
+
+# The agent skill ships a committed snapshot of Excalidraw's element typings
+# (skills-src/excalidraw-spec). Once a week this checks npm for a newer
+# version and opens an issue; a maintainer runs `npm run spec:update`,
+# reviews the diff and merges it. (PRs opened with GITHUB_TOKEN do not
+# trigger CI, so the update itself stays manual.)
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Newer Excalidraw typings on npm?
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Compare snapshot with npm
+        id: spec
+        run: |
+          set -uo pipefail
+          if node scripts/update-excalidraw-spec.mjs --check > "$RUNNER_TEMP/spec.txt" 2>&1; then
+            echo "outdated=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "outdated=true" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$RUNNER_TEMP/spec.txt"
+      - name: Open an issue when outdated
+        if: steps.spec.outputs.outdated == 'true'
+        run: |
+          set -euo pipefail
+          title="Excalidraw spec snapshot is outdated"
+          if [ -n "$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[].number')" ]; then
+            echo "Issue already open."
+            exit 0
+          fi
+          gh issue create --title "$title" --body "$(printf 'The skill reference is built from a committed snapshot of the Excalidraw typings.\n\n```\n%s\n```\n\nRun `npm run spec:update`, review the diff and open a PR (branch name with `PATCH`).' "$(cat "$RUNNER_TEMP/spec.txt")")"

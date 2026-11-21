@@ -1,0 +1,12 @@
+@startuml
+(*) --> "Submit expense"
+if "Amount > 1000?" then
+  -->[yes] "Manager approval"
+  --> ===SYNC===
+else
+  -->[no] "Auto approve"
+  --> ===SYNC===
+endif
+===SYNC=== --> "Pay out"
+--> (*)
+@enduml

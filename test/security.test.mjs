@@ -100,3 +100,252 @@ test("!include never touches the file system without a resolver", async () => {
   const r2 = await render("@startuml\n!includeurl https://example.com/x.puml\nA -> B\n@enduml");
   assert.ok(r2.diagnostics.some((d) => /not supported/.test(d.message)));
 });
+
+test("markdown: hostile labels never reach the inline SVG unescaped", async () => {
+  const { renderMarkdown, createCache } = await import("../src/markdown/index.mjs");
+  const diagram =
+    '@startuml\nclass "<script>alert(1)</script>" as X\nX : "<img src=x onerror=alert(1)>"\n@enduml';
+  const { markdown } = await renderMarkdown(`\`\`\`plantuml\n${diagram}\n\`\`\``, {
+    cache: createCache(),
+  });
+  assert.doesNotMatch(markdown, /<script|<img|<foreignObject|javascript:/i);
+  assert.doesNotMatch(markdown, /\son[a-z]+=/i);
+  assert.match(markdown, /&lt;script&gt;/);
+});
+
+test("markdown: alt text and info attributes cannot break out of attributes", async () => {
+  const { renderMarkdown, createCache } = await import("../src/markdown/index.mjs");
+  const cache = createCache();
+  const evil = '"><script>alert(1)</script>';
+  const fence = (/** @type {string} */ info) => `\`\`\`${info}\n@startuml\nA -> B\n@enduml\n\`\`\``;
+  const inline = await renderMarkdown(fence(`plantuml {alt='${evil}'}`), { cache });
+  assert.doesNotMatch(inline.markdown, /<script/);
+  assert.match(inline.markdown, /aria-label="&quot;&gt;&lt;script&gt;/);
+  const file = await renderMarkdown(fence(`plantuml {alt='![x](javascript:alert(1)) <b>'}`), {
+    cache,
+    mode: "file",
+  });
+  assert.doesNotMatch(file.markdown, /(^|[^\\])<b>|(^|[^\\])\]\(javascript:/);
+  const theme = await renderMarkdown(fence(`plantuml {theme='"><svg onload=alert(1)>'}`), {
+    cache,
+  });
+  assert.equal(theme.changed, false);
+  assert.match(theme.blocks[0].error ?? "", /Unknown theme/);
+});
+
+test("markdown: source kept in comments cannot close the comment", async () => {
+  const { renderMarkdown, createCache } = await import("../src/markdown/index.mjs");
+  const { scanMarkdown } = await import("../src/markdown/scan.mjs");
+  const payload = "@startuml\nnote: --> <script>alert(1)</script> <!-- --!> -->\nA -> B\n@enduml";
+  const { markdown } = await renderMarkdown(`\`\`\`plantuml\n${payload}\n\`\`\``, {
+    keepSource: true,
+    cache: createCache(),
+  });
+  const comment = markdown.slice(
+    markdown.indexOf("<!-- excaliplant:source"),
+    markdown.indexOf("\n-->\n") + 4,
+  );
+  assert.equal(comment.split("-->").length - 1, 1);
+  // Outside the (inert) source comment nothing active remains.
+  assert.doesNotMatch(markdown.replace(comment, ""), /<script|--!>/);
+  assert.doesNotMatch(markdown, /--!>/);
+  assert.equal(scanMarkdown(markdown)[0].source, payload);
+});
+
+test("markdown: asset directory and URL prefix are validated", async () => {
+  const { renderMarkdown } = await import("../src/markdown/index.mjs");
+  const doc = "```plantuml\nA -> B\n```";
+  for (const assetsDir of ["/etc", "C:\\x", "a\\..\\b", "x:y", "a\0b"]) {
+    await assert.rejects(renderMarkdown(doc, { mode: "file", assetsDir }), RangeError);
+  }
+  for (const assetsUrl of ["javascript:alert(1)", "data:text/html,x", 'x"y', "a<b"]) {
+    await assert.rejects(renderMarkdown(doc, { mode: "file", assetsUrl }), RangeError);
+  }
+});
+
+test("markdown: scanning pathological documents is fast and bounded", async () => {
+  const { extractBlocks, renderMarkdown } = await import("../src/markdown/index.mjs");
+  const cases = [
+    "```plantuml\n".repeat(20_000),
+    "<!-- excaliplant:begin hash=abcdef012345 -->\n".repeat(15_000),
+    `${"`".repeat(100_000)}plantuml\n`,
+    `\`\`\`plantuml ${"{=".repeat(50_000)}\nA\n\`\`\``,
+    `\`\`\`plantuml ${'alt="'.repeat(20_000)}\nA\n\`\`\``,
+    "~~~\n".repeat(40_000),
+  ];
+  for (const doc of cases) {
+    const start = Date.now();
+    extractBlocks(doc);
+    await renderMarkdown(doc, { budget: { maxBlocks: 0 } });
+    assert.ok(Date.now() - start < 3000, `took too long for ${doc.slice(0, 20)}`);
+  }
+});
+
+test("markdown: the document budget caps the number of rendered diagrams", async () => {
+  const { renderMarkdown, createCache } = await import("../src/markdown/index.mjs");
+  const doc = Array.from({ length: 80 }, (_, i) => `\`\`\`puml\nA -> B : n${i}\n\`\`\``).join(
+    "\n\n",
+  );
+  const r = await renderMarkdown(doc, { cache: createCache(), budget: { maxBlocks: 3 } });
+  assert.equal(r.blocks.filter((b) => b.error === undefined).length, 3);
+  assert.equal(r.blocks.filter((b) => /budget/.test(b.error ?? "")).length, 77);
+  const { extractBlocks } = await import("../src/markdown/index.mjs");
+  assert.equal(extractBlocks(r.markdown).length, 77);
+});
+
+test("markdown: sanitizer removes active content from foreign SVG", async () => {
+  const { sanitizeSvg } = await import("../src/markdown/index.mjs");
+  const svg = sanitizeSvg(
+    '<svg xmlns="http://www.w3.org/2000/svg"><script>x</script><g onclick="x()"><use href="http://e/x.svg#a"/></g><a href=" jav&#x61;script:x()"><rect/></a><image href="http://e/i.png"/><style>@import "http://e/x.css";</style></svg>',
+  );
+  assert.doesNotMatch(svg, /script|onclick|<use|<image|@import|http:\/\/e|jav/i);
+});
+
+test("mcp: tool arguments cannot name files or switch on includes", async () => {
+  const { createServer } = await import("../src/mcp/index.mjs");
+  const server = createServer({ executor: "inline" });
+  try {
+    const run = async (args) =>
+      JSON.parse(
+        (
+          await server.handleText(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "tools/call",
+              params: { name: "render_plantuml", arguments: args },
+            }),
+          )
+        ).text,
+      ).result;
+    for (const extra of [{ path: "/etc/passwd" }, { file: "/etc/passwd" }, { includeDir: "/" }]) {
+      const res = await run({ source: "@startuml\nA -> B\n@enduml", ...extra });
+      assert.equal(res.isError, true);
+      assert.match(res.content[0].text, /unknown property/);
+    }
+    const res = await run({ source: "@startuml\n!include /etc/passwd\nA -> B\n@enduml" });
+    assert.ok(res.structuredContent.diagnostics.some((d) => /Cannot resolve/.test(d.message)));
+    assert.doesNotMatch(res.content[0].text, /root:/);
+  } finally {
+    await server.close();
+  }
+});
+
+test("mcp: --include-dir cannot be escaped through traversal or symlinks", async () => {
+  const { createIncludeResolver } = await import("../src/mcp/include.mjs");
+  const { mkdtempSync, writeFileSync, symlinkSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const path = await import("node:path");
+  const base = mkdtempSync(path.join(tmpdir(), "excaliplant-inc-"));
+  const root = path.join(base, "root");
+  mkdirSync(root);
+  writeFileSync(path.join(root, "ok.puml"), "A -> B\n");
+  writeFileSync(path.join(base, "secret.puml"), "SECRET\n");
+  symlinkSync(path.join(base, "secret.puml"), path.join(root, "link.puml"));
+  const resolve = createIncludeResolver(root, 1024);
+  const file = { from: null, kind: /** @type {const} */ ("file") };
+  assert.equal(resolve("ok.puml", file), "A -> B\n");
+  assert.equal(resolve("../secret.puml", file), null);
+  assert.equal(resolve("link.puml", file), null);
+  assert.equal(resolve(path.join(base, "secret.puml"), file), null);
+  assert.equal(resolve("ok.puml", { from: null, kind: "url" }), null);
+  const tiny = createIncludeResolver(root, 2);
+  assert.equal(tiny("ok.puml", file), null);
+});
+
+test("mcp: HTTP transport refuses DNS-rebinding and cross-origin requests", async () => {
+  const { createServer, serveHttp } = await import("../src/mcp/index.mjs");
+  const server = createServer({ executor: "inline" });
+  const http = await serveHttp(server, { port: 0 });
+  try {
+    assert.equal(new URL(http.url).hostname, "127.0.0.1");
+    const send = (headers) =>
+      fetch(http.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+      }).then((r) => r.status);
+    assert.equal(await send({ Origin: "https://attacker.example" }), 403);
+    assert.equal(await send({ Origin: "http://localhost.attacker.example" }), 403);
+    assert.equal(await send({ Origin: "http://127.0.0.1.attacker.example" }), 403);
+    assert.equal(await send({}), 200);
+  } finally {
+    await http.close();
+  }
+});
+
+test("mcp: oversized and malformed messages are rejected without buffering them", async () => {
+  const { LineSplitter } = await import("../src/mcp/stdio.mjs");
+  const { createServer } = await import("../src/mcp/index.mjs");
+  let overflows = 0;
+  const lines = [];
+  const splitter = new LineSplitter(
+    1024,
+    (l) => lines.push(l),
+    () => overflows++,
+  );
+  const chunk = Buffer.alloc(1 << 20, "a");
+  for (let i = 0; i < 64; i++) {
+    splitter.push(chunk);
+    assert.ok(splitter.size <= 1024);
+  }
+  splitter.push(Buffer.from('\n{"ok":true}\n'));
+  assert.equal(overflows, 1);
+  assert.deepEqual(lines, ['{"ok":true}']);
+  const server = createServer({ executor: "inline" });
+  try {
+    for (const hostile of [
+      '{"__proto__":{"x":1}}',
+      "[[[[[[[[[[",
+      '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"__proto__","arguments":null}}',
+    ]) {
+      const { text } = await server.handleText(hostile);
+      assert.ok(JSON.parse(text).error, hostile);
+    }
+    assert.equal({}.x, undefined);
+  } finally {
+    await server.close();
+  }
+});
+
+test("mcp: PNG width is clamped and the server never writes to stdout on its own", async () => {
+  const { createServer } = await import("../src/mcp/index.mjs");
+  const server = createServer({ executor: "inline" });
+  try {
+    const res = JSON.parse(
+      (
+        await server.handleText(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: {
+              name: "render_plantuml",
+              arguments: { source: "@startuml\nA -> B\n@enduml", format: "png" },
+            },
+          }),
+        )
+      ).text,
+    ).result;
+    // Default scale stays within the cap even for wide diagrams.
+    assert.ok(Buffer.from(res.content[0].data, "base64").readUInt32BE(16) <= 4096);
+    const tooWide = JSON.parse(
+      (
+        await server.handleText(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 2,
+            method: "tools/call",
+            params: {
+              name: "render_plantuml",
+              arguments: { source: "@startuml\nA -> B\n@enduml", format: "png", width: 16000 },
+            },
+          }),
+        )
+      ).text,
+    ).result;
+    assert.equal(tooWide.isError, true);
+  } finally {
+    await server.close();
+  }
+});

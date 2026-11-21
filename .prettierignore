@@ -7,3 +7,6 @@ docs/assets/
 README.md
 package-lock.json
 src/layout/font_metrics.mjs
+
+integrations/*/dist/
+integrations/*/node_modules/

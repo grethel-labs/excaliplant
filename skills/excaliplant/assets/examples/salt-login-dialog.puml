@@ -1,0 +1,21 @@
+@startsalt
+{+
+  {/ <b>Login | Register | Help }
+  {
+    Username | "ada@example.com "
+    Password | "**************  "
+    Role     | ^Administrator^
+  }
+  [X] Remember me | () Light theme | (X) Dark theme
+  ..
+  {^"Recent workspaces"
+    {T
+      + Projects
+      ++ excaliplant
+      ++ docs
+      + Archive
+    }
+  }
+  [Cancel] | [  Sign in  ]
+}
+@endsalt

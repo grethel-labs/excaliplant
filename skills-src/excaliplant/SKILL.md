@@ -1,0 +1,69 @@
+---
+name: excaliplant
+description: Render PlantUML as hand-drawn Excalidraw, SVG or PNG. Use for any UML/PlantUML/diagram request (sequence, class, activity, state, C4, Gantt, mind map, ER, wireframe) or .excalidraw files.
+license: MIT
+compatibility: Needs Node.js 20+ (runs with npx). No Java, Graphviz or network at render time.
+metadata:
+  version: "{{version}}"
+  repository: https://github.com/grethel-labs/excaliplant
+---
+
+# excaliplant
+
+excaliplant turns PlantUML text into a hand-drawn diagram: an editable Excalidraw scene (`.excalidraw`), an SVG or a PNG. It is pure JavaScript and supports {{typeCount}} diagram types. You write the PlantUML source, the CLI draws it.
+
+## When to use it
+
+- The user asks for a diagram, UML, PlantUML, a flowchart, an architecture/C4 picture, a Gantt chart, a mind map, an ER diagram or a wireframe.
+- The user wants an `.excalidraw` file they can open and edit at excalidraw.com, or an SVG/PNG for docs, slides or a README.
+- The user hands you PlantUML and wants it rendered or converted.
+
+Do not use it for Mermaid input (not supported; rewrite it as PlantUML first), for photos, or for free-form illustration.
+
+## Workflow
+
+1. Choose the diagram type (see [diagram-types.md](references/diagram-types.md)) and write PlantUML between `@startuml` and `@enduml` (some types use their own keyword, for example `@startmindmap`). Syntax cheat sheet: [syntax.md](references/syntax.md).
+2. Save it, for example as `diagram.puml`.
+3. Render it with the CLI:
+
+   ```sh
+   npx -y @grethel-labs/excaliplant diagram.puml -o diagram.excalidraw
+   npx -y @grethel-labs/excaliplant diagram.puml -o diagram.svg
+   npx -y @grethel-labs/excaliplant diagram.puml -o diagram.png --width 1600
+   ```
+
+4. Read stderr. Lines starting with `warning (line N):` mean excaliplant did not understand a line; fix the source and render again. Add `--strict` to turn warnings into errors.
+5. If you can view images, render a PNG and look at it. Fix overlapping labels or an unreadable layout by shortening labels, adding `left to right direction`, or splitting the diagram.
+6. Hand the files back. Keep the `.puml` source next to the output so the diagram stays editable.
+
+The format follows the file extension of `-o`; use `-f excalidraw|svg|png` to override it. Without `-o` the result goes to stdout (not for PNG). More options: [cli.md](references/cli.md).
+
+## Look and feel
+
+Themes: {{themes}}. Pass `-t <theme>`, for example `-t blueprint` for a technical look or `-t dark` for dark backgrounds. `--clean` draws straight instead of hand-drawn strokes. Output is deterministic: the same source always gives the same bytes (`--seed` changes the wobble).
+
+## Writing good PlantUML
+
+- One diagram per `@start…@end` block; render several blocks with `--all -o out-{n}.svg`.
+- Start with a `title`. Keep labels short; put detail in notes.
+- Quote names that contain spaces and give them an alias: `participant "Order Service" as Orders`.
+- Prefer one concept per diagram; split a diagram that needs more than about 25 nodes.
+- `skinparam`, `<style>`, colours (`#lightblue`), Creole markup and the preprocessor (`!define`, `!procedure`, loops) work. C4 and ArchiMate macros are bundled: `!include <C4/C4_Container>`.
+- `!include` of files only works with `--include-dir <dir>`; URLs are refused.
+- Sprites and `<&icons>` render as placeholders, and layout differs from the Java PlantUML. Judge the picture, not the line-for-line match.
+- Examples for every type: [examples.md](references/examples.md) and `assets/examples/`.
+
+## Editing Excalidraw output
+
+The `.excalidraw` file is plain JSON. To change it by hand or with a script (move boxes, change colours, add elements), follow the schema in [excalidraw-spec.md](references/excalidraw-spec.md); it is generated from the typings of `@excalidraw/element` {{excalidrawVersion}}. Prefer changing the PlantUML source and re-rendering over patching JSON.
+
+## Limits and errors
+
+- Errors print `excaliplant: <message>` and exit with code 1. Typical causes: no `@start…@end` block, unknown diagram kind, input over the size limit (`--max-input-bytes`), or a resource budget exceeded (too many nodes or elements).
+- Unrecognised lines are warnings, never silent. Fix them or accept them knowingly.
+- PNG cannot be written to a terminal; always pass `-o file.png`.
+- Rendering never reads files or the network, except `!include` through `--include-dir`.
+
+## MCP server
+
+If an `excaliplant` MCP server is connected to this session, prefer its tools over running the CLI. It is started with `npx -y -p @grethel-labs/excaliplant excaliplant-mcp`. Without MCP, use the CLI as above.

@@ -1,0 +1,23 @@
+@startnwdiag
+nwdiag {
+  internet [shape = cloud];
+  internet -- router;
+  network dmz {
+    address = "210.x.x.x/24"
+    router [address = "210.x.x.1"];
+    web01 [address = "210.x.x.10"];
+    web02 [address = "210.x.x.11"];
+  }
+  network internal {
+    address = "172.16.0.0/24";
+    web01 [address = "172.16.0.10"];
+    web02 [address = "172.16.0.11"];
+    db01 [address = "172.16.0.100", shape = database, description = "Primary DB"];
+  }
+  group web {
+    web01;
+    web02;
+    description = "Web cluster";
+  }
+}
+@endnwdiag

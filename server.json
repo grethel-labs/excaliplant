@@ -1,0 +1,31 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.grethel-labs/excaliplant",
+  "title": "Excaliplant",
+  "description": "Render PlantUML to SVG, PNG or hand-drawn Excalidraw. Text in, no file or network access.",
+  "websiteUrl": "https://github.com/grethel-labs/excaliplant",
+  "repository": {
+    "url": "https://github.com/grethel-labs/excaliplant",
+    "source": "github"
+  },
+  "version": "0.0.0-development",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@grethel-labs/excaliplant",
+      "version": "0.0.0-development",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp",
+          "description": "Start the MCP server instead of the command-line renderer."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+@startuml
+left to right direction
+actor Customer as c
+actor "Payment Provider" as pp
+rectangle Checkout {
+  usecase "Browse catalog" as UC1
+  usecase "Place order" as UC2
+  usecase "Pay" as UC3
+  (Apply voucher) as UC4
+}
+c --> UC1
+c --> UC2
+UC2 .> UC3 : <<include>>
+UC4 .> UC2 : <<extend>>
+UC3 --> pp
+@enduml

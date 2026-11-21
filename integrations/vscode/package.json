@@ -1,0 +1,223 @@
+{
+  "name": "excaliplant",
+  "displayName": "Excaliplant: PlantUML as Excalidraw",
+  "description": "Draw PlantUML as hand-drawn diagrams in the Markdown preview, a live side preview, and Excalidraw/SVG export. No Java, no server, no network.",
+  "version": "0.0.0",
+  "publisher": "grethel-labs",
+  "license": "MIT",
+  "icon": "icon.png",
+  "homepage": "https://github.com/grethel-labs/excaliplant#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grethel-labs/excaliplant.git",
+    "directory": "integrations/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/grethel-labs/excaliplant/issues"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "plantuml",
+    "excalidraw",
+    "uml",
+    "diagram",
+    "markdown",
+    "svg",
+    "hand-drawn"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:plantuml",
+    "onLanguage:markdown"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In an untrusted workspace excaliplant renders diagrams but never reads files for !include and ignores workspace-level include and limit settings.",
+      "restrictedConfigurations": [
+        "excaliplant.includeDir",
+        "excaliplant.limits",
+        "excaliplant.markdown.assetsDir"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "!include is not available in virtual workspaces; everything else works."
+    }
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "plantuml",
+        "aliases": [
+          "PlantUML",
+          "plantuml"
+        ],
+        "extensions": [
+          ".puml",
+          ".plantuml",
+          ".pu",
+          ".iuml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "plantuml",
+        "scopeName": "source.plantuml.excaliplant",
+        "path": "./syntaxes/plantuml.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "excaliplant.renderExcalidraw",
+        "title": "Render to Excalidraw (.excalidraw)",
+        "category": "Excaliplant"
+      },
+      {
+        "command": "excaliplant.renderSvg",
+        "title": "Render to SVG",
+        "category": "Excaliplant"
+      },
+      {
+        "command": "excaliplant.openPreviewToSide",
+        "title": "Open Preview to the Side",
+        "category": "Excaliplant",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "excaliplant.replaceInMarkdown",
+        "title": "Replace diagrams in Markdown with SVG files",
+        "category": "Excaliplant"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "excaliplant.renderExcalidraw",
+          "when": "editorLangId == plantuml || editorLangId == markdown || resourceExtname =~ /^\\.(puml|plantuml|pu|iuml)$/"
+        },
+        {
+          "command": "excaliplant.renderSvg",
+          "when": "editorLangId == plantuml || editorLangId == markdown || resourceExtname =~ /^\\.(puml|plantuml|pu|iuml)$/"
+        },
+        {
+          "command": "excaliplant.openPreviewToSide",
+          "when": "editorLangId == plantuml || resourceExtname =~ /^\\.(puml|plantuml|pu|iuml)$/"
+        },
+        {
+          "command": "excaliplant.replaceInMarkdown",
+          "when": "editorLangId == markdown"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "excaliplant.openPreviewToSide",
+          "when": "editorLangId == plantuml || resourceExtname =~ /^\\.(puml|plantuml|pu|iuml)$/",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "excaliplant.openPreviewToSide",
+          "when": "resourceExtname =~ /^\\.(puml|plantuml|pu|iuml)$/",
+          "group": "navigation@40"
+        },
+        {
+          "command": "excaliplant.renderSvg",
+          "when": "resourceExtname =~ /^\\.(puml|plantuml|pu|iuml)$/",
+          "group": "excaliplant@1"
+        },
+        {
+          "command": "excaliplant.renderExcalidraw",
+          "when": "resourceExtname =~ /^\\.(puml|plantuml|pu|iuml)$/",
+          "group": "excaliplant@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Excaliplant",
+      "properties": {
+        "excaliplant.theme": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "sketch",
+            "plain",
+            "hachure",
+            "mono",
+            "dark",
+            "blueprint"
+          ],
+          "enumDescriptions": [
+            "sketch in light VS Code themes, dark in dark and high-contrast themes",
+            "Hand-drawn, light",
+            "Plain colours",
+            "Hachure fills",
+            "Monochrome",
+            "Dark background",
+            "Blueprint"
+          ],
+          "default": "auto",
+          "markdownDescription": "Theme for diagrams. A `theme=` attribute on a Markdown fence overrides it for that block."
+        },
+        "excaliplant.clean": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Draw clean strokes instead of the hand-drawn look."
+        },
+        "excaliplant.markdown.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Render `plantuml`, `puml` and `uml` fences in the built-in Markdown preview. Takes effect for new previews after a window reload."
+        },
+        "excaliplant.markdown.assetsDir": {
+          "type": "string",
+          "default": "assets",
+          "scope": "resource",
+          "markdownDescription": "Folder, relative to the Markdown file, that **Replace diagrams in Markdown with SVG files** writes `<hash>.svg` into. Must stay inside the workspace."
+        },
+        "excaliplant.includeDir": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "markdownDescription": "Allow `!include` of files below this folder (absolute, or relative to the workspace folder). Empty (the default) disables `!include`. Only used in trusted workspaces."
+        },
+        "excaliplant.limits": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          },
+          "markdownDescription": "Overrides for the render limits, for example `{ \"maxElements\": 50000, \"maxInputBytes\": 1048576 }`. Names: `maxInputBytes`, `maxLines`, `maxNodes`, `maxEdges`, `maxElements`, `maxTextLength`, `maxBlocks`. Only used in trusted workspaces."
+        }
+      }
+    },
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": [
+      "./media/preview.css"
+    ]
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-vscode.mjs --bundle-only",
+    "package": "node ../../scripts/build-vscode.mjs",
+    "icon": "node ../../scripts/build-vscode.mjs --icon",
+    "test": "node --test ../../test/vscode.test.mjs ../../test/vscode_build.test.mjs",
+    "publish:vsce": "vsce publish --packagePath dist/*.vsix",
+    "publish:ovsx": "ovsx publish dist/*.vsix"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^4.1.1",
+    "esbuild": "^0.28.2",
+    "ovsx": "^1.4.0"
+  }
+}
