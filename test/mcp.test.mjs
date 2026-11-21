@@ -937,7 +937,11 @@ test("process smoke test over stdio", async () => {
   assert.equal(p.err(), "");
 });
 
-test("process exits on SIGTERM while idle", async () => {
+// Windows has no POSIX signals: kill("SIGTERM") terminates the process hard,
+// so a clean exit code can only be asserted elsewhere.
+const WINDOWS = process.platform === "win32";
+
+test("process exits on SIGTERM while idle", { skip: WINDOWS && "no POSIX signals" }, async () => {
   const p = spawnServer();
   p.child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" })}\n`);
   await new Promise((resolve) => p.child.stdout.once("data", resolve));
@@ -985,7 +989,8 @@ test("process: --http 0 listens on loopback and serves requests", async () => {
     assert.equal(JSON.parse(JSON.parse(res.body).result.content[0].text).type, "excalidraw");
   } finally {
     p.child.kill("SIGTERM");
-    assert.equal(await p.closed, 0);
+    const code = await p.closed;
+    if (!WINDOWS) assert.equal(code, 0);
   }
   assert.equal(p.out(), "");
 });

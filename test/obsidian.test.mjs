@@ -32,6 +32,17 @@ const shimCrypto = await import("../integrations/obsidian/shims/crypto.js");
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+/** Poll until `check()` returns a truthy value (redraws are async and slower on CI runners). */
+async function waitFor(check, ms = 10_000) {
+  const end = Date.now() + ms;
+  for (;;) {
+    const value = check();
+    if (value) return value;
+    if (Date.now() > end) throw new Error("waitFor: timed out");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
 // --- manifest and versions.json (rules: docs.obsidian.md, Reference/Manifest and Submit your plugin) ---
 
 test("manifest.json satisfies the community plugin rules", () => {
@@ -286,10 +297,10 @@ test("changing settings persists them and redraws live blocks", async () => {
   const before = el.find("excaliplant").children[0].svgText;
   await plugin.updateSettings({ theme: "mono", maxWidth: 400 });
   assert.equal(plugin.stored.theme, "mono");
-  await tick();
-  await tick();
-  const after = el.find("excaliplant");
-  assert.notEqual(after.children[0].svgText, before);
+  const after = await waitFor(() => {
+    const node = el.find("excaliplant");
+    return node?.children[0]?.svgText && node.children[0].svgText !== before ? node : null;
+  });
   assert.equal(after.styleProps.get("--excaliplant-max-width"), "400px");
   // Unloading stops redraws.
   plugin.blocks.clear();
@@ -309,9 +320,10 @@ test("css-change redraws only with the automatic theme", async () => {
   await auto.plugin.processors.get("plantuml")("A -> B", el2, createContext());
   const node2 = el2.find("excaliplant");
   auto.plugin.app.handlers.get("css-change")();
-  await tick();
-  await tick();
-  assert.notEqual(el2.find("excaliplant"), node2, "redrawn");
+  await waitFor(() => {
+    const now = el2.find("excaliplant");
+    return now && now !== node2;
+  });
 });
 
 test("warnings are listed only when enabled", async () => {
