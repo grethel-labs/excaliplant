@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import {
   cpSync,
   existsSync,
+  lstatSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -136,10 +137,12 @@ test("the version placeholder appears only in the SKILL.md metadata", () => {
   }
 });
 
-test("the skill folder is copied into the Claude Code plugin", () => {
+test("the skill folder is copied into the Claude Code and Codex plugins", () => {
   for (const [rel, content] of tree) {
     const m = /^skills\/excaliplant\/(.+)$/.exec(rel);
-    if (m) assert.equal(tree.get(`integrations/claude-plugin/skills/excaliplant/${m[1]}`), content);
+    if (!m) continue;
+    assert.equal(tree.get(`integrations/claude-plugin/skills/excaliplant/${m[1]}`), content);
+    assert.equal(tree.get(`integrations/codex-plugin/skills/excaliplant/${m[1]}`), content);
   }
 });
 
@@ -302,6 +305,7 @@ test("pack builds every artefact with the version substituted", () => {
   assert.deepEqual([...artefacts.keys()].sort(), [
     "excaliplant-agents-skills-1.2.3.zip",
     "excaliplant-claude-plugin-1.2.3.zip",
+    "excaliplant-codex-plugin-1.2.3.zip",
     "excaliplant-gemini-extension-1.2.3.zip",
     "excaliplant-rules-1.2.3.zip",
     "excaliplant-skill-1.2.3.zip",
@@ -327,7 +331,21 @@ test("pack builds every artefact with the version substituted", () => {
   );
   assert.equal(pluginJson.version, "1.2.3");
   assert.ok(plugin.some((e) => e.path === "skills/excaliplant/SKILL.md"));
-  assert.ok(plugin.some((e) => e.path === ".mcp.json"));
+  // The release archive pins the MCP launcher to this release.
+  const mcpJson = JSON.parse(plugin.find((e) => e.path === ".mcp.json")?.data ?? "");
+  assert.deepEqual(mcpJson.mcpServers.excaliplant.args, [
+    "-y",
+    "-p",
+    "@grethel-labs/excaliplant@1.2.3",
+    "excaliplant-mcp",
+  ]);
+  assert.ok(plugin.some((e) => e.path === "README.md"));
+  assert.ok(plugin.some((e) => e.path === "LICENSE"));
+
+  const codex = artefacts.get("excaliplant-codex-plugin-1.2.3.zip") ?? [];
+  const codexJson = JSON.parse(codex.find((e) => e.path === "plugin.json")?.data ?? "");
+  assert.equal(codexJson.version, "1.2.3");
+  assert.ok(codex.some((e) => e.path === "skills/excaliplant/SKILL.md"));
 
   const gemini = artefacts.get("excaliplant-gemini-extension-1.2.3.zip") ?? [];
   const manifest = JSON.parse(gemini.find((e) => e.path === "gemini-extension.json")?.data ?? "");
@@ -370,12 +388,71 @@ test("Claude Code marketplace, plugin and MCP config are consistent", () => {
   );
   assert.equal(plugin.name, entry.name, "entry and manifest names must match");
   assert.ok(existsSync(path.join(pluginDir, "skills", "excaliplant", "SKILL.md")));
-  const mcp = JSON.parse(readFileSync(path.join(pluginDir, ".mcp.json"), "utf8"));
-  const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
-  const server = mcp.mcpServers.excaliplant;
-  assert.equal(server.command, "npx");
-  assert.ok(server.args.includes(pkg.name));
-  assert.ok(server.args.some((/** @type {string} */ a) => a in (pkg.bin ?? {})));
+  // The Claude directory blocks npx launchers that are not pinned to an exact
+  // version, and a committed file cannot know the release: the MCP server is
+  // only added to the release archive (see the pack test).
+  assert.ok(!existsSync(path.join(pluginDir, ".mcp.json")), "no unpinned MCP launcher in the repo");
+});
+
+test("the Claude plugin meets the directory's file requirements", () => {
+  const dir = path.join(ROOT, "integrations", "claude-plugin");
+  const readme = readFileSync(path.join(dir, "README.md"), "utf8").replace(/```[\s\S]*?```/g, "");
+  assert.ok(readme.split(/\s+/).filter(Boolean).length >= 40, "README needs at least 40 words");
+  assert.equal(
+    readFileSync(path.join(dir, "LICENSE"), "utf8"),
+    readFileSync(path.join(ROOT, "LICENSE"), "utf8"),
+  );
+  const plugin = JSON.parse(readFileSync(path.join(dir, ".claude-plugin", "plugin.json"), "utf8"));
+  assert.match(plugin.name, /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/);
+  assert.ok(plugin.description && plugin.author?.name && plugin.license);
+  assert.ok(!("version" in plugin), "version is set by the release archive only");
+  /** @param {string} d @returns {string[]} */
+  const walk = (d) =>
+    readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)],
+    );
+  const files = walk(dir);
+  assert.ok(files.length <= 512);
+  for (const f of files) {
+    assert.ok(!lstatSync(f).isSymbolicLink(), `${f} is a symlink`);
+    assert.ok(lstatSync(f).size < 256 * 1024, `${f} is larger than 256 KiB`);
+  }
+});
+
+test("plugin icons are square PNGs of 512 px or more (the Claude directory takes the first one)", () => {
+  for (const rel of [
+    "integrations/claude-plugin/.claude-plugin/icon.png",
+    "integrations/codex-plugin/assets/icon.png",
+  ]) {
+    const png = readFileSync(path.join(ROOT, rel));
+    assert.equal(png.subarray(1, 4).toString("latin1"), "PNG", rel);
+    const [w, h] = [png.readUInt32BE(16), png.readUInt32BE(20)];
+    assert.ok(w === h && w >= 512 && w <= 2048, `${rel} is ${w}x${h}`);
+    assert.ok(png.length < 2 * 1024 * 1024, `${rel} is larger than 2 MB`);
+  }
+});
+
+test("the Codex marketplace points at a plugin that carries the skill", () => {
+  const market = JSON.parse(
+    readFileSync(path.join(ROOT, ".agents", "plugins", "marketplace.json"), "utf8"),
+  );
+  assert.ok(market.name);
+  const entry = market.plugins.find((/** @type {any} */ p) => p.name === "excaliplant");
+  assert.ok(entry, "marketplace lists the excaliplant plugin");
+  assert.equal(entry.source.source, "local");
+  assert.match(entry.source.path, /^\.\//);
+  assert.ok(!entry.source.path.includes(".."));
+  assert.ok(entry.policy?.installation && entry.policy?.authentication && entry.category);
+  const dir = path.join(ROOT, entry.source.path);
+  const plugin = JSON.parse(readFileSync(path.join(dir, "plugin.json"), "utf8"));
+  assert.equal(plugin.name, entry.name);
+  assert.ok(plugin.description && plugin.author?.name);
+  assert.ok(!("version" in plugin), "version is set by the release archive only");
+  assert.ok(existsSync(path.join(dir, "skills", "excaliplant", "SKILL.md")));
+  assert.equal(
+    readFileSync(path.join(dir, "LICENSE"), "utf8"),
+    readFileSync(path.join(ROOT, "LICENSE"), "utf8"),
+  );
 });
 
 test("Gemini CLI extension manifest is valid", () => {

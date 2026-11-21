@@ -105,7 +105,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: grethel-labs/excaliplant@v1 # pin to a release tag or commit SHA
+      - uses: grethel-labs/excaliplant@v1.2.0 # pin to a release tag or commit SHA
         with:
           files: |
             README.md

@@ -1,0 +1,9 @@
+@startebnf
+title JSON (simplified)
+value = object | array | string | number | "true" | "false" | "null" ;
+object = "{", [ member, { ",", member } ], "}" ;
+member = string, ":", value ;
+array = "[", [ value, { ",", value } ], "]" ;
+(* digits with optional fraction *)
+number = [ "-" ], digit, { digit }, [ ".", digit, { digit } ] ;
+@endebnf

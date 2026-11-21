@@ -63,7 +63,18 @@
     "svg",
     "png",
     "elk",
-    "hand-drawn"
+    "hand-drawn",
+    "markdown",
+    "markdown-it-plugin",
+    "remark-plugin",
+    "unified-plugin",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "agent-skill",
+    "claude-code-plugin",
+    "gemini-cli-extension",
+    "codex-plugin"
   ],
   "publishConfig": {
     "access": "public",

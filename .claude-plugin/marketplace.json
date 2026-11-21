@@ -8,7 +8,7 @@
     {
       "name": "excaliplant",
       "source": "./integrations/claude-plugin",
-      "description": "Render PlantUML as hand-drawn Excalidraw, SVG and PNG diagrams. Bundles the excaliplant agent skill and its MCP server.",
+      "description": "Render PlantUML as hand-drawn Excalidraw, SVG and PNG diagrams. Bundles the excaliplant agent skill.",
       "homepage": "https://github.com/grethel-labs/excaliplant#readme",
       "license": "MIT",
       "keywords": ["plantuml", "excalidraw", "diagram", "uml"]

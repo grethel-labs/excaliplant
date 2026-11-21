@@ -1,0 +1,16 @@
+@startdot
+digraph pipeline {
+  rankdir=LR;
+  node [shape=box, style=filled, fillcolor="#e7f5ff"];
+  source [label="Source", shape=cylinder, fillcolor="#ffe8cc"];
+  subgraph cluster_build {
+    label="Build";
+    compile -> test -> package;
+  }
+  source -> compile [label="checkout"];
+  package -> deploy [label="artifact", style=dashed];
+  deploy [shape=component, fillcolor="#d3f9d8"];
+  test -> report [color=red];
+  report [shape=note, fillcolor="#fff3bf"];
+}
+@enddot
