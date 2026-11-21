@@ -1,0 +1,18 @@
+# The package is assembled from a staging directory by scripts/build-vscode.mjs;
+# this file keeps `vsce package` safe when it is run in this folder directly.
+**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+!LICENSE-Excalifont.txt
+!THIRD_PARTY_NOTICES.md
+!icon.png
+!language-configuration.json
+!syntaxes/**
+!media/**
+!dist/extension.js
+dist/*.vsix
+**/*.map
+**/node_modules/**
+**/.env*

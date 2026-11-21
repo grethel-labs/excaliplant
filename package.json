@@ -6,7 +6,8 @@
   "main": "./src/index.mjs",
   "types": "./types/index.d.mts",
   "bin": {
-    "excaliplant": "bin/excaliplant.mjs"
+    "excaliplant": "bin/excaliplant.mjs",
+    "excaliplant-mcp": "bin/excaliplant-mcp.mjs"
   },
   "exports": {
     ".": {
@@ -17,12 +18,17 @@
     "./png": "./src/render/png.mjs",
     "./preprocess": "./src/core/preprocess/preprocessor.mjs",
     "./registry": "./src/core/registry.mjs",
+    "./markdown": "./src/markdown/index.mjs",
+    "./markdown-it": "./src/markdown/markdown_it.mjs",
+    "./remark": "./src/markdown/remark.mjs",
+    "./mcp": "./src/mcp/index.mjs",
     "./package.json": "./package.json"
   },
   "files": [
     "bin/",
     "src/",
     "types/",
+    "skills/",
     "assets/fonts/",
     "README.md",
     "LICENSE",
@@ -33,12 +39,13 @@
     "test": "node scripts/test.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "types": "tsc -p tsconfig.types.json",
-    "docs": "node scripts/docs.mjs",
-    "docs:check": "node scripts/docs.mjs --check",
+    "docs": "node scripts/docs.mjs && node scripts/skills.mjs && node scripts/gen-mcp-examples.mjs",
+    "docs:check": "node scripts/docs.mjs --check && node scripts/skills.mjs --check && node scripts/gen-mcp-examples.mjs --check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run typecheck && npm test && npm run docs:check",
-    "prepack": "npm run types"
+    "prepack": "npm run types",
+    "spec:update": "node scripts/update-excalidraw-spec.mjs && node scripts/skills.mjs"
   },
   "repository": {
     "type": "git",
@@ -75,5 +82,6 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "mcpName": "io.github.grethel-labs/excaliplant"
 }

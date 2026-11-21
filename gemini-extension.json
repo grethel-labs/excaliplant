@@ -1,0 +1,12 @@
+{
+  "name": "excaliplant",
+  "version": "0.0.0-development",
+  "description": "Render PlantUML as hand-drawn Excalidraw, SVG and PNG diagrams. Bundles the excaliplant agent skill and its MCP server.",
+  "contextFileName": "integrations/gemini-extension/GEMINI.md",
+  "mcpServers": {
+    "excaliplant": {
+      "command": "npx",
+      "args": ["-y", "-p", "@grethel-labs/excaliplant", "excaliplant-mcp"]
+    }
+  }
+}

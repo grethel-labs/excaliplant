@@ -1,0 +1,119 @@
+name: excaliplant
+description: Render PlantUML code blocks in Markdown files as hand-drawn diagrams (SVG), or check that the rendered output is up to date.
+author: grethel-labs
+branding:
+  icon: image
+  color: purple
+
+inputs:
+  files:
+    description: >-
+      Markdown files or glob patterns, one per line or separated by spaces
+      (for example `README.md` or `docs/**/*.md`). Relative to the workspace;
+      `..` and absolute paths are rejected.
+    required: false
+    default: README.md
+  mode:
+    description: >-
+      `file` writes `<assets-dir>/<hash>.svg` and links it (works on GitHub);
+      `inline` embeds the SVG in a `<div>` (GitHub strips inline SVG).
+    required: false
+    default: file
+  assets-dir:
+    description: Asset directory for file mode, relative to each Markdown file.
+    required: false
+    default: assets
+  check:
+    description: >-
+      `true` writes nothing and fails the step if a file or asset would change
+      (use it in pull request checks). `false` rewrites the files in place.
+    required: false
+    default: "false"
+  keep-source:
+    description: Keep the PlantUML text in a comment so the diagram can be re-rendered later.
+    required: false
+    default: "true"
+  version:
+    description: Version (or dist-tag) of @grethel-labs/excaliplant to run. Pin it for reproducible output.
+    required: false
+    default: latest
+  theme:
+    description: Theme for all diagrams (sketch, plain, hachure, mono, dark, blueprint). Empty keeps each block's own setting.
+    required: false
+    default: ""
+  node-version:
+    description: Node.js version to run the tool with (20 or newer).
+    required: false
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Render PlantUML in Markdown
+      shell: bash
+      # Inputs reach the script only through the environment, never through
+      # string interpolation into the script text.
+      env:
+        EXCALIPLANT_FILES: ${{ inputs.files }}
+        EXCALIPLANT_MODE: ${{ inputs.mode }}
+        EXCALIPLANT_ASSETS_DIR: ${{ inputs.assets-dir }}
+        EXCALIPLANT_CHECK: ${{ inputs.check }}
+        EXCALIPLANT_KEEP_SOURCE: ${{ inputs.keep-source }}
+        EXCALIPLANT_VERSION: ${{ inputs.version }}
+        EXCALIPLANT_THEME: ${{ inputs.theme }}
+      run: |
+        set -euo pipefail
+
+        fail() { echo "::error::excaliplant: $1"; exit 1; }
+
+        case "$EXCALIPLANT_MODE" in inline|file) ;; *) fail "mode must be 'inline' or 'file'" ;; esac
+        case "$EXCALIPLANT_CHECK" in true|false) ;; *) fail "check must be 'true' or 'false'" ;; esac
+        case "$EXCALIPLANT_KEEP_SOURCE" in true|false) ;; *) fail "keep-source must be 'true' or 'false'" ;; esac
+        [[ "$EXCALIPLANT_VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$ ]] \
+          || fail "version contains unexpected characters"
+        [[ "$EXCALIPLANT_THEME" =~ ^[A-Za-z0-9_-]{0,32}$ ]] \
+          || fail "theme contains unexpected characters"
+        case "$EXCALIPLANT_ASSETS_DIR" in
+          /* | *..* | *\\* | *:*) fail "assets-dir must be a relative path without '..'" ;;
+        esac
+
+        # Expand the patterns ourselves: split on newlines and spaces, never eval.
+        shopt -s globstar nullglob
+        files=()
+        while IFS= read -r line; do
+          read -r -a patterns <<< "$line"
+          for pattern in ${patterns[@]+"${patterns[@]}"}; do
+            case "$pattern" in
+              /* | *..*) fail "files must be relative paths without '..' (got '$pattern')" ;;
+            esac
+            # Unquoted on purpose: pathname expansion only (the pattern holds no whitespace).
+            matches=($pattern)
+            for match in ${matches[@]+"${matches[@]}"}; do
+              case "$match" in
+                node_modules/* | */node_modules/* | .git/* | */.git/*) continue ;;
+              esac
+              [ -f "$match" ] || continue
+              seen=0
+              for known in ${files[@]+"${files[@]}"}; do
+                if [ "$known" = "$match" ]; then seen=1; break; fi
+              done
+              if [ "$seen" -eq 0 ]; then files+=("$match"); fi
+            done
+          done
+        done <<< "$EXCALIPLANT_FILES"
+
+        if [ "${#files[@]}" -eq 0 ]; then
+          echo "::warning::excaliplant: no Markdown files matched '$EXCALIPLANT_FILES'"
+          exit 0
+        fi
+
+        args=(markdown --mode "$EXCALIPLANT_MODE" --assets-dir "$EXCALIPLANT_ASSETS_DIR")
+        if [ -n "$EXCALIPLANT_THEME" ]; then args+=(--theme "$EXCALIPLANT_THEME"); fi
+        if [ "$EXCALIPLANT_KEEP_SOURCE" = "true" ]; then args+=(--keep-source); else args+=(--no-keep-source); fi
+        if [ "$EXCALIPLANT_CHECK" = "true" ]; then args+=(--check); else args+=(--in-place); fi
+
+        npx --yes "@grethel-labs/excaliplant@${EXCALIPLANT_VERSION}" "${args[@]}" -- "${files[@]}"

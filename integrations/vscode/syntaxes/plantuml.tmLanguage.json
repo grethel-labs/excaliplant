@@ -1,0 +1,127 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "PlantUML",
+  "scopeName": "source.plantuml.excaliplant",
+  "patterns": [
+    {
+      "include": "#block-comment"
+    },
+    {
+      "include": "#line-comment"
+    },
+    {
+      "include": "#start-end"
+    },
+    {
+      "include": "#preprocessor"
+    },
+    {
+      "include": "#string"
+    },
+    {
+      "include": "#stereotype"
+    },
+    {
+      "include": "#color"
+    },
+    {
+      "include": "#arrow"
+    },
+    {
+      "include": "#variable"
+    },
+    {
+      "include": "#keyword"
+    },
+    {
+      "include": "#number"
+    }
+  ],
+  "repository": {
+    "block-comment": {
+      "name": "comment.block.plantuml",
+      "begin": "/'",
+      "end": "'/"
+    },
+    "line-comment": {
+      "name": "comment.line.apostrophe.plantuml",
+      "match": "^\\s*'.*$"
+    },
+    "start-end": {
+      "name": "keyword.control.directive.plantuml",
+      "match": "^\\s*@(start|end)[a-z]+\\b.*$"
+    },
+    "preprocessor": {
+      "name": "meta.preprocessor.plantuml",
+      "match": "^\\s*(![a-z_]+)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.control.preprocessor.plantuml"
+        }
+      }
+    },
+    "string": {
+      "name": "string.quoted.double.plantuml",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "match": "\\\\.",
+          "name": "constant.character.escape.plantuml"
+        }
+      ]
+    },
+    "stereotype": {
+      "name": "entity.name.tag.stereotype.plantuml",
+      "match": "<<[^<>\\n]*>>"
+    },
+    "color": {
+      "name": "constant.other.color.plantuml",
+      "match": "#(?:[0-9A-Fa-f]{3,8}\\b|[A-Za-z][A-Za-z0-9]*\\b)"
+    },
+    "arrow": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.plantuml",
+          "match": "(?<=\\s)(?:<<|<|o|x|\\*|#|\\\\\\\\|//)?(?:-+|\\.{2,}|={2,})(?:\\[[^\\]\\n]*\\])?[-.=]*(?:>>|>|\\\\\\\\|//|o|x|\\*|#)(?=\\s|$)"
+        },
+        {
+          "name": "keyword.operator.arrow.plantuml",
+          "match": "(?<=\\s)(?:<<|<|o|x|\\*|#|\\\\\\\\|//)(?:-+|\\.{2,}|={2,})(?:\\[[^\\]\\n]*\\])?[-.=]*(?:>>|>|\\\\\\\\|//|o|x|\\*|#)?(?=\\s|$)"
+        },
+        {
+          "name": "keyword.operator.arrow.plantuml",
+          "match": "(?<=\\s)(?:--|\\.\\.|==)(?=\\s|$)"
+        }
+      ]
+    },
+    "variable": {
+      "name": "variable.other.plantuml",
+      "match": "\\$[A-Za-z_][A-Za-z0-9_]*"
+    },
+    "number": {
+      "name": "constant.numeric.plantuml",
+      "match": "\\b\\d+(?:\\.\\d+)?\\b"
+    },
+    "keyword": {
+      "patterns": [
+        {
+          "name": "keyword.control.plantuml",
+          "match": "(?i)\\b(?:alt|else|opt|loop|par|break|critical|group|end|endif|endwhile|fork|again|repeat|while|if|then|elseif|switch|case|endswitch|detach|kill|start|stop|return|ref|activate|deactivate|destroy|create|autonumber|newpage|split|merge|backward|partition|swimlane)\\b"
+        },
+        {
+          "name": "storage.type.plantuml",
+          "match": "(?i)\\b(?:actor|participant|boundary|control|entity|database|collections|queue|class|abstract|interface|enum|annotation|object|map|json|yaml|package|namespace|node|folder|frame|cloud|rectangle|component|usecase|artifact|card|file|storage|agent|person|state|archimate|mindmap|wbs|gantt|salt|ditaa|flowchart|stack|hexagon|label|circle|diamond)\\b"
+        },
+        {
+          "name": "keyword.other.plantuml",
+          "match": "(?i)\\b(?:title|header|footer|legend|endlegend|caption|note|end note|endnote|left|right|top|bottom|over|of|as|is|on|link|skinparam|hide|show|remove|restore|scale|rotate|left to right direction|top to bottom direction|allow_mixing|allowmixing|set|namespaceSeparator|together|url|sprite|style|theme|box|endbox|rail)\\b"
+        },
+        {
+          "name": "support.constant.plantuml",
+          "match": "\\b(?:true|false|null)\\b"
+        }
+      ]
+    }
+  }
+}

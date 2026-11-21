@@ -1,0 +1,19 @@
+@startgantt
+title Release plan
+Project starts 2026-03-02
+saturday are closed
+sunday are closed
+-- Design --
+[Requirements] lasts 4 days and is 100% completed
+[UI mockups] lasts 5 days and starts at [Requirements]'s end and is 60% completed
+-- Build --
+[Backend] as [BE] lasts 8 days and starts at [Requirements]'s end
+[Frontend] lasts 7 days and starts at [UI mockups]'s end
+[Integration] lasts 3 days
+[BE] -> [Integration]
+[Frontend] -> [Integration]
+[Integration] on {Alice} {Bob}
+[Beta release] happens at [Integration]'s end
+[Backend] is colored in #ffc9c9/#c92a2a
+today is 2026-03-11
+@endgantt

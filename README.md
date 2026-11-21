@@ -99,6 +99,18 @@ await result.toPng({ width: 1200 }); // PNG Buffer
 result.diagnostics; //    warnings with line numbers
 ```
 
+## Use it everywhere
+
+One package, several front doors. Everything is built from this repository and released together with the npm package.
+
+| Where         | What                                                                                                                                                                                               | Docs                                   |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Markdown      | `excaliplant markdown README.md` replaces ` ```plantuml ` blocks with diagrams; plugins for `markdown-it` and `remark`; a GitHub Action for CI                                                     | [`docs/markdown.md`](docs/markdown.md) |
+| AI assistants | An agent skill for Claude Code, Claude, Codex, Gemini CLI, opencode, Cursor, Copilot, Antigravity and more (`excaliplant skills install`), always bundled with the current Excalidraw element spec | [`docs/skills.md`](docs/skills.md)     |
+| MCP clients   | `excaliplant mcp` — an MCP server with `render_plantuml`, `validate_plantuml`, `list_diagram_types` and `get_example`                                                                              | [`docs/mcp.md`](docs/mcp.md)           |
+| VS Code       | Live Markdown preview and commands for `.puml` files                                                                                                                                               | [`docs/vscode.md`](docs/vscode.md)     |
+| Obsidian      | Renders `plantuml` code blocks in your notes                                                                                                                                                       | [`docs/obsidian.md`](docs/obsidian.md) |
+
 ## How it works
 
 <img src="docs/assets/pipeline.png" alt="excaliplant pipeline" />

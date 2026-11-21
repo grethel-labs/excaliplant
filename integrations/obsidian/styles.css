@@ -1,0 +1,53 @@
+/* Excaliplant: the diagram keeps its own colours; only layout is styled here. */
+
+.excaliplant-block {
+  margin: var(--size-4-2) 0;
+}
+
+.excaliplant {
+  max-width: 100%;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.excaliplant svg {
+  display: inline-block;
+  max-width: min(100%, var(--excaliplant-max-width, 100%));
+  height: auto;
+}
+
+.excaliplant-pending {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.excaliplant-error {
+  padding: var(--size-4-2) var(--size-4-3);
+  border: 1px solid var(--background-modifier-error);
+  border-radius: var(--radius-s);
+  background-color: var(--background-secondary);
+  color: var(--text-error);
+}
+
+.excaliplant-error-title {
+  font-weight: var(--font-semibold);
+}
+
+.excaliplant-error-line {
+  color: var(--text-muted);
+  font-size: var(--font-smaller);
+}
+
+.excaliplant-error-message {
+  margin: var(--size-4-1) 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: var(--font-smaller);
+  color: var(--text-normal);
+}
+
+.excaliplant-warnings {
+  margin-top: var(--size-4-1);
+  color: var(--text-muted);
+  font-size: var(--font-smaller);
+}

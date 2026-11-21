@@ -1,0 +1,13 @@
+{
+  "name": "excaliplant",
+  "displayName": "excaliplant",
+  "description": "Render PlantUML as hand-drawn Excalidraw, SVG and PNG diagrams. Bundles the excaliplant agent skill and its MCP server.",
+  "author": {
+    "name": "grethel-labs",
+    "url": "https://github.com/grethel-labs"
+  },
+  "homepage": "https://github.com/grethel-labs/excaliplant#readme",
+  "repository": "https://github.com/grethel-labs/excaliplant",
+  "license": "MIT",
+  "keywords": ["plantuml", "excalidraw", "diagram", "uml", "svg", "png"]
+}

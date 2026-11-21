@@ -2,7 +2,7 @@
 // excaliplant CLI: file/stdin I/O and option parsing only. All rendering
 // logic lives in src/.
 
-import { readFileSync, writeFileSync, realpathSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { render, renderAll, listDiagramTypes, THEME_NAMES } from "../src/index.mjs";
@@ -12,6 +12,9 @@ const HELP = `excaliplant — render PlantUML as hand-drawn Excalidraw, SVG or P
 Usage:
   excaliplant [input.puml] [-o output] [options]
   cat diagram.puml | excaliplant -f svg > diagram.svg
+  excaliplant markdown <file.md> [-i | -o out.md] [--mode inline|file]   (see: excaliplant markdown --help)
+  excaliplant skills install --tool <claude|codex|gemini|opencode|cursor|copilot|all>   (see: excaliplant skills list)
+  excaliplant mcp [--http <port>]   (MCP server on stdio; same as excaliplant-mcp)
 
 Options:
   -o, --output <file>       Output file (format from extension unless -f is given).
@@ -168,7 +171,38 @@ async function encode(result, opts, format) {
   return `${JSON.stringify(result.excalidraw, null, 2)}\n`;
 }
 
+/**
+ * `excaliplant markdown …`: all logic lives in src/markdown; this only
+ * supplies the file system.
+ * @param {string[]} argv
+ */
+async function runMarkdown(argv) {
+  const { runMarkdownCommand } = await import("../src/markdown/index.mjs");
+  process.exitCode = await runMarkdownCommand(argv, {
+    readFile: async (file) => readFileSync(file, "utf8"),
+    writeFile: async (file, data) => {
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, data);
+    },
+    readStdin: () => readStdin(10 * 1024 * 1024),
+    stdout: process.stdout,
+    stderr: process.stderr,
+  });
+}
+
 async function main() {
+  if (process.argv[2] === "markdown") return runMarkdown(process.argv.slice(3));
+  if (process.argv[2] === "mcp") {
+    // Same server as the `excaliplant-mcp` bin; the MCP registry can only
+    // start a package's default bin.
+    const { runMcpProcess } = await import("../src/mcp/cli.mjs");
+    return runMcpProcess(process.argv.slice(3));
+  }
+  if (process.argv[2] === "skills") {
+    const { runSkillsCommand } = await import("../src/skills/index.mjs");
+    process.exitCode = await runSkillsCommand(process.argv.slice(3));
+    return;
+  }
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) return void process.stdout.write(HELP);
   if (opts.version) {
