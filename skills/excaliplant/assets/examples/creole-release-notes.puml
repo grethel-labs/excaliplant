@@ -1,0 +1,14 @@
+@startcreole
+= Release notes
+This release is a **complete rewrite** of //excaliplant//.
+----
+* New pipeline: ""parse → layout → draw""
+* 30+ diagram types
+** sequence, class, activity, state …
+** gantt, mindmap, json, regex …
+|= Format |= Output |
+| excalidraw | editable JSON |
+| svg | hand-drawn vector |
+| png | raster image |
+[[https://github.com/grethel-labs/excaliplant Project page]]
+@endcreole

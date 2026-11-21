@@ -136,6 +136,13 @@ jobs:
               exit 1
             fi
           fi
+      # Skill, plugin and rules archives are built from the same tree as the
+      # npm package; `--pack` fails on a stale generated tree.
+      - name: Attach agent-skill artefacts to the release
+        run: |
+          set -euo pipefail
+          EXCALIPLANT_VERSION="$VERSION" node scripts/skills.mjs --pack "$RUNNER_TEMP/skills"
+          gh release upload "v$VERSION" "$RUNNER_TEMP"/skills/* --clobber
       - name: Summary
         run: |
           {
@@ -144,3 +151,167 @@ jobs:
             echo "- npm: https://www.npmjs.com/package/@grethel-labs/excaliplant/v/$VERSION"
             echo "- release: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Runs after npm: the registry verifies that the package version exists and
+  # that `mcpName` in package.json matches. Authenticates via GitHub OIDC; no
+  # secret is needed. A failure here does not undo the npm release; re-run
+  # this job (a registry version can only be published once).
+  mcp-registry:
+    name: Publish MCP registry entry
+    needs: [plan, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      MCP_PUBLISHER_VERSION: v1.8.9
+    steps:
+      - uses: actions/checkout@v7
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Download and verify mcp-publisher
+        run: |
+          set -euo pipefail
+          archive="mcp-publisher_linux_amd64.tar.gz"
+          base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
+          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base_url/$archive.sigstore.json"
+          cosign verify-blob \
+            --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$archive"
+          tar xzf "$archive" mcp-publisher
+      - name: Set the version in server.json (runner only)
+        run: |
+          jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp
+          mv server.tmp server.json
+      - name: Publish to the MCP registry
+        run: |
+          ./mcp-publisher validate
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+
+  # Obsidian needs a repository whose root holds manifest.json and whose tags
+  # equal the manifest version (no `v`), so the plugin is mirrored into
+  # grethel-labs/excaliplant-obsidian. See docs/obsidian.md. DISABLED by
+  # default: it only runs when the repository variable PUBLISH_OBSIDIAN is
+  # "true" (and is then still skipped without the OBSIDIAN_REPO_TOKEN secret).
+  obsidian:
+    name: Mirror Obsidian plugin
+    needs: [plan, publish]
+    if: ${{ vars.PUBLISH_OBSIDIAN == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      OBSIDIAN_REPO_TOKEN: ${{ secrets.OBSIDIAN_REPO_TOKEN }}
+    steps:
+      - name: Check for the mirror token
+        id: token
+        run: |
+          if [ -z "$OBSIDIAN_REPO_TOKEN" ]; then
+            echo "::notice::OBSIDIAN_REPO_TOKEN is not set; skipping the Obsidian mirror."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.token.outputs.present == 'true'
+      - uses: actions/setup-node@v7
+        if: steps.token.outputs.present == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/checkout@v7
+        if: steps.token.outputs.present == 'true'
+        with:
+          repository: grethel-labs/excaliplant-obsidian
+          token: ${{ secrets.OBSIDIAN_REPO_TOKEN }}
+          path: mirror
+      - name: Build, mirror and release
+        if: steps.token.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.OBSIDIAN_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm ci
+          (cd integrations/obsidian && npm ci)
+          node scripts/build-obsidian.mjs --version "$VERSION" --out mirror \
+            --base-versions mirror/versions.json --repo-files
+          cd mirror
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Mirror is already up to date."
+          else
+            git commit -m "Excaliplant $VERSION"
+            git push origin HEAD
+          fi
+          if gh release view "$VERSION" --repo grethel-labs/excaliplant-obsidian >/dev/null 2>&1; then
+            echo "::notice::Mirror release $VERSION already exists."
+          else
+            gh release create "$VERSION" main.js manifest.json styles.css \
+              --repo grethel-labs/excaliplant-obsidian --target "$(git rev-parse HEAD)" \
+              --title "$VERSION" --notes "Excaliplant $VERSION. Source: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+          fi
+
+  # The .vsix is attached to the GitHub release and published to the VS Code
+  # Marketplace and Open VSX. Both registries support trusted publishing (OIDC),
+  # so no token has to be stored: register this workflow (release.yml, no
+  # environment) as trusted publisher there, then set the repository variables
+  # PUBLISH_VSCODE_MARKETPLACE / PUBLISH_OPEN_VSX to "true". A stored VSCE_PAT /
+  # OVSX_PAT still works and takes precedence (Open VSX needs one token for the
+  # very first version). See docs/vscode.md.
+  vscode:
+    name: Package and publish VS Code extension
+    needs: [plan, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      PUBLISH_VSCODE_MARKETPLACE: ${{ vars.PUBLISH_VSCODE_MARKETPLACE }}
+      PUBLISH_OPEN_VSX: ${{ vars.PUBLISH_OPEN_VSX }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix integrations/vscode
+      - name: Package the extension
+        run: node scripts/build-vscode.mjs --version "$VERSION"
+      - name: Attach the .vsix to the release
+        run: gh release upload "v$VERSION" "integrations/vscode/dist/excaliplant-$VERSION.vsix" --clobber
+      - name: Publish to the VS Code Marketplace
+        working-directory: integrations/vscode
+        run: |
+          set -euo pipefail
+          vsix="dist/excaliplant-$VERSION.vsix"
+          if [ -n "$VSCE_PAT" ]; then
+            npx vsce publish --packagePath "$vsix"
+          elif [ "$PUBLISH_VSCODE_MARKETPLACE" = "true" ]; then
+            npx vsce publish --oidc --packagePath "$vsix"
+          else
+            echo "::notice::VS Code Marketplace not configured (no VSCE_PAT, PUBLISH_VSCODE_MARKETPLACE is not 'true'); skipping."
+          fi
+      - name: Publish to Open VSX
+        working-directory: integrations/vscode
+        run: |
+          set -euo pipefail
+          vsix="dist/excaliplant-$VERSION.vsix"
+          if [ -n "$OVSX_PAT" ]; then
+            npx ovsx publish "$vsix"
+          elif [ "$PUBLISH_OPEN_VSX" = "true" ]; then
+            npx ovsx publish "$vsix" --trusted-publishing
+          else
+            echo "::notice::Open VSX not configured (no OVSX_PAT, PUBLISH_OPEN_VSX is not 'true'); skipping."
+          fi

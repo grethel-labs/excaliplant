@@ -1,0 +1,24 @@
+@startuml
+title Kubernetes deployment
+actor User
+cloud "CDN" as cdn
+node "Kubernetes cluster" as k8s {
+  node "ingress" as ing
+  frame "shop namespace" {
+    component "web" as web
+    component "api" as api
+    queue "orders" as q
+  }
+  database "postgres" as pg
+}
+storage "backups" as bk
+artifact "api.jar" as jar
+User --> cdn
+cdn --> ing : HTTPS
+ing --> web
+web --> api
+api --> q
+api --> pg
+pg ..> bk : nightly
+jar ..> api : deployed as
+@enduml

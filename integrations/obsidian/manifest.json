@@ -1,0 +1,10 @@
+{
+  "id": "excaliplant",
+  "name": "Excaliplant",
+  "version": "0.0.0",
+  "minAppVersion": "1.5.7",
+  "description": "Render PlantUML code blocks as hand-drawn Excalidraw-style diagrams, offline.",
+  "author": "Grethel Labs",
+  "authorUrl": "https://github.com/grethel-labs",
+  "isDesktopOnly": false
+}

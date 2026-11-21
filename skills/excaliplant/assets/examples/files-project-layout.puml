@@ -1,0 +1,10 @@
+@startfiles
+/src/index.mjs : public API
+/src/core/pipeline.mjs
+/src/core/preprocess/preprocessor.mjs
+/src/diagrams/sequence/index.mjs
+/src/render/svg.mjs : roughjs + Excalifont
+/examples/
+/package.json
+/README.md
+@endfiles

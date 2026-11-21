@@ -73,3 +73,23 @@ jobs:
           npm install "$RUNNER_TEMP"/grethel-labs-excaliplant-*.tgz
           cp "$GITHUB_WORKSPACE/scripts/smoke.mjs" .
           node smoke.mjs
+
+  integrations:
+    name: Build VS Code and Obsidian bundles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix integrations/vscode
+      - run: npm ci --prefix integrations/obsidian
+      # With the tooling installed, the bundle tests run instead of skipping.
+      - run: node --test test/vscode.test.mjs test/vscode_build.test.mjs test/obsidian.test.mjs test/obsidian-build.test.mjs
+      - name: Package the artefacts
+        run: |
+          set -euo pipefail
+          node scripts/build-vscode.mjs --version 0.0.1
+          node scripts/build-obsidian.mjs --version 0.0.1 --out "$RUNNER_TEMP/obsidian"

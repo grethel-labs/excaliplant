@@ -1,0 +1,27 @@
+@startuml
+title Order lifecycle
+[*] --> Draft
+Draft --> Submitted : submit
+state Submitted {
+  [*] --> Validating
+  Validating --> Approved : ok
+  Validating --> Rejected : invalid
+  Approved --> [*]
+}
+state Fulfilment {
+  [*] --> Picking
+  Picking --> Packed
+  --
+  [*] --> Invoicing
+  Invoicing --> Paid
+}
+state decide <<choice>>
+Submitted --> decide
+decide --> Fulfilment : [approved]
+decide --> Draft : [rejected]
+Fulfilment --> Done
+Done : entry / notify customer
+Done : exit / archive
+Done --> [*]
+note right of Draft : editable by\nthe customer
+@enduml

@@ -1,0 +1,8 @@
+{
+  "package": "@excalidraw/element",
+  "version": "0.18.0-f0063e113",
+  "sourceUrl": "https://cdn.jsdelivr.net/npm/@excalidraw/element@0.18.0-f0063e113/dist/types/element/src/types.d.ts",
+  "docsUrl": "https://docs.excalidraw.com/docs/codebase/json-schema",
+  "sha256": "ddedcec54149506b2d524daf6a45933cabc7ac6ab99b9b9cec0a155e0141ef60",
+  "fetchedAt": "2026-11-16"
+}

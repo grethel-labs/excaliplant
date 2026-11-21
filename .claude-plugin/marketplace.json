@@ -1,0 +1,17 @@
+{
+  "name": "grethel-labs",
+  "description": "Plugins by grethel-labs",
+  "owner": {
+    "name": "grethel-labs"
+  },
+  "plugins": [
+    {
+      "name": "excaliplant",
+      "source": "./integrations/claude-plugin",
+      "description": "Render PlantUML as hand-drawn Excalidraw, SVG and PNG diagrams. Bundles the excaliplant agent skill and its MCP server.",
+      "homepage": "https://github.com/grethel-labs/excaliplant#readme",
+      "license": "MIT",
+      "keywords": ["plantuml", "excalidraw", "diagram", "uml"]
+    }
+  ]
+}

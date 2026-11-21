@@ -1,0 +1,16 @@
+@startuml
+object "alice : User" as alice {
+  name = "Alice"
+  role = ADMIN
+}
+object "cart1 : Cart" as cart {
+  items = 3
+  total = 59.90
+}
+map "Settings" as settings {
+  theme => dark
+  locale => de-DE
+}
+alice --> cart : owns
+alice --> settings
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+analog "Temperature" between 0 and 40 as T
+concise "Heater" as H
+binary "Alarm" as A
+@0
+T is 18
+H is Off
+A is low
+@10
+T is 16
+H is Heating
+@20
+T is 24
+@30
+T is 33
+H is Off
+A is high
+@40
+T is 26
+A is low
+highlight 30 to 40 #ffe3e3 : overheating
+@enduml

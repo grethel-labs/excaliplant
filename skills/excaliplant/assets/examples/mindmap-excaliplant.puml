@@ -1,0 +1,19 @@
+@startmindmap
+* excaliplant
+** Parse
+*** Preprocessor
+*** Creole markup
+*** 25+ diagram types
+** Layout
+*** ELK graphs
+*** Sequence engine
+***_ structured activity flow
+left side
+** Render
+*** Excalidraw JSON
+*** SVG
+*** PNG
+** Use
+***[#ffc9c9] CLI
+*** Node API
+@endmindmap

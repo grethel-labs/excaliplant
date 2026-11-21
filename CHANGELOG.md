@@ -30,6 +30,12 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- `excaliplant markdown` renders ` ```plantuml ` blocks in Markdown files (inline SVG or asset files, idempotent, `--check` for CI); `@grethel-labs/excaliplant/markdown`, `/markdown-it` and `/remark` plugins; a GitHub Action (`action.yml`).
+- MCP server: `excaliplant mcp` / `excaliplant-mcp` (stdio, optional local HTTP) with `render_plantuml`, `validate_plantuml`, `list_diagram_types` and `get_example`; published to the MCP registry with each release.
+- Agent skill for Claude Code, Claude, Codex, Gemini CLI, opencode, Cursor, Copilot, Antigravity and rule files for Windsurf, Cline and Roo: `excaliplant skills install`, a Claude Code plugin marketplace, a Gemini CLI extension and release archives. The skill ships a snapshot of Excalidraw's element typings that a weekly workflow keeps current.
+- VS Code extension: live Markdown preview of `plantuml` blocks, commands to export `.puml` files and a side preview; attached to each release as `.vsix` and published to the Marketplace and Open VSX.
+- Obsidian plugin: renders `plantuml` code blocks in notes (desktop and mobile), exports `.excalidraw`/SVG/PNG; mirrored to `grethel-labs/excaliplant-obsidian` with each release.
+
 - `autoactivate on` for sequence diagrams.
 - Interactive gallery on GitHub Pages with type tabs, arrows, keyboard and swipe navigation, PlantUML source and SVG/`.excalidraw` downloads.
 - Animated README carousel with one slide per diagram type, plus more examples for sequence, class, state, use case, deployment and timing diagrams.
