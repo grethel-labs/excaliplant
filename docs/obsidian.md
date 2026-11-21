@@ -140,6 +140,8 @@ carries version `0.0.0` in `manifest.json` and an empty `versions.json`.
 
 ## Publishing (maintainer)
 
+> **Status: publishing is disabled.** The `obsidian` job in `.github/workflows/release.yml` only runs when the repository variable `PUBLISH_OBSIDIAN` is `true` (and the `OBSIDIAN_REPO_TOKEN` secret exists). The plugin is still built in CI and can be installed manually or via BRAT from a local build.
+
 ### Rules that apply (Obsidian documentation)
 
 | Topic           | Rule                                                                                                                                                                                     | Source      |

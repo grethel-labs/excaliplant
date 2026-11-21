@@ -194,11 +194,13 @@ jobs:
 
   # Obsidian needs a repository whose root holds manifest.json and whose tags
   # equal the manifest version (no `v`), so the plugin is mirrored into
-  # grethel-labs/excaliplant-obsidian. See docs/obsidian.md. Skipped until the
-  # OBSIDIAN_REPO_TOKEN secret exists.
+  # grethel-labs/excaliplant-obsidian. See docs/obsidian.md. DISABLED by
+  # default: it only runs when the repository variable PUBLISH_OBSIDIAN is
+  # "true" (and is then still skipped without the OBSIDIAN_REPO_TOKEN secret).
   obsidian:
     name: Mirror Obsidian plugin
     needs: [plan, publish]
+    if: ${{ vars.PUBLISH_OBSIDIAN == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
