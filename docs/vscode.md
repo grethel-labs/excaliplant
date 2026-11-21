@@ -52,12 +52,14 @@ node scripts/build-vscode.mjs --version 1.4.0   # dist/excaliplant-1.4.0.vsix (p
 
 ### Publish
 
-```sh
-VSCE_PAT=… npm run publish:vsce --prefix integrations/vscode   # VS Code Marketplace
-OVSX_PAT=… npm run publish:ovsx --prefix integrations/vscode   # Open VSX
-```
+Publishing runs in the `vscode` job of `.github/workflows/release.yml`. Both registries support **trusted publishing (OIDC)**, so no token has to be stored (Azure DevOps global PATs are retired on 2026-12-01):
 
-Both publish `dist/*.vsix` and read the token from the environment. The publisher is `grethel-labs` (field `publisher` in `integrations/vscode/package.json`); for Open VSX the namespace must exist (`ovsx create-namespace`). The `.vsix` has to be built first, in the same job.
+| Registry            | One-time setup                                                                                                                                                           | Repository setting                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| VS Code Marketplace | Create the publisher `grethel-labs`, then _Trusted Publishing_ → _Create_ with owner `grethel-labs`, repository `excaliplant`, workflow `release.yml`, empty environment | variable `PUBLISH_VSCODE_MARKETPLACE=true` |
+| Open VSX            | Create the namespace, publish the first version with a token, then _Settings → Trusted Publishers_ with the same values                                                  | variable `PUBLISH_OPEN_VSX=true`           |
+
+A stored `VSCE_PAT` / `OVSX_PAT` secret still works and takes precedence. Locally: `VSCE_PAT=… npm run publish:vsce --prefix integrations/vscode`. The publisher is `grethel-labs` (field `publisher` in `integrations/vscode/package.json`); the Open VSX namespace must exist (`ovsx create-namespace`). The `.vsix` has to be built first, in the same job.
 
 ### Tests
 

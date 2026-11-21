@@ -256,20 +256,27 @@ jobs:
               --title "$VERSION" --notes "Excaliplant $VERSION. Source: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
           fi
 
-  # The .vsix is attached to the GitHub release; publishing to the VS Code
-  # Marketplace and Open VSX needs VSCE_PAT / OVSX_PAT and is skipped for a
-  # missing token. See docs/vscode.md for the one-time publisher setup.
+  # The .vsix is attached to the GitHub release and published to the VS Code
+  # Marketplace and Open VSX. Both registries support trusted publishing (OIDC),
+  # so no token has to be stored: register this workflow (release.yml, no
+  # environment) as trusted publisher there, then set the repository variables
+  # PUBLISH_VSCODE_MARKETPLACE / PUBLISH_OPEN_VSX to "true". A stored VSCE_PAT /
+  # OVSX_PAT still works and takes precedence (Open VSX needs one token for the
+  # very first version). See docs/vscode.md.
   vscode:
     name: Package and publish VS Code extension
     needs: [plan, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     env:
       VERSION: ${{ needs.plan.outputs.version }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       VSCE_PAT: ${{ secrets.VSCE_PAT }}
       OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      PUBLISH_VSCODE_MARKETPLACE: ${{ vars.PUBLISH_VSCODE_MARKETPLACE }}
+      PUBLISH_OPEN_VSX: ${{ vars.PUBLISH_OPEN_VSX }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -283,16 +290,26 @@ jobs:
       - name: Attach the .vsix to the release
         run: gh release upload "v$VERSION" "integrations/vscode/dist/excaliplant-$VERSION.vsix" --clobber
       - name: Publish to the VS Code Marketplace
+        working-directory: integrations/vscode
         run: |
-          if [ -z "$VSCE_PAT" ]; then
-            echo "::notice::VSCE_PAT is not set; skipping the VS Code Marketplace."
+          set -euo pipefail
+          vsix="dist/excaliplant-$VERSION.vsix"
+          if [ -n "$VSCE_PAT" ]; then
+            npx vsce publish --packagePath "$vsix"
+          elif [ "$PUBLISH_VSCODE_MARKETPLACE" = "true" ]; then
+            npx vsce publish --oidc --packagePath "$vsix"
           else
-            npm run publish:vsce --prefix integrations/vscode
+            echo "::notice::VS Code Marketplace not configured (no VSCE_PAT, PUBLISH_VSCODE_MARKETPLACE is not 'true'); skipping."
           fi
       - name: Publish to Open VSX
+        working-directory: integrations/vscode
         run: |
-          if [ -z "$OVSX_PAT" ]; then
-            echo "::notice::OVSX_PAT is not set; skipping Open VSX."
+          set -euo pipefail
+          vsix="dist/excaliplant-$VERSION.vsix"
+          if [ -n "$OVSX_PAT" ]; then
+            npx ovsx publish "$vsix"
+          elif [ "$PUBLISH_OPEN_VSX" = "true" ]; then
+            npx ovsx publish "$vsix" --trusted-publishing
           else
-            npm run publish:ovsx --prefix integrations/vscode
+            echo "::notice::Open VSX not configured (no OVSX_PAT, PUBLISH_OPEN_VSX is not 'true'); skipping."
           fi
