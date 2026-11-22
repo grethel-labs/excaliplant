@@ -114,6 +114,22 @@ Pick a theme with `--theme` / `{ theme }`, or let PlantUML's `!theme` choose the
 
 {{themeGrid}}
 
+Override individual colours using stable theme paths. For example, pass
+`{ theme: "pastel-dark", themeColors: { "roles.class.fill": "#523c64cc" } }`
+to `render()`, or set `EXCALIPLANT_COLOR__ROLES__CLASS__FILL='#523c64cc'`
+for the CLI. Accepted values include hex colours with an optional alpha
+channel and `transparent`. PlantUML source styles can override theme defaults.
+
+Use `transparent-light` over white or off-white surfaces and
+`transparent-dark` over ink or charcoal surfaces. These profiles let the
+viewer's background show through while keeping internal diagram surfaces
+available for labels and nodes.
+
+Built-in themes live in `src/draw/themes/`. Run `npm run themes` after
+editing a definition. The check resolves inheritance and verifies named
+colour pairs declared in the JSON files, including transparency over each
+reference backdrop. Text pairs require 4.5:1 and graphic pairs require 3:1.
+
 ## API
 
 | Export                                    | Description                                                       |

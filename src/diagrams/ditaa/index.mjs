@@ -8,20 +8,20 @@
 
 import { defineDiagram } from "../../core/registry.mjs";
 import { createMeta } from "../../syntax/commons.mjs";
-import { roleStyle } from "../../draw/theme.mjs";
+import { roleStyle, themeColor } from "../../draw/theme.mjs";
 import { LimitError } from "../../core/errors.mjs";
 
 const CW = 11;
 const CH = 22;
 const TAGS = new Map(
   Object.entries({
-    RED: "#ffc9c9",
-    GRE: "#b2f2bb",
-    BLU: "#a5d8ff",
-    YEL: "#ffec99",
-    PNK: "#fcc2d7",
-    BLK: "#495057",
-    WHI: "#ffffff",
+    RED: "special.ditaa-red.fill",
+    GRE: "special.ditaa-gre.fill",
+    BLU: "special.ditaa-blu.fill",
+    YEL: "special.ditaa-yel.fill",
+    PNK: "special.ditaa-pnk.fill",
+    BLK: "special.ditaa-blk.fill",
+    WHI: "special.ditaa-whi.fill",
   }),
 );
 const CORNER = new Set(["+", "/", "\\"]);
@@ -157,8 +157,9 @@ function trace(model) {
         const line = g[rr].slice(c + 1, c2).join("");
         const tag = /c([A-Z]{3}|[0-9A-Fa-f]{3})\b/.exec(line);
         if (tag) {
+          const named = TAGS.get(tag[1]);
           color =
-            TAGS.get(tag[1]) ??
+            named ??
             `#${tag[1]
               .split("")
               .map((d) => d + d)
@@ -256,7 +257,7 @@ function drawDitaa(laid, c) {
     const w = px(b.c2) - x;
     const h = py(b.r2) - y;
     const style = {
-      fill: b.color ?? base.fill,
+      fill: (b.color?.startsWith("special.") ? themeColor(theme, b.color) : b.color) ?? base.fill,
       stroke: ink,
       strokeStyle: /** @type {any} */ (b.dashed ? "dashed" : "solid"),
       rounded: b.rounded,
@@ -381,7 +382,7 @@ function drawDitaa(laid, c) {
   }
   for (const p of laid.points)
     c.ellipse(px(p.c) - 4, py(p.r) - 4, 8, 8, {
-      fill: theme.background,
+      fill: theme.surface ?? theme.background,
       stroke: ink,
       strokeWidth: 1.5,
     });

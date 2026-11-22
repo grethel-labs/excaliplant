@@ -5,21 +5,22 @@
  * @module diagrams/archimate
  */
 
+import { themeColor } from "../../draw/theme.mjs";
 import { graphModule } from "../graph/module.mjs";
 import { DESCRIPTIVE_KEYWORDS } from "../graph/parse.mjs";
 import { score } from "../detect.mjs";
 
 /** Layer → fill colour (ArchiMate standard palette). */
 export const ARCHIMATE_LAYERS = {
-  business: "#ffffb5",
-  application: "#b5ffff",
-  technology: "#c9e7b7",
-  physical: "#c9e7b7",
-  motivation: "#ccccff",
-  strategy: "#f5deaa",
-  implementation: "#ffe0e0",
-  migration: "#ffe0e0",
-  other: "#e9ecef",
+  business: "special.archimate-business.fill",
+  application: "special.archimate-application.fill",
+  technology: "special.archimate-technology.fill",
+  physical: "special.archimate-physical.fill",
+  motivation: "special.archimate-motivation.fill",
+  strategy: "special.archimate-strategy.fill",
+  implementation: "special.archimate-implementation.fill",
+  migration: "special.archimate-migration.fill",
+  other: "special.archimate-other.fill",
 };
 
 /**
@@ -121,7 +122,7 @@ export default graphModule({
   kind: "archimate",
   title: "ArchiMate diagram",
   keywords: [["archimate", { shape: "rectangle", role: "default" }], ...DESCRIPTIVE_KEYWORDS],
-  finish: (model) => {
+  finish: (model, ctx) => {
     for (const n of model.nodes.values()) {
       if (
         n.keyword !== "archimate" &&
@@ -135,15 +136,20 @@ export default graphModule({
       const type = (n.stereotypes.find((s) => /-/.test(s)) ?? "").toLowerCase();
       const layer = /** @type {keyof typeof ARCHIMATE_LAYERS} */ (type.split("-")[0] || "other");
       n.stereotypes = n.stereotypes.filter((s) => !/-/.test(s));
-      if (!n.colors.fill) n.colors.fill = ARCHIMATE_LAYERS[layer] ?? ARCHIMATE_LAYERS.other;
-      if (!n.colors.stroke) n.colors.stroke = "#495057";
+      if (!n.colors.fill)
+        n.colors.fill = themeColor(
+          ctx.module.theme,
+          ARCHIMATE_LAYERS[layer] ?? ARCHIMATE_LAYERS.other,
+        );
+      if (!n.colors.stroke)
+        n.colors.stroke = themeColor(ctx.module.theme, "special.archimate.stroke");
       if (/junction/.test(type)) {
         n.data.fixed = [16, 16];
         n.data.round = true;
         n.data.draw = (/** @type {any} */ c, /** @type {any} */ node, /** @type {any} */ st) =>
           c.ellipse(node.x, node.y, node.width, node.height, {
             ...st,
-            fill: /or/.test(type) ? c.theme.background : st.stroke,
+            fill: /or/.test(type) ? (c.theme.surface ?? c.theme.background) : st.stroke,
             fillStyle: "solid",
           });
         continue;

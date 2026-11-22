@@ -9,7 +9,7 @@ import { createMeta, parseCommon } from "../../syntax/commons.mjs";
 import { LineReader } from "../../syntax/reader.mjs";
 import { label } from "../../syntax/text.mjs";
 import { layoutText } from "../../layout/measure.mjs";
-import { roleStyle } from "../../draw/theme.mjs";
+import { roleStyle, themeColor } from "../../draw/theme.mjs";
 import { LimitError } from "../../core/errors.mjs";
 
 /**
@@ -152,11 +152,11 @@ function drawFiles(laid, c) {
           [x + 7, cy - 8],
           [x + 9, cy - 5],
         ],
-        { stroke: "#e67700", strokeWidth: 1.5, roughness: 0.5 },
+        { stroke: themeColor(theme, "special.folder.stroke"), strokeWidth: 1.5, roughness: 0.5 },
       );
       c.rect(x, cy - 5, 18, 12, {
-        fill: "#ffd43b",
-        stroke: "#e67700",
+        fill: themeColor(theme, "special.folder.fill"),
+        stroke: themeColor(theme, "special.folder.stroke"),
         strokeWidth: 1.5,
         roughness: 0.5,
       });
@@ -171,7 +171,7 @@ function drawFiles(laid, c) {
         ],
         {
           closed: true,
-          fill: theme.background,
+          fill: theme.surface ?? theme.background,
           stroke: theme.muted,
           strokeWidth: 1.5,
           roughness: 0.5,

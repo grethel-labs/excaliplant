@@ -168,7 +168,7 @@ Each diagram type is a small module with four hooks — `detect`, `parse`, `layo
 
 ## Themes
 
-Pick a theme with `--theme` / `{ theme }`, or let PlantUML's `!theme` choose the closest match. Available: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`. Add `--clean` / `{ sketch: false }` for straight lines.
+Pick a theme with `--theme` / `{ theme }`, or let PlantUML's `!theme` choose the closest match. Available: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs-dark`, `pastel-dark`, `pastel-light`, `transparent-dark`, `transparent-light`. Add `--clean` / `{ sketch: false }` for straight lines.
 
 <table>
   <tr>
@@ -181,7 +181,32 @@ Pick a theme with `--theme` / `{ theme }`, or let PlantUML's `!theme` choose the
     <td align="center"><img src="docs/assets/theme-dark.png" width="250" alt="dark theme" /><br /><code>dark</code></td>
     <td align="center"><img src="docs/assets/theme-blueprint.png" width="250" alt="blueprint theme" /><br /><code>blueprint</code></td>
   </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/theme-grethel-labs-dark.png" width="250" alt="grethel-labs-dark theme" /><br /><code>grethel-labs-dark</code></td>
+    <td align="center"><img src="docs/assets/theme-pastel-dark.png" width="250" alt="pastel-dark theme" /><br /><code>pastel-dark</code></td>
+    <td align="center"><img src="docs/assets/theme-pastel-light.png" width="250" alt="pastel-light theme" /><br /><code>pastel-light</code></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/theme-transparent-dark.png" width="250" alt="transparent-dark theme" /><br /><code>transparent-dark</code></td>
+    <td align="center"><img src="docs/assets/theme-transparent-light.png" width="250" alt="transparent-light theme" /><br /><code>transparent-light</code></td>
+  </tr>
 </table>
+
+Override individual colours using stable theme paths. For example, pass
+`{ theme: "pastel-dark", themeColors: { "roles.class.fill": "#523c64cc" } }`
+to `render()`, or set `EXCALIPLANT_COLOR__ROLES__CLASS__FILL='#523c64cc'`
+for the CLI. Accepted values include hex colours with an optional alpha
+channel and `transparent`. PlantUML source styles can override theme defaults.
+
+Use `transparent-light` over white or off-white surfaces and
+`transparent-dark` over ink or charcoal surfaces. These profiles let the
+viewer's background show through while keeping internal diagram surfaces
+available for labels and nodes.
+
+Built-in themes live in `src/draw/themes/`. Run `npm run themes` after
+editing a definition. The check resolves inheritance and verifies named
+colour pairs declared in the JSON files, including transparency over each
+reference backdrop. Text pairs require 4.5:1 and graphic pairs require 3:1.
 
 ## API
 

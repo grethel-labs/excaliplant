@@ -168,7 +168,7 @@ function drawChrono(laid, c) {
       const label = date.toISOString().slice(0, 10);
       const w = layoutText(label, { fontSize: fs * 0.7 }).width;
       c.rect(x - w / 2 - 2, y0 + 12, w + 4, fs * 0.7 * 1.25, {
-        fill: theme.background,
+        fill: theme.surface ?? theme.background,
         stroke: "transparent",
         strokeWidth: 1,
         roughness: 0,
@@ -231,7 +231,7 @@ function drawChrono(laid, c) {
       const t = layoutText(l.label, { fontSize: fs * 0.75 });
       const lx = (a.x + b.x) / 2 - t.width / 2;
       c.rect(lx - 3, top - t.height / 2 - 1, t.width + 6, t.height + 2, {
-        fill: theme.background,
+        fill: theme.surface ?? theme.background,
         stroke: "transparent",
         strokeWidth: 1,
         roughness: 0,

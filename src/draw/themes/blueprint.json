@@ -1,0 +1,223 @@
+{
+  "id": "blueprint",
+  "colors": {
+    "canvas.background": "#0b3d91",
+    "colors.ink": "#ffffff",
+    "colors.muted": "#c5d7f7",
+    "palette.blue.fill": "#0e4aa8",
+    "palette.blue.stroke": "#ffffff",
+    "palette.green.fill": "#0e4aa8",
+    "palette.green.stroke": "#ffffff",
+    "palette.yellow.fill": "#0e4aa8",
+    "palette.yellow.stroke": "#ffffff",
+    "palette.violet.fill": "#0e4aa8",
+    "palette.violet.stroke": "#ffffff",
+    "palette.red.fill": "#0e4aa8",
+    "palette.red.stroke": "#ffffff",
+    "palette.cyan.fill": "#0e4aa8",
+    "palette.cyan.stroke": "#ffffff",
+    "palette.orange.fill": "#0e4aa8",
+    "palette.orange.stroke": "#ffffff",
+    "palette.grape.fill": "#0e4aa8",
+    "palette.grape.stroke": "#ffffff",
+    "palette.teal.fill": "#0e4aa8",
+    "palette.teal.stroke": "#ffffff",
+    "palette.gray.fill": "#0e4aa8",
+    "palette.gray.stroke": "#ffffff",
+    "palette.pink.fill": "#0e4aa8",
+    "palette.pink.stroke": "#ffffff",
+    "palette.lime.fill": "#0e4aa8",
+    "palette.lime.stroke": "#ffffff",
+    "roles.default.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.class.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.abstract.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.interface.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.enum.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.annotation.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.entity.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.object.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.map.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.json.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.component.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.node.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.database.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.storage.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.queue.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.cloud.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.artifact.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.file.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.card.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.usecase.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.boundary.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.control.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.container.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.package.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.note.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.edge.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.participant.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.lifeline.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.fragment.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.fragment-tag.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.divider.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.participant-box.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.state.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.composite-state.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.action.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.decision.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.swimlane.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.partition.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.caption.text": {
+      "ref": "colors.muted"
+    },
+    "roles.header.text": {
+      "ref": "colors.muted"
+    },
+    "roles.footer.text": {
+      "ref": "colors.muted"
+    },
+    "roles.legend.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.grid.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.highlight.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.muted.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.muted.text": {
+      "ref": "colors.muted"
+    },
+    "special.table-header.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.link.text": "#9edaff",
+    "special.archimate-business.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate-application.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate-technology.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate-physical.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate-motivation.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate-strategy.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate-implementation.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate-migration.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate-other.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-red.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-gre.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-blu.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-yel.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-pnk.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-blk.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-whi.fill": {
+      "ref": "palette.gray.fill"
+    }
+  },
+  "palette": ["blue", "green", "yellow", "violet", "red", "cyan"]
+}

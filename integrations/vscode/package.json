@@ -155,7 +155,12 @@
             "hachure",
             "mono",
             "dark",
-            "blueprint"
+            "blueprint",
+            "grethel-labs-dark",
+            "pastel-dark",
+            "pastel-light",
+            "transparent-dark",
+            "transparent-light"
           ],
           "enumDescriptions": [
             "sketch in light VS Code themes, dark in dark and high-contrast themes",
@@ -164,7 +169,12 @@
             "Hachure fills",
             "Monochrome",
             "Dark background",
-            "Blueprint"
+            "Blueprint",
+            "grethel-labs-dark",
+            "pastel-dark",
+            "pastel-light",
+            "transparent-dark",
+            "transparent-light"
           ],
           "default": "auto",
           "markdownDescription": "Theme for diagrams. A `theme=` attribute on a Markdown fence overrides it for that block."

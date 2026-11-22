@@ -251,21 +251,30 @@ function drawPseudo(c, n, style, s) {
     case "start":
       return c.ellipse(x, y, w, h, solid);
     case "end": {
-      const id = c.ellipse(x, y, w, h, { stroke: ink, fill: c.theme.background });
+      const id = c.ellipse(x, y, w, h, {
+        stroke: ink,
+        fill: c.theme.surface ?? c.theme.background,
+      });
       c.ellipse(x + 6, y + 6, w - 12, h - 12, solid);
       return id;
     }
     case "choice":
       return c.diamond(x, y, w, h, {
         ...style,
-        fill: s.fill === "transparent" ? c.theme.background : c.theme.roles.decision.fill,
+        fill:
+          s.fill === "transparent"
+            ? (c.theme.surface ?? c.theme.background)
+            : c.theme.roles.decision.fill,
       });
     case "fork":
     case "join":
       return c.rect(x, y, w, h, { ...solid, strokeWidth: 1 });
     case "history":
     case "history*": {
-      const id = c.ellipse(x, y, w, h, { stroke: ink, fill: c.theme.background });
+      const id = c.ellipse(x, y, w, h, {
+        stroke: ink,
+        fill: c.theme.surface ?? c.theme.background,
+      });
       c.text(n.data.pseudo === "history" ? "H" : "H*", x + w / 2, y + 3, {
         size: 14,
         align: "center",
@@ -273,7 +282,10 @@ function drawPseudo(c, n, style, s) {
       return id;
     }
     case "exitpoint": {
-      const id = c.ellipse(x, y, w, h, { stroke: ink, fill: c.theme.background });
+      const id = c.ellipse(x, y, w, h, {
+        stroke: ink,
+        fill: c.theme.surface ?? c.theme.background,
+      });
       c.line(
         [
           [x + 3, y + 3],
@@ -291,7 +303,7 @@ function drawPseudo(c, n, style, s) {
       return id;
     }
     default:
-      return c.rect(x, y, w, h, { stroke: ink, fill: c.theme.background });
+      return c.rect(x, y, w, h, { stroke: ink, fill: c.theme.surface ?? c.theme.background });
   }
 }
 

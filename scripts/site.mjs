@@ -11,6 +11,7 @@
 // Environment: SITE_VERSION overrides the version shown in the header (and
 // skips the npm lookup, which is what the tests and offline builds use).
 
+import { THEME_NAMES } from "../src/draw/theme.mjs";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -106,6 +107,9 @@ export async function buildSite(out) {
     "styles.css": await buildStyles(),
   };
   const vars = {
+    themeOptions: THEME_NAMES.map(
+      (name) => `<option value="${esc(name)}">${esc(name)}</option>`,
+    ).join("\n"),
     description: `Write PlantUML and see it rendered live as hand-drawn diagrams: ${kinds} diagram types, ${examples.length} editable examples, export to SVG, PNG and Excalidraw.`,
     siteUrl: SITE_URL,
     version: version ? `v${version}` : "dev",
@@ -119,6 +123,7 @@ export async function buildSite(out) {
   const template = readFileSync(path.join(ROOT, "site", "index.html"), "utf8");
   files["index.html"] = template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     if (!(key in vars)) throw new Error(`Unknown placeholder {{${key}}} in site/index.html`);
+    if (key === "themeOptions") return vars.themeOptions;
     return esc(vars[/** @type {keyof typeof vars} */ (key)]);
   });
   files[".nojekyll"] = "";

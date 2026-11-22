@@ -1,0 +1,33 @@
+{
+  "id": "pastel-dark",
+  "extends": "dark",
+  "colors": {
+    "canvas.background": "#201b2a",
+    "colors.ink": "#f7effc",
+    "colors.muted": "#c6bacd",
+    "palette.blue.fill": "#303b55",
+    "palette.blue.stroke": "#aebfee",
+    "palette.green.fill": "#263d39",
+    "palette.green.stroke": "#a5d8be",
+    "palette.yellow.fill": "#4a402e",
+    "palette.yellow.stroke": "#e6cc94",
+    "palette.violet.fill": "#3e3253",
+    "palette.violet.stroke": "#cdb5ef",
+    "palette.red.fill": "#492e40",
+    "palette.red.stroke": "#e9adbd",
+    "palette.cyan.fill": "#29404b",
+    "palette.cyan.stroke": "#a3d5e4",
+    "palette.orange.fill": "#4a362f",
+    "palette.orange.stroke": "#ebba99",
+    "palette.grape.fill": "#47334d",
+    "palette.grape.stroke": "#ddaee7",
+    "palette.teal.fill": "#293f41",
+    "palette.teal.stroke": "#96d7cb",
+    "palette.gray.fill": "#393646",
+    "palette.gray.stroke": "#c3bbce",
+    "palette.pink.fill": "#493445",
+    "palette.pink.stroke": "#e7b3d3",
+    "palette.lime.fill": "#383f30",
+    "palette.lime.stroke": "#c7d6a1"
+  }
+}

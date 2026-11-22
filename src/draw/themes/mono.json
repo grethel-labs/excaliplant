@@ -1,0 +1,168 @@
+{
+  "id": "mono",
+  "colors": {
+    "palette.blue.fill": "#ffffff",
+    "palette.blue.stroke": "#1e1e1e",
+    "palette.green.fill": "#ffffff",
+    "palette.green.stroke": "#1e1e1e",
+    "palette.yellow.fill": "#ffffff",
+    "palette.yellow.stroke": "#1e1e1e",
+    "palette.violet.fill": "#ffffff",
+    "palette.violet.stroke": "#1e1e1e",
+    "palette.red.fill": "#ffffff",
+    "palette.red.stroke": "#1e1e1e",
+    "palette.cyan.fill": "#ffffff",
+    "palette.cyan.stroke": "#1e1e1e",
+    "palette.orange.fill": "#ffffff",
+    "palette.orange.stroke": "#1e1e1e",
+    "palette.grape.fill": "#ffffff",
+    "palette.grape.stroke": "#1e1e1e",
+    "palette.teal.fill": "#ffffff",
+    "palette.teal.stroke": "#1e1e1e",
+    "palette.gray.fill": "#ffffff",
+    "palette.gray.stroke": "#1e1e1e",
+    "palette.pink.fill": "#ffffff",
+    "palette.pink.stroke": "#1e1e1e",
+    "palette.lime.fill": "#ffffff",
+    "palette.lime.stroke": "#1e1e1e",
+    "roles.default.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.class.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.abstract.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.interface.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.enum.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.annotation.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.entity.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.object.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.map.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.json.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.component.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.node.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.database.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.storage.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.queue.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.cloud.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.artifact.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.file.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.card.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.usecase.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.boundary.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.control.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.container.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.package.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.note.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.edge.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.participant.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.lifeline.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.fragment.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.fragment-tag.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.divider.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.participant-box.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.state.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.composite-state.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.action.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.decision.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.swimlane.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.partition.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.caption.text": {
+      "ref": "colors.muted"
+    },
+    "roles.header.text": {
+      "ref": "colors.muted"
+    },
+    "roles.footer.text": {
+      "ref": "colors.muted"
+    },
+    "roles.legend.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.grid.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.highlight.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.muted.stroke": {
+      "ref": "colors.muted"
+    },
+    "roles.muted.text": {
+      "ref": "colors.muted"
+    }
+  },
+  "palette": ["blue", "green", "yellow", "violet", "red", "cyan"]
+}

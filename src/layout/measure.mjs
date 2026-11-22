@@ -89,7 +89,7 @@ export function wrapPlain(text, fontSize, maxWidth) {
  * @typedef {(
  *  | { kind: "text", x: number, y: number, text: string, fontSize: number, width: number, run: import("../syntax/creole.mjs").Run }
  *  | { kind: "rule", x1: number, y1: number, x2: number, y2: number, full?: boolean, wave?: boolean }
- *  | { kind: "box", x: number, y: number, w: number, h: number, fill: string }
+ *  | { kind: "box", x: number, y: number, w: number, h: number, fill?: string }
  * )} RichItem
  */
 
@@ -247,7 +247,7 @@ function layoutTable(rows, fontSize, top) {
   let y = top;
   for (const row of rows) {
     let x = 0;
-    if (row.header) items.push({ kind: "box", x: 0, y, w: width, h: lh + pad, fill: "#e9ecef" });
+    if (row.header) items.push({ kind: "box", x: 0, y, w: width, h: lh + pad });
     row.cells.forEach((cell, c) => {
       let cx = x + pad;
       for (const run of cell) {

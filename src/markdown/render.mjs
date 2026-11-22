@@ -27,6 +27,7 @@ export const defaultCache = createCache({ max: 200 });
  * Options shared by `renderBlock`, `renderMarkdown` and the plugins.
  * @typedef {object} BlockOptions
  * @property {string | import("../draw/theme.mjs").Theme} [theme] Theme name or object.
+ * @property {Record<string, string>} [themeColors] Individual colour overrides by theme path.
  * @property {boolean} [clean] Clean strokes instead of the hand-drawn look.
  * @property {boolean} [sketch] Same as `clean`, inverted; wins over `clean`.
  * @property {string | number} [seed] Seed for stroke wobble.
@@ -124,6 +125,7 @@ function prepare(source, options) {
   }
   const renderOptions = {
     theme: o.theme,
+    themeColors: o.themeColors,
     sketch,
     seed: o.seed,
     page: o.page,

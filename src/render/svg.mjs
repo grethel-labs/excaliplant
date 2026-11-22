@@ -38,7 +38,12 @@ export function escapeXml(s) {
  * @param {string} fallback
  */
 function color(c, fallback) {
-  return typeof c === "string" && /^(#[0-9a-fA-F]{3,8}|transparent)$/.test(c) ? c : fallback;
+  if (
+    typeof c !== "string" ||
+    !/^(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|transparent)$/.test(c)
+  )
+    return fallback;
+  return c.length === 9 && c.endsWith("00") ? "transparent" : c;
 }
 
 /** @param {number} n */

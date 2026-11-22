@@ -5,6 +5,7 @@
  */
 
 import path from "node:path";
+import { readThemeEnvironment } from "../draw/theme_env.mjs";
 import { THEME_NAMES } from "../draw/theme.mjs";
 import { renderMarkdown } from "./document.mjs";
 
@@ -270,6 +271,7 @@ async function processFile(input, args, io) {
     assetsDir: args.assetsDir,
     keepSource,
     theme: args.theme,
+    themeColors: readThemeEnvironment(process.env),
     clean: args.clean || undefined,
     seed: args.seed,
     width: args.width,

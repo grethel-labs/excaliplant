@@ -201,7 +201,7 @@ export function parseInline(text, base = {}) {
         const m = /^(\S+)(?:\s+(.*))?$/.exec(inner);
         const url = m?.[1] ?? inner;
         const labelText = (m?.[2] ?? url).replace(/^\{[^}]*\}\s*/, "");
-        push({ link: safeUrl(url), underline: true, color: style().color ?? "#1971c2" });
+        push({ link: safeUrl(url), underline: true, color: style().color });
         buf += labelText;
         pop();
         i = close + 2;

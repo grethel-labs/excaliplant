@@ -4,6 +4,7 @@
  * @module syntax/skin
  */
 
+import { themeColor } from "../draw/theme.mjs";
 import { parseColor } from "./color.mjs";
 
 /** PlantUML element names → theme roles. */
@@ -154,14 +155,27 @@ export function applySkin(theme, skin) {
       key === "root.backgroundcolor"
     ) {
       const c = parseColor(raw);
-      if (c) theme.background = c === "transparent" ? "#ffffff" : c;
+      if (c) {
+        if (
+          c !== "transparent" &&
+          (theme.surface === theme.background || theme.surface === undefined)
+        )
+          theme.surface = c;
+        theme.background = c;
+      }
       continue;
     }
     if (key === "monochrome" && /^(true|reverse)$/i.test(raw)) {
       const reverse = /reverse/i.test(raw);
-      const ink = reverse ? "#ffffff" : "#1e1e1e";
-      const paper = reverse ? "#000000" : "#ffffff";
-      theme.background = paper;
+      const ink = themeColor(
+        theme,
+        reverse ? "special.monochrome-reverse.text" : "special.monochrome.text",
+      );
+      const paper = themeColor(
+        theme,
+        reverse ? "special.monochrome-reverse.fill" : "special.monochrome.fill",
+      );
+      theme.background = theme.surface = paper;
       theme.ink = ink;
       for (const r of Object.values(theme.roles)) {
         if (r.fill && r.fill !== "transparent") r.fill = paper;

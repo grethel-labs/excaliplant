@@ -4,6 +4,7 @@
  * @module draw/canvas
  */
 
+import { themeColor } from "./theme.mjs";
 import { seededRandom, idFactory } from "../core/hash.mjs";
 import { LimitError } from "../core/errors.mjs";
 import { layoutText, LINE_HEIGHT } from "../layout/measure.mjs";
@@ -267,7 +268,10 @@ export class Canvas {
         return null;
       case "plus": {
         const c = at(8, 0);
-        this.ellipse(c[0] - 8, c[1] - 8, 16, 16, { ...style, fill: this.theme.background });
+        this.ellipse(c[0] - 8, c[1] - 8, 16, 16, {
+          ...style,
+          fill: this.theme.surface ?? this.theme.background,
+        });
         this.line([at(0, 0), at(16, 0)], style);
         this.line([at(8, -8), at(8, 8)], style);
         return null;
@@ -289,11 +293,17 @@ export class Canvas {
         return null;
       case "zero_one":
         this.line([at(4, -7), at(4, 7)], style);
-        this.ellipse(...circleAt(at(15, 0), 5), { ...style, fill: this.theme.background });
+        this.ellipse(...circleAt(at(15, 0), 5), {
+          ...style,
+          fill: this.theme.surface ?? this.theme.background,
+        });
         return null;
       case "zero_many":
         this.line([at(0, -8), at(12, 0), at(0, 8)], style);
-        this.ellipse(...circleAt(at(18, 0), 5), { ...style, fill: this.theme.background });
+        this.ellipse(...circleAt(at(18, 0), 5), {
+          ...style,
+          fill: this.theme.surface ?? this.theme.background,
+        });
         return null;
       case "one_one":
         this.line([at(4, -7), at(4, 7)], style);
@@ -383,7 +393,7 @@ export class Canvas {
     for (const it of laid.items) {
       if (it.kind === "box")
         this.rect(x + it.x, y + it.y, it.w, it.h, {
-          fill: it.fill,
+          fill: it.fill ?? themeColor(this.theme, "special.table-header.fill"),
           stroke: TRANSPARENT,
           roughness: 0,
           strokeWidth: 1,
@@ -394,7 +404,8 @@ export class Canvas {
         if (!it.text) continue;
         this.text(it.text, x + it.x, y + it.y, {
           size: it.fontSize,
-          color: it.run.color ?? color,
+          color:
+            it.run.color ?? (it.run.link ? themeColor(this.theme, "special.link.text") : color),
           width: it.width,
           mono: it.run.mono,
           bold: it.run.bold || laid.bold,

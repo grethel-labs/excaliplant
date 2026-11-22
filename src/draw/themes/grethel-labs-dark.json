@@ -1,0 +1,27 @@
+{
+  "id": "grethel-labs-dark",
+  "extends": "dark",
+  "colors": {
+    "canvas.background": "#111827",
+    "canvas.surface": "#192231",
+    "colors.ink": "#f7f8fa",
+    "colors.muted": "#b6c2d1",
+    "roles.edge.stroke": "#7a8aa0",
+    "roles.class.stroke": "#7a8aa0",
+    "roles.class.fill": {
+      "ref": "canvas.surface"
+    },
+    "roles.component.fill": {
+      "ref": "canvas.surface"
+    },
+    "roles.participant.fill": {
+      "ref": "canvas.surface"
+    },
+    "palette.teal.stroke": "#2db8a8",
+    "palette.teal.fill": "#143a3b"
+  },
+  "styles": {
+    "roughness": 0,
+    "edgeRoughness": 0
+  }
+}
