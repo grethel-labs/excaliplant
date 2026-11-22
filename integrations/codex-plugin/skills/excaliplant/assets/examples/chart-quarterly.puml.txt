@@ -1,0 +1,9 @@
+@startchart
+title Quarterly results
+h-axis [Q1, Q2, Q3, Q4]
+v-axis 0 --> 100
+grid true
+bar "Revenue" [45, 62, 70, 88] #a5d8ff
+bar "Costs" [30, 35, 41, 47] #ffc9c9
+line "Margin %" [33, 43, 41, 47] #2f9e44
+@endchart

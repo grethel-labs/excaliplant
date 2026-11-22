@@ -1,0 +1,33 @@
+@startuml
+title Online shop domain
+package "Ordering" {
+  abstract class Order <<aggregate>> {
+    - id : UUID
+    # createdAt : Instant
+    + total() : Money
+    + {abstract} validate() : void
+    + {static} empty() : Order
+  }
+  class LineItem {
+    + quantity : int
+    + price : Money
+  }
+  enum OrderStatus {
+    NEW
+    PAID
+    SHIPPED
+  }
+}
+interface Payable<T> {
+  + pay(amount : Money) : Receipt
+}
+class Customer {
+  + name : String
+  + email : String
+}
+Order "1" *-- "1..*" LineItem : contains >
+Order --> OrderStatus
+Order ..|> Payable
+Customer "1" o-- "*" Order : places
+note right of Customer : Customers may\n**place** many orders.
+@enduml

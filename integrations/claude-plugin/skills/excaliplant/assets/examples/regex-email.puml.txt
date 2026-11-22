@@ -1,0 +1,4 @@
+@startregex
+title Simple e-mail address
+^[\w.+-]+@(?<domain>[a-z0-9-]+\.)+[a-z]{2,6}$
+@endregex

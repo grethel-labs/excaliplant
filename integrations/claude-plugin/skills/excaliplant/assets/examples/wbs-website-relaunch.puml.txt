@@ -1,0 +1,16 @@
+@startwbs
+* Website relaunch
+** Discovery
+*** Stakeholder interviews
+*** Analytics review
+** Design
+*** Wireframes
+*** Visual design
+**** Style guide
+** Build
+*** CMS setup
+*** Content migration
+** Launch
+*** QA
+*** Go live
+@endwbs
