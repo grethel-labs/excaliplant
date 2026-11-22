@@ -46,6 +46,7 @@ test("the plugin-release branch holds exactly the files the directories need", (
     "integrations/codex-plugin/PRIVACY.md",
     "integrations/codex-plugin/README.md",
     "integrations/codex-plugin/assets/icon.png",
+    "integrations/codex-plugin/assets/logo.png",
     "integrations/codex-plugin/plugin.json",
   ]);
   for (const plugin of ["claude-plugin", "codex-plugin"]) {
@@ -90,6 +91,7 @@ test("icons and the other binary files are copied byte for byte", () => {
   for (const rel of [
     "integrations/claude-plugin/.claude-plugin/icon.png",
     "integrations/codex-plugin/assets/icon.png",
+    "integrations/codex-plugin/assets/logo.png",
   ]) {
     const data = byPath.get(rel);
     assert.ok(Buffer.isBuffer(data), rel);

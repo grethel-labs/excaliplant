@@ -17,6 +17,16 @@ It covers the npm package and command line tool, the MCP server, the agent skill
 | Skill without code execution                                | If the assistant cannot run commands it may give you a link to the live editor with your diagram in the part of the URL after `#`. Browsers never send that part to a server.                                                                                                                                                                                                                                                 |
 | Live editor (<https://grethel-labs.github.io/excaliplant/>) | A static page hosted on GitHub Pages. The text is rendered in your browser, in a web worker; after loading, the page makes no network requests except for its own files, and its content security policy forbids others. Your last document and the options are kept in your browser's `localStorage` only; clear the site data to delete them. Share links keep the text in the URL fragment, which is not sent to a server. |
 
+## In short
+
+| Question                              | Answer                                                                                                                                                                      |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Categories of personal data collected | None.                                                                                                                                                                       |
+| Purposes of use                       | Not applicable, nothing is collected.                                                                                                                                       |
+| Categories of recipients              | None. Infrastructure providers (npm, GitHub) serve files to you; they do not receive your diagram text from us.                                                             |
+| Retention                             | We retain nothing. The live editor keeps your last document in your own browser (`localStorage`) until you clear the site data.                                             |
+| Controls you have                     | Clear the site data of the live editor; use the command line tool, MCP server or editor extensions offline; there is no account to delete and no data to export or correct. |
+
 ## Third parties
 
 - **npm** serves the package when you install or run it (`npx`, `npm install`). See the [npm privacy policy](https://docs.npmjs.com/policies/privacy).
