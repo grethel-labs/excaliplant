@@ -40,7 +40,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
-- The Claude Code plugin declares the excaliplant MCP server (`npx -y @grethel-labs/excaliplant@<release> mcp`, pinned to the release; generated for the `plugin-release` branch and the plugin archive) and the skill uses its tools first, with the CLI and the editor link as fallbacks.
+- The skill uses the MCP tools (`render_plantuml`, `validate_plantuml`, `list_diagram_types`, `get_example`) first when they are available, with the CLI and the editor link as fallbacks. The plugin archive contains a `.mcp.json` pinned to the release; the plugin directory build does not (the directory accepts local MCP servers only from verified organizations).
 
 - The playground opens plain-text links (`#src=` followed by percent-encoded PlantUML), and the agent skill tells a model that cannot run commands to give such a link to the live editor instead of failing. The plugin READMEs describe it.
 

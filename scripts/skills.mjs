@@ -480,10 +480,10 @@ function listPluginFiles(rel) {
 }
 
 /**
- * `.mcp.json` of the Claude Code plugin for one release. The directory blocks `npx`
- * launchers that are not pinned to an exact version, and a committed file cannot name
- * its own release, so this file only exists in the release archive and on the
- * `plugin-release` branch, never in the `main` tree. `excaliplant mcp` is the same
+ * `.mcp.json` for the plugin archive of one release (a manual Claude Code install). It
+ * is not part of the `plugin-release` branch: the plugin directory accepts MCP servers
+ * that run on the user's computer only from verified organizations. A file in the
+ * `main` tree could not pin the release anyway. `excaliplant mcp` is the same
  * server as the `excaliplant-mcp` bin and starts from the package's default bin.
  * @param {string} version
  */
@@ -538,10 +538,6 @@ export function refEntries(tree, version) {
     for (const [rel, content] of tree)
       if (rel.startsWith(`${dir}/skills/`)) files.set(rel, sub(content));
   }
-  files.set(
-    "integrations/claude-plugin/.mcp.json",
-    `${JSON.stringify(pinnedMcpConfig(version), null, 2)}\n`,
-  );
   for (const [rel, data] of files) {
     if (Buffer.from(data).includes("{{version}}"))
       throw new Error(`${rel} still contains {{version}}`);
