@@ -233,3 +233,26 @@ test("scripts/bench.mjs --quick --json runs and reports both modes", () => {
   assert.ok(out.warm.cacheOff.totalMs > 0);
   assert.equal(out.warm.table.length, out.warm.examples);
 });
+
+test("loading ELK inside a worker scope keeps the host's message handler", () => {
+  // elkjs ends with `if (typeof document === "undefined" && typeof self !== "undefined")
+  // self.onmessage = …`: when it is evaluated inside a Web Worker it installs its own
+  // handler. Loaded lazily (first graph layout), that used to replace the handler of
+  // the host that runs the library in the worker (the playground), which then never
+  // answered another message. Node has no `self`, so the worker scope is simulated.
+  const index = pathToFileURL(path.join(ROOT, "src", "index.mjs")).href;
+  const script = `
+    globalThis.self = globalThis;
+    const host = () => "host";
+    globalThis.onmessage = host;
+    const { render } = await import(${JSON.stringify(index)});
+    await render("@startuml\\nclass A\\nclass B\\nA --> B\\n@enduml", { layoutCache: false });
+    console.log(globalThis.onmessage === host ? "kept" : "replaced");
+  `;
+  const r = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    encoding: "utf8",
+    timeout: 60_000,
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "kept");
+});
