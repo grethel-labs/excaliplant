@@ -405,14 +405,7 @@ export function packEntries(tree, version) {
   // The in-repo plugin has no MCP server (the Claude directory requires launchers
   // pinned to an exact version, which a committed file cannot be); the release
   // archive carries one pinned to this release.
-  const mcp = {
-    mcpServers: {
-      excaliplant: {
-        command: "npx",
-        args: ["-y", "-p", `@grethel-labs/excaliplant@${version}`, "excaliplant-mcp"],
-      },
-    },
-  };
+  const mcp = pinnedMcpConfig(version);
   artefacts.set(`excaliplant-claude-plugin-${version}.zip`, [
     {
       path: ".claude-plugin/plugin.json",
@@ -487,6 +480,25 @@ function listPluginFiles(rel) {
 }
 
 /**
+ * `.mcp.json` of the Claude Code plugin for one release. The directory blocks `npx`
+ * launchers that are not pinned to an exact version, and a committed file cannot name
+ * its own release, so this file only exists in the release archive and on the
+ * `plugin-release` branch, never in the `main` tree. `excaliplant mcp` is the same
+ * server as the `excaliplant-mcp` bin and starts from the package's default bin.
+ * @param {string} version
+ */
+export function pinnedMcpConfig(version) {
+  return {
+    mcpServers: {
+      excaliplant: {
+        command: "npx",
+        args: ["-y", `@grethel-labs/excaliplant@${version}`, "mcp"],
+      },
+    },
+  };
+}
+
+/**
  * Content of the `plugin-release` branch for one release: only what the plugin
  * directories need (both marketplace manifests, both plugin folders and a short
  * README), with the release version in both `plugin.json` files and in the
@@ -526,6 +538,10 @@ export function refEntries(tree, version) {
     for (const [rel, content] of tree)
       if (rel.startsWith(`${dir}/skills/`)) files.set(rel, sub(content));
   }
+  files.set(
+    "integrations/claude-plugin/.mcp.json",
+    `${JSON.stringify(pinnedMcpConfig(version), null, 2)}\n`,
+  );
   for (const [rel, data] of files) {
     if (Buffer.from(data).includes("{{version}}"))
       throw new Error(`${rel} still contains {{version}}`);
