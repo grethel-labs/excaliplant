@@ -335,9 +335,8 @@ test("pack builds every artefact with the version substituted", () => {
   const mcpJson = JSON.parse(plugin.find((e) => e.path === ".mcp.json")?.data ?? "");
   assert.deepEqual(mcpJson.mcpServers.excaliplant.args, [
     "-y",
-    "-p",
     "@grethel-labs/excaliplant@1.2.3",
-    "excaliplant-mcp",
+    "mcp",
   ]);
   assert.ok(plugin.some((e) => e.path === "README.md"));
   assert.ok(plugin.some((e) => e.path === "LICENSE"));
@@ -456,6 +455,13 @@ test("the plugin READMEs meet the directory policy's documentation rules", () =>
       readFileSync(path.join(ROOT, "PRIVACY.md"), "utf8"),
       `${dir}/PRIVACY.md differs from PRIVACY.md`,
     );
+});
+
+test("the skill puts the MCP tools first and names them", () => {
+  const skill = /** @type {string} */ (tree.get("skills/excaliplant/SKILL.md"));
+  for (const tool of ["render_plantuml", "validate_plantuml", "list_diagram_types", "get_example"])
+    assert.ok(skill.includes(tool), tool);
+  assert.match(skill, /Use the \[MCP tools\]\(#mcp-server\) if they are available/);
 });
 
 test("the skill limits itself to what the user asked for (policy 2.D / 2.F)", () => {

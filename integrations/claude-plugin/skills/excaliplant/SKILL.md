@@ -24,6 +24,8 @@ Do not use it for Mermaid input (not supported; rewrite it as PlantUML first), f
 
 ## Workflow
 
+Use the [MCP tools](#mcp-server) if they are available; the steps below use the CLI.
+
 1. Choose the diagram type (see [diagram-types.md](references/diagram-types.md)) and write PlantUML between `@startuml` and `@enduml` (some types use their own keyword, for example `@startmindmap`). Syntax cheat sheet: [syntax.md](references/syntax.md).
 2. Save it, for example as `diagram.puml`.
 3. Render it with the CLI:
@@ -81,4 +83,10 @@ The `.excalidraw` file is plain JSON. To change it by hand or with a script (mov
 
 ## MCP server
 
-If an `excaliplant` MCP server is connected to this session, prefer its tools over running the CLI. It is started with `npx -y -p @grethel-labs/excaliplant excaliplant-mcp`. Without MCP, use the CLI as above.
+When the `excaliplant` MCP tools are available (the Claude Code plugin declares the server, so they are there once the plugin is enabled), use them instead of the CLI:
+
+- `render_plantuml`: `source` (required), `format` (`svg`, `png` or `excalidraw`; default `svg`), optional `theme`, `clean`, `seed`, `page` and `width` (PNG only, 16–4096). It returns the SVG or the `.excalidraw` JSON as text and a PNG as an image; if the user wants a file, save the returned text with your file tools. Warnings come back as diagnostics with line numbers: fix the source and call it again.
+- `validate_plantuml`: checks the syntax without rendering and reports the diagram type and problems.
+- `list_diagram_types` and `get_example`: the supported types, and a tested example for a type to start from.
+
+The server runs on the user's machine over standard input and output and needs no network after the package has been downloaded. Without these tools, use the CLI as above; without the ability to run anything, use the editor link.
