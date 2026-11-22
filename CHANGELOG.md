@@ -6,6 +6,10 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ## Unreleased
 
+### Fixed
+
+- The live playground on the GitHub Pages site rendered nothing since v1.4.0: loading the layout engine lazily let it replace the message handler of the page's worker, which then never answered. The handler is restored after the engine is created.
+
 ### Changed
 
 - The layout engine (ELK) is loaded on first use instead of on import: importing the library and rendering non-graph diagrams (sequence, Gantt, mind map, JSON, …) is several hundred milliseconds faster. Layouts are cached by their exact input, so re-rendering an unchanged diagram (or one that only changes colours, theme or seed) skips the layout step. Output is byte-identical.
