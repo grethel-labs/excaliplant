@@ -90,5 +90,16 @@ export class ExcaliplantSettingTab extends PluginSettingTab {
           .setValue(plugin.settings.showWarnings)
           .onChange((value) => plugin.updateSettings({ showWarnings: value })),
       );
+
+    new Setting(containerEl)
+      .setName("Prepare in the background")
+      .setDesc(
+        "Load the layout engine shortly after Obsidian starts, so the first class, component or state diagram appears quickly. Turn off to load it only when a diagram needs it. Turning it off takes effect at the next start.",
+      )
+      .addToggle((t) =>
+        t
+          .setValue(plugin.settings.warmup)
+          .onChange((value) => plugin.updateSettings({ warmup: value })),
+      );
   }
 }

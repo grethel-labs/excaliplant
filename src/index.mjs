@@ -10,6 +10,7 @@ export {
   detectKind,
   listDiagramTypes,
   renderPlantUml,
+  warmup,
   RenderResult,
   defaultRegistry,
 } from "./api.mjs";

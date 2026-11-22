@@ -5,10 +5,12 @@
  * @module engine
  */
 
-import { render as renderDocument } from "../../../src/api.mjs";
+import { render as renderDocument, warmup } from "../../../src/api.mjs";
 import { createCache } from "../../../src/markdown/cache.mjs";
 import { blockHash, mergeAttrs, peekBlock, renderBlock } from "../../../src/markdown/render.mjs";
 import { extractBlocks, parseInfo } from "../../../src/markdown/scan.mjs";
+
+export { warmup };
 
 /** CSS class of the element that carries the diagram (also the scope of the SVG text rule). */
 export const DIAGRAM_CLASS = "excaliplant";

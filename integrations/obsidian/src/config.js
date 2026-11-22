@@ -20,6 +20,7 @@ export const THEME_CHOICES = Object.freeze(["auto", ...THEME_NAMES]);
  * @property {number} maxWidth Maximum display width in pixels; 0 means unlimited.
  * @property {boolean} transparent Transparent diagram background.
  * @property {boolean} showWarnings List parser warnings under each diagram.
+ * @property {boolean} warmup Load the layout engine in the background after start-up.
  */
 
 /** @type {Readonly<ExcaliplantSettings>} */
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   maxWidth: 0,
   transparent: false,
   showWarnings: false,
+  warmup: true,
 });
 
 /**
@@ -50,5 +52,7 @@ export function normalizeSettings(raw) {
     maxWidth: Number.isFinite(maxWidth) ? Math.min(16_000, Math.max(0, maxWidth)) : 0,
     transparent: o.transparent === true,
     showWarnings: o.showWarnings === true,
+    // On unless explicitly switched off: older stored settings have no such key.
+    warmup: o.warmup !== false,
   };
 }

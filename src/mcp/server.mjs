@@ -39,6 +39,9 @@ import { MAX_PNG_WIDTH, TOOLS, describeTool, errorResult, findTool } from "./too
  * @property {number} [maxOutputBytes] Largest result payload (default 8 MiB).
  * @property {number} [maxBatch] Largest JSON-RPC batch (default 32).
  * @property {"worker" | "inline" | import("./executor.mjs").Executor} [executor] Where tools run (default "worker").
+ * @property {boolean} [warmup] Pre-load the layout engine in the background once a
+ *   transport starts serving (see `McpServer.warmup`). Default: off, so embedding
+ *   and tests start nothing eagerly; `excaliplant-mcp` turns it on (`--no-warmup` off).
  * @property {(message: string) => void} [log] Receives diagnostics for stderr. Default: silent.
  */
 
@@ -60,6 +63,10 @@ import { MAX_PNG_WIDTH, TOOLS, describeTool, errorResult, findTool } from "./too
  * @property {number} maxMessageBytes
  * @property {(text: string, options?: HandleOptions) => Promise<HandleResult>} handleText Handle one raw JSON-RPC message or batch.
  * @property {(message: unknown, options?: HandleOptions) => Promise<{ response: object | null, status: number }>} handleMessage
+ * @property {() => Promise<boolean>} warmup Start loading the layout engine where tools run (the
+ *   worker thread) without blocking anything: requests are answered meanwhile and a tool call
+ *   never waits for it. Transports call this once they serve. Resolves with whether the engine
+ *   is loaded (false when disabled, closed or failed); never rejects.
  * @property {() => Promise<void>} close Stop the executor and cancel everything in flight.
  */
 
@@ -390,6 +397,15 @@ export function createServer(options = {}) {
     maxMessageBytes,
     handleText,
     handleMessage,
+    async warmup() {
+      if (!options.warmup || closed) return false;
+      try {
+        return (await executor.warmup?.()) === true;
+      } catch (error) {
+        log(`warm-up failed: ${error instanceof Error ? error.message : error}`);
+        return false;
+      }
+    },
     async close() {
       closed = true;
       for (const controller of inflight.values()) controller.abort();

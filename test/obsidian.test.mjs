@@ -427,3 +427,82 @@ test("the plugin never wires up !include", () => {
   const text = readFileSync(path.join(pluginDir, "src", "engine.js"), "utf8");
   assert.ok(!/\binclude\s*:/.test(text));
 });
+
+// --- start-up warm-up ---
+
+/** A plugin whose warm-up is a spy that fires quickly. */
+async function loadWarmable({ data = null, impl = async () => {} } = {}) {
+  const env = await loadPlugin({ data });
+  const calls = { count: 0 };
+  env.plugin.warmupDelayMs = 5;
+  env.plugin.warmupFn = () => {
+    calls.count++;
+    return impl();
+  };
+  return { ...env, calls };
+}
+
+const layoutReady = (plugin) => plugin.app.layoutReady.forEach((fn) => fn());
+
+test("warmup is a setting that is on by default and repaired when stored data lacks it", () => {
+  assert.equal(config.DEFAULT_SETTINGS.warmup, true);
+  assert.equal(config.normalizeSettings({}).warmup, true);
+  assert.equal(config.normalizeSettings({ warmup: "no" }).warmup, true);
+  assert.equal(config.normalizeSettings({ warmup: false }).warmup, false);
+  assert.equal(config.normalizeSettings({ warmup: true }).warmup, true);
+});
+
+test("the layout engine warms up in the background once the layout is ready", async () => {
+  const { plugin, calls } = await loadWarmable();
+  assert.equal(plugin.app.layoutReady.length, 1, "onload only registers for layout ready");
+  await tick();
+  assert.equal(calls.count, 0, "nothing happens before the layout is ready");
+  layoutReady(plugin);
+  assert.equal(calls.count, 0, "and not synchronously either: start-up is not slowed down");
+  await waitFor(() => calls.count === 1);
+  layoutReady(plugin);
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(calls.count, 1, "only once");
+});
+
+test("the warm-up is skipped when the setting is off and starts when it is switched on", async () => {
+  const { plugin, calls } = await loadWarmable({ data: { warmup: false } });
+  layoutReady(plugin);
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.equal(calls.count, 0);
+  await plugin.updateSettings({ warmup: true });
+  await waitFor(() => calls.count === 1);
+});
+
+test("unloading cancels a pending warm-up", async () => {
+  const { plugin, calls } = await loadWarmable();
+  plugin.warmupDelayMs = 30;
+  layoutReady(plugin);
+  plugin.onunload();
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  assert.equal(calls.count, 0);
+});
+
+test("a failing warm-up is ignored and rendering still works", async () => {
+  for (const impl of [
+    async () => {
+      throw new Error("boom");
+    },
+    () => {
+      throw new Error("sync boom");
+    },
+  ]) {
+    const { plugin, doc, calls } = await loadWarmable({ impl });
+    layoutReady(plugin);
+    await waitFor(() => calls.count === 1);
+    await new Promise((resolve) => setTimeout(resolve, 20)); // an unhandled rejection would fail the run
+    const el = new FakeElement("div", doc);
+    await plugin.processors.get("plantuml")("Alice -> Bob : hi", el, createContext());
+    assert.ok(el.find("excaliplant"));
+  }
+});
+
+test("the default warm-up is the library's shared, idempotent one", () => {
+  assert.equal(typeof engine.warmup, "function");
+  assert.equal(engine.warmup(), engine.warmup());
+});

@@ -38,18 +38,23 @@ iOS and Android.
 
 ## Settings
 
-| Setting                | Default   | Meaning                                                                                                                           |
-| ---------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Theme                  | Automatic | `Automatic` uses `sketch` in light mode and `dark` in dark mode; or fix `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint` |
-| Clean strokes          | off       | straight lines instead of the hand-drawn look                                                                                     |
-| Seed                   | empty     | seed for the stroke wobble                                                                                                        |
-| Maximum width          | 0         | largest display width in pixels; 0 = width of the note                                                                            |
-| Transparent background | off       | let the note background show through (best with the automatic theme)                                                              |
-| Show warnings          | off       | list ignored or unsupported lines below each diagram                                                                              |
+| Setting                   | Default   | Meaning                                                                                                                           |
+| ------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Theme                     | Automatic | `Automatic` uses `sketch` in light mode and `dark` in dark mode; or fix `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint` |
+| Clean strokes             | off       | straight lines instead of the hand-drawn look                                                                                     |
+| Seed                      | empty     | seed for the stroke wobble                                                                                                        |
+| Maximum width             | 0         | largest display width in pixels; 0 = width of the note                                                                            |
+| Transparent background    | off       | let the note background show through (best with the automatic theme)                                                              |
+| Show warnings             | off       | list ignored or unsupported lines below each diagram                                                                              |
+| Prepare in the background | on        | load the layout engine shortly after start-up (see [Startup](#startup))                                                           |
 
 A block's own attributes win over the settings. Changing a setting redraws all
 open diagrams; switching Obsidian between light and dark redraws them when the
 theme is automatic.
+
+## Startup
+
+Class, component, state and other graph diagrams are laid out with ELK, which is loaded the first time one is drawn: about 1 s of work for the first graph diagram of a session. Shortly (1 s) after Obsidian's layout is ready, the plugin therefore calls `warmup()` once, in the background and without waiting for it, so the first diagram in a note appears faster. It runs in Obsidian's own process (the bundle is browser code and uses nothing Node-specific), so Obsidian may pause for a moment while the engine is evaluated. If you rarely use graph diagrams, turn _Prepare in the background_ off: the engine is then loaded when the first graph diagram needs it (turning the setting on again starts the warm-up right away). A failed warm-up is ignored.
 
 ## Commands
 

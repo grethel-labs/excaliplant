@@ -16,6 +16,7 @@
  * @property {Theme} theme Resolved theme (available in layout and draw).
  * @property {Map<string, string>} pragmas `!pragma` values from the preprocessor.
  * @property {string} start Block start keyword (`uml`, `json`, …).
+ * @property {boolean} [layoutCache] `false` disables the graph layout cache for this render.
  */
 
 /**

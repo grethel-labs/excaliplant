@@ -994,3 +994,238 @@ test("process: --http 0 listens on loopback and serves requests", async () => {
   }
   assert.equal(p.out(), "");
 });
+
+// ---------------------------------------------------------------- warm-up
+
+const GRAPH = "@startuml\nclass A\nclass B\nA --> B : uses\n@enduml";
+const workerEnv = { limits: {}, includeDir: null, maxPngWidth: 4096, maxOutputBytes: 1 << 20 };
+const fakeWorker = new URL("./mcp_fake_worker.mjs", import.meta.url);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function until(condition, what, limitMs = 10_000) {
+  const start = Date.now();
+  while (!condition()) {
+    if (Date.now() - start > limitMs) assert.fail(`timed out waiting for ${what}`);
+    await sleep(10);
+  }
+}
+
+/** Time the first graph render of a fresh worker executor. */
+async function firstGraphMs(warmFirst) {
+  const executor = createWorkerExecutor(workerEnv, () => {});
+  try {
+    if (warmFirst) assert.equal(await executor.warmup(), true);
+    const start = performance.now();
+    const res = await executor.run("render_plantuml", { source: GRAPH }, { timeoutMs: 30_000 });
+    const ms = performance.now() - start;
+    assert.match(res.content[0].text, /^<svg/);
+    return ms;
+  } finally {
+    await executor.close();
+  }
+}
+
+test("the worker loads the layout engine during warm-up, so the first graph render is fast", async (t) => {
+  const cold = await firstGraphMs(false);
+  const warm = await firstGraphMs(true);
+  // The engine is loaded in the worker (it reports so), not in this thread's executor path.
+  // Timing is informative only: it varies with the machine.
+  t.diagnostic(`first graph render: ${Math.round(cold)} ms cold, ${Math.round(warm)} ms warmed`);
+});
+
+test("warm-up is idempotent and shared between callers", async () => {
+  const lines = [];
+  const executor = createWorkerExecutor(workerEnv, (m) => lines.push(m), { workerUrl: fakeWorker });
+  try {
+    const [a, b] = await Promise.all([executor.warmup(), executor.warmup()]);
+    assert.deepEqual([a, b], [true, true]);
+    assert.equal(await executor.warmup(), true);
+    assert.equal(lines.filter((l) => /warm-up requested/.test(l)).length, 1);
+  } finally {
+    await executor.close();
+  }
+});
+
+test("a call never waits for the warm-up and a restarted worker warms up again", async () => {
+  const lines = [];
+  const count = () => lines.filter((l) => /warm-up requested/.test(l)).length;
+  const env = { ...workerEnv, mode: "hang" };
+  const executor = createWorkerExecutor(env, (m) => lines.push(m), { workerUrl: fakeWorker });
+  try {
+    await executor.warmup();
+    assert.equal(count(), 1);
+    // The job is posted straight away (the fake worker never answers it): timeout.
+    await assert.rejects(
+      executor.run("render_plantuml", { source: SEQ }, { timeoutMs: 50 }),
+      (e) => e instanceof ExecutorError && e.reason === "timeout",
+    );
+    // The replacement worker starts (and warms) without any further request.
+    await until(() => count() === 2, "the restarted worker to warm up");
+    const controller = new AbortController();
+    const aborted = executor.run(
+      "render_plantuml",
+      { source: SEQ },
+      { timeoutMs: 20_000, signal: controller.signal },
+    );
+    await sleep(20);
+    controller.abort();
+    await assert.rejects(aborted, (e) => e.reason === "aborted");
+    await until(() => count() === 3, "the worker restarted after an abort to warm up");
+  } finally {
+    await executor.close();
+  }
+});
+
+test("a real call that arrives during the warm-up runs normally", async () => {
+  const executor = createWorkerExecutor(workerEnv, () => {});
+  try {
+    const warming = executor.warmup();
+    const res = await executor.run("render_plantuml", { source: GRAPH }, { timeoutMs: 30_000 });
+    assert.match(res.content[0].text, /^<svg/);
+    assert.equal(await warming, true);
+  } finally {
+    await executor.close();
+  }
+});
+
+test("warm-up failures are harmless: nothing rejects, calls keep working, no retry loop", async () => {
+  // The worker is unref'd (it never keeps a process alive); hold the test open meanwhile.
+  const keepAlive = setInterval(() => {}, 1000);
+  for (const mode of ["fail", "crash"]) {
+    const lines = [];
+    const env = { ...workerEnv, mode };
+    const executor = createWorkerExecutor(env, (m) => lines.push(m), { workerUrl: fakeWorker });
+    try {
+      assert.equal(await executor.warmup(), false, mode);
+      const res = await executor.run("render_plantuml", { source: SEQ }, { timeoutMs: 20_000 });
+      assert.equal(res.content[0].text, "ok", mode);
+      // A worker that failed to warm up is not asked again when it is replaced.
+      assert.equal(lines.filter((l) => /warm-up requested/.test(l)).length, 1, mode);
+    } finally {
+      await executor.close();
+    }
+  }
+  clearInterval(keepAlive);
+});
+
+test("the server only warms up when asked to, and answers while the warm-up runs", async () => {
+  let warmups = 0;
+  const spy = {
+    run: async () => ({ content: [{ type: "text", text: "ok" }] }),
+    // Never settles: a slow warm-up must not hold anything back.
+    warmup: () => (warmups++, new Promise(() => {})),
+    close: async () => {},
+  };
+  const plain = createServer({ executor: spy });
+  assert.equal(await plain.warmup(), false);
+  assert.equal(warmups, 0);
+
+  const server = createServer({ executor: spy, warmup: true });
+  const s = stdioSession(server);
+  s.stdin.write(
+    `${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } })}\n`,
+  );
+  s.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" })}\n`);
+  s.stdin.write(
+    `${JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "render_plantuml", arguments: { source: SEQ } } })}\n`,
+  );
+  await until(() => warmups === 1, "the transport to start the warm-up");
+  const responses = await s.finish(); // stdin ended while the warm-up is still pending
+  assert.deepEqual(responses.map((r) => r.id).sort(), [1, 2, 3]);
+  assert.equal(responses.find((r) => r.id === 3).result.content[0].text, "ok");
+  assert.equal(warmups, 1);
+});
+
+test("a throwing executor warm-up is logged and ignored", async () => {
+  const logs = [];
+  const server = createServer({
+    executor: {
+      run: async () => ({ content: [] }),
+      warmup: async () => {
+        throw new Error("boom");
+      },
+      close: async () => {},
+    },
+    warmup: true,
+    log: (m) => logs.push(m),
+  });
+  assert.equal(await server.warmup(), false);
+  assert.match(logs.join("\n"), /warm-up failed: boom/);
+  await server.close();
+  assert.equal(await server.warmup(), false);
+});
+
+test("the inline executor warms up in this thread only on request", async () => {
+  const server = createServer({ executor: "inline", warmup: true });
+  try {
+    assert.equal(await server.warmup(), true);
+  } finally {
+    await server.close();
+  }
+});
+
+test("the worker executor of a server warms up and renders the first graph", async () => {
+  const server = createServer({ warmup: true });
+  try {
+    const warming = server.warmup();
+    const res = await callTool(server, "render_plantuml", { source: GRAPH });
+    assert.match(res.result.content[0].text, /^<svg/);
+    assert.equal(await warming, true);
+  } finally {
+    await server.close();
+  }
+});
+
+test("process: --no-warmup is accepted, listed in --help and the server works", async () => {
+  const h = spawnServer(["--help"]);
+  await h.closed;
+  assert.match(h.out(), /--no-warmup/);
+  const p = spawnServer(["--no-warmup"]);
+  p.child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" })}\n`);
+  p.child.stdin.end();
+  assert.equal(await p.closed, 0, p.err());
+  assert.equal(JSON.parse(p.out()).result.tools.length, 4);
+  assert.equal(p.err(), "");
+});
+
+test("process: answers immediately while warming, never writes to stdout, ends cleanly", async (t) => {
+  const p = spawnServer();
+  const start = Date.now();
+  p.child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" })}\n`);
+  await until(() => p.out().includes('"id":1'), "the tools/list answer");
+  t.diagnostic(`tools/list answered after ${Date.now() - start} ms (including process start)`);
+  const first = Date.now();
+  p.child.stdin.write(
+    `${JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "render_plantuml", arguments: { source: GRAPH } } })}\n`,
+  );
+  await until(() => p.out().includes('"id":2'), "the graph render", 30_000);
+  t.diagnostic(`graph render answered after ${Date.now() - first} ms`);
+  p.child.stdin.end();
+  assert.equal(await p.closed, 0, p.err());
+  const lines = p.out().split("\n").filter(Boolean);
+  assert.equal(lines.length, 2);
+  for (const line of lines) assert.equal(JSON.parse(line).jsonrpc, "2.0");
+  assert.equal(p.err(), "");
+});
+
+test("process: stdin closing right after start does not wait for the warm-up", async () => {
+  const p = spawnServer();
+  p.child.stdin.end();
+  assert.equal(await p.closed, 0, p.err());
+  assert.equal(p.out(), "");
+  assert.equal(p.err(), "");
+});
+
+test(
+  "process: SIGTERM during the warm-up exits cleanly",
+  { skip: WINDOWS && "no POSIX signals" },
+  async () => {
+    const p = spawnServer();
+    p.child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" })}\n`);
+    await until(() => p.out().includes('"id":1'), "the tools/list answer");
+    await sleep(100); // the worker is busy loading the engine
+    p.child.kill("SIGTERM");
+    assert.equal(await p.closed, 0, p.err());
+    assert.equal(p.err(), "");
+  },
+);

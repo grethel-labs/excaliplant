@@ -183,3 +183,46 @@ export function renderPlantUml(source, options = {}) {
   doc.toPng = (/** @type {any} */ o) => result.then((r) => r.toPng(o));
   return doc;
 }
+
+/** Small class diagram with a container, edge labels and multiplicities; exercises the hot ELK paths. */
+const WARMUP_SOURCE = `@startuml
+package core {
+  class Base {
+    +id : int
+    +run() : void
+  }
+  class Worker
+}
+class Client
+Base <|-- Worker
+Client "1" --> "*" Worker : uses
+Client ..> Base : depends
+@enduml`;
+
+/** @type {Promise<void> | null} */
+let warmupPromise = null;
+
+/**
+ * Pre-load and pre-heat the layout engine so the first real graph render does
+ * not pay for it (loading ELK takes ~0.9 s, running it cold another ~0.6 s).
+ * Hosts such as the MCP server, the VS Code extension or the Obsidian plugin
+ * call this once at start-up, without awaiting it.
+ *
+ * Idempotent: concurrent and repeated calls share one promise. It has no
+ * observable side effects — the layout cache is bypassed and the rendered
+ * result is discarded — and never rejects: a failure is swallowed (and a later
+ * call tries again), because warming up must never break rendering.
+ * @returns {Promise<void>}
+ * @public
+ */
+export function warmup() {
+  if (!warmupPromise) {
+    warmupPromise = render(WARMUP_SOURCE, { layoutCache: false }).then(
+      () => undefined,
+      () => {
+        warmupPromise = null;
+      },
+    );
+  }
+  return warmupPromise;
+}

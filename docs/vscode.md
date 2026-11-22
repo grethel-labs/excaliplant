@@ -26,6 +26,11 @@ markdown-it renders synchronously, excaliplant does not. The extension installs 
 | `excaliplant.markdown.assetsDir` | `assets` | Asset folder of _Replace diagrams in Markdown_; must stay inside the workspace.           |
 | `excaliplant.includeDir`         | empty    | Folder `!include` may read from; empty disables `!include`.                               |
 | `excaliplant.limits`             | `{}`     | Render limit overrides (`maxElements`, `maxInputBytes`, …), at most 32 times the default. |
+| `excaliplant.warmup`             | `true`   | Load the layout engine in the background (see [Startup](#startup)).                       |
+
+## Startup
+
+Class, component, state and other graph diagrams are laid out with ELK, which is loaded on first use: about 1 s for the first graph diagram of a session, then about 80 ms. To keep that off your first real diagram, the extension calls `warmup()` in the background, once per window, about 250 ms after it sees a PlantUML file or a Markdown document with a `plantuml`/`puml`/`uml` fence (already open at activation, opened later, or typed in). It is fire and forget: activation and rendering never wait for it, a failure is ignored, and it needs no files and no network. Turn it off with `"excaliplant.warmup": false`; switching it on again warms up for the open documents.
 
 ## Security
 

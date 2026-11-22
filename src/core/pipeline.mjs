@@ -28,6 +28,7 @@ import { createDocument, validateDocument } from "../render/excalidraw.mjs";
  * @property {Date | null} [date] Date returned by `%date()`.
  * @property {string} [filename] Value of `%filename()`.
  * @property {string} [kind] Force a diagram module instead of auto-detection.
+ * @property {boolean} [layoutCache] Set to `false` to bypass the graph layout cache (default: on). The cache never changes the output; it only skips repeated ELK runs for identical graphs.
  */
 
 /**
@@ -94,7 +95,14 @@ export function parseBlock(block, registry, options = {}) {
     { sketch: options.sketch },
   );
   /** @type {import("./registry.mjs").ModuleContext} */
-  const ctx = { diagnostics, limits, theme, pragmas, start: block.type };
+  const ctx = {
+    diagnostics,
+    limits,
+    theme,
+    pragmas,
+    start: block.type,
+    layoutCache: options.layoutCache !== false,
+  };
   const model = module.parse(page, ctx);
   applySkin(theme, model.meta.skin);
   return { module, model, ctx, pages: pages.length };

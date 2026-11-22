@@ -199,6 +199,11 @@
             "minimum": 0
           },
           "markdownDescription": "Overrides for the render limits, for example `{ \"maxElements\": 50000, \"maxInputBytes\": 1048576 }`. Names: `maxInputBytes`, `maxLines`, `maxNodes`, `maxEdges`, `maxElements`, `maxTextLength`, `maxBlocks`. Only used in trusted workspaces."
+        },
+        "excaliplant.warmup": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Load the layout engine (used for class, component, state and other graph diagrams) in the background after a PlantUML file or a Markdown document with a diagram is opened, so the first graph diagram appears quickly. Turn off to load it only when needed."
         }
       }
     },

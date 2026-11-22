@@ -5,7 +5,8 @@
  * @module vscode/extension
  */
 
-import { readSettings } from "./config.mjs";
+import { isDiagramDocument, readSettings, readWarmupEnabled } from "./config.mjs";
+import { warmup as defaultWarmup } from "./engine.mjs";
 import { resolveIncludeRoot } from "./include.mjs";
 import { createCommands } from "./commands.mjs";
 import { createMarkdownIntegration } from "./markdown.mjs";
@@ -19,11 +20,26 @@ export const COMMANDS = Object.freeze({
   replaceInMarkdown: "excaliplant.replaceInMarkdown",
 });
 
+/** Delay before the warm-up starts, so activation and the first render are not slowed down. */
+const WARMUP_DELAY_MS = 250;
+
+/**
+ * @typedef {object} ExtensionOptions
+ * @property {() => Promise<void>} [warmup] Pre-loads the layout engine (default: the library's `warmup`).
+ * @property {number} [warmupDelayMs] Delay before it starts (default 250 ms).
+ */
+
 /**
  * @param {any} vscode The `vscode` module (or a mock of it).
+ * @param {ExtensionOptions} [options]
  * @returns {{ activate: (context: any) => any, deactivate: () => void }}
  */
-export function createExtension(vscode) {
+export function createExtension(vscode, options = {}) {
+  const runWarmup = options.warmup ?? defaultWarmup;
+  const warmupDelay = options.warmupDelayMs ?? WARMUP_DELAY_MS;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let warmupTimer = null;
+  let warmupStarted = false;
   /** @type {any} */
   let output = null;
   /** @type {Array<{ dispose(): void }>} */
@@ -51,6 +67,31 @@ export function createExtension(vscode) {
     )?.uri?.fsPath,
     includeGeneration,
   });
+
+  /**
+   * Start the layout engine warm-up in the background once a diagram document
+   * is around (a PlantUML file or Markdown with a diagram fence), unless
+   * `excaliplant.warmup` is off. Fire and forget, once, after a short delay;
+   * the render path never waits for it and a failure is ignored.
+   * @param {any} doc
+   */
+  function maybeWarmup(doc) {
+    if (warmupStarted || warmupTimer || !isDiagramDocument(doc) || !readWarmupEnabled(vscode)) {
+      return;
+    }
+    warmupTimer = setTimeout(() => {
+      warmupTimer = null;
+      if (warmupStarted || !readWarmupEnabled(vscode)) return;
+      warmupStarted = true;
+      try {
+        Promise.resolve(runWarmup()).catch(() => {});
+      } catch {
+        // warming up is an optimisation only
+      }
+    }, warmupDelay);
+    // Never keep a Node host (tests, extension host shutdown) alive for this.
+    warmupTimer.unref?.();
+  }
 
   /** @param {any} context */
   function activate(context) {
@@ -83,12 +124,16 @@ export function createExtension(vscode) {
       vscode.workspace.onDidChangeTextDocument((/** @type {any} */ e) => {
         preview.documentChanged(e.document);
         markdown.schedulePrerender(e.document);
+        maybeWarmup(e.document);
       }),
-      vscode.workspace.onDidOpenTextDocument((/** @type {any} */ doc) =>
-        markdown.schedulePrerender(doc),
-      ),
+      vscode.workspace.onDidOpenTextDocument((/** @type {any} */ doc) => {
+        markdown.schedulePrerender(doc);
+        maybeWarmup(doc);
+      }),
       vscode.workspace.onDidChangeConfiguration((/** @type {any} */ e) => {
         if (!e.affectsConfiguration("excaliplant")) return;
+        // Turning the setting on later warms up for documents that are already open.
+        for (const doc of vscode.workspace.textDocuments ?? []) maybeWarmup(doc);
         watchIncludes();
         markdown.reconfigure();
         preview.refreshAll();
@@ -134,12 +179,17 @@ export function createExtension(vscode) {
     if (output) context?.subscriptions?.push(output);
 
     // Documents that were open before activation.
-    for (const doc of vscode.workspace.textDocuments ?? []) markdown.schedulePrerender(doc);
+    for (const doc of vscode.workspace.textDocuments ?? []) {
+      markdown.schedulePrerender(doc);
+      maybeWarmup(doc);
+    }
 
     return { extendMarkdownIt: (/** @type {any} */ md) => markdown.extendMarkdownIt(md) };
   }
 
   function deactivate() {
+    if (warmupTimer) clearTimeout(warmupTimer);
+    warmupTimer = null;
     for (const d of disposables.splice(0)) {
       try {
         d?.dispose();
