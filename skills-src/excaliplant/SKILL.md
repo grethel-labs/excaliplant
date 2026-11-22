@@ -38,6 +38,18 @@ Do not use it for Mermaid input (not supported; rewrite it as PlantUML first), f
 
 The format follows the file extension of `-o`; use `-f excalidraw|svg|png` to override it. Without `-o` the result goes to stdout (not for PNG). More options: [cli.md](references/cli.md).
 
+## If you cannot run commands
+
+Some surfaces (a chat without code execution, or without access to npm) cannot run `npx`. Do not give up: write the PlantUML as above, show it in a `plantuml` code block, and add a link to the live editor that already contains it:
+
+`https://grethel-labs.github.io/excaliplant/#src=<the PlantUML, percent-encoded>`
+
+Percent-encode every character except letters, digits and `-_.~`: a space is `%20`, a line break `%0A`, `@` is `%40`, `>` is `%3E`, `:` is `%3A`, `+` is `%2B`, `#` is `%23`, `%` is `%25`, `"` is `%22`. Example: the text `@startuml`, a line break, `Alice -> Bob : hi`, a line break, `@enduml` becomes
+
+`https://grethel-labs.github.io/excaliplant/#src=%40startuml%0AAlice%20-%3E%20Bob%20%3A%20hi%0A%40enduml`
+
+Keep the diagram short (a few dozen lines) so the link stays usable; for a longer one give only the code block and tell the user to paste it into the editor. The text after `#` never leaves the user's browser, and the editor renders it live and exports SVG, PNG and `.excalidraw`.
+
 ## Look and feel
 
 Themes: {{themes}}. Pass `-t <theme>`, for example `-t blueprint` for a technical look or `-t dark` for dark backgrounds. `--clean` draws straight instead of hand-drawn strokes. Output is deterministic: the same source always gives the same bytes (`--seed` changes the wobble).

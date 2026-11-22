@@ -70,6 +70,10 @@ Gemini requires `gemini-extension.json` in the repository root, so it lives ther
 
 Download `excaliplant-skill-<version>.zip` from the [GitHub release](https://github.com/grethel-labs/excaliplant/releases), then upload it under Customize > Skills (code execution must be enabled). The zip contains the skill folder `excaliplant/` as its root, as required. Custom skills do not sync between claude.ai, Claude Code and the API. According to Anthropic's documentation, skills on claude.ai can have restricted network access depending on user and admin settings. `npx` has to download the package, so the CLI may not work there (untested).
 
+### Without code execution
+
+When a surface cannot run `npx` (a chat without code execution, or a sandbox without access to npm), the skill tells the model to show the PlantUML in a code block and to add a link to the live editor with the text in the URL: `https://grethel-labs.github.io/excaliplant/#src=<percent-encoded PlantUML>` (see "Plain-text links" in [`site.md`](site.md)). The part after `#` is never sent to a server; the editor renders it live and exports SVG, PNG and `.excalidraw`.
+
 ### ChatGPT
 
 OpenAI's help center describes [Skills in ChatGPT](https://help.openai.com/en/articles/20001066-skills-in-chatgpt) following the same SKILL.md format, and the API documentation states that a skill is uploaded as a zip with a single top-level folder (limits: 50 MB, 500 files). The release zip `excaliplant-skill-<version>.zip` has exactly that shape and its files are marked readable, which a community report names as a requirement. We have not tested an upload in ChatGPT, and ChatGPT's code sandbox may not have network access for `npx`. If the skill does not work there, use one of these fallbacks:

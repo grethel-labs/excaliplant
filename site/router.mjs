@@ -2,6 +2,8 @@
 //
 //   (empty), #play                 playground
 //   #p=<payload>                   playground with a shared document
+//   #src=<percent-encoded text>    playground with plain PlantUML text (a link a person or a
+//                                  language model can write by hand, no compression)
 //   #play/<kind>/<name>            playground with an example opened
 //   #gallery, #gallery/<kind>, #gallery/<kind>/<name>   gallery
 //   #<kind>, #<kind>/<name>        gallery (links from before the playground existed)
@@ -9,7 +11,7 @@
 import { KIND_CHOICES } from "./playground/options.mjs";
 
 /**
- * @typedef {{ view: "play", payload?: string, example?: string }
+ * @typedef {{ view: "play", payload?: string, plainSource?: string, example?: string }
  *   | { view: "gallery", kind?: string, example?: string }} Route
  */
 
@@ -20,6 +22,7 @@ import { KIND_CHOICES } from "./playground/options.mjs";
 export function parseRoute(hash) {
   let h = String(hash).replace(/^#/, "");
   if (h.startsWith("p=")) return { view: "play", payload: h.slice(2) };
+  if (h.startsWith("src=")) return { view: "play", plainSource: h.slice(4) };
   try {
     h = decodeURIComponent(h);
   } catch {

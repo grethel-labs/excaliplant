@@ -1,5 +1,6 @@
 // Playground state in the URL hash and in localStorage.
 //
+//   #src=<percent-encoded PlantUML text>      (plain; written by hand or by a language model)
 //   #p=<format><payload>
 //   format  "z": base64url(deflate-raw(utf8(json)))   (CompressionStream)
 //           "r": base64url(utf8(json))                (fallback, uncompressed)
@@ -143,6 +144,24 @@ export async function decodeState(payload) {
       json = bytes;
     } else return null;
     return fromJson(JSON.parse(decoder.decode(json)));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Decode a `#src=` value: the PlantUML text, percent-encoded (`%20` for a space,
+ * `%0A` for a line break). Options stay at their defaults. Never throws.
+ * @param {string} text The part after `#src=`.
+ * @returns {PlaygroundState | null} `null` for anything invalid.
+ */
+export function decodePlainSource(text) {
+  try {
+    if (typeof text !== "string" || text.length === 0 || text.length > MAX_DECODE_CHARS)
+      return null;
+    const source = decodeURIComponent(text);
+    if (!validSource(source) || source.includes("\0")) return null;
+    return { source, options: normalizeOptions(undefined) };
   } catch {
     return null;
   }

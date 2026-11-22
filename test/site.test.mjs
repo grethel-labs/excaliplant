@@ -23,6 +23,7 @@ import {
   MAX_DECODE_CHARS,
   MAX_HASH_CHARS,
   STORAGE_KEY,
+  decodePlainSource,
   decodeState,
   encodeState,
   fromBase64Url,
@@ -262,6 +263,41 @@ test("localStorage helpers never throw and tolerate damage", () => {
   assert.equal(save(null, { source: SOURCE, options }), false);
 });
 
+// --- plain-text links (#src=) -------------------------------------------------
+
+test("#src= decodes plain percent-encoded PlantUML text, the form a model can write by hand", () => {
+  const text = "@startuml\nA -> B : 50% + more\nnote right: ü ✓ #1\n@enduml";
+  const state = decodePlainSource(encodeURIComponent(text));
+  assert.equal(state?.source, text);
+  assert.deepEqual(state?.options, normalizeOptions(undefined), "options stay at their defaults");
+  // The link the skill tells a model to write.
+  const hand = "%40startuml%0AAlice%20-%3E%20Bob%20%3A%20hi%0A%40enduml";
+  assert.equal(decodePlainSource(hand)?.source, "@startuml\nAlice -> Bob : hi\n@enduml");
+});
+
+test("#src= refuses empty, malformed, oversized and hostile values", () => {
+  for (const bad of [
+    "",
+    "%",
+    "%E0%A4%A", // truncated UTF-8 escape
+    "%ZZ",
+    "a%00b", // NUL
+    "x".repeat(MAX_DECODE_CHARS + 1),
+    null,
+    undefined,
+    42,
+  ]) {
+    assert.equal(decodePlainSource(/** @type {any} */ (bad)), null, String(bad).slice(0, 20));
+  }
+});
+
+test("a #src= link renders: the decoded text goes through the normal render path", async () => {
+  const state = decodePlainSource("%40startuml%0AAlice%20-%3E%20Bob%20%3A%20hi%0A%40enduml");
+  assert.ok(state);
+  const result = await render(state.source, toRenderOptions(state.options));
+  assert.ok(result.excalidraw.elements.length > 0);
+});
+
 // --- routing and examples -----------------------------------------------------
 
 test("routes: the playground is the default, old gallery links still work", () => {
@@ -269,6 +305,11 @@ test("routes: the playground is the default, old gallery links still work", () =
   assert.deepEqual(parseRoute("#"), { view: "play" });
   assert.deepEqual(parseRoute("#play"), { view: "play" });
   assert.deepEqual(parseRoute("#p=zabc"), { view: "play", payload: "zabc" });
+  assert.deepEqual(parseRoute("#src=%40startuml%0AA%20-%3E%20B%0A%40enduml"), {
+    view: "play",
+    plainSource: "%40startuml%0AA%20-%3E%20B%0A%40enduml",
+  });
+  assert.deepEqual(parseRoute("#src="), { view: "play", plainSource: "" });
   assert.deepEqual(parseRoute("#play/class/shop-domain"), {
     view: "play",
     example: "class/shop-domain",

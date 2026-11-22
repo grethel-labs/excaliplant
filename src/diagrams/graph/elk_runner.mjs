@@ -35,10 +35,21 @@ const stats = { hits: 0, misses: 0, elkRuns: 0 };
  */
 function loadElk() {
   if (!elkPromise) {
+    // elkjs ends with `if (typeof document === "undefined" && typeof self !== "undefined")
+    // self.onmessage = …`: evaluated inside a Web Worker it installs its own message
+    // handler. Loaded lazily, that replaces the handler of the host that runs the
+    // library in the worker (the playground), which then never answers again. Put the
+    // host's handler back right after ELK has been created, before any message can be
+    // dispatched.
+    const scope = /** @type {any} */ (globalThis);
+    const hostHandler = scope.onmessage;
     elkPromise = import("elkjs/lib/elk.bundled.js")
       .then((mod) => {
+        // The worker script is evaluated lazily by the constructor, not by the import.
+        const elk = new /** @type {any} */ (mod).default();
+        if (scope.onmessage !== hostHandler) scope.onmessage = hostHandler;
         elkLoaded = true;
-        return new /** @type {any} */ (mod).default();
+        return elk;
       })
       .catch((err) => {
         elkPromise = null;

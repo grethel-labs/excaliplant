@@ -12,7 +12,14 @@ import {
   parseDefines,
   toRenderOptions,
 } from "./options.mjs";
-import { decodeState, encodeState, loadSaved, safeStorage, save } from "./state.mjs";
+import {
+  decodePlainSource,
+  decodeState,
+  encodeState,
+  loadSaved,
+  safeStorage,
+  save,
+} from "./state.mjs";
 
 /** Debounce between the last keystroke and the render request. */
 export const RENDER_DEBOUNCE_MS = 150;
@@ -669,8 +676,11 @@ export function initPlayground(config) {
    */
   async function applyRoute(route) {
     if (route.view !== "play") return false;
-    if (route.payload) {
-      const state = await decodeState(route.payload);
+    if (route.payload || route.plainSource !== undefined) {
+      const state =
+        route.plainSource !== undefined
+          ? decodePlainSource(route.plainSource)
+          : await decodeState(/** @type {string} */ (route.payload));
       history.replaceState(null, "", "#play");
       if (state) {
         source = state.source;

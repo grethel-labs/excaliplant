@@ -6,6 +6,10 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ## Unreleased
 
+### Fixed
+
+- The live playground on the GitHub Pages site rendered nothing since v1.4.0: loading the layout engine lazily let it replace the message handler of the page's worker, which then never answered. The handler is restored after the engine is created.
+
 ### Changed
 
 - The layout engine (ELK) is loaded on first use instead of on import: importing the library and rendering non-graph diagrams (sequence, Gantt, mind map, JSON, …) is several hundred milliseconds faster. Layouts are cached by their exact input, so re-rendering an unchanged diagram (or one that only changes colours, theme or seed) skips the layout step. Output is byte-identical.
@@ -33,6 +37,8 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 - Salt group frames are at least as wide as their title, creole tables are separated from surrounding text, chart legends show line series with a line marker, and Gantt arrows take shorter routes.
 
 ### Added
+
+- The playground opens plain-text links (`#src=` followed by percent-encoded PlantUML), and the agent skill tells a model that cannot run commands to give such a link to the live editor instead of failing. The plugin READMEs describe it.
 
 - The website is now a live playground: write PlantUML in the browser and see it rendered with the current version in a web worker (all render options, editable examples, share links, SVG/PNG/Excalidraw export). The example gallery moved to a second view with an "Open in playground" button; see `docs/site.md`.
 - Each release adds a commit with the versioned plugin files to the generated branch `plugin-release` (tag `plugin-release-vX.Y.Z`), which the Claude plugin directory can track; `main` stays untouched.
