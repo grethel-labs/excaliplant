@@ -421,6 +421,7 @@ export function packEntries(tree, version) {
     { path: ".mcp.json", data: `${JSON.stringify(mcp, null, 2)}\n` },
     { path: "README.md", data: read("integrations/claude-plugin/README.md") },
     { path: "LICENSE", data: read("integrations/claude-plugin/LICENSE") },
+    { path: "PRIVACY.md", data: read("integrations/claude-plugin/PRIVACY.md") },
     ...under("skills/excaliplant/"),
   ]);
   // Skills-only package for the OpenAI plugin portal / Codex marketplaces.
@@ -431,6 +432,7 @@ export function packEntries(tree, version) {
     },
     { path: "README.md", data: read("integrations/codex-plugin/README.md") },
     { path: "LICENSE", data: read("integrations/codex-plugin/LICENSE") },
+    { path: "PRIVACY.md", data: read("integrations/codex-plugin/PRIVACY.md") },
     ...under("skills/excaliplant/"),
   ]);
   artefacts.set(`excaliplant-gemini-extension-${version}.zip`, [
