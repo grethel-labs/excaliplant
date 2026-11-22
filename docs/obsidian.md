@@ -140,7 +140,7 @@ carries version `0.0.0` in `manifest.json` and an empty `versions.json`.
 
 ## Publishing (maintainer)
 
-> **Status: publishing is disabled.** The `obsidian` job in `.github/workflows/release.yml` only runs when the repository variable `PUBLISH_OBSIDIAN` is `true` (and the `OBSIDIAN_REPO_TOKEN` secret exists). The plugin is still built in CI and can be installed manually or via BRAT from a local build.
+> **Status: publishing is disabled.** The `obsidian` job in `.github/workflows/release.yml` only runs when the repository variable `PUBLISH_OBSIDIAN` is `true` (and the `OBSIDIAN_DEPLOY_KEY` secret exists). The plugin is still built in CI and can be installed manually or via BRAT from a local build.
 
 ### Rules that apply (Obsidian documentation)
 
@@ -197,89 +197,54 @@ per release (manifest version = tag), and whose tags are plain `x.y.z`. This
 repository stays the single source of truth; the mirror contains no code that is
 not generated from it.
 
-### 1. Create the mirror repository
+### 1. The mirror repository (done)
 
-1. Create `grethel-labs/excaliplant-obsidian` (public, MIT, default branch
-   `main`, no protection that blocks the release bot, issues optional; the
-   README points to this repository's issues). Leave it empty.
-2. Description: "Obsidian plugin that renders PlantUML code blocks as hand-drawn
-   Excalidraw-style diagrams. Built from grethel-labs/excaliplant."
-3. Create a fine-grained personal access token (Settings, Developer settings,
-   Personal access tokens, Fine-grained tokens) owned by the organisation or a
-   bot account:
-   - Resource owner: `grethel-labs`
-   - Repository access: **Only select repositories**: `grethel-labs/excaliplant-obsidian`
-   - Repository permissions: **Contents: Read and write** (Metadata: Read is
-     added automatically). Nothing else; no account or organisation permissions.
-   - Expiry: the shortest you are willing to renew (a year at most); note the
-     date in your calendar.
-   - If the organisation requires approval for fine-grained tokens, approve it.
-4. Store it in **this** repository as the Actions secret `OBSIDIAN_REPO_TOKEN`
-   (Settings, Secrets and variables, Actions).
+`grethel-labs/excaliplant-obsidian` exists (public, default branch `main`). It
+holds the release files in its root and one workflow, `.github/workflows/release.yml`,
+that runs on a version tag `x.y.z`: it checks that the tag equals the version in
+`manifest.json` and creates the GitHub release with `main.js`, `manifest.json`
+and `styles.css`.
 
-### 2. Mirror workflow (to be wired into `release.yml`)
+Credentials are a **deploy key** instead of a personal access token: an SSH key
+pair whose public half is registered with write access on the mirror repository
+only, and whose private half is the Actions secret `OBSIDIAN_DEPLOY_KEY` in this
+repository. It cannot touch any other repository, does not expire and belongs to
+no person's account. To rotate it, generate a new pair, replace the deploy key on
+the mirror (Settings, Deploy keys) and overwrite the secret:
 
-After the library release has created the tag `v1.2.3`, a job builds the plugin
-and publishes it to the mirror. A sketch; adapt names and pin actions to commit
-SHAs like the other workflows:
-
-```yaml
-obsidian:
-  needs: release # the job that creates the vX.Y.Z tag; expose the version as an output
-  runs-on: ubuntu-latest
-  permissions:
-    contents: read
-  env:
-    VERSION: ${{ needs.release.outputs.version }} # "1.2.3", without "v"
-  steps:
-    - uses: actions/checkout@v7
-      with:
-        ref: v${{ env.VERSION }}
-    - uses: actions/setup-node@v6
-      with:
-        node-version: 22
-    - run: npm ci
-    - run: npm ci
-      working-directory: integrations/obsidian
-    - uses: actions/checkout@v7
-      with:
-        repository: grethel-labs/excaliplant-obsidian
-        token: ${{ secrets.OBSIDIAN_REPO_TOKEN }}
-        path: mirror
-    - name: Build release files into the mirror checkout
-      run: node scripts/build-obsidian.mjs --version "$VERSION" --out mirror --base-versions mirror/versions.json --repo-files
-    - name: Commit, tag and release
-      working-directory: mirror
-      env:
-        GH_TOKEN: ${{ secrets.OBSIDIAN_REPO_TOKEN }}
-      run: |
-        git config user.name "excaliplant release bot"
-        git config user.email "excaliplant-release-bot@users.noreply.github.com"
-        git add -A
-        git diff --cached --quiet && echo "nothing changed" || git commit -m "Release $VERSION"
-        git push origin HEAD:main
-        git tag -a "$VERSION" -m "$VERSION"
-        git push origin "$VERSION"
-        gh release create "$VERSION" main.js manifest.json styles.css \
-          --title "$VERSION" --notes "Excaliplant $VERSION. Source: https://github.com/grethel-labs/excaliplant/releases/tag/v$VERSION"
+```sh
+ssh-keygen -q -t ed25519 -N "" -f key
+gh repo deploy-key add key.pub --repo grethel-labs/excaliplant-obsidian --title "excaliplant release mirror (CI)" --allow-write
+gh secret set OBSIDIAN_DEPLOY_KEY --repo grethel-labs/excaliplant < key
+shred -u key key.pub
 ```
+
+A deploy key cannot create releases through the API, which is why the mirror's
+own workflow does that after the tag arrives.
+
+### 2. Release flow
+
+The `obsidian` job of `.github/workflows/release.yml` runs after the library
+release. It builds the plugin with `scripts/build-obsidian.mjs`, commits the files
+to the mirror's `main`, and then pushes the tag `x.y.z` (the same version as the
+library release, without `v`). The mirror's workflow creates the release from
+that tag. Enable it by setting the repository variable `PUBLISH_OBSIDIAN` to
+`true`; the job is skipped without it (and without the secret).
 
 Notes:
 
 - The tag is created **after** the manifest commit is on `main`, so the manifest
-  at HEAD and the release agree. Do not create the release as a draft if you
-  want Obsidian users to see it; the official sample creates drafts for manual
-  review, which is the safer first release.
+  at HEAD and the release agree.
 - Tag name = manifest version = `x.y.z`. Never `v1.2.3` in the mirror.
 - A plugin-only change without a library release has no tag here. Either release
-  the library (patch) or run the job on `workflow_dispatch` with an explicit
-  version.
+  the library (patch) or push the files and tag by hand.
 - The mirror gets: `main.js`, `manifest.json`, `versions.json`, `styles.css`,
   `README.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`, `Excalifont-OFL.txt`. Only
   `main.js`, `manifest.json` and `styles.css` are release assets.
 - Optional: attest the assets with `actions/attest` as in the official sample.
-- A manual release works too: build with the command above, push the files, tag,
-  attach three assets.
+- A manual release works too: build with
+  `node scripts/build-obsidian.mjs --version x.y.z --out <dir> --base-versions <dir>/versions.json --repo-files`,
+  push the files, tag, and let the mirror's workflow release it.
 
 ### 3. Get listed
 
