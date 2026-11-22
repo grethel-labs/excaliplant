@@ -32,6 +32,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- The website is now a live playground: write PlantUML in the browser and see it rendered with the current version in a web worker (all render options, editable examples, share links, SVG/PNG/Excalidraw export). The example gallery moved to a second view with an "Open in playground" button; see `docs/site.md`.
 - Each release adds a commit with the versioned plugin files to the generated branch `plugin-release` (tag `plugin-release-vX.Y.Z`), which the Claude plugin directory can track; `main` stays untouched.
 - `excaliplant markdown` renders ` ```plantuml ` blocks in Markdown files (inline SVG or asset files, idempotent, `--check` for CI); `@grethel-labs/excaliplant/markdown`, `/markdown-it` and `/remark` plugins; a GitHub Action (`action.yml`).
 - MCP server: `excaliplant mcp` / `excaliplant-mcp` (stdio, optional local HTTP) with `render_plantuml`, `validate_plantuml`, `list_diagram_types` and `get_example`; published to the MCP registry with each release.

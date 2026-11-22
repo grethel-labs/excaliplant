@@ -39,6 +39,7 @@
     "test": "node scripts/test.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "types": "tsc -p tsconfig.types.json",
+    "site": "node scripts/site.mjs _site",
     "docs": "node scripts/docs.mjs && node scripts/skills.mjs && node scripts/gen-mcp-examples.mjs",
     "docs:check": "node scripts/docs.mjs --check && node scripts/skills.mjs --check && node scripts/gen-mcp-examples.mjs --check",
     "format": "prettier --write .",
@@ -87,6 +88,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "esbuild": "0.28.2",
     "prettier": "^3.10.1",
     "typescript": "^7.0.2"
   },

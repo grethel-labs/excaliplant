@@ -8,6 +8,11 @@
 </p>
 
 <p align="center">
+  <b><a href="{{siteUrl}}#play">▶ Try it live — write PlantUML in your browser</a></b><br />
+  <sub>Live preview, every render option, all {{exampleCount}} examples open and editable, share by link, export SVG, PNG or Excalidraw.</sub>
+</p>
+
+<p align="center">
   <a href="https://www.npmjs.com/package/@grethel-labs/excaliplant"><img src="https://img.shields.io/npm/v/@grethel-labs/excaliplant.svg?label=npm" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/@grethel-labs/excaliplant"><img src="https://img.shields.io/npm/dm/@grethel-labs/excaliplant.svg" alt="downloads" /></a>
   <a href="https://github.com/grethel-labs/excaliplant/actions/workflows/ci.yml"><img src="https://github.com/grethel-labs/excaliplant/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
@@ -16,7 +21,7 @@
 </p>
 
 <p align="center">
-  <a href="{{siteUrl}}"><img src="docs/assets/carousel.svg" alt="Animated showcase of excaliplant diagram types" width="100%" /></a>
+  <a href="{{siteUrl}}#gallery"><img src="docs/assets/carousel.svg" alt="Animated showcase of excaliplant diagram types" width="100%" /></a>
 </p>
 
 <p align="center">
@@ -24,8 +29,7 @@
 </p>
 
 <p align="center">
-  <a href="{{siteUrl}}"><b>▶ Click through all {{exampleCount}} examples in the interactive gallery</b></a><br />
-  <sub>Every diagram is rendered by excaliplant from <a href="examples/"><code>examples/</code></a> — with PlantUML source, SVG and <code>.excalidraw</code> downloads.</sub>
+  <sub>Every diagram is rendered by excaliplant from <a href="examples/"><code>examples/</code></a> — with PlantUML source, SVG and <code>.excalidraw</code> downloads in the gallery.</sub>
 </p>
 
 ## Why excaliplant?
