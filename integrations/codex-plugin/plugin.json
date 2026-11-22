@@ -17,5 +17,32 @@
     "svg",
     "png"
   ],
-  "version": "1.5.0"
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Excaliplant",
+        "shortDescription": "PlantUML to Excalidraw",
+        "longDescription": "Excaliplant turns PlantUML into hand-drawn diagrams. Ask for a UML, sequence, class, activity, state, C4, Gantt, mind map, ER or wireframe diagram, or hand over PlantUML you already have, and Codex writes the PlantUML and renders it to an editable Excalidraw scene (.excalidraw), an SVG or a PNG, with six looks from sketch to blueprint. It is for developers, architects and anyone who documents systems. It runs the open source excaliplant command line tool (npx, Node.js 20 or newer) on your machine, so the diagram text stays on your machine; the only network access is the download of the package from the npm registry. Without the ability to run commands, Codex shows the PlantUML and a link to the live editor at grethel-labs.github.io/excaliplant. Limits: layouts differ from Java PlantUML, sprites and icons render as placeholders, and Mermaid input is not supported.",
+        "developerName": "grethel-labs",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Write PlantUML for 29 diagram types",
+          "Render to Excalidraw, SVG and PNG",
+          "Open diagrams in a live editor"
+        ],
+        "websiteURL": "https://grethel-labs.github.io/excaliplant/",
+        "supportURL": "https://github.com/grethel-labs/excaliplant/issues",
+        "privacyPolicyURL": "https://github.com/grethel-labs/excaliplant/blob/main/PRIVACY.md",
+        "defaultPrompt": [
+          "Draw a sequence diagram of a login flow with a token refresh and give me an SVG.",
+          "Turn this PlantUML into an editable .excalidraw file I can open in excalidraw.com.",
+          "Make a C4 container diagram of a web app, an API and a database as a PNG in the blueprint theme."
+        ],
+        "brandColor": "#1971C2",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      }
+    }
+  },
+  "version": "1.5.1"
 }
