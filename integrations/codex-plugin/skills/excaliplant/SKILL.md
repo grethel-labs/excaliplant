@@ -4,7 +4,7 @@ description: Render PlantUML as hand-drawn Excalidraw, SVG or PNG. Use for any U
 license: MIT
 compatibility: Needs Node.js 20+ (runs with npx). No Java, Graphviz or network at render time.
 metadata:
-  version: "1.4.5"
+  version: "1.5.0"
   repository: https://github.com/grethel-labs/excaliplant
 ---
 
@@ -56,7 +56,7 @@ Keep the diagram short (a few dozen lines) so the link stays usable; for a longe
 
 ## Look and feel
 
-Themes: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`. Pass `-t <theme>`, for example `-t blueprint` for a technical look or `-t dark` for dark backgrounds. `--clean` draws straight instead of hand-drawn strokes. Output is deterministic: the same source always gives the same bytes (`--seed` changes the wobble).
+Themes: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs-dark`, `pastel-dark`, `pastel-light`, `transparent-dark`, `transparent-light`. Pass `-t <theme>`, for example `-t blueprint` for a technical look or `-t dark` for dark backgrounds. `--clean` draws straight instead of hand-drawn strokes. Output is deterministic: the same source always gives the same bytes (`--seed` changes the wobble).
 
 ## Writing good PlantUML
 
@@ -83,7 +83,7 @@ The `.excalidraw` file is plain JSON. To change it by hand or with a script (mov
 
 ## MCP server
 
-When the `excaliplant` MCP tools are available (the Claude Code plugin declares the server, so they are there once the plugin is enabled), use them instead of the CLI:
+When the `excaliplant` MCP tools are available (the user has added the server, for example with `claude mcp add excaliplant -- npx -y @grethel-labs/excaliplant mcp`), use them instead of the CLI:
 
 - `render_plantuml`: `source` (required), `format` (`svg`, `png` or `excalidraw`; default `svg`), optional `theme`, `clean`, `seed`, `page` and `width` (PNG only, 16–4096). It returns the SVG or the `.excalidraw` JSON as text and a PNG as an image; if the user wants a file, save the returned text with your file tools. Warnings come back as diagnostics with line numbers: fix the source and call it again.
 - `validate_plantuml`: checks the syntax without rendering and reports the diagram type and problems.
