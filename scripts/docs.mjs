@@ -10,7 +10,8 @@
 // Usage: node scripts/docs.mjs [--check]
 //   --check  regenerate in memory and fail when committed files are stale.
 //            PNGs are only checked for existence because rasterisation may
-//            differ slightly between platforms.
+//            differ slightly between platforms. SVG path comparison ignores
+//            floating-point noise beyond subpixel precision.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import path from "node:path";
@@ -21,6 +22,16 @@ const check = process.argv.includes("--check");
 /** @type {string[]} */
 const stale = [];
 
+/** @param {string} svg */
+function comparableSvg(svg) {
+  return svg.replace(/(<path\s+d=")([^"]+)(")/g, (_, open, data, close) => {
+    const rounded = data.replace(/-?\d+\.\d{9,}(?:e[+-]?\d+)?/gi, (value) =>
+      String(Number(Number(value).toFixed(8))),
+    );
+    return open + rounded + close;
+  });
+}
+
 /**
  * @param {string} rel
  * @param {string | Buffer} content
@@ -30,7 +41,16 @@ function emit(rel, content, opts = {}) {
   const file = path.join(ROOT, rel);
   if (check) {
     if (!existsSync(file)) stale.push(`${rel} (missing)`);
-    else if (!opts.binary && readFileSync(file, "utf8") !== content) stale.push(rel);
+    else if (!opts.binary) {
+      const previous = readFileSync(file, "utf8");
+      const current = String(content);
+      if (
+        rel.endsWith(".svg")
+          ? comparableSvg(previous) !== comparableSvg(current)
+          : previous !== current
+      )
+        stale.push(rel);
+    }
     return;
   }
   mkdirSync(path.dirname(file), { recursive: true });
