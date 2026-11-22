@@ -291,7 +291,7 @@ steps:
 
 The workflow above follows the registry's GitHub Actions guide (pinned publisher binary with Sigstore verification, as the guide recommends). `mcp-publisher validate` checks `server.json` without publishing; run it locally with a concrete version to test. The `server.json` change is not committed back (the release does not push to `main`); it only affects the published registry entry.
 
-A registry version cannot be published twice. When the npm publish succeeded but the registry step failed, re-run only the registry step.
+The job first waits (up to 15 minutes) until npm serves the new version, because the registry rejects a version it cannot see yet. A registry version cannot be published twice. When the registry step still failed after the npm publish succeeded, re-run only that job.
 
 ## Troubleshooting
 

@@ -169,6 +169,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      # npm needs a few minutes to serve a freshly published version, and the
+      # registry rejects a version it cannot see yet. Wait for it here instead
+      # of failing and re-running the job by hand.
+      - name: Wait until the version is available on npm
+        run: |
+          set -euo pipefail
+          name=$(node -p "require('./package.json').name")
+          for i in $(seq 1 60); do
+            if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+              echo "$name@$VERSION is available."
+              sleep 10 # let the registry's own lookup catch up
+              exit 0
+            fi
+            echo "Waiting for $name@$VERSION on npm ($i/60)..."
+            sleep 15
+          done
+          echo "::error::$name@$VERSION is not on npm after 15 minutes."
+          exit 1
       - name: Download and verify mcp-publisher
         run: |
           set -euo pipefail
