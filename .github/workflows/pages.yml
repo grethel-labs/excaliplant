@@ -1,7 +1,7 @@
 name: Pages
 
-# Builds the interactive diagram gallery (scripts/site.mjs) and deploys it to
-# GitHub Pages: https://grethel-labs.github.io/excaliplant/
+# Builds the website (playground + gallery, scripts/site.mjs and site/) and
+# deploys it to GitHub Pages: https://grethel-labs.github.io/excaliplant/
 
 on:
   # Runs after every Release run on main (publishing or not), so a version
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build gallery
+    name: Build site
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'cancelled'
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +34,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: node scripts/site.mjs _site
+      - run: npm run site
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

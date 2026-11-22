@@ -8,6 +8,11 @@
 </p>
 
 <p align="center">
+  <b><a href="https://grethel-labs.github.io/excaliplant/#play">▶ Try it live — write PlantUML in your browser</a></b><br />
+  <sub>Live preview, every render option, all 41 examples open and editable, share by link, export SVG, PNG or Excalidraw.</sub>
+</p>
+
+<p align="center">
   <a href="https://www.npmjs.com/package/@grethel-labs/excaliplant"><img src="https://img.shields.io/npm/v/@grethel-labs/excaliplant.svg?label=npm" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/@grethel-labs/excaliplant"><img src="https://img.shields.io/npm/dm/@grethel-labs/excaliplant.svg" alt="downloads" /></a>
   <a href="https://github.com/grethel-labs/excaliplant/actions/workflows/ci.yml"><img src="https://github.com/grethel-labs/excaliplant/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
@@ -16,44 +21,43 @@
 </p>
 
 <p align="center">
-  <a href="https://grethel-labs.github.io/excaliplant/"><img src="docs/assets/carousel.svg" alt="Animated showcase of excaliplant diagram types" width="100%" /></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery"><img src="docs/assets/carousel.svg" alt="Animated showcase of excaliplant diagram types" width="100%" /></a>
 </p>
 
 <p align="center">
-  <a href="https://grethel-labs.github.io/excaliplant/#sequence"><kbd>Sequence</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#class"><kbd>Class & IE</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#activity"><kbd>Activity</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#state"><kbd>State</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#component"><kbd>Component & C4</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#usecase"><kbd>Use case</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#deployment"><kbd>Deployment</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#object"><kbd>Object</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#timing"><kbd>Timing</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#gantt"><kbd>Gantt</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#mindmap"><kbd>Mind map</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#wbs"><kbd>WBS</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#json"><kbd>JSON</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#yaml"><kbd>YAML</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#archimate"><kbd>ArchiMate</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#chen"><kbd>Chen ER</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#nwdiag"><kbd>Network</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#salt"><kbd>Salt wireframe</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#ebnf"><kbd>EBNF</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#regex"><kbd>Regex</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#dot"><kbd>Graphviz DOT</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#chronology"><kbd>Chronology</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#files"><kbd>Files</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#chart"><kbd>Chart</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#math"><kbd>AsciiMath</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#latex"><kbd>LaTeX</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#ditaa"><kbd>Ditaa</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#legacy-activity"><kbd>Legacy activity</kbd></a>
-  <a href="https://grethel-labs.github.io/excaliplant/#creole"><kbd>Creole</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/sequence"><kbd>Sequence</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/class"><kbd>Class & IE</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/activity"><kbd>Activity</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/state"><kbd>State</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/component"><kbd>Component & C4</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/usecase"><kbd>Use case</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/deployment"><kbd>Deployment</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/object"><kbd>Object</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/timing"><kbd>Timing</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/gantt"><kbd>Gantt</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/mindmap"><kbd>Mind map</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/wbs"><kbd>WBS</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/json"><kbd>JSON</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/yaml"><kbd>YAML</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/archimate"><kbd>ArchiMate</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/chen"><kbd>Chen ER</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/nwdiag"><kbd>Network</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/salt"><kbd>Salt wireframe</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/ebnf"><kbd>EBNF</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/regex"><kbd>Regex</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/dot"><kbd>Graphviz DOT</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/chronology"><kbd>Chronology</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/files"><kbd>Files</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/chart"><kbd>Chart</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/math"><kbd>AsciiMath</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/latex"><kbd>LaTeX</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/ditaa"><kbd>Ditaa</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/legacy-activity"><kbd>Legacy activity</kbd></a>
+  <a href="https://grethel-labs.github.io/excaliplant/#gallery/creole"><kbd>Creole</kbd></a>
 </p>
 
 <p align="center">
-  <a href="https://grethel-labs.github.io/excaliplant/"><b>▶ Click through all 41 examples in the interactive gallery</b></a><br />
-  <sub>Every diagram is rendered by excaliplant from <a href="examples/"><code>examples/</code></a> — with PlantUML source, SVG and <code>.excalidraw</code> downloads.</sub>
+  <sub>Every diagram is rendered by excaliplant from <a href="examples/"><code>examples/</code></a> — with PlantUML source, SVG and <code>.excalidraw</code> downloads in the gallery.</sub>
 </p>
 
 ## Why excaliplant?
@@ -122,35 +126,35 @@ Each diagram type is a small module with four hooks — `detect`, `parse`, `layo
 
 | Diagram | Examples | Highlights |
 | --- | --- | --- |
-| [Sequence](https://grethel-labs.github.io/excaliplant/#sequence) | [4](docs/gallery.md#sequence) | Participants, all arrow styles, activations, notes, fragments, dividers, autonumber, boxes. |
-| [Class & IE](https://grethel-labs.github.io/excaliplant/#class) | [3](docs/gallery.md#class) | Classes, interfaces, enums, generics, members, packages, all UML relations, IE crow's feet. |
-| [Activity](https://grethel-labs.github.io/excaliplant/#activity) | [3](docs/gallery.md#activity) | New syntax with if/switch/while/repeat/fork/split, partitions, notes and swimlanes. |
-| [State](https://grethel-labs.github.io/excaliplant/#state) | [2](docs/gallery.md#state) | Composite states, concurrent regions, choice, fork/join, history, entry/exit actions. |
-| [Component & C4](https://grethel-labs.github.io/excaliplant/#component) | [2](docs/gallery.md#component) | Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. |
-| [Use case](https://grethel-labs.github.io/excaliplant/#usecase) | [2](docs/gallery.md#usecase) | Actors, use cases, system boundaries, include/extend. |
-| [Deployment](https://grethel-labs.github.io/excaliplant/#deployment) | [2](docs/gallery.md#deployment) | Nodes, clouds, databases, queues, artifacts and nested deployment targets. |
-| [Object](https://grethel-labs.github.io/excaliplant/#object) | [1](docs/gallery.md#object) | Objects with fields, maps (`key => value`) and links. |
-| [Timing](https://grethel-labs.github.io/excaliplant/#timing) | [2](docs/gallery.md#timing) | Robust, concise, clock, binary and analog signals with messages and constraints. |
-| [Gantt](https://grethel-labs.github.io/excaliplant/#gantt) | [1](docs/gallery.md#gantt) | Tasks, dependencies, milestones, progress, resources, closed days, today marker. |
-| [Mind map](https://grethel-labs.github.io/excaliplant/#mindmap) | [1](docs/gallery.md#mindmap) | OrgMode/Markdown outlines on both sides, colours, boxless nodes. |
-| [WBS](https://grethel-labs.github.io/excaliplant/#wbs) | [1](docs/gallery.md#wbs) | Work breakdown structures as org charts. |
-| [JSON](https://grethel-labs.github.io/excaliplant/#json) | [1](docs/gallery.md#json) | JSON documents as linked tables with highlights. |
-| [YAML](https://grethel-labs.github.io/excaliplant/#yaml) | [1](docs/gallery.md#yaml) | YAML documents as linked tables. |
-| [ArchiMate](https://grethel-labs.github.io/excaliplant/#archimate) | [1](docs/gallery.md#archimate) | ArchiMate elements by layer with icons, junctions and `Rel_*` macros. |
-| [Chen ER](https://grethel-labs.github.io/excaliplant/#chen) | [1](docs/gallery.md#chen) | Chen ER diagrams: entities, weak entities, relationships, attributes, cardinalities. |
-| [Network](https://grethel-labs.github.io/excaliplant/#nwdiag) | [1](docs/gallery.md#nwdiag) | Networks, addresses, multi-homed nodes, groups and peer links. |
-| [Salt wireframe](https://grethel-labs.github.io/excaliplant/#salt) | [1](docs/gallery.md#salt) | Wireframes: grids, buttons, inputs, check boxes, trees, tabs, group boxes. |
-| [EBNF](https://grethel-labs.github.io/excaliplant/#ebnf) | [1](docs/gallery.md#ebnf) | EBNF grammars as railroad diagrams. |
-| [Regex](https://grethel-labs.github.io/excaliplant/#regex) | [1](docs/gallery.md#regex) | Regular expressions as railroad diagrams. |
-| [Graphviz DOT](https://grethel-labs.github.io/excaliplant/#dot) | [1](docs/gallery.md#dot) | Graphviz DOT graphs laid out with ELK. |
-| [Chronology](https://grethel-labs.github.io/excaliplant/#chronology) | [1](docs/gallery.md#chronology) | Events and spans on a time line with links. |
-| [Files](https://grethel-labs.github.io/excaliplant/#files) | [1](docs/gallery.md#files) | File trees from path lists with notes. |
-| [Chart](https://grethel-labs.github.io/excaliplant/#chart) | [1](docs/gallery.md#chart) | Bar, line, area and scatter charts. |
-| [AsciiMath](https://grethel-labs.github.io/excaliplant/#math) | [1](docs/gallery.md#math) | AsciiMath formulas. |
-| [LaTeX](https://grethel-labs.github.io/excaliplant/#latex) | [1](docs/gallery.md#latex) | LaTeX formulas. |
-| [Ditaa](https://grethel-labs.github.io/excaliplant/#ditaa) | [1](docs/gallery.md#ditaa) | ASCII art boxes, lines, arrows and colour tags. |
-| [Legacy activity](https://grethel-labs.github.io/excaliplant/#legacy-activity) | [1](docs/gallery.md#legacy-activity) | The classic `(*) --> "Activity"` syntax with sync bars and branches. |
-| [Creole](https://grethel-labs.github.io/excaliplant/#creole) | [1](docs/gallery.md#creole) | Rich text with headings, lists, tables and links. |
+| [Sequence](https://grethel-labs.github.io/excaliplant/#gallery/sequence) | [4](docs/gallery.md#sequence) | Participants, all arrow styles, activations, notes, fragments, dividers, autonumber, boxes. |
+| [Class & IE](https://grethel-labs.github.io/excaliplant/#gallery/class) | [3](docs/gallery.md#class) | Classes, interfaces, enums, generics, members, packages, all UML relations, IE crow's feet. |
+| [Activity](https://grethel-labs.github.io/excaliplant/#gallery/activity) | [3](docs/gallery.md#activity) | New syntax with if/switch/while/repeat/fork/split, partitions, notes and swimlanes. |
+| [State](https://grethel-labs.github.io/excaliplant/#gallery/state) | [2](docs/gallery.md#state) | Composite states, concurrent regions, choice, fork/join, history, entry/exit actions. |
+| [Component & C4](https://grethel-labs.github.io/excaliplant/#gallery/component) | [2](docs/gallery.md#component) | Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. |
+| [Use case](https://grethel-labs.github.io/excaliplant/#gallery/usecase) | [2](docs/gallery.md#usecase) | Actors, use cases, system boundaries, include/extend. |
+| [Deployment](https://grethel-labs.github.io/excaliplant/#gallery/deployment) | [2](docs/gallery.md#deployment) | Nodes, clouds, databases, queues, artifacts and nested deployment targets. |
+| [Object](https://grethel-labs.github.io/excaliplant/#gallery/object) | [1](docs/gallery.md#object) | Objects with fields, maps (`key => value`) and links. |
+| [Timing](https://grethel-labs.github.io/excaliplant/#gallery/timing) | [2](docs/gallery.md#timing) | Robust, concise, clock, binary and analog signals with messages and constraints. |
+| [Gantt](https://grethel-labs.github.io/excaliplant/#gallery/gantt) | [1](docs/gallery.md#gantt) | Tasks, dependencies, milestones, progress, resources, closed days, today marker. |
+| [Mind map](https://grethel-labs.github.io/excaliplant/#gallery/mindmap) | [1](docs/gallery.md#mindmap) | OrgMode/Markdown outlines on both sides, colours, boxless nodes. |
+| [WBS](https://grethel-labs.github.io/excaliplant/#gallery/wbs) | [1](docs/gallery.md#wbs) | Work breakdown structures as org charts. |
+| [JSON](https://grethel-labs.github.io/excaliplant/#gallery/json) | [1](docs/gallery.md#json) | JSON documents as linked tables with highlights. |
+| [YAML](https://grethel-labs.github.io/excaliplant/#gallery/yaml) | [1](docs/gallery.md#yaml) | YAML documents as linked tables. |
+| [ArchiMate](https://grethel-labs.github.io/excaliplant/#gallery/archimate) | [1](docs/gallery.md#archimate) | ArchiMate elements by layer with icons, junctions and `Rel_*` macros. |
+| [Chen ER](https://grethel-labs.github.io/excaliplant/#gallery/chen) | [1](docs/gallery.md#chen) | Chen ER diagrams: entities, weak entities, relationships, attributes, cardinalities. |
+| [Network](https://grethel-labs.github.io/excaliplant/#gallery/nwdiag) | [1](docs/gallery.md#nwdiag) | Networks, addresses, multi-homed nodes, groups and peer links. |
+| [Salt wireframe](https://grethel-labs.github.io/excaliplant/#gallery/salt) | [1](docs/gallery.md#salt) | Wireframes: grids, buttons, inputs, check boxes, trees, tabs, group boxes. |
+| [EBNF](https://grethel-labs.github.io/excaliplant/#gallery/ebnf) | [1](docs/gallery.md#ebnf) | EBNF grammars as railroad diagrams. |
+| [Regex](https://grethel-labs.github.io/excaliplant/#gallery/regex) | [1](docs/gallery.md#regex) | Regular expressions as railroad diagrams. |
+| [Graphviz DOT](https://grethel-labs.github.io/excaliplant/#gallery/dot) | [1](docs/gallery.md#dot) | Graphviz DOT graphs laid out with ELK. |
+| [Chronology](https://grethel-labs.github.io/excaliplant/#gallery/chronology) | [1](docs/gallery.md#chronology) | Events and spans on a time line with links. |
+| [Files](https://grethel-labs.github.io/excaliplant/#gallery/files) | [1](docs/gallery.md#files) | File trees from path lists with notes. |
+| [Chart](https://grethel-labs.github.io/excaliplant/#gallery/chart) | [1](docs/gallery.md#chart) | Bar, line, area and scatter charts. |
+| [AsciiMath](https://grethel-labs.github.io/excaliplant/#gallery/math) | [1](docs/gallery.md#math) | AsciiMath formulas. |
+| [LaTeX](https://grethel-labs.github.io/excaliplant/#gallery/latex) | [1](docs/gallery.md#latex) | LaTeX formulas. |
+| [Ditaa](https://grethel-labs.github.io/excaliplant/#gallery/ditaa) | [1](docs/gallery.md#ditaa) | ASCII art boxes, lines, arrows and colour tags. |
+| [Legacy activity](https://grethel-labs.github.io/excaliplant/#gallery/legacy-activity) | [1](docs/gallery.md#legacy-activity) | The classic `(*) --> "Activity"` syntax with sync bars and branches. |
+| [Creole](https://grethel-labs.github.io/excaliplant/#gallery/creole) | [1](docs/gallery.md#creole) | Rich text with headings, lists, tables and links. |
 
 ## PlantUML language support
 
