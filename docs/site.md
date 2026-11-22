@@ -134,3 +134,18 @@ The editor is a plain `<textarea>` over a transparent-text highlight layer plus 
 - No `!include` of files, no remote includes, no `%getenv()` data.
 - Preview and PNG show the SVG as an image: no text selection in the preview and no clickable links.
 - The `dark` diagram theme is the library's; diagrams that set explicit light colours (for example `box #f1f3f5`) keep them.
+
+## Smoke test in a real browser
+
+The playground renders in a Web Worker, which the unit tests (Node, `vm` sandbox) do not start. `scripts/site-smoke.mjs` therefore serves the built site the way GitHub Pages does (under `/excaliplant/`) and opens it in headless Chromium:
+
+```sh
+npm run site          # build into _site/
+npm run site:smoke    # open it in a browser
+```
+
+It checks that the playground renders its default example, that graph examples render (which loads the layout engine inside the worker), that the worker **still answers afterwards**, that plain-text and shared links open, that a broken link is reported, that the gallery shows its diagram, and that no page error was logged. It exits with code 1 on any failure; `--shots <dir>` saves a screenshot per failed step.
+
+It runs in the CI job "Site smoke test (browser)" on every pull request and in `pages.yml` before the site is deployed, so a site that does not render is not published. It was written after v1.4.0, where the lazily loaded layout engine replaced the worker's message handler and the deployed playground rendered nothing while every test passed; against that build 7 of its 9 checks fail.
+
+The browser is `$SITE_SMOKE_BROWSER` (path to an executable), else Google Chrome from the system (preinstalled on GitHub's Ubuntu runners), else Playwright's Chromium (`npx playwright-core install chromium`).

@@ -93,3 +93,29 @@ jobs:
           set -euo pipefail
           node scripts/build-vscode.mjs --version 0.0.1
           node scripts/build-obsidian.mjs --version 0.0.1 --out "$RUNNER_TEMP/obsidian"
+
+  # The playground renders in a Web Worker, which neither the unit tests nor the
+  # vm sandbox start. This job builds the site and opens it in a real browser
+  # (scripts/site-smoke.mjs); it would have caught the v1.4.0 bug where the
+  # lazily loaded layout engine replaced the worker's message handler.
+  site:
+    name: Site smoke test (browser)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run site
+      - name: Make sure a browser is available
+        run: command -v google-chrome >/dev/null || npx playwright-core install --with-deps chromium
+      - name: Open the built site in a browser
+        run: npm run site:smoke -- --shots "$RUNNER_TEMP/site-shots"
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: site-smoke-screenshots
+          path: ${{ runner.temp }}/site-shots
+          if-no-files-found: ignore
