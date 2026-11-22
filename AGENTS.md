@@ -35,7 +35,7 @@ Directory map:
 - `skills-src/` → `skills/` — agent skill source and its generated output (`node scripts/skills.mjs`); `skills-src/excalidraw-spec/` is a committed snapshot of Excalidraw's element typings (`npm run spec:update`).
 - `site/` — the GitHub Pages website (live playground + example gallery): vanilla JS/CSS, bundled with esbuild by `scripts/site.mjs`; the library runs in a Web Worker. `npm run site:smoke` opens the built site in a headless browser (CI job "Site smoke test (browser)" and `pages.yml` before deploying): a change that touches `site/`, the worker bundle or how the library loads (lazy imports, globals such as `onmessage`) must keep it green. See `docs/site.md`.
 - `integrations/` — Claude Code plugin, Gemini extension, VS Code extension and Obsidian plugin. They have their own `package.json` (build tooling only, never a root dependency) and are bundled from `src/` by `scripts/build-*.mjs`.
-- `.claude-plugin/`, `.agents/plugins/`, `gemini-extension.json`, `server.json`, `action.yml` — install manifests that must sit in the repository root. `integrations/claude-plugin` and `integrations/codex-plugin` must stay directory-ready (README, LICENSE, icon, no unpinned `npx` launcher; `test/skills.test.mjs` checks it); `docs/publishing.md` lists the listings.
+- `.claude-plugin/`, `.agents/plugins/`, `gemini-extension.json`, `server.json`, `action.yml` — install manifests that must sit in the repository root. `integrations/claude-plugin` and `integrations/codex-plugin` must stay directory-ready (README, LICENSE, an identical copy of the root `PRIVACY.md`, icon, no unpinned `npx` launcher; `test/skills.test.mjs` checks it); `docs/publishing.md` lists the listings.
 
 ## Layer rules
 

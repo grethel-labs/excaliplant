@@ -12,6 +12,8 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Changed
 
+- Plugin READMEs and the skill now document what the directory policy asks for: example prompts, troubleshooting, support and security contacts, everything the plugin runs, sends and fetches, and that the CLI runs only to fulfil a diagram request. New `PRIVACY.md`.
+
 - The layout engine (ELK) is loaded on first use instead of on import: importing the library and rendering non-graph diagrams (sequence, Gantt, mind map, JSON, …) is several hundred milliseconds faster. Layouts are cached by their exact input, so re-rendering an unchanged diagram (or one that only changes colours, theme or seed) skips the layout step. Output is byte-identical.
 
 - The Claude Code plugin no longer bundles an unpinned MCP launcher (the Claude directory blocks those); the release archive carries one pinned to the release, and the plugin has a README, a LICENSE and an icon.
