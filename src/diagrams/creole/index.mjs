@@ -53,7 +53,7 @@ export default defineDiagram({
   draw: (laid, c) => {
     const s = roleStyle(c.theme, "legend");
     c.rect(-20, -16, laid.laid.width + 40, laid.laid.height + 32, {
-      fill: c.theme.background,
+      fill: c.theme.surface ?? c.theme.background,
       stroke: s.stroke,
       strokeWidth: 1,
       rounded: true,

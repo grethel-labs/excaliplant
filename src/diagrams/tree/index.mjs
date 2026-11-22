@@ -3,6 +3,7 @@
  * @module diagrams/tree
  */
 
+import { mixColors } from "../../syntax/color.mjs";
 import { defineDiagram } from "../../core/registry.mjs";
 import { layoutText } from "../../layout/measure.mjs";
 import { paletteAt } from "../../draw/theme.mjs";
@@ -146,11 +147,13 @@ function drawTree(laid, c) {
   const drawNode = (n) => {
     const pal =
       n.depth === 0
-        ? { fill: theme.roles.muted.fill ?? theme.background, stroke: theme.ink }
+        ? { fill: theme.roles.muted.fill ?? theme.surface ?? theme.background, stroke: theme.ink }
         : paletteAt(theme, n.branch);
     const fill =
       n.colors.fill ??
-      (n.depth > 1 && laid.kind === "mindmap" ? mixLight(pal.fill, theme.background) : pal.fill);
+      (n.depth > 1 && laid.kind === "mindmap"
+        ? mixColors(pal.fill, theme.surface ?? theme.background, 0.5)
+        : pal.fill);
     const stroke = n.colors.stroke ?? pal.stroke;
     const x = n.x - n.w / 2;
     const y = n.y - n.h / 2;
@@ -221,23 +224,6 @@ function drawTree(laid, c) {
   };
   for (const r of laid.roots) drawEdges(r);
   for (const r of laid.roots) drawNode(r);
-}
-
-/**
- * @param {string} color
- * @param {string} bg
- */
-function mixLight(color, bg) {
-  if (!/^#[0-9a-f]{6}/i.test(color) || !/^#[0-9a-f]{6}/i.test(bg)) return color;
-  const a = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
-  const b = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
-  return `#${a
-    .map((v, i) =>
-      Math.round(v + (b[i] - v) * 0.5)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
 }
 
 export const mindmapDiagram = defineDiagram({

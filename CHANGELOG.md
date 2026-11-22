@@ -6,6 +6,10 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ## Unreleased
 
+### Added
+
+- Theme definitions support inheritance and individual colour and alpha overrides. Added Grethel Labs Dark, light and dark pastel palettes, and transparent palettes for light and dark backdrops.
+
 ### Fixed
 
 - The live playground on the GitHub Pages site rendered nothing since v1.4.0: loading the layout engine lazily let it replace the message handler of the page's worker, which then never answered. The handler is restored after the engine is created.

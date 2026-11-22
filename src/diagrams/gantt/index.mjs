@@ -12,7 +12,7 @@ import { parseColorSpec, mixColors } from "../../syntax/color.mjs";
 import { runRules } from "../../syntax/reader.mjs";
 import { label } from "../../syntax/text.mjs";
 import { layoutText } from "../../layout/measure.mjs";
-import { roleStyle, paletteAt } from "../../draw/theme.mjs";
+import { roleStyle, paletteAt, themeColor } from "../../draw/theme.mjs";
 import { LimitError } from "../../core/errors.mjs";
 import { score } from "../detect.mjs";
 
@@ -423,7 +423,7 @@ function drawGantt(laid, c) {
   for (let d = first; d < last; d++) {
     if (isClosed(model, d))
       c.rect(xOf(d), headerH, dayW, height - headerH, {
-        fill: mixColors(theme.muted, theme.background, 0.88),
+        fill: themeColor(theme, "special.gantt-weekend.fill"),
         stroke: "transparent",
         roughness: 0,
         strokeWidth: 1,
@@ -485,7 +485,7 @@ function drawGantt(laid, c) {
     if (sep.text) {
       const t = layoutText(sep.text, { fontSize: fs, bold: true });
       c.rect(8, y - t.height / 2 - 2, t.width + 12, t.height + 4, {
-        fill: theme.background,
+        fill: theme.surface ?? theme.background,
         stroke: "transparent",
         roughness: 0,
         strokeWidth: 1,
@@ -503,7 +503,7 @@ function drawGantt(laid, c) {
         [x, height],
       ],
       {
-        stroke: model.todayColor ?? "#e03131",
+        stroke: model.todayColor ?? themeColor(theme, "special.gantt-today.stroke"),
         strokeWidth: 2,
         strokeStyle: "dashed",
         roughness: 0,
@@ -537,7 +537,7 @@ function drawGantt(laid, c) {
     c.rect(x1, y + 6, Math.max(4, x2 - x1), bh, { fill, stroke, rounded: true, link: t.link });
     if (t.complete > 0) {
       c.rect(x1, y + 6, Math.max(2, ((x2 - x1) * t.complete) / 100), bh, {
-        fill: mixColors(fill, stroke, 0.45),
+        fill: mixColors(fill, stroke, 0.2),
         stroke: "transparent",
         strokeWidth: 1,
         rounded: true,

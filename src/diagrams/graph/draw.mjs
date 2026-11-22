@@ -4,7 +4,7 @@
  */
 
 import { shape as shapeDef, arc } from "../../draw/shapes.mjs";
-import { roleStyle } from "../../draw/theme.mjs";
+import { roleStyle, themeColor } from "../../draw/theme.mjs";
 import { TRANSPARENT, mixColors } from "../../syntax/color.mjs";
 import { Obstacles, alongPolyline, nearEnd, segmentInBox } from "../../layout/labels.mjs";
 import { tabWidth } from "./route.mjs";
@@ -14,10 +14,10 @@ import { tabWidth } from "./route.mjs";
 /** @typedef {import("../../draw/canvas.mjs").Canvas} Canvas */
 
 const VISIBILITY = {
-  "+": { shape: "circle", color: "#2f9e44", filled: true },
-  "-": { shape: "square", color: "#c92a2a", filled: false },
-  "#": { shape: "diamond", color: "#e67700", filled: true },
-  "~": { shape: "triangle", color: "#1971c2", filled: false },
+  "+": { shape: "circle", color: "special.visibility-public.stroke", filled: true },
+  "-": { shape: "square", color: "special.visibility-private.stroke", filled: false },
+  "#": { shape: "diamond", color: "special.visibility-protected.stroke", filled: true },
+  "~": { shape: "triangle", color: "special.visibility-package.stroke", filled: false },
 };
 
 /**
@@ -90,7 +90,7 @@ export function drawGraph(model, canvas) {
         n.data.fill &&
         n.data.fill !== TRANSPARENT,
     );
-    return c ? c.data.fill : theme.background;
+    return c ? c.data.fill : (theme.surface ?? theme.background);
   };
   for (const v of visible)
     drawEdge(v.edge, v.from, v.to, canvas, ids, v.pts, obstacles, backgroundAt);
@@ -110,6 +110,7 @@ export function nodeStyle(node, theme) {
     stroke: c.stroke,
     text: c.text,
     strokeStyle: c.strokeStyle,
+    fillStyle: node.stereotypes.includes("c4") ? "solid" : undefined,
     strokeWidth: c.strokeWidth,
   });
 }
@@ -126,6 +127,7 @@ export function drawNode(node, canvas, theme, headers = null) {
   const style = {
     stroke: s.stroke,
     fill: s.fill,
+    fillStyle: s.fillStyle,
     strokeWidth: s.strokeWidth,
     strokeStyle: s.strokeStyle,
     link: node.link,
@@ -137,7 +139,9 @@ export function drawNode(node, canvas, theme, headers = null) {
     // Containers get a light tint so nested elements stay readable.
     const fill =
       node.colors.fill ??
-      (s.fill === TRANSPARENT ? TRANSPARENT : mixColors(s.fill, theme.background, 0.6));
+      (s.fill === TRANSPARENT
+        ? TRANSPARENT
+        : mixColors(s.fill, theme.surface ?? theme.background, 0.6));
     node.data.fill = fill;
     return drawContainer(node, canvas, { ...style, fill }, s.text, headers);
   }
@@ -190,7 +194,7 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
       ? style.fill
       : backgroundAt
         ? backgroundAt(box.x + box.w / 2, box.y + box.h / 2)
-        : canvas.theme.background;
+        : (canvas.theme.surface ?? canvas.theme.background);
   if (node.shape === "package" || node.shape === "folder") {
     const tabW = tabWidth(node);
     const tabH = geo.headerHeight;
@@ -351,11 +355,16 @@ function drawClass(node, canvas, style, textColor, theme) {
     const cy = ty + geo.name.height / 2;
     canvas.ellipse(nx - 30, cy - 11, 22, 22, {
       fill: geo.spot.color,
+      fillStyle: "solid",
       stroke: theme.ink,
       strokeWidth: 1,
       roughness: Math.min(theme.roughness, 0.5),
     });
-    canvas.text(geo.spot.char, nx - 19, cy - 9, { size: 14, color: "#ffffff", align: "center" });
+    canvas.text(geo.spot.char, nx - 19, cy - 9, {
+      size: 14,
+      color: themeColor(theme, "special.class-spot.text"),
+      align: "center",
+    });
   }
   const italic = node.classHeader?.abstract || node.classHeader?.keyword === "interface";
   if (geo.name.plain) {
@@ -380,7 +389,7 @@ function drawClass(node, canvas, style, textColor, theme) {
     const gw = geo.generics.width + 10;
     const gh = geo.generics.height + 4;
     canvas.rect(x + w - gw + 6, y - gh / 2, gw, gh, {
-      fill: theme.background,
+      fill: theme.surface ?? theme.background,
       stroke: style.stroke,
       strokeStyle: "dashed",
       strokeWidth: 1,
@@ -476,8 +485,8 @@ function drawClass(node, canvas, style, textColor, theme) {
  */
 function drawVisibility(canvas, vis, cx, cy, theme) {
   const style = {
-    stroke: vis.color,
-    fill: vis.filled ? vis.color : TRANSPARENT,
+    stroke: themeColor(theme, vis.color),
+    fill: vis.filled ? themeColor(theme, vis.color) : TRANSPARENT,
     strokeWidth: 1,
     roughness: 0,
   };
@@ -593,7 +602,9 @@ export function drawEdge(
     const laid = edge.data.labelLayout;
     canvas.group(() => {
       canvas.rect(b.x, b.y, b.width, b.height, {
-        fill: backgroundAt ? backgroundAt(b.x + b.width / 2, b.y + b.height / 2) : theme.background,
+        fill: backgroundAt
+          ? backgroundAt(b.x + b.width / 2, b.y + b.height / 2)
+          : (theme.surface ?? theme.background),
         stroke: TRANSPARENT,
         strokeWidth: 1,
         roughness: 0,

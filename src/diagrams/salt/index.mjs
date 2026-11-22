@@ -240,7 +240,7 @@ function draw(c, wd, x, y, cw, fs) {
         if (wd.title) {
           const t = layoutText(wd.title, { fontSize: fs * 0.9 });
           c.rect(x + GROUP_TITLE_INSET, y, t.width + GROUP_TITLE_PAD, t.height, {
-            fill: theme.background,
+            fill: theme.surface ?? theme.background,
             stroke: "transparent",
             strokeWidth: 1,
             roughness: 0,
@@ -258,7 +258,7 @@ function draw(c, wd, x, y, cw, fs) {
           if (wd.kind === "tabs")
             c.rect(tx, y, w, th, {
               ...line,
-              fill: i === 0 ? theme.background : theme.roles.muted.fill,
+              fill: i === 0 ? (theme.surface ?? theme.background) : theme.roles.muted.fill,
               rounded: false,
             });
           draw(c, cell, tx + 10, y + 5, cell.w, fs);
@@ -343,11 +343,11 @@ function draw(c, wd, x, y, cw, fs) {
         c.richText(wd.laid, x + (Math.max(wd.w, cw) - wd.laid.width) / 2, y + 5, { color: ink });
       return;
     case "field":
-      c.rect(x, y, Math.max(wd.w, cw), wd.h, { ...line, fill: theme.background });
+      c.rect(x, y, Math.max(wd.w, cw), wd.h, { ...line, fill: theme.surface ?? theme.background });
       text(x + 7, y + 4);
       return;
     case "check":
-      c.rect(x, y + wd.h / 2 - 7, 14, 14, { ...line, fill: theme.background });
+      c.rect(x, y + wd.h / 2 - 7, 14, 14, { ...line, fill: theme.surface ?? theme.background });
       if (wd.on)
         c.line(
           [
@@ -360,14 +360,14 @@ function draw(c, wd, x, y, cw, fs) {
       text(x + 22, y);
       return;
     case "radio":
-      c.ellipse(x, y + wd.h / 2 - 7, 14, 14, { ...line, fill: theme.background });
+      c.ellipse(x, y + wd.h / 2 - 7, 14, 14, { ...line, fill: theme.surface ?? theme.background });
       if (wd.on)
         c.ellipse(x + 4, y + wd.h / 2 - 3, 6, 6, { fill: ink, stroke: ink, fillStyle: "solid" });
       text(x + 22, y);
       return;
     case "drop": {
       const w = Math.max(wd.w, cw);
-      c.rect(x, y, w, wd.h, { ...line, fill: theme.background });
+      c.rect(x, y, w, wd.h, { ...line, fill: theme.surface ?? theme.background });
       c.line(
         [
           [x + w - 22, y],
@@ -460,7 +460,7 @@ export default defineDiagram({
     c.rect(-10, -10, root.w + 20, root.h + 20, {
       stroke: c.theme.muted,
       strokeWidth: 1.5,
-      fill: c.theme.background,
+      fill: c.theme.surface ?? c.theme.background,
       rounded: true,
     });
     draw(c, root, 0, 0, root.w, laid.fs);

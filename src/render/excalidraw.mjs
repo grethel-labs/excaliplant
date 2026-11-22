@@ -32,6 +32,8 @@ export function createDocument(elements, options) {
   };
 }
 
+const COLOR = /^(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|transparent)$/;
+
 const FINITE_FIELDS = ["x", "y", "width", "height", "strokeWidth", "opacity"];
 
 /**
@@ -44,6 +46,11 @@ export function validateDocument(doc) {
   if (!doc || doc.type !== "excalidraw" || !Array.isArray(doc.elements)) {
     throw new TypeError("Not an Excalidraw document");
   }
+  if (
+    typeof doc.appState?.viewBackgroundColor !== "string" ||
+    !COLOR.test(doc.appState.viewBackgroundColor)
+  )
+    throw new TypeError("Invalid document background colour");
   for (const el of doc.elements) {
     if (
       !["rectangle", "ellipse", "diamond", "line", "arrow", "text", "freedraw", "frame"].includes(
@@ -56,7 +63,7 @@ export function validateDocument(doc) {
       if (!Number.isFinite(el[f])) throw new TypeError(`Element ${el.id} has non-finite ${f}`);
     }
     for (const c of [el.strokeColor, el.backgroundColor]) {
-      if (typeof c !== "string" || !/^(#[0-9a-fA-F]{3,8}|transparent)$/.test(c)) {
+      if (typeof c !== "string" || !COLOR.test(c)) {
         throw new TypeError(`Element ${el.id} has invalid colour ${c}`);
       }
     }

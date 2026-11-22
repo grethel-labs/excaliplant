@@ -18,5 +18,5 @@ export { DiagramRegistry, defineDiagram } from "./core/registry.mjs";
 export { DEFAULT_LIMITS } from "./core/limits.mjs";
 export { ExcaliplantError, ParseError, LimitError } from "./core/errors.mjs";
 export { preprocessText } from "./core/preprocess/preprocessor.mjs";
-export { THEMES, THEME_NAMES } from "./draw/theme.mjs";
+export { THEMES, THEME_NAMES, THEME_COLOR_NAMES } from "./draw/theme.mjs";
 export { BUILTIN_DIAGRAMS } from "./diagrams/index.mjs";

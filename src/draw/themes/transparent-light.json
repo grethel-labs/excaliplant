@@ -1,0 +1,11 @@
+{
+  "id": "transparent-light",
+  "extends": "sketch",
+  "colors": {
+    "canvas.background": "transparent",
+    "canvas.surface": "#ffffff"
+  },
+  "contrast": {
+    "backdrops": ["#ffffff", "#f7f8fa"]
+  }
+}

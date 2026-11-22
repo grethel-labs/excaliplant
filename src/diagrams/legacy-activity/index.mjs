@@ -46,7 +46,7 @@ function resolve(ctx, token, side) {
             fillStyle: "solid",
           });
         const id2 = c.ellipse(node.x, node.y, node.width, node.height, {
-          fill: c.theme.background,
+          fill: c.theme.surface ?? c.theme.background,
           stroke: ink,
         });
         c.ellipse(node.x + 6, node.y + 6, node.width - 12, node.height - 12, {

@@ -5,6 +5,7 @@
  * @module diagrams/graph/parse
  */
 
+import { themeColor } from "../../draw/theme.mjs";
 import { GraphModel } from "../../model/graph.mjs";
 import { parseCommon } from "../../syntax/commons.mjs";
 import { parseLink, headsOf } from "../../syntax/arrows.mjs";
@@ -51,24 +52,35 @@ import { LimitError } from "../../core/errors.mjs";
  * @property {number} noteSeq
  */
 
+const C4_FILL = new Map([
+  ["person", "special.c4-person.fill"],
+  ["person-ext", "special.c4-person-ext.fill"],
+  ["system", "special.c4-system.fill"],
+  ["system-ext", "special.c4-system-ext.fill"],
+  ["container", "special.c4-container.fill"],
+  ["container-ext", "special.c4-container-ext.fill"],
+  ["component", "special.c4-component.fill"],
+  ["component-ext", "special.c4-component-ext.fill"],
+]);
+
 /** Default spot letters and colours for class-like keywords. */
 export const CLASS_SPOTS = new Map(
   Object.entries({
-    class: ["C", "#2f9e44"],
-    abstract: ["A", "#0c8599"],
-    "abstract class": ["A", "#0c8599"],
-    interface: ["I", "#6741d9"],
-    enum: ["E", "#e8590c"],
-    annotation: ["@", "#c92a2a"],
-    entity: ["E", "#1971c2"],
-    protocol: ["P", "#9c36b5"],
-    struct: ["S", "#5c940d"],
-    record: ["R", "#1098ad"],
-    dataclass: ["D", "#1098ad"],
-    exception: ["X", "#c92a2a"],
-    metaclass: ["M", "#495057"],
-    stereotype: ["S", "#495057"],
-    circle: ["C", "#2f9e44"],
+    class: ["C", "special.spot-class.fill"],
+    abstract: ["A", "special.spot-abstract.fill"],
+    "abstract class": ["A", "special.spot-abstract.fill"],
+    interface: ["I", "special.spot-interface.fill"],
+    enum: ["E", "special.spot-enum.fill"],
+    annotation: ["@", "special.spot-exception.fill"],
+    entity: ["E", "special.spot-entity.fill"],
+    protocol: ["P", "special.spot-protocol.fill"],
+    struct: ["S", "special.spot-struct.fill"],
+    record: ["R", "special.spot-record.fill"],
+    dataclass: ["D", "special.spot-record.fill"],
+    exception: ["X", "special.spot-exception.fill"],
+    metaclass: ["M", "special.spot-metaclass.fill"],
+    stereotype: ["S", "special.spot-metaclass.fill"],
+    circle: ["C", "special.spot-class.fill"],
   }),
 );
 
@@ -361,6 +373,20 @@ export function declare(ctx, decl, kind) {
   if (decl.label !== decl.id && !model.aliases.has(decl.label))
     model.aliases.set(decl.label, node.id);
   node.stereotypes.push(...decl.stereotypes.filter((s) => !node.stereotypes.includes(s)));
+  if (decl.stereotypes.includes("c4")) {
+    const colorTag = decl.stereotypes.find((stereotype) => stereotype.startsWith("c4-"));
+    const token = C4_FILL.get(colorTag?.slice(3));
+    if (token) {
+      node.colors.fill = themeColor(ctx.module.theme, token);
+      node.colors.stroke = themeColor(ctx.module.theme, "special.c4.stroke");
+      node.colors.text = themeColor(ctx.module.theme, "special.c4.text");
+      node.stereotypes = node.stereotypes.filter((stereotype) => stereotype !== colorTag);
+    }
+  }
+  if (decl.stereotypes.includes("c4boundary")) {
+    node.colors.stroke = themeColor(ctx.module.theme, "special.c4-boundary.stroke");
+    node.colors.strokeStyle = "dashed";
+  }
   Object.assign(node.colors, decl.colors);
   if (decl.link) node.link = decl.link;
   if (decl.description) node.description = decl.description;
@@ -374,9 +400,14 @@ export function declare(ctx, decl, kind) {
       keyword: decl.keyword,
       generics: (/^<(.*)>/.exec(decl.rest)?.[1] ?? "").trim(),
       spot: custom
-        ? { char: custom[1], color: parseColorSpec(custom[2]).fill ?? "#2f9e44" }
+        ? {
+            char: custom[1],
+            color:
+              parseColorSpec(custom[2]).fill ??
+              themeColor(ctx.module.theme, "special.spot-class.fill"),
+          }
         : spot
-          ? { char: spot[0], color: spot[1] }
+          ? { char: spot[0], color: themeColor(ctx.module.theme, spot[1]) }
           : null,
       abstract: /abstract/.test(decl.keyword),
     };

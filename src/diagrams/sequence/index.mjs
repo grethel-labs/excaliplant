@@ -4,9 +4,9 @@
  */
 
 import { defineDiagram } from "../../core/registry.mjs";
-import { roleStyle } from "../../draw/theme.mjs";
+import { roleStyle, themeColor } from "../../draw/theme.mjs";
 import { SHAPES } from "../../draw/shapes.mjs";
-import { mixColors, TRANSPARENT } from "../../syntax/color.mjs";
+import { TRANSPARENT } from "../../syntax/color.mjs";
 import { score } from "../detect.mjs";
 import { parseSequence } from "./parse.mjs";
 import { layoutSequence, DESTROY_HALF } from "./layout.mjs";
@@ -82,7 +82,7 @@ function drawSequence(laid, c) {
         // Tag pentagon and guard texts sit above lifelines and activation bars.
         const plate = (/** @type {number} */ x, /** @type {number} */ y, /** @type {any} */ t) =>
           c.rect(x - 2, y + 1, t.width + 4, t.height - 2, {
-            fill: theme.background,
+            fill: theme.surface ?? theme.background,
             stroke: TRANSPARENT,
             strokeWidth: 1,
             roughness: 0,
@@ -96,7 +96,13 @@ function drawSequence(laid, c) {
               [it.x + tw, it.y + th],
               [it.x, it.y + th],
             ],
-            { closed: true, fill: tagStyle.fill, stroke: s.stroke, strokeWidth: 1.5 },
+            {
+              closed: true,
+              fill: tagStyle.fill,
+              fillStyle: "solid",
+              stroke: s.stroke,
+              strokeWidth: 1.5,
+            },
           );
           c.richText(it.tag, it.x + 8, it.y + 3, { color: tagStyle.text });
           if (it.text) {
@@ -213,10 +219,10 @@ function drawSequence(laid, c) {
           roughness: theme.edgeRoughness,
         });
         if (it.text) {
-          // A light plate keeps crossing lifelines from running through the label.
+          // A solid plate covers lines that pass through the label.
           if (it.plate)
             c.rect(it.textX - 4, it.textY - 1, it.text.width + 8, it.text.height + 2, {
-              fill: theme.background,
+              fill: theme.surface ?? theme.background,
               stroke: "transparent",
               strokeWidth: 1,
               roughness: 0,
@@ -234,7 +240,12 @@ function drawSequence(laid, c) {
           stroke: it.colors.stroke,
           text: it.colors.text,
         });
-        const style = { fill: s.fill, stroke: s.stroke, strokeWidth: 1 };
+        const style = {
+          fill: s.fill,
+          stroke: s.stroke,
+          strokeWidth: 1,
+          fillStyle: /** @type {const} */ ("solid"),
+        };
         c.group(() => {
           if (it.shape === "hnote") {
             c.line(
@@ -276,7 +287,8 @@ function drawSequence(laid, c) {
           const h = it.text.height + 8;
           const x = (it.x1 + it.x2 - w) / 2;
           c.rect(x, it.y - h / 2, w, h, {
-            fill: mixColors(roleStyle(theme, "participant").fill, theme.background, 0.4),
+            fill: themeColor(theme, "special.sequence-divider.fill"),
+            fillStyle: "solid",
             stroke: s.stroke,
             strokeWidth: 1,
             rounded: true,
@@ -293,7 +305,12 @@ function drawSequence(laid, c) {
         break;
       case "ref": {
         const s = roleStyle(theme, "reference");
-        c.rect(it.x, it.y, it.w, it.h, { fill: s.fill, stroke: s.stroke, strokeWidth: 1.5 });
+        c.rect(it.x, it.y, it.w, it.h, {
+          fill: s.fill,
+          fillStyle: "solid",
+          stroke: s.stroke,
+          strokeWidth: 1.5,
+        });
         c.line(
           [
             [it.x, it.y + 22],
@@ -308,7 +325,7 @@ function drawSequence(laid, c) {
         break;
       }
       case "destroy": {
-        const st = { stroke: "#c92a2a", strokeWidth: 2 };
+        const st = { stroke: themeColor(theme, "special.sequence-destroy.stroke"), strokeWidth: 2 };
         c.line(
           [
             [it.x - DESTROY_HALF, it.y - DESTROY_HALF],

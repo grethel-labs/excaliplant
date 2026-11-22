@@ -9,14 +9,14 @@
  */
 
 const C4_CORE = String.raw`
-!$C4_PERSON = "08427b"
-!$C4_PERSON_EXT = "686868"
-!$C4_SYSTEM = "1168bd"
-!$C4_SYSTEM_EXT = "999999"
-!$C4_CONTAINER = "438dd5"
-!$C4_CONTAINER_EXT = "b3b3b3"
-!$C4_COMPONENT = "85bbf0"
-!$C4_COMPONENT_EXT = "cccccc"
+!$C4_PERSON = "person"
+!$C4_PERSON_EXT = "person-ext"
+!$C4_SYSTEM = "system"
+!$C4_SYSTEM_EXT = "system-ext"
+!$C4_CONTAINER = "container"
+!$C4_CONTAINER_EXT = "container-ext"
+!$C4_COMPONENT = "component"
+!$C4_COMPONENT_EXT = "component-ext"
 !$C4_SHOW_LEGEND = 0
 
 !function $c4Label($label, $kind, $techn, $descr)
@@ -32,67 +32,71 @@ const C4_CORE = String.raw`
 !return $t
 !endfunction
 
-!procedure $c4Element($shape, $alias, $label, $kind, $techn, $descr, $color, $text)
-$shape "$c4Label($label, $kind, $techn, $descr)" <<c4>> as $alias #$color;line:$color;text:$text
+!procedure $c4Element($shape, $alias, $label, $kind, $techn, $descr, $color)
+!if $color == "person" || $color == "person-ext" || $color == "system" || $color == "system-ext" || $color == "container" || $color == "container-ext" || $color == "component" || $color == "component-ext"
+$shape "$c4Label($label, $kind, $techn, $descr)" <<c4>> as $alias <<c4-$color>>
+!else
+$shape "$c4Label($label, $kind, $techn, $descr)" <<c4>> as $alias #$color;line:$color
+!endif
 !endprocedure
 
 !unquoted procedure Person($alias, $label="", $descr="", $sprite="", $tags="", $link="", $type="")
-$c4Element("person", $alias, $label, "Person", "", $descr, $C4_PERSON, "white")
+$c4Element("person", $alias, $label, "Person", "", $descr, $C4_PERSON)
 !endprocedure
 !unquoted procedure Person_Ext($alias, $label="", $descr="", $sprite="", $tags="", $link="", $type="")
-$c4Element("person", $alias, $label, "External Person", "", $descr, $C4_PERSON_EXT, "white")
+$c4Element("person", $alias, $label, "External Person", "", $descr, $C4_PERSON_EXT)
 !endprocedure
 !unquoted procedure System($alias, $label="", $descr="", $sprite="", $tags="", $link="", $type="", $baseShape="")
-$c4Element("rectangle", $alias, $label, "Software System", "", $descr, $C4_SYSTEM, "white")
+$c4Element("rectangle", $alias, $label, "Software System", "", $descr, $C4_SYSTEM)
 !endprocedure
 !unquoted procedure System_Ext($alias, $label="", $descr="", $sprite="", $tags="", $link="", $type="", $baseShape="")
-$c4Element("rectangle", $alias, $label, "External System", "", $descr, $C4_SYSTEM_EXT, "white")
+$c4Element("rectangle", $alias, $label, "External System", "", $descr, $C4_SYSTEM_EXT)
 !endprocedure
 !unquoted procedure SystemDb($alias, $label="", $descr="", $sprite="", $tags="", $link="", $type="")
-$c4Element("database", $alias, $label, "Software System", "", $descr, $C4_SYSTEM, "white")
+$c4Element("database", $alias, $label, "Software System", "", $descr, $C4_SYSTEM)
 !endprocedure
 !unquoted procedure SystemDb_Ext($alias, $label="", $descr="", $sprite="", $tags="", $link="", $type="")
-$c4Element("database", $alias, $label, "External System", "", $descr, $C4_SYSTEM_EXT, "white")
+$c4Element("database", $alias, $label, "External System", "", $descr, $C4_SYSTEM_EXT)
 !endprocedure
 !unquoted procedure SystemQueue($alias, $label="", $descr="", $sprite="", $tags="", $link="", $type="")
-$c4Element("queue", $alias, $label, "Software System", "", $descr, $C4_SYSTEM, "white")
+$c4Element("queue", $alias, $label, "Software System", "", $descr, $C4_SYSTEM)
 !endprocedure
 !unquoted procedure SystemQueue_Ext($alias, $label="", $descr="", $sprite="", $tags="", $link="", $type="")
-$c4Element("queue", $alias, $label, "External System", "", $descr, $C4_SYSTEM_EXT, "white")
+$c4Element("queue", $alias, $label, "External System", "", $descr, $C4_SYSTEM_EXT)
 !endprocedure
 !unquoted procedure Container($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="", $baseShape="")
-$c4Element("rectangle", $alias, $label, "Container", $techn, $descr, $C4_CONTAINER, "white")
+$c4Element("rectangle", $alias, $label, "Container", $techn, $descr, $C4_CONTAINER)
 !endprocedure
 !unquoted procedure Container_Ext($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="", $baseShape="")
-$c4Element("rectangle", $alias, $label, "External Container", $techn, $descr, $C4_CONTAINER_EXT, "black")
+$c4Element("rectangle", $alias, $label, "External Container", $techn, $descr, $C4_CONTAINER_EXT)
 !endprocedure
 !unquoted procedure ContainerDb($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="")
-$c4Element("database", $alias, $label, "Container", $techn, $descr, $C4_CONTAINER, "white")
+$c4Element("database", $alias, $label, "Container", $techn, $descr, $C4_CONTAINER)
 !endprocedure
 !unquoted procedure ContainerDb_Ext($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="")
-$c4Element("database", $alias, $label, "External Container", $techn, $descr, $C4_CONTAINER_EXT, "black")
+$c4Element("database", $alias, $label, "External Container", $techn, $descr, $C4_CONTAINER_EXT)
 !endprocedure
 !unquoted procedure ContainerQueue($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="")
-$c4Element("queue", $alias, $label, "Container", $techn, $descr, $C4_CONTAINER, "white")
+$c4Element("queue", $alias, $label, "Container", $techn, $descr, $C4_CONTAINER)
 !endprocedure
 !unquoted procedure ContainerQueue_Ext($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="")
-$c4Element("queue", $alias, $label, "External Container", $techn, $descr, $C4_CONTAINER_EXT, "black")
+$c4Element("queue", $alias, $label, "External Container", $techn, $descr, $C4_CONTAINER_EXT)
 !endprocedure
 !unquoted procedure Component($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="", $baseShape="")
-$c4Element("rectangle", $alias, $label, "Component", $techn, $descr, $C4_COMPONENT, "black")
+$c4Element("rectangle", $alias, $label, "Component", $techn, $descr, $C4_COMPONENT)
 !endprocedure
 !unquoted procedure Component_Ext($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="", $baseShape="")
-$c4Element("rectangle", $alias, $label, "External Component", $techn, $descr, $C4_COMPONENT_EXT, "black")
+$c4Element("rectangle", $alias, $label, "External Component", $techn, $descr, $C4_COMPONENT_EXT)
 !endprocedure
 !unquoted procedure ComponentDb($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="")
-$c4Element("database", $alias, $label, "Component", $techn, $descr, $C4_COMPONENT, "black")
+$c4Element("database", $alias, $label, "Component", $techn, $descr, $C4_COMPONENT)
 !endprocedure
 !unquoted procedure ComponentQueue($alias, $label="", $techn="", $descr="", $sprite="", $tags="", $link="")
-$c4Element("queue", $alias, $label, "Component", $techn, $descr, $C4_COMPONENT, "black")
+$c4Element("queue", $alias, $label, "Component", $techn, $descr, $C4_COMPONENT)
 !endprocedure
 
 !unquoted procedure Boundary($alias, $label="", $type="", $tags="", $link="")
-rectangle "<b>$label</b>\n<size:11>[$type]</size>" <<c4boundary>> as $alias ##[dashed]444444
+rectangle "<b>$label</b>\n<size:11>[$type]</size>" <<c4boundary>> as $alias
 !endprocedure
 !unquoted procedure Enterprise_Boundary($alias, $label="", $tags="", $link="")
 Boundary($alias, $label, "Enterprise")
@@ -184,11 +188,11 @@ left to right direction
 !unquoted procedure SHOW_LEGEND($hideStereotype="", $details="")
 legend right
 <b>Legend</b>
-<color:#08427b>■</color> person
-<color:#1168bd>■</color> system
-<color:#438dd5>■</color> container
-<color:#85bbf0>■</color> component
-<color:#999999>■</color> external
+■ person
+■ system
+■ container
+■ component
+■ external
 endlegend
 !endprocedure
 !unquoted procedure SHOW_FLOATING_LEGEND($alias="", $hideStereotype="", $details="")
@@ -289,7 +293,7 @@ function archimateLibrary() {
   for (const [layer, types] of Object.entries(ARCHIMATE_TYPES)) {
     for (const type of types) {
       lines.push(`!unquoted procedure ${layer}_${type}($id, $label="", $stereo="")`);
-      lines.push(`archimate #${layer} "$label" as $id <<${layer.toLowerCase()}-${kebab(type)}>>`);
+      lines.push(`archimate "$label" as $id <<${layer.toLowerCase()}-${kebab(type)}>>`);
       lines.push("!endprocedure");
     }
   }

@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { readThemeEnvironment } from "../src/draw/theme_env.mjs";
 import { render, renderAll, listDiagramTypes, THEME_NAMES } from "../src/index.mjs";
 
 const HELP = `excaliplant — render PlantUML as hand-drawn Excalidraw, SVG or PNG
@@ -232,6 +233,7 @@ async function main() {
     throw new Error(`Unknown format ${format}`);
   const renderOptions = {
     theme: opts.theme,
+    themeColors: readThemeEnvironment(process.env),
     sketch: opts.sketch,
     seed: opts.seed,
     page: opts.page,

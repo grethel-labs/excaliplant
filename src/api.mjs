@@ -65,7 +65,8 @@ export class RenderResult {
    */
   async toPng(options = {}) {
     const { svgToPng } = await import("./render/png.mjs");
-    return svgToPng(await this.toSvg(options), options);
+    const { background, ...pngOptions } = options;
+    return svgToPng(await this.toSvg({ ...options, background }), pngOptions);
   }
 }
 

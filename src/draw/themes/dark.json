@@ -1,0 +1,99 @@
+{
+  "id": "dark",
+  "colors": {
+    "canvas.background": "#121212",
+    "colors.ink": "#e9ecef",
+    "colors.muted": "#adb5bd",
+    "palette.blue.fill": "#1c3d5a",
+    "palette.blue.stroke": "#74c0fc",
+    "palette.green.fill": "#1f4227",
+    "palette.green.stroke": "#8ce99a",
+    "palette.yellow.fill": "#4a3f12",
+    "palette.yellow.stroke": "#ffd43b",
+    "palette.violet.fill": "#352a5c",
+    "palette.violet.stroke": "#b197fc",
+    "palette.red.fill": "#5c2121",
+    "palette.red.stroke": "#ffa8a8",
+    "palette.cyan.fill": "#163f45",
+    "palette.cyan.stroke": "#66d9e8",
+    "palette.orange.fill": "#4f2e14",
+    "palette.orange.stroke": "#ffa94d",
+    "palette.grape.fill": "#45224d",
+    "palette.grape.stroke": "#e599f7",
+    "palette.teal.fill": "#143f35",
+    "palette.teal.stroke": "#63e6be",
+    "palette.gray.fill": "#2b2f33",
+    "palette.gray.stroke": "#adb5bd",
+    "palette.pink.fill": "#4d1f33",
+    "palette.pink.stroke": "#faa2c1",
+    "palette.lime.fill": "#2f3d14",
+    "palette.lime.stroke": "#c0eb75",
+    "special.archimate-business.fill": {
+      "ref": "palette.yellow.fill"
+    },
+    "special.archimate-application.fill": {
+      "ref": "palette.cyan.fill"
+    },
+    "special.archimate-technology.fill": {
+      "ref": "palette.green.fill"
+    },
+    "special.archimate-physical.fill": {
+      "ref": "palette.green.fill"
+    },
+    "special.archimate-motivation.fill": {
+      "ref": "palette.violet.fill"
+    },
+    "special.archimate-strategy.fill": {
+      "ref": "palette.orange.fill"
+    },
+    "special.archimate-implementation.fill": {
+      "ref": "palette.red.fill"
+    },
+    "special.archimate-migration.fill": {
+      "ref": "palette.red.fill"
+    },
+    "special.archimate-other.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-red.fill": {
+      "ref": "palette.red.fill"
+    },
+    "special.ditaa-gre.fill": {
+      "ref": "palette.green.fill"
+    },
+    "special.ditaa-blu.fill": {
+      "ref": "palette.blue.fill"
+    },
+    "special.ditaa-yel.fill": {
+      "ref": "palette.yellow.fill"
+    },
+    "special.ditaa-pnk.fill": {
+      "ref": "palette.pink.fill"
+    },
+    "special.ditaa-blk.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.ditaa-whi.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.archimate.stroke": {
+      "ref": "colors.muted"
+    },
+    "special.timing-highlight.fill": {
+      "ref": "palette.yellow.fill"
+    },
+    "special.timing-constraint.stroke": {
+      "ref": "palette.red.stroke"
+    },
+    "special.gantt-today.stroke": {
+      "ref": "palette.red.stroke"
+    },
+    "special.sequence-destroy.stroke": {
+      "ref": "palette.red.stroke"
+    },
+    "special.table-header.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "special.link.text": "#9edaff"
+  }
+}

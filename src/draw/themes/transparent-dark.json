@@ -1,0 +1,11 @@
+{
+  "id": "transparent-dark",
+  "extends": "dark",
+  "colors": {
+    "canvas.background": "transparent",
+    "canvas.surface": "#111827"
+  },
+  "contrast": {
+    "backdrops": ["#111827", "#20242c"]
+  }
+}

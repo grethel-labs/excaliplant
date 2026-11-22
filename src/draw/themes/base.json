@@ -1,0 +1,865 @@
+{
+  "id": "base",
+  "colors": {
+    "canvas.background": "#ffffff",
+    "canvas.surface": {
+      "ref": "canvas.background"
+    },
+    "colors.ink": "#1e1e1e",
+    "colors.muted": "#495057",
+    "colors.clear": "transparent",
+    "palette.blue.fill": "#d0ebff",
+    "palette.blue.stroke": "#1971c2",
+    "palette.green.fill": "#d3f9d8",
+    "palette.green.stroke": "#2f9e44",
+    "palette.yellow.fill": "#fff3bf",
+    "palette.yellow.stroke": "#ca6500",
+    "palette.violet.fill": "#e5dbff",
+    "palette.violet.stroke": "#6741d9",
+    "palette.red.fill": "#ffe3e3",
+    "palette.red.stroke": "#c92a2a",
+    "palette.cyan.fill": "#c5f6fa",
+    "palette.cyan.stroke": "#0c8599",
+    "palette.orange.fill": "#ffe8cc",
+    "palette.orange.stroke": "#d9480f",
+    "palette.grape.fill": "#f3d9fa",
+    "palette.grape.stroke": "#9c36b5",
+    "palette.teal.fill": "#c3fae8",
+    "palette.teal.stroke": "#099268",
+    "palette.gray.fill": "#f1f3f5",
+    "palette.gray.stroke": "#495057",
+    "palette.pink.fill": "#ffdeeb",
+    "palette.pink.stroke": "#c2255c",
+    "palette.lime.fill": "#e9fac8",
+    "palette.lime.stroke": "#5c940d",
+    "roles.default.fill": {
+      "ref": "palette.blue.fill"
+    },
+    "roles.default.stroke": {
+      "ref": "palette.blue.stroke"
+    },
+    "roles.default.text": {
+      "ref": "colors.ink"
+    },
+    "roles.class.fill": {
+      "ref": "palette.blue.fill"
+    },
+    "roles.class.stroke": {
+      "ref": "palette.blue.stroke"
+    },
+    "roles.class.text": {
+      "ref": "colors.ink"
+    },
+    "roles.abstract.fill": {
+      "ref": "palette.violet.fill"
+    },
+    "roles.abstract.stroke": {
+      "ref": "palette.violet.stroke"
+    },
+    "roles.abstract.text": {
+      "ref": "colors.ink"
+    },
+    "roles.interface.fill": {
+      "ref": "palette.green.fill"
+    },
+    "roles.interface.stroke": {
+      "ref": "palette.green.stroke"
+    },
+    "roles.interface.text": {
+      "ref": "colors.ink"
+    },
+    "roles.enum.fill": {
+      "ref": "palette.yellow.fill"
+    },
+    "roles.enum.stroke": {
+      "ref": "palette.yellow.stroke"
+    },
+    "roles.enum.text": {
+      "ref": "colors.ink"
+    },
+    "roles.annotation.fill": {
+      "ref": "palette.grape.fill"
+    },
+    "roles.annotation.stroke": {
+      "ref": "palette.grape.stroke"
+    },
+    "roles.annotation.text": {
+      "ref": "colors.ink"
+    },
+    "roles.entity.fill": {
+      "ref": "palette.cyan.fill"
+    },
+    "roles.entity.stroke": {
+      "ref": "palette.cyan.stroke"
+    },
+    "roles.entity.text": {
+      "ref": "colors.ink"
+    },
+    "roles.object.fill": {
+      "ref": "palette.blue.fill"
+    },
+    "roles.object.stroke": {
+      "ref": "palette.blue.stroke"
+    },
+    "roles.object.text": {
+      "ref": "colors.ink"
+    },
+    "roles.map.fill": {
+      "ref": "palette.teal.fill"
+    },
+    "roles.map.stroke": {
+      "ref": "palette.teal.stroke"
+    },
+    "roles.map.text": {
+      "ref": "colors.ink"
+    },
+    "roles.json.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "roles.json.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.json.text": {
+      "ref": "colors.ink"
+    },
+    "roles.component.fill": {
+      "ref": "palette.blue.fill"
+    },
+    "roles.component.stroke": {
+      "ref": "palette.blue.stroke"
+    },
+    "roles.component.text": {
+      "ref": "colors.ink"
+    },
+    "roles.node.fill": {
+      "ref": "palette.teal.fill"
+    },
+    "roles.node.stroke": {
+      "ref": "palette.teal.stroke"
+    },
+    "roles.node.text": {
+      "ref": "colors.ink"
+    },
+    "roles.database.fill": {
+      "ref": "palette.orange.fill"
+    },
+    "roles.database.stroke": {
+      "ref": "palette.orange.stroke"
+    },
+    "roles.database.text": {
+      "ref": "colors.ink"
+    },
+    "roles.storage.fill": {
+      "ref": "palette.orange.fill"
+    },
+    "roles.storage.stroke": {
+      "ref": "palette.orange.stroke"
+    },
+    "roles.storage.text": {
+      "ref": "colors.ink"
+    },
+    "roles.queue.fill": {
+      "ref": "palette.orange.fill"
+    },
+    "roles.queue.stroke": {
+      "ref": "palette.orange.stroke"
+    },
+    "roles.queue.text": {
+      "ref": "colors.ink"
+    },
+    "roles.cloud.fill": {
+      "ref": "palette.cyan.fill"
+    },
+    "roles.cloud.stroke": {
+      "ref": "palette.cyan.stroke"
+    },
+    "roles.cloud.text": {
+      "ref": "colors.ink"
+    },
+    "roles.artifact.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "roles.artifact.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.artifact.text": {
+      "ref": "colors.ink"
+    },
+    "roles.file.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "roles.file.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.file.text": {
+      "ref": "colors.ink"
+    },
+    "roles.card.fill": {
+      "ref": "palette.yellow.fill"
+    },
+    "roles.card.stroke": {
+      "ref": "palette.yellow.stroke"
+    },
+    "roles.card.text": {
+      "ref": "colors.ink"
+    },
+    "roles.usecase.fill": {
+      "ref": "palette.violet.fill"
+    },
+    "roles.usecase.stroke": {
+      "ref": "palette.violet.stroke"
+    },
+    "roles.usecase.text": {
+      "ref": "colors.ink"
+    },
+    "roles.actor.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.actor.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.actor.text": {
+      "ref": "colors.ink"
+    },
+    "roles.boundary.fill": {
+      "ref": "palette.red.fill"
+    },
+    "roles.boundary.stroke": {
+      "ref": "palette.red.stroke"
+    },
+    "roles.boundary.text": {
+      "ref": "colors.ink"
+    },
+    "roles.control.fill": {
+      "ref": "palette.red.fill"
+    },
+    "roles.control.stroke": {
+      "ref": "palette.red.stroke"
+    },
+    "roles.control.text": {
+      "ref": "colors.ink"
+    },
+    "roles.label.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.label.stroke": {
+      "ref": "colors.clear"
+    },
+    "roles.label.text": {
+      "ref": "colors.ink"
+    },
+    "roles.container.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.container.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.container.text": {
+      "ref": "colors.ink"
+    },
+    "roles.package.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.package.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.package.text": {
+      "ref": "colors.ink"
+    },
+    "roles.note.fill": {
+      "ref": "palette.yellow.fill"
+    },
+    "roles.note.stroke": {
+      "ref": "palette.yellow.stroke"
+    },
+    "roles.note.text": {
+      "ref": "colors.ink"
+    },
+    "roles.edge.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.edge.text": {
+      "ref": "colors.ink"
+    },
+    "roles.edge-label.fill": {
+      "ref": "canvas.surface"
+    },
+    "roles.edge-label.stroke": {
+      "ref": "colors.clear"
+    },
+    "roles.edge-label.text": {
+      "ref": "colors.ink"
+    },
+    "roles.participant.fill": {
+      "ref": "palette.blue.fill"
+    },
+    "roles.participant.stroke": {
+      "ref": "palette.blue.stroke"
+    },
+    "roles.participant.text": {
+      "ref": "colors.ink"
+    },
+    "roles.lifeline.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.activation.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "roles.activation.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.message.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.message.text": {
+      "ref": "colors.ink"
+    },
+    "roles.fragment.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.fragment.stroke": {
+      "ref": "palette.violet.stroke"
+    },
+    "roles.fragment.text": {
+      "ref": "colors.ink"
+    },
+    "roles.fragment-tag.fill": {
+      "ref": "palette.violet.fill"
+    },
+    "roles.fragment-tag.stroke": {
+      "ref": "palette.violet.stroke"
+    },
+    "roles.fragment-tag.text": {
+      "ref": "colors.ink"
+    },
+    "roles.divider.fill": {
+      "ref": "canvas.surface"
+    },
+    "roles.divider.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.divider.text": {
+      "ref": "colors.ink"
+    },
+    "roles.reference.fill": {
+      "ref": "canvas.surface"
+    },
+    "roles.reference.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.reference.text": {
+      "ref": "colors.ink"
+    },
+    "roles.participant-box.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "roles.participant-box.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.participant-box.text": {
+      "ref": "colors.ink"
+    },
+    "roles.state.fill": {
+      "ref": "palette.blue.fill"
+    },
+    "roles.state.stroke": {
+      "ref": "palette.blue.stroke"
+    },
+    "roles.state.text": {
+      "ref": "colors.ink"
+    },
+    "roles.composite-state.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.composite-state.stroke": {
+      "ref": "palette.blue.stroke"
+    },
+    "roles.composite-state.text": {
+      "ref": "colors.ink"
+    },
+    "roles.pseudo.fill": {
+      "ref": "colors.ink"
+    },
+    "roles.pseudo.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.pseudo.text": {
+      "ref": "colors.ink"
+    },
+    "roles.action.fill": {
+      "ref": "palette.blue.fill"
+    },
+    "roles.action.stroke": {
+      "ref": "palette.blue.stroke"
+    },
+    "roles.action.text": {
+      "ref": "colors.ink"
+    },
+    "roles.decision.fill": {
+      "ref": "palette.yellow.fill"
+    },
+    "roles.decision.stroke": {
+      "ref": "palette.yellow.stroke"
+    },
+    "roles.decision.text": {
+      "ref": "colors.ink"
+    },
+    "roles.bar.fill": {
+      "ref": "colors.ink"
+    },
+    "roles.bar.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.swimlane.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.swimlane.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.swimlane.text": {
+      "ref": "colors.ink"
+    },
+    "roles.partition.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.partition.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.partition.text": {
+      "ref": "colors.ink"
+    },
+    "roles.title.text": {
+      "ref": "colors.ink"
+    },
+    "roles.caption.text": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.header.text": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.footer.text": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.legend.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "roles.legend.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.legend.text": {
+      "ref": "colors.ink"
+    },
+    "roles.mainframe.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.mainframe.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.mainframe.text": {
+      "ref": "colors.ink"
+    },
+    "roles.grid.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.axis.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.axis.text": {
+      "ref": "colors.ink"
+    },
+    "roles.highlight.fill": {
+      "ref": "palette.red.fill"
+    },
+    "roles.highlight.stroke": {
+      "ref": "palette.red.stroke"
+    },
+    "roles.highlight.text": {
+      "ref": "colors.ink"
+    },
+    "roles.muted.fill": {
+      "ref": "palette.gray.fill"
+    },
+    "roles.muted.stroke": {
+      "ref": "palette.gray.stroke"
+    },
+    "roles.muted.text": {
+      "ref": "palette.gray.stroke"
+    },
+    "special.folder.stroke": "#e67700",
+    "special.folder.fill": "#ffd43b",
+    "special.timing-highlight.fill": "#fff3bf",
+    "special.timing-constraint.stroke": "#c92a2a",
+    "special.gantt-today.stroke": "#e03131",
+    "special.sequence-destroy.stroke": "#c92a2a",
+    "special.visibility-public.stroke": "#2f9e44",
+    "special.visibility-private.stroke": "#c92a2a",
+    "special.visibility-protected.stroke": "#e67700",
+    "special.visibility-package.stroke": "#1971c2",
+    "special.class-spot.text": "#ffffff",
+    "special.spot-class.fill": "#278238",
+    "special.spot-abstract.fill": "#0b7e91",
+    "special.spot-interface.fill": "#6741d9",
+    "special.spot-enum.fill": "#c54c0a",
+    "special.spot-exception.fill": "#c92a2a",
+    "special.spot-entity.fill": "#1971c2",
+    "special.spot-protocol.fill": "#9c36b5",
+    "special.spot-struct.fill": "#50810b",
+    "special.spot-record.fill": "#0d7d8f",
+    "special.spot-metaclass.fill": "#495057",
+    "special.archimate-business.fill": "#ffffb5",
+    "special.archimate-application.fill": "#b5ffff",
+    "special.archimate-technology.fill": "#c9e7b7",
+    "special.archimate-physical.fill": "#c9e7b7",
+    "special.archimate-motivation.fill": "#ccccff",
+    "special.archimate-strategy.fill": "#f5deaa",
+    "special.archimate-implementation.fill": "#ffe0e0",
+    "special.archimate-migration.fill": "#ffe0e0",
+    "special.archimate-other.fill": "#e9ecef",
+    "special.archimate.stroke": "#495057",
+    "special.ditaa-red.fill": "#ffc9c9",
+    "special.ditaa-gre.fill": "#b2f2bb",
+    "special.ditaa-blu.fill": "#a5d8ff",
+    "special.ditaa-yel.fill": "#ffec99",
+    "special.ditaa-pnk.fill": "#fcc2d7",
+    "special.ditaa-blk.fill": "#a8adb3",
+    "special.ditaa-whi.fill": "#ffffff",
+    "roles.edge.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.axis.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.grid.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.grid.text": {
+      "ref": "colors.ink"
+    },
+    "roles.message.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.lifeline.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.lifeline.text": {
+      "ref": "colors.ink"
+    },
+    "roles.activation.text": {
+      "ref": "colors.ink"
+    },
+    "roles.caption.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.caption.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.title.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.title.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.header.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.header.stroke": {
+      "ref": "colors.ink"
+    },
+    "roles.footer.fill": {
+      "ref": "colors.clear"
+    },
+    "roles.footer.stroke": {
+      "ref": "colors.ink"
+    },
+    "special.c4-person.fill": "#08427b",
+    "special.c4-person-ext.fill": "#686868",
+    "special.c4-system.fill": "#1168bd",
+    "special.c4-system-ext.fill": "#626262",
+    "special.c4-container.fill": "#2166a9",
+    "special.c4-container-ext.fill": "#525252",
+    "special.c4-component.fill": "#2a639b",
+    "special.c4-component-ext.fill": "#606060",
+    "special.c4.stroke": {
+      "ref": "colors.muted"
+    },
+    "special.c4.text": "#ffffff",
+    "special.c4-boundary.stroke": {
+      "ref": "colors.muted"
+    },
+    "special.table-header.fill": "#e9ecef",
+    "special.link.text": "#1864ab",
+    "roles.bar.text": {
+      "ref": "colors.ink"
+    },
+    "special.gantt-weekend.fill": {
+      "mix": ["colors.muted", "canvas.surface"],
+      "weight": 0.88
+    },
+    "special.sequence-divider.fill": {
+      "mix": ["roles.participant.fill", "canvas.surface"],
+      "weight": 0.4
+    },
+    "special.monochrome.text": "#1e1e1e",
+    "special.monochrome.fill": "#ffffff",
+    "special.monochrome-reverse.text": "#ffffff",
+    "special.monochrome-reverse.fill": "#000000"
+  },
+  "styles": {
+    "fontSize": 16,
+    "roughness": 1,
+    "edgeRoughness": 0.3,
+    "strokeWidth": 2,
+    "fillStyle": "solid",
+    "roles.container.strokeWidth": 1,
+    "roles.package.strokeWidth": 1,
+    "roles.note.strokeWidth": 1,
+    "roles.edge.strokeWidth": 2,
+    "roles.lifeline.strokeStyle": "dashed",
+    "roles.lifeline.strokeWidth": 1,
+    "roles.activation.strokeWidth": 1,
+    "roles.message.strokeWidth": 2,
+    "roles.fragment.strokeWidth": 1,
+    "roles.divider.strokeWidth": 1,
+    "roles.reference.strokeWidth": 1,
+    "roles.participant-box.strokeWidth": 1,
+    "roles.swimlane.strokeWidth": 1,
+    "roles.partition.strokeWidth": 1,
+    "roles.title.fontSize": 26,
+    "roles.caption.fontSize": 14,
+    "roles.header.fontSize": 13,
+    "roles.footer.fontSize": 13,
+    "roles.legend.strokeWidth": 1,
+    "roles.mainframe.strokeWidth": 1,
+    "roles.grid.strokeWidth": 1,
+    "roles.grid.strokeStyle": "dotted",
+    "roles.axis.strokeWidth": 1
+  },
+  "palette": [
+    "blue",
+    "green",
+    "yellow",
+    "violet",
+    "red",
+    "cyan",
+    "orange",
+    "grape",
+    "teal",
+    "gray",
+    "pink",
+    "lime"
+  ],
+  "contrast": {
+    "pairs": [
+      {
+        "foreground": "roles.default.text",
+        "backgrounds": ["roles.default.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.class.text",
+        "backgrounds": ["roles.class.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.component.text",
+        "backgrounds": ["roles.component.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.participant.text",
+        "backgrounds": ["roles.participant.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.action.text",
+        "backgrounds": ["roles.action.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.decision.text",
+        "backgrounds": ["roles.decision.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.note.text",
+        "backgrounds": ["roles.note.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.legend.text",
+        "backgrounds": ["roles.legend.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.edge-label.text",
+        "backgrounds": ["roles.edge-label.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.fragment-tag.text",
+        "backgrounds": ["roles.fragment-tag.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.reference.text",
+        "backgrounds": ["roles.reference.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.divider.text",
+        "backgrounds": ["roles.divider.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "colors.ink",
+        "backgrounds": [],
+        "kind": "text"
+      },
+      {
+        "foreground": "colors.muted",
+        "backgrounds": [],
+        "kind": "text"
+      },
+      {
+        "foreground": "roles.class.stroke",
+        "backgrounds": [],
+        "kind": "graphic"
+      },
+      {
+        "foreground": "roles.component.stroke",
+        "backgrounds": [],
+        "kind": "graphic"
+      },
+      {
+        "foreground": "roles.decision.stroke",
+        "backgrounds": [],
+        "kind": "graphic"
+      },
+      {
+        "foreground": "roles.note.stroke",
+        "backgrounds": [],
+        "kind": "graphic"
+      },
+      {
+        "foreground": "roles.participant.stroke",
+        "backgrounds": [],
+        "kind": "graphic"
+      },
+      {
+        "foreground": "roles.edge.stroke",
+        "backgrounds": [],
+        "kind": "graphic"
+      },
+      {
+        "foreground": "roles.axis.stroke",
+        "backgrounds": [],
+        "kind": "graphic"
+      },
+      {
+        "foreground": "roles.legend.stroke",
+        "backgrounds": [],
+        "kind": "graphic"
+      },
+      {
+        "foreground": "special.link.text",
+        "backgrounds": ["canvas.surface"],
+        "kind": "text"
+      },
+      {
+        "foreground": "colors.ink",
+        "backgrounds": ["special.table-header.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-class.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-abstract.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-interface.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-enum.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-exception.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-entity.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-protocol.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-struct.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-record.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.class-spot.text",
+        "backgrounds": ["special.spot-metaclass.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.c4.text",
+        "backgrounds": ["special.c4-person.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.c4.text",
+        "backgrounds": ["special.c4-person-ext.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.c4.text",
+        "backgrounds": ["special.c4-system.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.c4.text",
+        "backgrounds": ["special.c4-system-ext.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.c4.text",
+        "backgrounds": ["special.c4-container.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.c4.text",
+        "backgrounds": ["special.c4-container-ext.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.c4.text",
+        "backgrounds": ["special.c4-component.fill"],
+        "kind": "text"
+      },
+      {
+        "foreground": "special.c4.text",
+        "backgrounds": ["special.c4-component-ext.fill"],
+        "kind": "text"
+      }
+    ]
+  }
+}

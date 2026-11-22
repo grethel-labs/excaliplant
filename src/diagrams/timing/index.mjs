@@ -11,7 +11,7 @@ import { parseColorSpec } from "../../syntax/color.mjs";
 import { runRules } from "../../syntax/reader.mjs";
 import { label, unquote } from "../../syntax/text.mjs";
 import { layoutText } from "../../layout/measure.mjs";
-import { roleStyle, paletteAt } from "../../draw/theme.mjs";
+import { roleStyle, paletteAt, themeColor } from "../../draw/theme.mjs";
 import { LimitError } from "../../core/errors.mjs";
 import { score } from "../detect.mjs";
 
@@ -290,7 +290,7 @@ function drawTiming(laid, c) {
 
   for (const h of model.highlights) {
     c.rect(xOf(h.t1), 0, (h.t2 - h.t1) * px, total, {
-      fill: h.color ?? "#fff3bf",
+      fill: h.color ?? themeColor(theme, "special.timing-highlight.fill"),
       stroke: "transparent",
       roughness: 0,
       strokeWidth: 1,
@@ -382,6 +382,7 @@ function drawTiming(laid, c) {
           {
             closed: true,
             fill: ch.color ?? pal.fill,
+            fillStyle: "solid",
             stroke,
             strokeWidth: 1.5,
           },
@@ -451,7 +452,7 @@ function drawTiming(laid, c) {
       const tx = (p1[0] + p2[0]) / 2 + 6;
       const ty = (p1[1] + p2[1]) / 2 - t.height / 2;
       c.rect(tx - 2, ty, t.width + 4, t.height, {
-        fill: theme.background,
+        fill: theme.surface ?? theme.background,
         stroke: "transparent",
         strokeWidth: 1,
         roughness: 0,
@@ -467,13 +468,24 @@ function drawTiming(laid, c) {
         [xOf(k.t1), cy],
         [xOf(k.t2), cy],
       ],
-      { stroke: "#c92a2a", strokeWidth: 1.2, start: "arrow", end: "arrow", roughness: 0 },
+      {
+        stroke: themeColor(theme, "special.timing-constraint.stroke"),
+        strokeWidth: 1.2,
+        start: "arrow",
+        end: "arrow",
+        roughness: 0,
+      },
     );
     if (k.text) {
       const t = layoutText(k.text, { fontSize: fs * 0.8 });
-      c.richText(t, (xOf(k.t1) + xOf(k.t2)) / 2 - t.width / 2, cy - t.height - 1, {
-        color: "#c92a2a",
+      const x = (xOf(k.t1) + xOf(k.t2)) / 2 - t.width / 2;
+      const y = cy - t.height - 1;
+      c.rect(x - 2, y, t.width + 4, t.height, {
+        fill: theme.surface ?? theme.background,
+        stroke: "transparent",
+        roughness: 0,
       });
+      c.richText(t, x, y, { color: theme.ink });
     }
   }
   if (!model.hideAxis) {

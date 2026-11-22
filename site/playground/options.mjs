@@ -1,15 +1,8 @@
 // Playground options: defaults, validation and the mapping onto `render()`.
 // Pure functions only (no DOM), shared by the page, the worker and the tests.
 
-/** Theme names offered in the UI; a test keeps this in sync with `THEME_NAMES`. */
-export const THEME_CHOICES = Object.freeze([
-  "sketch",
-  "plain",
-  "hachure",
-  "mono",
-  "dark",
-  "blueprint",
-]);
+export { THEME_NAMES as THEME_CHOICES } from "../../src/draw/theme.mjs";
+import { THEME_NAMES as THEME_CHOICES } from "../../src/draw/theme.mjs";
 
 /** Diagram kinds that can be forced; a test keeps this in sync with `listDiagramTypes()`. */
 export const KIND_CHOICES = Object.freeze([

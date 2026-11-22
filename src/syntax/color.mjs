@@ -96,10 +96,24 @@ function rgb(hex) {
  * @returns {string}
  */
 export function mixColors(a, b, t) {
-  const ca = rgb(parseColor(a) ?? "#000000");
-  const cb = rgb(parseColor(b) ?? "#000000");
-  const mixed = ca.map((v, i) => Math.round(v + (cb[i] - v) * t));
-  return `#${mixed.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+  const from = parseColor(a) ?? "#000000";
+  const to = parseColor(b) ?? "#000000";
+  const alpha = (color) =>
+    color === TRANSPARENT ? 0 : color.length === 9 ? parseInt(color.slice(7), 16) / 255 : 1;
+  const left = alpha(from) * (1 - t);
+  const right = alpha(to) * t;
+  const weight = left + right;
+  if (weight <= 0) return TRANSPARENT;
+  const ca = from === TRANSPARENT ? [0, 0, 0] : rgb(from);
+  const cb = to === TRANSPARENT ? [0, 0, 0] : rgb(to);
+  const mixed = ca.map((value, i) => Math.round((value * left + cb[i] * right) / weight));
+  const hex = `#${mixed.map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+  const opacity = Math.round(weight * 255);
+  return opacity === 0
+    ? TRANSPARENT
+    : opacity === 255
+      ? hex
+      : hex + opacity.toString(16).padStart(2, "0");
 }
 
 /**

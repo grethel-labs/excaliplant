@@ -118,12 +118,18 @@ function drawNode(n, c) {
     case "start":
       return c.ellipse(x, y, n.w, n.h, { fill: ink, stroke: ink, fillStyle: "solid" });
     case "stop": {
-      const id = c.ellipse(x, y, n.w, n.h, { fill: theme.background, stroke: ink });
+      const id = c.ellipse(x, y, n.w, n.h, {
+        fill: theme.surface ?? theme.background,
+        stroke: ink,
+      });
       c.ellipse(x + 6, y + 6, n.w - 12, n.h - 12, { fill: ink, stroke: ink, fillStyle: "solid" });
       return id;
     }
     case "end": {
-      const id = c.ellipse(x, y, n.w, n.h, { fill: theme.background, stroke: ink });
+      const id = c.ellipse(x, y, n.w, n.h, {
+        fill: theme.surface ?? theme.background,
+        stroke: ink,
+      });
       const d = n.w * 0.22;
       c.line(
         [

@@ -11,13 +11,14 @@ import { stripComments, splitPages } from "./source.mjs";
 import { preprocess } from "./preprocess/preprocessor.mjs";
 import { Canvas } from "../draw/canvas.mjs";
 import { decorate } from "../draw/frame.mjs";
-import { createTheme, mapPlantUmlTheme, THEMES } from "../draw/theme.mjs";
+import { createTheme, mapPlantUmlTheme } from "../draw/theme.mjs";
 import { applySkin } from "../syntax/skin.mjs";
 import { createDocument, validateDocument } from "../render/excalidraw.mjs";
 
 /**
  * @typedef {object} RenderOptions
  * @property {string | import("../draw/theme.mjs").Theme} [theme] Theme name (`sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`) or object.
+ * @property {Record<string, string>} [themeColors] Individual colour overrides by theme path.
  * @property {boolean} [sketch] Force hand-drawn (`true`) or clean (`false`) strokes.
  * @property {string | number} [seed] Seed for ids and stroke wobble (default `excaliplant`).
  * @property {number} [page] Page index for `newpage` documents (default 0).
@@ -90,10 +91,7 @@ export function parseBlock(block, registry, options = {}) {
     });
 
   const themeName = options.theme ?? mapPlantUmlTheme(ppTheme) ?? "sketch";
-  const theme = createTheme(
-    typeof themeName === "string" && !THEMES[themeName] ? "sketch" : themeName,
-    { sketch: options.sketch },
-  );
+  const theme = createTheme(themeName, { sketch: options.sketch, colors: options.themeColors });
   /** @type {import("./registry.mjs").ModuleContext} */
   const ctx = {
     diagnostics,
