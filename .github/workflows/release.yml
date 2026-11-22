@@ -194,9 +194,11 @@ jobs:
 
   # Obsidian needs a repository whose root holds manifest.json and whose tags
   # equal the manifest version (no `v`), so the plugin is mirrored into
-  # grethel-labs/excaliplant-obsidian. See docs/obsidian.md. DISABLED by
-  # default: it only runs when the repository variable PUBLISH_OBSIDIAN is
-  # "true" (and is then still skipped without the OBSIDIAN_REPO_TOKEN secret).
+  # grethel-labs/excaliplant-obsidian. This job pushes the built files and the
+  # tag with a deploy key that can write to that one repository only (secret
+  # OBSIDIAN_DEPLOY_KEY); the mirror's own workflow turns the tag into the
+  # GitHub release. See docs/obsidian.md. DISABLED by default: it only runs
+  # when the repository variable PUBLISH_OBSIDIAN is "true".
   obsidian:
     name: Mirror Obsidian plugin
     needs: [plan, publish]
@@ -206,34 +208,32 @@ jobs:
       contents: read
     env:
       VERSION: ${{ needs.plan.outputs.version }}
-      OBSIDIAN_REPO_TOKEN: ${{ secrets.OBSIDIAN_REPO_TOKEN }}
+      OBSIDIAN_DEPLOY_KEY: ${{ secrets.OBSIDIAN_DEPLOY_KEY }}
     steps:
-      - name: Check for the mirror token
-        id: token
+      - name: Check for the deploy key
+        id: key
         run: |
-          if [ -z "$OBSIDIAN_REPO_TOKEN" ]; then
-            echo "::notice::OBSIDIAN_REPO_TOKEN is not set; skipping the Obsidian mirror."
+          if [ -z "$OBSIDIAN_DEPLOY_KEY" ]; then
+            echo "::notice::OBSIDIAN_DEPLOY_KEY is not set; skipping the Obsidian mirror."
             echo "present=false" >> "$GITHUB_OUTPUT"
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/checkout@v7
-        if: steps.token.outputs.present == 'true'
+        if: steps.key.outputs.present == 'true'
       - uses: actions/setup-node@v7
-        if: steps.token.outputs.present == 'true'
+        if: steps.key.outputs.present == 'true'
         with:
           node-version: 22
           cache: npm
       - uses: actions/checkout@v7
-        if: steps.token.outputs.present == 'true'
+        if: steps.key.outputs.present == 'true'
         with:
           repository: grethel-labs/excaliplant-obsidian
-          token: ${{ secrets.OBSIDIAN_REPO_TOKEN }}
+          ssh-key: ${{ secrets.OBSIDIAN_DEPLOY_KEY }}
           path: mirror
-      - name: Build, mirror and release
-        if: steps.token.outputs.present == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.OBSIDIAN_REPO_TOKEN }}
+      - name: Build, mirror and tag
+        if: steps.key.outputs.present == 'true'
         run: |
           set -euo pipefail
           npm ci
@@ -248,14 +248,15 @@ jobs:
             echo "Mirror is already up to date."
           else
             git commit -m "Excaliplant $VERSION"
-            git push origin HEAD
+            git push origin HEAD:main
           fi
-          if gh release view "$VERSION" --repo grethel-labs/excaliplant-obsidian >/dev/null 2>&1; then
-            echo "::notice::Mirror release $VERSION already exists."
+          # The tag comes after the manifest commit is on main; the mirror's
+          # workflow creates the release from it.
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "::notice::Mirror tag $VERSION already exists."
           else
-            gh release create "$VERSION" main.js manifest.json styles.css \
-              --repo grethel-labs/excaliplant-obsidian --target "$(git rev-parse HEAD)" \
-              --title "$VERSION" --notes "Excaliplant $VERSION. Source: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+            git tag -a "$VERSION" -m "Excaliplant $VERSION"
+            git push origin "$VERSION"
           fi
 
   # The .vsix is attached to the GitHub release and published to the VS Code

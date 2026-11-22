@@ -110,7 +110,7 @@ function pickExamples(examples) {
     const choice =
       ofKind.find((e) => size(e) <= MAX_EXAMPLE_BYTES) ??
       [...ofKind].sort((a, b) => size(a) - size(b) || a.name.localeCompare(b.name))[0];
-    picked.push({ ...choice, file: `assets/examples/${kind}-${choice.name}.puml` });
+    picked.push({ ...choice, file: `assets/examples/${kind}-${choice.name}.puml.txt` });
   }
   return picked;
 }

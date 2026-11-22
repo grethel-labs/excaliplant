@@ -6,232 +6,232 @@ One tested example per diagram type lives in `assets/examples/`. Copy the closes
 
 ## Sequence
 
-Participants, all arrow styles, activations, notes, fragments, dividers, autonumber, boxes. Source: `assets/examples/sequence-checkout-flow.puml`. More: [fragments-notes](https://github.com/grethel-labs/excaliplant/blob/main/examples/sequence/fragments-notes.puml), [lifecycle](https://github.com/grethel-labs/excaliplant/blob/main/examples/sequence/lifecycle.puml), [preprocessor](https://github.com/grethel-labs/excaliplant/blob/main/examples/sequence/preprocessor.puml).
+Participants, all arrow styles, activations, notes, fragments, dividers, autonumber, boxes. Source: `assets/examples/sequence-checkout-flow.puml.txt`. More: [fragments-notes](https://github.com/grethel-labs/excaliplant/blob/main/examples/sequence/fragments-notes.puml), [lifecycle](https://github.com/grethel-labs/excaliplant/blob/main/examples/sequence/lifecycle.puml), [preprocessor](https://github.com/grethel-labs/excaliplant/blob/main/examples/sequence/preprocessor.puml).
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/sequence-checkout-flow.puml -o sequence.svg
+npx -y @grethel-labs/excaliplant assets/examples/sequence-checkout-flow.puml.txt -o sequence.svg
 ```
 
 ## Class & IE
 
-Classes, interfaces, enums, generics, members, packages, all UML relations, IE crow's feet. Source: `assets/examples/class-shop-domain.puml`. More: [ie-schema](https://github.com/grethel-labs/excaliplant/blob/main/examples/class/ie-schema.puml), [relations](https://github.com/grethel-labs/excaliplant/blob/main/examples/class/relations.puml).
+Classes, interfaces, enums, generics, members, packages, all UML relations, IE crow's feet. Source: `assets/examples/class-shop-domain.puml.txt`. More: [ie-schema](https://github.com/grethel-labs/excaliplant/blob/main/examples/class/ie-schema.puml), [relations](https://github.com/grethel-labs/excaliplant/blob/main/examples/class/relations.puml).
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/class-shop-domain.puml -o class.svg
+npx -y @grethel-labs/excaliplant assets/examples/class-shop-domain.puml.txt -o class.svg
 ```
 
 ## Activity
 
-New syntax with if/switch/while/repeat/fork/split, partitions, notes and swimlanes. Source: `assets/examples/activity-order-processing.puml`. More: [repeat-switch](https://github.com/grethel-labs/excaliplant/blob/main/examples/activity/repeat-switch.puml), [swimlanes](https://github.com/grethel-labs/excaliplant/blob/main/examples/activity/swimlanes.puml).
+New syntax with if/switch/while/repeat/fork/split, partitions, notes and swimlanes. Source: `assets/examples/activity-order-processing.puml.txt`. More: [repeat-switch](https://github.com/grethel-labs/excaliplant/blob/main/examples/activity/repeat-switch.puml), [swimlanes](https://github.com/grethel-labs/excaliplant/blob/main/examples/activity/swimlanes.puml).
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/activity-order-processing.puml -o activity.svg
+npx -y @grethel-labs/excaliplant assets/examples/activity-order-processing.puml.txt -o activity.svg
 ```
 
 ## State
 
-Composite states, concurrent regions, choice, fork/join, history, entry/exit actions. Source: `assets/examples/state-order-lifecycle.puml`. More: [fork-history](https://github.com/grethel-labs/excaliplant/blob/main/examples/state/fork-history.puml).
+Composite states, concurrent regions, choice, fork/join, history, entry/exit actions. Source: `assets/examples/state-order-lifecycle.puml.txt`. More: [fork-history](https://github.com/grethel-labs/excaliplant/blob/main/examples/state/fork-history.puml).
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/state-order-lifecycle.puml -o state.svg
+npx -y @grethel-labs/excaliplant assets/examples/state-order-lifecycle.puml.txt -o state.svg
 ```
 
 ## Component & C4
 
-Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. Source: `assets/examples/component-c4-container.puml`. More: [web-platform](https://github.com/grethel-labs/excaliplant/blob/main/examples/component/web-platform.puml).
+Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. Source: `assets/examples/component-c4-container.puml.txt`. More: [web-platform](https://github.com/grethel-labs/excaliplant/blob/main/examples/component/web-platform.puml).
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/component-c4-container.puml -o component.svg
+npx -y @grethel-labs/excaliplant assets/examples/component-c4-container.puml.txt -o component.svg
 ```
 
 ## Use case
 
-Actors, use cases, system boundaries, include/extend. Source: `assets/examples/usecase-checkout.puml`. More: [library](https://github.com/grethel-labs/excaliplant/blob/main/examples/usecase/library.puml).
+Actors, use cases, system boundaries, include/extend. Source: `assets/examples/usecase-checkout.puml.txt`. More: [library](https://github.com/grethel-labs/excaliplant/blob/main/examples/usecase/library.puml).
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/usecase-checkout.puml -o usecase.svg
+npx -y @grethel-labs/excaliplant assets/examples/usecase-checkout.puml.txt -o usecase.svg
 ```
 
 ## Deployment
 
-Nodes, clouds, databases, queues, artifacts and nested deployment targets. Source: `assets/examples/deployment-kubernetes.puml`. More: [shapes](https://github.com/grethel-labs/excaliplant/blob/main/examples/deployment/shapes.puml).
+Nodes, clouds, databases, queues, artifacts and nested deployment targets. Source: `assets/examples/deployment-kubernetes.puml.txt`. More: [shapes](https://github.com/grethel-labs/excaliplant/blob/main/examples/deployment/shapes.puml).
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/deployment-kubernetes.puml -o deployment.svg
+npx -y @grethel-labs/excaliplant assets/examples/deployment-kubernetes.puml.txt -o deployment.svg
 ```
 
 ## Object
 
-Objects with fields, maps (`key => value`) and links. Source: `assets/examples/object-runtime-snapshot.puml`.
+Objects with fields, maps (`key => value`) and links. Source: `assets/examples/object-runtime-snapshot.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/object-runtime-snapshot.puml -o object.svg
+npx -y @grethel-labs/excaliplant assets/examples/object-runtime-snapshot.puml.txt -o object.svg
 ```
 
 ## Timing
 
-Robust, concise, clock, binary and analog signals with messages and constraints. Source: `assets/examples/timing-sensor.puml`. More: [web-request](https://github.com/grethel-labs/excaliplant/blob/main/examples/timing/web-request.puml).
+Robust, concise, clock, binary and analog signals with messages and constraints. Source: `assets/examples/timing-sensor.puml.txt`. More: [web-request](https://github.com/grethel-labs/excaliplant/blob/main/examples/timing/web-request.puml).
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/timing-sensor.puml -o timing.svg
+npx -y @grethel-labs/excaliplant assets/examples/timing-sensor.puml.txt -o timing.svg
 ```
 
 ## Gantt
 
-Tasks, dependencies, milestones, progress, resources, closed days, today marker. Source: `assets/examples/gantt-release-plan.puml`.
+Tasks, dependencies, milestones, progress, resources, closed days, today marker. Source: `assets/examples/gantt-release-plan.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/gantt-release-plan.puml -o gantt.svg
+npx -y @grethel-labs/excaliplant assets/examples/gantt-release-plan.puml.txt -o gantt.svg
 ```
 
 ## Mind map
 
-OrgMode/Markdown outlines on both sides, colours, boxless nodes. Source: `assets/examples/mindmap-excaliplant.puml`.
+OrgMode/Markdown outlines on both sides, colours, boxless nodes. Source: `assets/examples/mindmap-excaliplant.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/mindmap-excaliplant.puml -o mindmap.svg
+npx -y @grethel-labs/excaliplant assets/examples/mindmap-excaliplant.puml.txt -o mindmap.svg
 ```
 
 ## WBS
 
-Work breakdown structures as org charts. Source: `assets/examples/wbs-website-relaunch.puml`.
+Work breakdown structures as org charts. Source: `assets/examples/wbs-website-relaunch.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/wbs-website-relaunch.puml -o wbs.svg
+npx -y @grethel-labs/excaliplant assets/examples/wbs-website-relaunch.puml.txt -o wbs.svg
 ```
 
 ## JSON
 
-JSON documents as linked tables with highlights. Source: `assets/examples/json-api-response.puml`.
+JSON documents as linked tables with highlights. Source: `assets/examples/json-api-response.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/json-api-response.puml -o json.svg
+npx -y @grethel-labs/excaliplant assets/examples/json-api-response.puml.txt -o json.svg
 ```
 
 ## YAML
 
-YAML documents as linked tables. Source: `assets/examples/yaml-ci-config.puml`.
+YAML documents as linked tables. Source: `assets/examples/yaml-ci-config.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/yaml-ci-config.puml -o yaml.svg
+npx -y @grethel-labs/excaliplant assets/examples/yaml-ci-config.puml.txt -o yaml.svg
 ```
 
 ## ArchiMate
 
-ArchiMate elements by layer with icons, junctions and `Rel_*` macros. Source: `assets/examples/archimate-insurance.puml`.
+ArchiMate elements by layer with icons, junctions and `Rel_*` macros. Source: `assets/examples/archimate-insurance.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/archimate-insurance.puml -o archimate.svg
+npx -y @grethel-labs/excaliplant assets/examples/archimate-insurance.puml.txt -o archimate.svg
 ```
 
 ## Chen ER
 
-Chen ER diagrams: entities, weak entities, relationships, attributes, cardinalities. Source: `assets/examples/chen-movie-rental.puml`.
+Chen ER diagrams: entities, weak entities, relationships, attributes, cardinalities. Source: `assets/examples/chen-movie-rental.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/chen-movie-rental.puml -o chen.svg
+npx -y @grethel-labs/excaliplant assets/examples/chen-movie-rental.puml.txt -o chen.svg
 ```
 
 ## Network
 
-Networks, addresses, multi-homed nodes, groups and peer links. Source: `assets/examples/nwdiag-office-network.puml`.
+Networks, addresses, multi-homed nodes, groups and peer links. Source: `assets/examples/nwdiag-office-network.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/nwdiag-office-network.puml -o nwdiag.svg
+npx -y @grethel-labs/excaliplant assets/examples/nwdiag-office-network.puml.txt -o nwdiag.svg
 ```
 
 ## Salt wireframe
 
-Wireframes: grids, buttons, inputs, check boxes, trees, tabs, group boxes. Source: `assets/examples/salt-login-dialog.puml`.
+Wireframes: grids, buttons, inputs, check boxes, trees, tabs, group boxes. Source: `assets/examples/salt-login-dialog.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/salt-login-dialog.puml -o salt.svg
+npx -y @grethel-labs/excaliplant assets/examples/salt-login-dialog.puml.txt -o salt.svg
 ```
 
 ## EBNF
 
-EBNF grammars as railroad diagrams. Source: `assets/examples/ebnf-json-grammar.puml`.
+EBNF grammars as railroad diagrams. Source: `assets/examples/ebnf-json-grammar.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/ebnf-json-grammar.puml -o ebnf.svg
+npx -y @grethel-labs/excaliplant assets/examples/ebnf-json-grammar.puml.txt -o ebnf.svg
 ```
 
 ## Regex
 
-Regular expressions as railroad diagrams. Source: `assets/examples/regex-email.puml`.
+Regular expressions as railroad diagrams. Source: `assets/examples/regex-email.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/regex-email.puml -o regex.svg
+npx -y @grethel-labs/excaliplant assets/examples/regex-email.puml.txt -o regex.svg
 ```
 
 ## Graphviz DOT
 
-Graphviz DOT graphs laid out with ELK. Source: `assets/examples/dot-pipeline.puml`.
+Graphviz DOT graphs laid out with ELK. Source: `assets/examples/dot-pipeline.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/dot-pipeline.puml -o dot.svg
+npx -y @grethel-labs/excaliplant assets/examples/dot-pipeline.puml.txt -o dot.svg
 ```
 
 ## Chronology
 
-Events and spans on a time line with links. Source: `assets/examples/chronology-project-history.puml`.
+Events and spans on a time line with links. Source: `assets/examples/chronology-project-history.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/chronology-project-history.puml -o chronology.svg
+npx -y @grethel-labs/excaliplant assets/examples/chronology-project-history.puml.txt -o chronology.svg
 ```
 
 ## Files
 
-File trees from path lists with notes. Source: `assets/examples/files-project-layout.puml`.
+File trees from path lists with notes. Source: `assets/examples/files-project-layout.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/files-project-layout.puml -o files.svg
+npx -y @grethel-labs/excaliplant assets/examples/files-project-layout.puml.txt -o files.svg
 ```
 
 ## Chart
 
-Bar, line, area and scatter charts. Source: `assets/examples/chart-quarterly.puml`.
+Bar, line, area and scatter charts. Source: `assets/examples/chart-quarterly.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/chart-quarterly.puml -o chart.svg
+npx -y @grethel-labs/excaliplant assets/examples/chart-quarterly.puml.txt -o chart.svg
 ```
 
 ## AsciiMath
 
-AsciiMath formulas. Source: `assets/examples/math-sum-of-cubes.puml`.
+AsciiMath formulas. Source: `assets/examples/math-sum-of-cubes.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/math-sum-of-cubes.puml -o math.svg
+npx -y @grethel-labs/excaliplant assets/examples/math-sum-of-cubes.puml.txt -o math.svg
 ```
 
 ## LaTeX
 
-LaTeX formulas. Source: `assets/examples/latex-gaussian.puml`.
+LaTeX formulas. Source: `assets/examples/latex-gaussian.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/latex-gaussian.puml -o latex.svg
+npx -y @grethel-labs/excaliplant assets/examples/latex-gaussian.puml.txt -o latex.svg
 ```
 
 ## Ditaa
 
-ASCII art boxes, lines, arrows and colour tags. Source: `assets/examples/ditaa-pipeline.puml`.
+ASCII art boxes, lines, arrows and colour tags. Source: `assets/examples/ditaa-pipeline.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/ditaa-pipeline.puml -o ditaa.svg
+npx -y @grethel-labs/excaliplant assets/examples/ditaa-pipeline.puml.txt -o ditaa.svg
 ```
 
 ## Legacy activity
 
-The classic `(*) --> "Activity"` syntax with sync bars and branches. Source: `assets/examples/legacy-activity-approval.puml`.
+The classic `(*) --> "Activity"` syntax with sync bars and branches. Source: `assets/examples/legacy-activity-approval.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/legacy-activity-approval.puml -o legacy-activity.svg
+npx -y @grethel-labs/excaliplant assets/examples/legacy-activity-approval.puml.txt -o legacy-activity.svg
 ```
 
 ## Creole
 
-Rich text with headings, lists, tables and links. Source: `assets/examples/creole-release-notes.puml`.
+Rich text with headings, lists, tables and links. Source: `assets/examples/creole-release-notes.puml.txt`.
 
 ```sh
-npx -y @grethel-labs/excaliplant assets/examples/creole-release-notes.puml -o creole.svg
+npx -y @grethel-labs/excaliplant assets/examples/creole-release-notes.puml.txt -o creole.svg
 ```
