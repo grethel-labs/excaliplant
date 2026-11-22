@@ -334,3 +334,35 @@ jobs:
           else
             echo "::notice::Open VSX not configured (no OVSX_PAT, PUBLISH_OPEN_VSX is not 'true'); skipping."
           fi
+
+  # The plugin directories (Claude, Codex) track a branch or tag of this
+  # repository and want a version that rises with every release, but releases
+  # never write to main and the committed plugin files carry no real version.
+  # So each release adds ONE commit to the generated branch `plugin-release`
+  # (plugin files only, versioned; no workflow files) and tags it
+  # plugin-release-vX.Y.Z; the push is always a fast-forward. A failure here does
+  # not undo the npm release; re-run this job (it is idempotent). Only the
+  # GITHUB_TOKEN is used. See docs/publishing.md.
+  plugin-release:
+    name: Update plugin-release branch
+    needs: [plan, publish]
+    if: needs.plan.outputs.bump != 'none'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the branch content
+        run: node scripts/plugin-ref.mjs --version "$VERSION" --out "$RUNNER_TEMP/plugin-ref"
+      - name: Commit, tag and push (fast-forward only)
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          FILES_DIR: ${{ runner.temp }}/plugin-ref
+        run: bash scripts/publish-plugin-branch.sh
