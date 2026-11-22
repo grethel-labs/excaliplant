@@ -97,6 +97,16 @@ json    = {"v":1,"s":"<PlantUML source>","o":{<options that differ from the defa
 
 The hash is never sent to a server. Links are limited to 16,000 characters (the page offers `.puml` download instead for larger documents); links up to 64,000 characters are accepted. When reading, the decompressed size is capped, the version and types are checked and every option is validated again, so a hostile link cannot do more than a hostile text typed into the editor. A damaged link shows a message and falls back to your last document.
 
+### Plain-text links
+
+`<page>#src=<percent-encoded PlantUML text>` opens the playground with that text and default options. It exists for places that cannot run the CLI (the agent skill tells a language model to write such a link when it cannot execute commands): the text is plain `encodeURIComponent` output, so a person or a model can write it by hand, without compression or Base64.
+
+```text
+https://grethel-labs.github.io/excaliplant/#src=%40startuml%0AAlice%20-%3E%20Bob%20%3A%20hi%0A%40enduml
+```
+
+Space is `%20`, a line break `%0A`, `@` is `%40`, `>` is `%3E`, `:` is `%3A`, `+` is `%2B`, `#` is `%23`, `%` is `%25`. Values over 64,000 characters, malformed escapes and text with a NUL byte are refused with the message "That link could not be read". As with `#p=`, the hash is never sent to a server.
+
 The share hash takes precedence over `localStorage`; after loading it the address becomes `#play`, so a reload does not discard your later edits. Text and options are stored in `localStorage` (always inside `try/catch`; the page works without it). The colour theme is stored separately.
 
 ## Export

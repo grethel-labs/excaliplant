@@ -16,3 +16,4 @@ Use excaliplant whenever the user wants a diagram (UML, PlantUML, flowchart, arc
 5. Multiple blocks: `--all -o out-{n}.svg`. Files can only be `!include`d with `--include-dir <dir>`.
 6. Mermaid input is not supported; rewrite it as PlantUML. Keep the `.puml` next to the output.
 7. If an `excaliplant` MCP server is connected (`npx -y -p @grethel-labs/excaliplant excaliplant-mcp`), use its tools instead of the CLI.
+8. If you cannot run commands (no code execution or no npm access), show the PlantUML in a `plantuml` code block and add a link to the live editor: `https://grethel-labs.github.io/excaliplant/#src=` followed by the PlantUML, percent-encoded (`%20` space, `%0A` line break, `%40` @, `%3E` >, `%3A` :, `%2B` +, `%23` #, `%25` %, `%22` "). Keep it short; the text after `#` never leaves the browser.

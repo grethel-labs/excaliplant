@@ -38,6 +38,8 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- The playground opens plain-text links (`#src=` followed by percent-encoded PlantUML), and the agent skill tells a model that cannot run commands to give such a link to the live editor instead of failing. The plugin READMEs describe it.
+
 - The website is now a live playground: write PlantUML in the browser and see it rendered with the current version in a web worker (all render options, editable examples, share links, SVG/PNG/Excalidraw export). The example gallery moved to a second view with an "Open in playground" button; see `docs/site.md`.
 - Each release adds a commit with the versioned plugin files to the generated branch `plugin-release` (tag `plugin-release-vX.Y.Z`), which the Claude plugin directory can track; `main` stays untouched.
 - `warmup()` (exported from the package) loads the layout engine ahead of time. The MCP server (`--no-warmup` to disable), the VS Code extension (`excaliplant.warmup`) and the Obsidian plugin (setting "Prepare in the background") call it in the background, so the first class, component or state diagram no longer waits about a second.
