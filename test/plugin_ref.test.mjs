@@ -127,7 +127,8 @@ test("the Claude plugin part of the branch meets the directory's file rules", ()
     if (/\.png$/.test(p)) {
       assert.equal(buf.subarray(1, 4).toString("latin1"), "PNG", p);
     } else {
-      assert.match(p, /\.(md|json|puml)$|\/LICENSE$/, `${p} has an unexpected type`);
+      // .puml is not accepted by the directory (examples ship as .puml.txt).
+      assert.match(p, /\.(md|json|txt)$|\/LICENSE$/, `${p} has an unexpected type`);
       assert.ok(!buf.includes(0), `${p} is not text`);
       assert.ok(!buf.toString("utf8").startsWith("#!"), `${p} has a shebang`);
       if (p.endsWith(".json")) JSON.parse(buf.toString("utf8"));
