@@ -107,3 +107,75 @@ bounded, `warmup()` is idempotent, and the benchmark script runs.
   or when `warmup()` hides it.
 - `warmup()` costs about 1 s of CPU in the background; a host that renders only non-graph diagrams should not
   call it.
+
+## ELK options
+
+Question: can the ELK input (layout options, graph shape) be trimmed so ELK runs faster **without changing a
+single output byte**? Rule: quality beats speed. A change counts only if the geometry stays bit-identical on a
+wide corpus; "looks similar" does not count. Result: **nothing was adopted**; no variant was both identical
+and measurably faster.
+
+Harness: `node scripts/elk-experiments.mjs` (corpus generator in `scripts/elk-corpus.mjs`). Variants wrap
+`ELK.prototype.layout`, so production code is never touched.
+
+- Corpus: 411 inputs that really run ELK (examples 44 including 32 polyline/left-to-right variants of the
+  examples and test sources, 54 `@start…@end` blocks from `test/*.test.mjs`, 313 seeded random graphs: 2 to 40
+  nodes, up to 80 edges, cycles, self loops, nested containers up to depth 3, edge labels, multiplicities,
+  choice/fork/join ports, actors with icon ports, LR and TB, polyline routing, isolated nodes). Kinds:
+  class, object, component, deployment, state, use case, legacy activity and DOT, plus the graph examples of
+  the other kinds (C4, ArchiMate, Chen, …). Reference = SHA-256 of Excalidraw JSON and SVG, sketch and dark theme (822 hashes), taken with the
+  unchanged code; `check` reproduces it.
+- Identity test: the raw ELK result of every one of the 411 graphs, compared field by field (ELK echoes its
+  input, so `layoutOptions`, label `text`, empty arrays and the internal `$H` counter are ignored). A control
+  variant ("noop") must report 0 differences, and does.
+- Where the time goes (warm, layout cache off, median of 7): ELK is 89 to 96 % of the render time in every size
+  class. Median per input: 11 ms (up to 8 nodes), 31 ms (9 to 20), 93 ms (over 20 nodes), 243 ms (over 20
+  nodes with containers). Containers (hierarchy handling) multiply the cost: the same node count is 2.6 times
+  slower with containers. The median ELK time per node is about 2 to 4 ms, rising to 7 ms above 25 nodes.
+
+| Candidate                                                    | Raw geometry identical (of 411) | Speed                 |
+| ------------------------------------------------------------ | ------------------------------- | --------------------- |
+| noop (control)                                               | yes (0 differ)                  | 0 % (noise)           |
+| drop edge `priority.direction=0` (is the default)            | yes                             | not measurable        |
+| drop empty edge `layoutOptions {}` / empty `labels []`       | yes                             | not measurable        |
+| drop `mergeEdges=false`, `edgeLabels.inline=false`           | yes                             | not measurable        |
+| drop `forceNodeModelOrder=false`, `sideSelection=SMART_DOWN` | yes                             | not measurable        |
+| drop `separateConnectedComponents=true` / set it to `false`  | yes                             | not measurable        |
+| drop `edgeRouting=ORTHOGONAL`, `algorithm=layered`           | yes                             | not measurable        |
+| explicit `debugMode/validateGraph/validateOptions=false`     | yes                             | not measurable        |
+| all of the identical ones combined                           | yes                             | -0.6 % (noop: -0.3 %) |
+| `SEPARATE_CHILDREN` for graphs without containers            | no (122 differ)                 | not pursued           |
+| remove `hierarchyHandling` for graphs without containers     | no (122 differ)                 | not pursued           |
+| `SEPARATE_CHILDREN` when no edge crosses a container border  | no (140 differ)                 | not pursued           |
+| drop label `text` from ELK labels                            | no (323 differ)                 | not pursued           |
+| no spacing options repeated on containers                    | no (168 differ)                 | not pursued           |
+| `thoroughness` 7 (ELK default) instead of 10                 | no (22 differ)                  | not pursued           |
+| `thoroughness` 3 / 1                                         | no (76 / 118 differ)            | not pursued           |
+| `thoroughness` 1 only for graphs with at most 3 nodes        | yes                             | -0.6 % (noop: -1.7 %) |
+| `greedySwitch.type=OFF`                                      | yes                             | -1.8 % (noop: -1.7 %) |
+
+Speed numbers are the summed median ELK time over the graphs (direct `elk.layout` calls on the captured input
+graphs, JIT warm, alternating variants over several rounds), positive = faster. The noise floor was measured with
+the control variant: about +-2 to 6 % per size class. A first, non-interleaved run reported -150 % to +50 % for
+pure no-ops and was discarded.
+
+What we take from this:
+
+- The identical variants only remove bytes from the input JSON. ELK's time is spent in its layout phases (layering,
+  crossing minimisation, node placement, routing), not in reading options, so none is faster than the noise floor.
+  The two identical variants that touch an algorithm (`greedySwitch` off, `thoroughness` 1 for tiny graphs) are
+  identical on this corpus (presumably because those phases have little to change with hierarchy handling and
+  tiny graphs; this is not proven), and they are equally not faster (this was measured on the 377 graphs with up to 25 nodes).
+- Every variant that would change the algorithm's work (`SEPARATE_CHILDREN`, lower `thoroughness`, no label text,
+  no container spacing) changes the geometry on part of the corpus. These are exactly the quality settings; they
+  were not adopted, and their speed was not pursued.
+- So the production options in `src/diagrams/graph/layout.mjs` stay as they are. `test/elk_options.test.mjs`
+  pins the quality-relevant options (`INCLUDE_CHILDREN`, `thoroughness` 10, `NETWORK_SIMPLEX`,
+  `NODES_AND_EDGES`, `DEPTH_FIRST`, container spacing, side-fixed ports) so they cannot be loosened for speed
+  by accident.
+- Not covered here (outside the option set): elkjs delivers its result through `setTimeout` hops of its in-process
+  worker (about 1 ms per hop), which shows as a floor of a few ms even for tiny graphs. That lives in the runtime
+  binding, not in the options.
+
+Re-run: `node scripts/elk-experiments.mjs baseline | check | screen -n 5 -v <ids> | list`. Reference data
+goes to `$ELK_TMP`.
