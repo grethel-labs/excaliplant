@@ -4,7 +4,7 @@ This plugin gives Claude the excaliplant skill. Whenever you ask for a UML, Plan
 
 ## What it runs
 
-The plugin contains only the skill: Markdown instructions, a short syntax reference and example diagrams. It has no hooks, no agents and no bundled MCP server. When Claude renders a diagram it runs `npx -y @grethel-labs/excaliplant`, which downloads the open source package from npm and renders on your machine. Nothing is sent to any other service and no data is collected.
+The plugin contains only the skill: Markdown instructions, a short syntax reference and example diagrams. It has no hooks, no agents and no bundled MCP server. When Claude renders a diagram it runs `npx -y @grethel-labs/excaliplant`, which downloads the open source package from the npm registry (registry.npmjs.org) and renders on your machine. That download is the only network access: the diagram text never leaves your machine, nothing is sent to any other service, and no data about you or your diagrams is collected.
 
 ## Install
 
