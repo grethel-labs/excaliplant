@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "excaliplant": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@grethel-labs/excaliplant@1.4.5",
+        "mcp"
+      ]
+    }
+  }
+}
