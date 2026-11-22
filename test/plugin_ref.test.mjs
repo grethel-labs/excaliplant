@@ -39,7 +39,6 @@ test("the plugin-release branch holds exactly the files the directories need", (
     "README.md",
     "integrations/claude-plugin/.claude-plugin/icon.png",
     "integrations/claude-plugin/.claude-plugin/plugin.json",
-    "integrations/claude-plugin/.mcp.json",
     "integrations/claude-plugin/LICENSE",
     "integrations/claude-plugin/PRIVACY.md",
     "integrations/claude-plugin/README.md",
@@ -272,19 +271,10 @@ test(
   },
 );
 
-test("the Claude plugin on the release branch declares the MCP server pinned to the release", () => {
-  // The directory blocks unpinned npx launchers; a committed file cannot name its own
-  // release, so .mcp.json is generated here and does not exist in the main tree.
-  const file = entries.find((e) => e.path === "integrations/claude-plugin/.mcp.json");
-  assert.ok(file, ".mcp.json is part of the branch");
-  const config = JSON.parse(text(file.data));
-  const server = config.mcpServers?.excaliplant;
-  assert.deepEqual(Object.keys(config.mcpServers), ["excaliplant"]);
-  assert.equal(server.command, "npx");
-  assert.deepEqual(server.args, ["-y", "@grethel-labs/excaliplant@1.2.3", "mcp"]);
-  assert.ok(!/latest|[\^~*]|>=|\|\|/.test(server.args[1]), "an exact version, not a range");
-  assert.ok(
-    !entries.some((e) => e.path === "integrations/codex-plugin/.mcp.json"),
-    "the Codex plugin stays skills-only (local MCP servers are limited to approved partners there)",
-  );
+test("the release branch declares no MCP server: the directory refuses local ones from unverified organizations", () => {
+  // The portal blocks a plugin that declares an MCP server running on the user's computer
+  // unless the organization is verified. The plugin ZIP keeps a pinned .mcp.json for a
+  // manual Claude Code install (see skills.test.mjs).
+  assert.ok(!entries.some((e) => e.path.endsWith(".mcp.json")));
+  assert.ok(!entries.some((e) => text(e.data).includes("mcpServers")));
 });

@@ -83,7 +83,7 @@ The `.excalidraw` file is plain JSON. To change it by hand or with a script (mov
 
 ## MCP server
 
-When the `excaliplant` MCP tools are available (the Claude Code plugin declares the server, so they are there once the plugin is enabled), use them instead of the CLI:
+When the `excaliplant` MCP tools are available (the user has added the server, for example with `claude mcp add excaliplant -- npx -y @grethel-labs/excaliplant mcp`), use them instead of the CLI:
 
 - `render_plantuml`: `source` (required), `format` (`svg`, `png` or `excalidraw`; default `svg`), optional `theme`, `clean`, `seed`, `page` and `width` (PNG only, 16–4096). It returns the SVG or the `.excalidraw` JSON as text and a PNG as an image; if the user wants a file, save the returned text with your file tools. Warnings come back as diagnostics with line numbers: fix the source and call it again.
 - `validate_plantuml`: checks the syntax without rendering and reports the diagram type and problems.

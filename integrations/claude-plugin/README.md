@@ -10,7 +10,7 @@ This plugin gives Claude the excaliplant skill. Whenever you ask for a UML, Plan
 
 ## What it runs, sends and fetches
 
-The plugin contains only the skill: Markdown instructions, a short syntax reference and example diagrams. It has no hooks, no agents and no scripts, and it reads no credentials. The published plugin (the plugin directory and the `plugin-release` branch) declares one MCP server, described below.
+The plugin contains only the skill: Markdown instructions, a short syntax reference and example diagrams. It has no hooks, no agents, no scripts and no bundled MCP server, and it reads no credentials.
 
 The skill runs only when you ask for a diagram or a diagram file. Then the assistant uses the MCP tools or, if they are not available, runs `npx -y @grethel-labs/excaliplant`; both download the open source package from the npm registry (registry.npmjs.org) and renders on your machine. The package's dependencies (`@resvg/resvg-js` with a prebuilt binary for your platform, `elkjs`, `roughjs` and their helpers) come from the same registry, none of them runs an install script, and the `-y` only confirms npx's own prompt for this package. That download is the only network access: the diagram text never leaves your machine, nothing is sent to any other service, and no data about you or your diagrams is collected. If the assistant cannot run commands at all, it gives you a link to the live editor (https://grethel-labs.github.io/excaliplant/) with your diagram in the part of the URL after `#`, which your browser never sends to a server.
 
@@ -30,13 +30,15 @@ In Claude Code:
 - **`warning (line N)` in the output:** a line was not understood. Ask the assistant to fix that line, or paste the source into the live editor to see the problem.
 - **Layout looks crowded:** ask for shorter labels, `left to right direction`, or to split the diagram.
 
-## MCP server
+## Optional MCP server
 
-The published plugin declares one MCP server, `excaliplant`, in `.mcp.json`. Claude Code starts it with `npx -y @grethel-labs/excaliplant@<version> mcp`, pinned to exactly the version of this plugin release (the file is generated when a release is published, because a file in the source tree cannot name its own release). It is the same package as the command line tool: it runs on your machine over standard input and output, makes no network requests of its own, and offers four tools: `render_plantuml`, `validate_plantuml`, `list_diagram_types` and `get_example`. The first start downloads the package from the npm registry; that is the same single download described above. If you installed the plugin from the `main` branch there is no `.mcp.json`; add the server yourself with:
+The same package ships an MCP server that runs on your machine over standard input and output, makes no network requests of its own, and offers four tools: `render_plantuml`, `validate_plantuml`, `list_diagram_types` and `get_example`. The plugin does not declare it (the plugin directory accepts servers that run on the user's computer only from verified organizations); add it yourself with:
 
 ```
 claude mcp add excaliplant -- npx -y @grethel-labs/excaliplant mcp
 ```
+
+When the tools are available the skill uses them first. The first start downloads the package from the npm registry, the same single download described above. The release archive `excaliplant-claude-plugin-<version>.zip` additionally contains a `.mcp.json` that starts the server pinned to that release.
 
 ## Support, security and privacy
 
