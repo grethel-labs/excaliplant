@@ -84,3 +84,37 @@ export function readSettings(vscode, resource) {
     trusted,
   };
 }
+
+/**
+ * Whether the background warm-up of the layout engine is enabled
+ * (`excaliplant.warmup`, default true).
+ * @param {any} vscode
+ * @returns {boolean}
+ */
+export function readWarmupEnabled(vscode) {
+  try {
+    return vscode.workspace.getConfiguration("excaliplant").get("warmup", true) !== false;
+  } catch {
+    return true;
+  }
+}
+
+/** Opening fence of a diagram block in Markdown (`plantuml`, `puml` or `uml`). */
+const DIAGRAM_FENCE = /^ {0,3}(?:`{3,}|~{3,})[ \t]*(?:plantuml|puml|uml)\b/m;
+
+/**
+ * Whether a document is likely to need the renderer soon: a PlantUML file, or
+ * a Markdown document with a diagram fence.
+ * @param {{ languageId?: string, getText?: () => string } | undefined} doc
+ * @returns {boolean}
+ */
+export function isDiagramDocument(doc) {
+  if (!doc) return false;
+  if (doc.languageId === "plantuml") return true;
+  if (doc.languageId !== "markdown") return false;
+  try {
+    return DIAGRAM_FENCE.test(doc.getText?.() ?? "");
+  } catch {
+    return false;
+  }
+}

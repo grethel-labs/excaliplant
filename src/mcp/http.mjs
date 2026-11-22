@@ -168,6 +168,7 @@ export function serveHttp(server, options) {
     http.listen(options.port, HTTP_HOST, () => {
       http.off("error", reject);
       const address = /** @type {import("node:net").AddressInfo} */ (http.address());
+      setImmediate(() => void server.warmup());
       resolve({
         port: address.port,
         url: `http://${HTTP_HOST}:${address.port}${HTTP_PATH}`,

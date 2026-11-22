@@ -9,7 +9,11 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { COMMANDS, createExtension } from "../integrations/vscode/src/extension.mjs";
 import { createMarkdownIntegration } from "../integrations/vscode/src/markdown.mjs";
-import { readSettings } from "../integrations/vscode/src/config.mjs";
+import {
+  isDiagramDocument,
+  readSettings,
+  readWarmupEnabled,
+} from "../integrations/vscode/src/config.mjs";
 import { blockOptions } from "../integrations/vscode/src/options.mjs";
 import { createIncludeResolver, resolveIncludeRoot } from "../integrations/vscode/src/include.mjs";
 import { escapeHtml, previewBody, previewHtml } from "../integrations/vscode/src/preview.mjs";
@@ -28,9 +32,10 @@ const fence = (body = "Alice -> Bob : hi", info = "plantuml") =>
   `# T\n\n\`\`\`${info}\n${body}\n\`\`\`\n`;
 
 /** Activate the extension against a fresh mock. */
-function activated(init) {
+function activated(init, options = {}) {
   const mock = createMockVscode(init);
-  const ext = createExtension(mock.vscode);
+  // Other tests must not load the layout engine in the background.
+  const ext = createExtension(mock.vscode, { warmup: async () => {}, ...options });
   const context = { subscriptions: [] };
   const api = ext.activate(context);
   return { ...mock, ext, api, context };
@@ -552,5 +557,146 @@ describe("side preview", () => {
     await state.commands.get(COMMANDS.openPreviewToSide)();
     ext.deactivate();
     assert.equal(state.commands.size, 0, "commands are unregistered");
+  });
+});
+
+describe("start-up warm-up", () => {
+  /** A warm-up spy and options that make it fire quickly. */
+  const spy = (impl = async () => {}) => {
+    const calls = { count: 0 };
+    return {
+      calls,
+      options: {
+        warmupDelayMs: 5,
+        warmup: () => {
+          calls.count++;
+          return impl();
+        },
+      },
+    };
+  };
+  const later = (ms = 40) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  it("recognises PlantUML files and Markdown with a diagram fence", () => {
+    const doc = (languageId, text) => ({ languageId, getText: () => text });
+    assert.equal(isDiagramDocument(doc("plantuml", "")), true);
+    assert.equal(isDiagramDocument(doc("markdown", fence())), true);
+    assert.equal(isDiagramDocument(doc("markdown", fence("a -> b", "puml"))), true);
+    assert.equal(isDiagramDocument(doc("markdown", "~~~uml\nA -> B\n~~~")), true);
+    assert.equal(isDiagramDocument(doc("markdown", "# Notes\n\n```js\nplantuml\n```")), false);
+    assert.equal(isDiagramDocument(doc("typescript", "```plantuml")), false);
+    assert.equal(isDiagramDocument(undefined), false);
+  });
+
+  it("reads excaliplant.warmup with a default of true", () => {
+    assert.equal(readWarmupEnabled(createMockVscode().vscode), true);
+    assert.equal(
+      readWarmupEnabled(createMockVscode({ settings: { "excaliplant.warmup": false } }).vscode),
+      false,
+    );
+  });
+
+  it("starts once, in the background, for a PlantUML document that is already open", async () => {
+    const { calls, options } = spy();
+    const mock = createMockVscode();
+    mock.addDocument("/ws/a.puml", "plantuml", SEQ);
+    mock.addDocument("/ws/b.puml", "plantuml", SEQ);
+    createExtension(mock.vscode, options).activate({ subscriptions: [] });
+    assert.equal(calls.count, 0, "activation does not wait for it or start it synchronously");
+    await waitFor(() => calls.count === 1);
+    await later();
+    assert.equal(calls.count, 1, "only once");
+  });
+
+  it("waits for a relevant document: Markdown with a fence, not other files", async () => {
+    const { calls, options } = spy();
+    const { events, addDocument } = activated(undefined, options);
+    events.openDoc.fire(addDocument("/ws/x.ts", "typescript", "const a = 1"));
+    events.openDoc.fire(addDocument("/ws/notes.md", "markdown", "# Notes\n\nNo diagram."));
+    await later();
+    assert.equal(calls.count, 0);
+    events.openDoc.fire(addDocument("/ws/doc.md", "markdown", fence()));
+    await waitFor(() => calls.count === 1);
+    events.openDoc.fire(addDocument("/ws/b.puml", "plantuml", SEQ));
+    await later();
+    assert.equal(calls.count, 1);
+  });
+
+  it("starts when a diagram fence is typed into a Markdown document", async () => {
+    const { calls, options } = spy();
+    const { events, addDocument } = activated(undefined, options);
+    const doc = addDocument("/ws/notes.md", "markdown", "# Notes");
+    events.changeDoc.fire({ document: doc });
+    await later();
+    assert.equal(calls.count, 0);
+    doc.text = fence();
+    events.changeDoc.fire({ document: doc });
+    await waitFor(() => calls.count === 1);
+  });
+
+  it("is off with excaliplant.warmup = false and can be switched on later", async () => {
+    const { calls, options } = spy();
+    const mock = createMockVscode({ settings: { "excaliplant.warmup": false } });
+    mock.addDocument("/ws/a.puml", "plantuml", SEQ);
+    createExtension(mock.vscode, options).activate({ subscriptions: [] });
+    mock.events.openDoc.fire(mock.addDocument("/ws/b.puml", "plantuml", SEQ));
+    await later();
+    assert.equal(calls.count, 0);
+    mock.state.settings["excaliplant.warmup"] = true;
+    mock.events.config.fire({ affectsConfiguration: (section) => section === "excaliplant" });
+    await waitFor(() => calls.count === 1);
+  });
+
+  it("does not start when the setting is turned off before the delay ends", async () => {
+    const { calls, options } = spy();
+    const mock = createMockVscode();
+    mock.addDocument("/ws/a.puml", "plantuml", SEQ);
+    createExtension(mock.vscode, { ...options, warmupDelayMs: 30 }).activate({ subscriptions: [] });
+    mock.state.settings["excaliplant.warmup"] = false;
+    await later(80);
+    assert.equal(calls.count, 0);
+  });
+
+  it("ignores a warm-up that rejects or throws", async () => {
+    for (const impl of [
+      async () => {
+        throw new Error("boom");
+      },
+      () => {
+        throw new Error("sync boom");
+      },
+    ]) {
+      const { calls, options } = spy(impl);
+      const mock = createMockVscode();
+      mock.addDocument("/ws/a.puml", "plantuml", SEQ);
+      const ext = createExtension(mock.vscode, options);
+      ext.activate({ subscriptions: [] });
+      await waitFor(() => calls.count === 1);
+      await later(); // an unhandled rejection would fail the test run
+      // The extension keeps working.
+      mock.addDocument("/ws/dir/c.puml", "plantuml", SEQ, { active: true });
+      mock.state.saveAnswer = (uri) => Uri.file(uri.path);
+      await mock.state.commands.get(COMMANDS.renderSvg)();
+      assert.match(mock.state.files.get("/ws/dir/c.svg"), /^<svg/);
+      ext.deactivate();
+    }
+  });
+
+  it("deactivating cancels a pending warm-up", async () => {
+    const { calls, options } = spy();
+    const mock = createMockVscode();
+    mock.addDocument("/ws/a.puml", "plantuml", SEQ);
+    const ext = createExtension(mock.vscode, { ...options, warmupDelayMs: 30 });
+    ext.activate({ subscriptions: [] });
+    ext.deactivate();
+    await later(80);
+    assert.equal(calls.count, 0);
+  });
+
+  it("uses the library warm-up by default and leaves the cache empty", async () => {
+    const { warmup } = await import("../integrations/vscode/src/engine.mjs");
+    assert.equal(typeof warmup, "function");
+    assert.equal(warmup(), warmup(), "one shared promise");
+    await warmup();
   });
 });

@@ -25,6 +25,7 @@ Options:
       --include-dir <dir>    Allow !include of files below <dir> (default: no includes)
       --max-input-bytes <n>  PlantUML source size limit (default 2 MiB, max 64 MiB)
       --timeout <ms>         Time limit per tool call (default 30000)
+      --no-warmup            Do not pre-load the layout engine in the background at start-up
   -h, --help                 Show this help
   -v, --version              Show the version
 `;
@@ -45,7 +46,7 @@ const MAX_INPUT_CEILING = 64 * 1024 * 1024;
  * @param {string[]} argv
  */
 function parseArgs(argv) {
-  /** @type {{ http?: number, includeDir?: string, maxInputBytes?: number, timeoutMs?: number, help?: boolean, version?: boolean }} */
+  /** @type {{ http?: number, includeDir?: string, maxInputBytes?: number, timeoutMs?: number, warmup?: boolean, help?: boolean, version?: boolean }} */
   const opts = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -74,6 +75,9 @@ function parseArgs(argv) {
         break;
       case "--timeout":
         opts.timeoutMs = integer(next(), 10, 600_000);
+        break;
+      case "--no-warmup":
+        opts.warmup = false;
         break;
       case "-h":
       case "--help":
@@ -143,6 +147,7 @@ export async function runMcpCli(argv, io) {
     includeDir: opts.includeDir,
     limits: opts.maxInputBytes ? { maxInputBytes: opts.maxInputBytes } : undefined,
     timeoutMs: opts.timeoutMs,
+    warmup: opts.warmup !== false,
     log,
   });
   if (opts.version) {

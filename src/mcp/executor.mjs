@@ -9,6 +9,8 @@
  */
 
 import { Worker } from "node:worker_threads";
+import { warmup as warmUpRenderer } from "../api.mjs";
+import { isElkLoaded } from "../diagrams/graph/elk_runner.mjs";
 import { runTool } from "./tools.mjs";
 
 /**
@@ -37,6 +39,10 @@ export class ExecutorError extends Error {
 /**
  * @typedef {object} Executor
  * @property {(tool: string, args: unknown, options: RunOptions) => Promise<import("./tools.mjs").CallToolResult>} run
+ * @property {() => Promise<boolean>} [warmup] Pre-load the layout engine where the
+ *   tools run, in the background. Resolves with whether the engine is loaded
+ *   afterwards (never rejects). Calls are idempotent and a tool call never has
+ *   to wait for it.
  * @property {() => Promise<void>} close
  */
 
@@ -67,6 +73,11 @@ export function createInlineExecutor(env, log) {
         if (onAbort) signal?.removeEventListener("abort", onAbort);
       }
     },
+    async warmup() {
+      if (closed) return false;
+      await warmUpRenderer();
+      return isElkLoaded();
+    },
     async close() {
       closed = true;
     },
@@ -77,12 +88,15 @@ export function createInlineExecutor(env, log) {
  * @typedef {object} WorkerExecutorOptions
  * @property {number} [maxQueue] Pending calls beyond the running one before `busy` (default 16).
  * @property {number} [maxMemoryMb] Heap limit of the worker thread (default 768).
+ * @property {URL} [workerUrl] Worker entry point (default `./worker.mjs`); for tests.
  */
 
 /**
  * Executor backed by one lazily started worker thread. Calls run one at a
  * time; a timeout or cancellation terminates the thread and the next call
- * starts a fresh one.
+ * starts a fresh one. After `warmup()` was called, every worker (also a
+ * restarted one) pre-loads the layout engine in the background, concurrently
+ * with the first calls: a call never waits for it.
  * @param {import("./tools.mjs").ToolEnv} env
  * @param {(message: string) => void} log
  * @param {WorkerExecutorOptions} [options]
@@ -113,9 +127,62 @@ export function createWorkerExecutor(env, log, options = {}) {
   let timer = null;
   let seq = 0;
   let closed = false;
+  /** Warm every worker that is started (set by `warmup()`, cleared when warming fails). */
+  let warm = false;
+  /** @type {Map<Worker, { promise: Promise<boolean>, resolve: (loaded: boolean) => void, settled: boolean }>} */
+  const warming = new Map();
+
+  /**
+   * Ask `w` to pre-load the layout engine (once per worker).
+   * @param {Worker} w
+   */
+  function beginWarm(w) {
+    const known = warming.get(w);
+    if (known) return known.promise;
+    /** @type {(loaded: boolean) => void} */
+    let resolve = () => {};
+    const promise = new Promise((r) => (resolve = r));
+    warming.set(w, { promise, resolve, settled: false });
+    try {
+      w.postMessage({ warmup: true });
+    } catch {
+      settleWarm(w, false);
+    }
+    return promise;
+  }
+
+  /**
+   * @param {Worker} w
+   * @param {boolean} loaded
+   */
+  function settleWarm(w, loaded) {
+    const entry = warming.get(w);
+    if (!entry) return;
+    entry.settled = true;
+    entry.resolve(loaded);
+    // Keep the settled entry: the worker is not asked twice.
+  }
+
+  /** @param {Worker} w */
+  function warmSettled(w) {
+    return warming.get(w)?.settled === true;
+  }
+
+  /**
+   * After a job killed the worker, start the next one right away so the
+   * engine is loaded again before the next call arrives.
+   */
+  function rewarm() {
+    if (!warm || closed || worker || current) return;
+    try {
+      worker = startWorker();
+    } catch (error) {
+      log(`cannot start worker: ${error instanceof Error ? error.message : error}`);
+    }
+  }
 
   function startWorker() {
-    const w = new Worker(new URL("./worker.mjs", import.meta.url), {
+    const w = new Worker(options.workerUrl ?? new URL("./worker.mjs", import.meta.url), {
       workerData: { env },
       resourceLimits: { maxOldGenerationSizeMb: maxMemoryMb },
       // Keep the worker's stdout away from ours: stdout carries the protocol.
@@ -126,6 +193,12 @@ export function createWorkerExecutor(env, log, options = {}) {
     w.stdout.on("data", (chunk) => log(String(chunk).trimEnd()));
     w.stderr.on("data", (chunk) => log(String(chunk).trimEnd()));
     w.on("message", (message) => {
+      if (message?.warmup) {
+        // A warm-up that did not load the engine is not retried on later workers.
+        if (!message.loaded) warm = false;
+        settleWarm(w, message.loaded === true);
+        return;
+      }
       if (w !== worker || !current || message?.id !== current.id) return;
       const job = current;
       finish();
@@ -137,8 +210,12 @@ export function createWorkerExecutor(env, log, options = {}) {
       if (w === worker) crash();
     });
     w.on("exit", () => {
+      // The thread died on its own (not stopped by us) while warming: do not warm again.
+      if (w === worker && warming.has(w) && !warmSettled(w)) warm = false;
+      settleWarm(w, false);
       if (w === worker) crash();
     });
+    if (warm) beginWarm(w);
     return w;
   }
 
@@ -158,6 +235,7 @@ export function createWorkerExecutor(env, log, options = {}) {
     finish();
     job.reject(new ExecutorError("crashed"));
     pump();
+    rewarm();
   }
 
   /**
@@ -173,6 +251,7 @@ export function createWorkerExecutor(env, log, options = {}) {
     finish();
     job.reject(new ExecutorError(reason));
     pump();
+    rewarm();
   }
 
   function pump() {
@@ -214,6 +293,17 @@ export function createWorkerExecutor(env, log, options = {}) {
         queue.push(job);
         pump();
       });
+    },
+    async warmup() {
+      if (closed) return false;
+      warm = true;
+      try {
+        worker ??= startWorker();
+        return await beginWarm(worker);
+      } catch (error) {
+        log(`cannot start worker: ${error instanceof Error ? error.message : error}`);
+        return false;
+      }
     },
     async close() {
       closed = true;

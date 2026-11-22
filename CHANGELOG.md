@@ -8,6 +8,8 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Changed
 
+- The layout engine (ELK) is loaded on first use instead of on import: importing the library and rendering non-graph diagrams (sequence, Gantt, mind map, JSON, …) is several hundred milliseconds faster. Layouts are cached by their exact input, so re-rendering an unchanged diagram (or one that only changes colours, theme or seed) skips the layout step. Output is byte-identical.
+
 - The Claude Code plugin no longer bundles an unpinned MCP launcher (the Claude directory blocks those); the release archive carries one pinned to the release, and the plugin has a README, a LICENSE and an icon.
 
 - Connectors are drawn with much less hand-drawn wobble (`edgeRoughness` per theme), so lines stay straight with crisp corners; mind map and JSON/YAML connectors are orthogonal instead of curved.
@@ -34,6 +36,8 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 - The website is now a live playground: write PlantUML in the browser and see it rendered with the current version in a web worker (all render options, editable examples, share links, SVG/PNG/Excalidraw export). The example gallery moved to a second view with an "Open in playground" button; see `docs/site.md`.
 - Each release adds a commit with the versioned plugin files to the generated branch `plugin-release` (tag `plugin-release-vX.Y.Z`), which the Claude plugin directory can track; `main` stays untouched.
+- `warmup()` (exported from the package) loads the layout engine ahead of time. The MCP server (`--no-warmup` to disable), the VS Code extension (`excaliplant.warmup`) and the Obsidian plugin (setting "Prepare in the background") call it in the background, so the first class, component or state diagram no longer waits about a second.
+- `scripts/bench.mjs` measures cold-start and warm render times and can check outputs against recorded hashes; see `docs/performance.md`.
 - `excaliplant markdown` renders ` ```plantuml ` blocks in Markdown files (inline SVG or asset files, idempotent, `--check` for CI); `@grethel-labs/excaliplant/markdown`, `/markdown-it` and `/remark` plugins; a GitHub Action (`action.yml`).
 - MCP server: `excaliplant mcp` / `excaliplant-mcp` (stdio, optional local HTTP) with `render_plantuml`, `validate_plantuml`, `list_diagram_types` and `get_example`; published to the MCP registry with each release.
 - Agent skill for Claude Code, Claude, Codex, Gemini CLI, opencode, Cursor, Copilot, Antigravity and rule files for Windsurf, Cline and Roo: `excaliplant skills install`, a Claude Code plugin marketplace, a Gemini CLI extension and release archives. The skill ships a snapshot of Excalidraw's element typings that a weekly workflow keeps current.

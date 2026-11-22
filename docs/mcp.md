@@ -193,7 +193,7 @@ ChatGPT's web and mobile apps connect to remote MCP servers over public HTTPS. T
 ## Options
 
 ```text
-excaliplant-mcp [--http <port>] [--include-dir <dir>] [--max-input-bytes <n>] [--timeout <ms>] [--help] [--version]
+excaliplant-mcp [--http <port>] [--include-dir <dir>] [--max-input-bytes <n>] [--timeout <ms>] [--no-warmup] [--help] [--version]
 ```
 
 | Option                  | Meaning                                                                                                |
@@ -202,7 +202,17 @@ excaliplant-mcp [--http <port>] [--include-dir <dir>] [--max-input-bytes <n>] [-
 | `--include-dir <dir>`   | Allow `!include` of files below `<dir>` (symlinks resolved first). Default: no includes.               |
 | `--max-input-bytes <n>` | PlantUML source limit (default 2 MiB, ceiling 64 MiB). Also sets the message limit to `2n + 64 KiB`.   |
 | `--timeout <ms>`        | Time limit per tool call (default 30000).                                                              |
+| `--no-warmup`           | Do not pre-load the layout engine in the background at start-up (see [Startup](#startup)).             |
 | `EXCALIPLANT_MCP_TOKEN` | Environment variable: with `--http`, require `Authorization: Bearer <token>`.                          |
+
+### Startup
+
+Rendering runs on a worker thread. Graph diagrams (class, component, state, use case, deployment, ...) lay out with ELK, which is loaded the first time a graph is rendered: about 1 s on the first call, then about 80 ms. So the first graph diagram of a session does not pay for that, the server starts the worker right after it begins serving and calls `warmup()` there. It happens in the background:
+
+- Requests (`initialize`, `tools/list`, ...) are answered as usual meanwhile, and a tool call that arrives early just runs; it never waits for the warm-up. Nothing is written to stdout.
+- A worker that was replaced after a timeout, a cancelled call or running out of memory warms up again.
+- The warm-up never keeps the process alive: closing stdin, SIGINT/SIGTERM or `--http` shutdown end the worker. A failed warm-up is ignored (it is not retried for a worker that died while warming).
+- Opt out with `--no-warmup` (the worker then starts with the first tool call, as before). With `createServer`, the option is `warmup: true` (default `false`, so embedding and tests start nothing eagerly; the `inline` executor then warms up in the calling thread); `server.warmup()` is called by `serveStdio` and `serveHttp`.
 
 ### Embedding
 
@@ -213,7 +223,7 @@ const server = createServer({ includeDir: "./diagrams", timeoutMs: 20_000 });
 await serveStdio(server, { stdin: process.stdin, stdout: process.stdout, stderr: process.stderr });
 ```
 
-`createServer` also takes `limits`, `maxMessageBytes`, `maxOutputBytes`, `maxBatch`, `executor` (`"worker"`, `"inline"` or a custom executor) and `log`. `serveHttp(server, { port })` is the HTTP transport.
+`createServer` also takes `warmup`, `limits`, `maxMessageBytes`, `maxOutputBytes`, `maxBatch`, `executor` (`"worker"`, `"inline"` or a custom executor) and `log`. `serveHttp(server, { port })` is the HTTP transport.
 
 ## Security model
 

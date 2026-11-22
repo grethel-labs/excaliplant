@@ -160,13 +160,19 @@ export class Setting {
 export function createApp() {
   const created = [];
   const handlers = new Map();
+  const layoutReady = [];
   return {
     created,
     handlers,
+    layoutReady,
     workspace: {
       on(name, fn) {
         handlers.set(name, fn);
         return { name };
+      },
+      // Obsidian calls back at once when the layout is ready already; tests fire `layoutReady` themselves.
+      onLayoutReady(fn) {
+        layoutReady.push(fn);
       },
     },
     fileManager: {

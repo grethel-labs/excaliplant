@@ -38,7 +38,7 @@ export function graphModule(spec) {
     starts: spec.starts ?? ["uml"],
     detect: spec.detect,
     parse,
-    layout: (model, ctx) => layoutGraph(model, ctx.theme, spec.layout),
+    layout: (model, ctx) => layoutGraph(model, ctx.theme, spec.layout, ctx),
     draw: (model, canvas) => drawGraph(model, canvas),
   });
 }

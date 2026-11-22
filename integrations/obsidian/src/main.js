@@ -14,6 +14,7 @@ import {
   isDarkMode,
   renderInto,
   resolveOptions,
+  warmup,
 } from "./engine.js";
 import { ExcaliplantSettingTab } from "./settings_tab.js";
 
@@ -67,6 +68,9 @@ class DiagramBlock extends MarkdownRenderChild {
   }
 }
 
+/** Delay between "layout ready" and the warm-up, so start-up itself is not slowed down. */
+const WARMUP_DELAY_MS = 1000;
+
 export default class ExcaliplantPlugin extends Plugin {
   async onload() {
     this.settings = normalizeSettings({ ...DEFAULT_SETTINGS, ...(await this.loadData()) });
@@ -109,6 +113,15 @@ export default class ExcaliplantPlugin extends Plugin {
       editorCallback: (editor, view) => this.exportAtCursor(editor, view, "clipboard"),
     });
 
+    // Pre-load the layout engine (ELK) once Obsidian is up: fire and forget, never awaited.
+    /** @type {() => Promise<void>} */
+    this.warmupFn = warmup;
+    this.warmupDelayMs = WARMUP_DELAY_MS;
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    this.warmupTimer = null;
+    this.warmupStarted = false;
+    this.app.workspace.onLayoutReady(() => this.scheduleWarmup());
+
     this.addSettingTab(new ExcaliplantSettingTab(this.app, this));
     this.registerEvent(
       this.app.workspace.on("css-change", () => {
@@ -117,10 +130,36 @@ export default class ExcaliplantPlugin extends Plugin {
     );
   }
 
+  onunload() {
+    if (this.warmupTimer) clearTimeout(this.warmupTimer);
+    this.warmupTimer = null;
+  }
+
+  /**
+   * Warm up the layout engine once, after a short delay, when the setting is on.
+   * A failure is ignored: rendering loads the engine itself when it needs it.
+   */
+  scheduleWarmup() {
+    if (this.warmupStarted || this.warmupTimer || !this.settings.warmup) return;
+    this.warmupTimer = setTimeout(() => {
+      this.warmupTimer = null;
+      if (this.warmupStarted || !this.settings.warmup) return;
+      this.warmupStarted = true;
+      try {
+        Promise.resolve(this.warmupFn()).catch(() => {});
+      } catch {
+        // warming up is an optimisation only
+      }
+    }, this.warmupDelayMs);
+  }
+
   /** @param {Partial<import("./config.js").ExcaliplantSettings>} patch */
   async updateSettings(patch) {
+    const before = this.settings;
     this.settings = normalizeSettings({ ...this.settings, ...patch });
     await this.saveData(this.settings);
+    // Switching it on later warms up right away; switching it off only stops a pending one.
+    if (this.settings.warmup && !before.warmup) this.scheduleWarmup();
     this.redrawAll();
   }
 

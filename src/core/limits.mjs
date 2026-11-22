@@ -40,6 +40,21 @@ export const DEFAULT_LIMITS = Object.freeze({
 });
 
 /**
+ * Budget of the process-wide graph layout cache (`diagrams/graph/elk_runner`).
+ * The cache is bounded twice: by entry count and by an estimate of the memory
+ * it holds, so it can never grow without limit. An entry larger than
+ * `maxEntryBytes` is not cached at all (it would evict everything else).
+ * Byte figures are estimates: two bytes per character of the key and of the
+ * serialized result.
+ * @type {Readonly<{ maxEntries: number, maxBytes: number, maxEntryBytes: number }>}
+ */
+export const LAYOUT_CACHE_LIMITS = Object.freeze({
+  maxEntries: 64,
+  maxBytes: 16 * 1024 * 1024,
+  maxEntryBytes: 4 * 1024 * 1024,
+});
+
+/**
  * Merge user overrides into the defaults, ignoring non-finite or negative values.
  * @param {Partial<Limits>} [overrides]
  * @returns {Limits}

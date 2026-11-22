@@ -135,6 +135,8 @@ export function serveStdio(server, { stdin, stdout, stderr, signal }) {
 
   return new Promise((resolve) => {
     let finished = false;
+    // After the first reads are scheduled; answers never wait for it.
+    setImmediate(() => void server.warmup());
     const finish = async () => {
       if (finished) return;
       finished = true;

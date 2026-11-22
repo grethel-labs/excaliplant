@@ -5,17 +5,15 @@
  * @module diagrams/graph/layout
  */
 
-import ELK from "elkjs/lib/elk.bundled.js";
 import { layoutText } from "../../layout/measure.mjs";
 import { shape as shapeDef } from "../../draw/shapes.mjs";
 import { roleStyle } from "../../draw/theme.mjs";
 import { tidyRoutes } from "./route.mjs";
+import { runElk } from "./elk_runner.mjs";
 
 /** @typedef {import("../../model/graph.mjs").GraphModel} GraphModel */
 /** @typedef {import("../../model/graph.mjs").GraphNode} GraphNode */
 /** @typedef {import("../../layout/measure.mjs").RichLayout} RichLayout */
-
-const elk = new /** @type {any} */ (ELK)();
 
 /**
  * @typedef {object} ClassGeo
@@ -266,9 +264,10 @@ function classGeometry(node, fs, stereo, hide) {
  * @param {GraphModel} model
  * @param {import("../../draw/theme.mjs").Theme} theme
  * @param {GraphLayoutOptions} [options]
+ * @param {{ layoutCache?: boolean }} [runtime] Per-render settings; `layoutCache: false` skips the layout cache.
  * @returns {Promise<GraphModel>}
  */
-export async function layoutGraph(model, theme, options = {}) {
+export async function layoutGraph(model, theme, options = {}, runtime = {}) {
   sizeGraph(model, theme);
   const lr = model.direction === "LR";
   const linetype = (model.meta.skin.get("linetype") ?? "").toLowerCase();
@@ -489,7 +488,7 @@ export async function layoutGraph(model, theme, options = {}) {
     edges,
   };
 
-  const result = await elk.layout(graph);
+  const result = await runElk(graph, { cache: runtime.layoutCache });
 
   /** @type {Map<string, { x: number, y: number }>} */
   const abs = new Map([["__root", { x: 0, y: 0 }]]);

@@ -5,7 +5,7 @@
  * @module vscode/engine
  */
 
-export { render } from "../../../src/api.mjs";
+export { render, warmup } from "../../../src/api.mjs";
 export { THEME_NAMES } from "../../../src/draw/theme.mjs";
 export { DEFAULT_LIMITS } from "../../../src/core/limits.mjs";
 export { extractBlocks as splitDiagramBlocks } from "../../../src/core/source.mjs";

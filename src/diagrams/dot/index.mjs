@@ -286,6 +286,6 @@ export default defineDiagram({
   title: "Graphviz DOT",
   starts: ["dot"],
   parse: parseDot,
-  layout: (model, ctx) => layoutGraph(model, ctx.theme),
+  layout: (model, ctx) => layoutGraph(model, ctx.theme, {}, ctx),
   draw: (model, canvas) => drawGraph(model, canvas),
 });

@@ -243,3 +243,64 @@ test("the bundle exposes Excalifont only as data URL", { skip }, async () => {
   const code = await bundleText();
   assert.ok(!/Excalifont-Regular\.(woff2|ttf)/.test(code), "no path to the font file");
 });
+
+test(
+  "the bundled warm-up runs in the sandbox and makes the next graph render use a loaded engine",
+  { skip },
+  async () => {
+    const code = await bundleText();
+    const { doc } = obsidianMock.installDom();
+    const sandbox = {
+      module: { exports: {} },
+      require: (id) => {
+        if (id !== "obsidian") throw new Error(`unexpected require("${id}")`);
+        return obsidianMock;
+      },
+      console,
+      setTimeout,
+      clearTimeout,
+      queueMicrotask,
+      TextEncoder,
+      TextDecoder,
+      URL,
+      document: doc,
+      DOMParser: obsidianMock.FakeDOMParser,
+      navigator: globalThis.navigator,
+    };
+    sandbox.exports = sandbox.module.exports;
+    vm.createContext(sandbox);
+    const global = vm.runInContext("globalThis", sandbox);
+    sandbox.window = global;
+    sandbox.self = global;
+    assert.equal(vm.runInContext("typeof structuredClone", sandbox), "undefined");
+    new vm.Script(code, { filename: "main.js" }).runInContext(sandbox);
+    const app = obsidianMock.createApp();
+    const plugin = new sandbox.module.exports.default(app, { id: "excaliplant" });
+    await plugin.onload();
+    assert.equal(app.layoutReady.length, 1);
+
+    // The scheduled path: layout ready -> short delay -> the bundled warmup().
+    const bundled = plugin.warmupFn;
+    let started;
+    const done = new Promise((resolve) => {
+      plugin.warmupFn = () => {
+        started = bundled();
+        started.then(resolve);
+        return started;
+      };
+    });
+    plugin.warmupDelayMs = 1;
+    app.layoutReady.forEach((fn) => fn());
+    await done;
+    // A warm-up that failed would have reset the shared promise: it is still the same one.
+    assert.equal(bundled(), started, "the bundled warm-up succeeded");
+
+    const el = new obsidianMock.FakeElement("div", doc);
+    await plugin.processors.get("plantuml")(
+      "@startuml\nclass A\nclass B\nA --> B\n@enduml",
+      el,
+      obsidianMock.createContext(),
+    );
+    assert.match(el.find("excaliplant").children[0].svgText, /^<svg /);
+  },
+);
