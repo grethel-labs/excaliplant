@@ -14,6 +14,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TARGETS = [
   "integrations/claude-plugin/.claude-plugin/icon.png",
   "integrations/codex-plugin/assets/icon.png",
+  "integrations/codex-plugin/assets/logo.png",
 ];
 
 for (const rel of TARGETS) {

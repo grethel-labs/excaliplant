@@ -379,7 +379,7 @@ function withVersion(json, version) {
  * Entries of the release artefacts, keyed by artefact file name.
  * @param {Map<string, string>} tree
  * @param {string} version
- * @returns {Map<string, { path: string, data: string }[]>}
+ * @returns {Map<string, { path: string, data: string | Uint8Array }[]>}
  */
 export function packEntries(tree, version) {
   const sub = (/** @type {string} */ s) => s.replaceAll("{{version}}", version);
@@ -398,7 +398,7 @@ export function packEntries(tree, version) {
   gemini.contextFileName = "GEMINI.md";
   const rules = /** @type {string} */ (tree.get("skills/excaliplant/assets/rules.md"));
 
-  /** @type {Map<string, { path: string, data: string }[]>} */
+  /** @type {Map<string, { path: string, data: string | Uint8Array }[]>} */
   const artefacts = new Map();
   artefacts.set(`excaliplant-skill-${version}.zip`, under("excaliplant/"));
   artefacts.set(`excaliplant-agents-skills-${version}.zip`, under(".agents/skills/excaliplant/"));
@@ -426,6 +426,11 @@ export function packEntries(tree, version) {
     { path: "README.md", data: read("integrations/codex-plugin/README.md") },
     { path: "LICENSE", data: read("integrations/codex-plugin/LICENSE") },
     { path: "PRIVACY.md", data: read("integrations/codex-plugin/PRIVACY.md") },
+    // Listing icons (interface.logo / interface.composerIcon), byte-identical to the repository files.
+    ...["icon.png", "logo.png"].map((name) => ({
+      path: `assets/${name}`,
+      data: readFileSync(path.join(ROOT, "integrations/codex-plugin/assets", name)),
+    })),
     ...under("skills/excaliplant/"),
   ]);
   artefacts.set(`excaliplant-gemini-extension-${version}.zip`, [

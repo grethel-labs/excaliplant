@@ -102,14 +102,17 @@ Source: <https://developers.openai.com/codex/submit-plugins>, <https://developer
 
 ### Public submission
 
-The portal is <https://platform.openai.com/plugins> (**Upload new or existing plugin**). What the documentation requires:
+The portal is <https://platform.openai.com/plugins>. Sources: <https://developers.openai.com/codex/submit-plugins>, the validation codes at <https://developers.openai.com/plugins/deploy/submission-errors> and the rules at <https://developers.openai.com/plugins/plugin-guidelines>. What they require:
 
-1. **Role and identity:** an organization owner, or a member with the _Apps Management Write_ role, and a completed individual or business verification in the organization settings.
-2. **Package:** upload the ZIP `excaliplant-codex-plugin-<version>.zip` from the GitHub release (skills only: `plugin.json`, `skills/excaliplant/`, README, LICENSE). Use _Create plugin → Skills only_.
-3. **Fix findings** in the _Metadata & Skills_ panel, use _Upload plugin to fix issues_ to re-upload, then submit for review with the policy attestations. Feedback arrives by email; appeal by replying. After approval you choose when to press _Publish plugin_.
-4. Updates need a new ZIP (new package version with its own checks); publishing replaces the previous version.
+1. **Role and identity:** an organization owner, or a member with the _Apps Management Write_ role, and a completed individual or business verification in the organization settings (guideline 2.1: all submissions come from verified individuals or organizations). The directory shows the name of that identity, not the one in the ZIP (`developer_name_defaulted`).
+2. **Package:** download `excaliplant-codex-plugin-<version>.zip` from the GitHub release. Plugins → **Upload new or existing plugin** → choose the _Developer identity_ → **Upload plugin**. The ZIP holds `plugin.json` (with the listing under `extensions.com.openai.interface`), `assets/icon.png` and `assets/logo.png`, README, LICENSE, `PRIVACY.md` and `skills/excaliplant/`. It has no MCP configuration, apps or hooks; the portal refuses those (`mcp_configuration_excluded`, `app_configuration_excluded`).
+3. **Checks:** open _Metadata & Skills_. The skill scan can take up to two hours and must pass before you can submit. Fix findings in the source, build a new version and use _Upload plugin to fix issues_.
+4. **Submit:** _Submit for review_ and the policy attestations (the list is not published; read them). A skills-only plugin needs no test cases, demo recording or reviewer account. Feedback arrives by email; appeal by replying to a rejection. After approval, press _Publish plugin_.
+5. **Updates** need a new ZIP with a different `version` (`plugin_version_unchanged`) and the same `name`. Publishing replaces the previous version. Only one review can be active per plugin. The documentation says nothing about withdrawing a listing; write to support with the plugin ID.
 
-Open points to expect in the validation messages, because the documentation lists them for the Codex format but not exactly for the portable one we ship: `logo` and `composerIcon` (PNG/JPEG/WebP/SVG, square, at least 48×48, under `./assets/`; `integrations/codex-plugin/assets/icon.png` is a 512 px icon you can use for both), the `interface` listing fields (display name and short description up to 30 characters, long description, developer name), and public HTTPS URLs for website, support, privacy policy and terms.
+The listing is generated from `integrations/codex-plugin/plugin.json`; `test/codex_plugin.test.mjs` applies the portal's limits to the release archive (30 characters for display name and short description, at most 3 starter prompts of 128 characters, square PNG logos, structure and size limits, no MCP configuration), so a violation fails CI instead of the upload. The privacy policy URL points at `PRIVACY.md` on `main`; it answers the five points guideline 4.1 asks for (data categories, purposes, recipients, retention, controls) in the "In short" table.
+
+Things the documentation leaves open, to watch for in the portal: whether the directory accepts a skill that tells the model to run `npx` (guidelines 1.2d and 3.3b ask that side effects are not hidden and that metadata does not direct unauthorized actions; the skill states what it runs and the README lists it), the contents of the "additional Directory eligibility requirements" for skills-only plugins, and the category (we use _Developer Tools_).
 
 ### The MCP server cannot go in
 
