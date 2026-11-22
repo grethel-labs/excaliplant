@@ -8,6 +8,8 @@ PR opened ──► pr-labels.yml   exactly one release:* label (derived from th
 merge     ──► release.yml     label of the merged PR → next version from the latest v* tag
                               → full gate → npm version (runner only) → pack + smoke
                               → npm publish --provenance → tag + GitHub release
+                              → plugin-release job: one commit on the generated branch
+                                `plugin-release` + tag plugin-release-vX.Y.Z (fast-forward, no force)
           ──► pages.yml       after release.yml: rebuild the gallery with the version now on npm
 ```
 
@@ -25,6 +27,7 @@ label automatically; otherwise `release:patch` is applied.
 
 - **Tags are the source of truth.** `package.json` keeps `0.0.0-development`; the release job sets the real version only inside the runner. Nothing is committed or force-pushed back to `main`, so branch protection stays strict and no bot keys are needed.
 - **Idempotent.** Re-running a release skips an already published npm version and an existing GitHub release.
+- **Plugin branch.** The plugin directories need a versioned ref, so job `plugin-release` (after `publish`, `contents: write`, no secret besides `GITHUB_TOKEN`) adds a commit with the versioned plugin files to the generated branch `plugin-release` and tags it `plugin-release-vX.Y.Z`. It never touches `main` and a failure does not undo the npm release; re-running is idempotent. See [`docs/publishing.md`](publishing.md#versioned-plugin-branch).
 - **Manual releases.** `Actions → Release → Run workflow` with a bump input.
 - **Workflow changes.** GitHub does not let `GITHUB_TOKEN` create a tag on a commit that changes `.github/workflows/`. If such a PR is released, npm publishing still succeeds and the job prints the `gh release create …` command a maintainer runs once. Prefer `release:none` for CI-only PRs.
 

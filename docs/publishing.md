@@ -20,6 +20,17 @@ Sources are the vendors' own documentation, read in November 2026. Where a page 
 
 `npx skills add . --list` finds exactly one skill in this repository, and `claude plugin validate` passes for the plugin and the marketplace. `codex plugin marketplace add` accepts the repository and lists the marketplace; installing the plugin from the Codex app was not tried.
 
+## Versioned plugin branch
+
+Releases never write to `main`, so the plugin files committed there carry no real version: the skill copies have `version: "{{version}}"` and neither `plugin.json` has a `version`. The Claude directory follows one branch or tag, re-checks it on every new commit and, when a `version` is set, wants it raised with each release. Each release therefore adds one commit to a generated branch.
+
+- **Branch `plugin-release`.** Only what the directories need: `.claude-plugin/marketplace.json`, `integrations/claude-plugin/**` (with `plugin.json` carrying the release `version`, README, LICENSE, icon and the skill with its version filled in), `.agents/plugins/marketplace.json`, `integrations/codex-plugin/**` (same) and a short `README.md`. No workflow files and no other repository content, so `GITHUB_TOKEN` may push it.
+- **One commit per release.** The release workflow job `plugin-release` runs after npm publishing (a failure there does not undo the release). The commit message names the version and the source commit on `main`; its parent is the previous tip, so the push is always a fast-forward and never forced. The first release creates the branch (without parent). Nothing is committed when the content is unchanged.
+- **Tag `plugin-release-vX.Y.Z`** on that commit (not matched by the `v*` tags that the version computation reads). Re-running the job is harmless: an existing tag means nothing happens.
+- **Generated, do not edit.** The source is `main`; `node scripts/plugin-ref.mjs --version X.Y.Z --out <dir>` writes the same files locally and `scripts/publish-plugin-branch.sh` makes the commit.
+
+To point the Claude directory at it, set **Branch or tag** to `plugin-release` in the portal (submission step 2 below, or the listing's source settings) once the first release after this change has created the branch; the plugin path stays `integrations/claude-plugin`. Codex users can add the branch as a marketplace source (`codex plugin marketplace add grethel-labs/excaliplant --ref plugin-release`).
+
 ## Claude: the public plugin directory
 
 Source: <https://claude.com/docs/directory/publish>, <https://claude.com/docs/plugins/submit> and the linked pre-submission checklist.
@@ -42,12 +53,12 @@ The checklist's requirements, as far as they can be checked locally (`claude plu
 - `LICENSE` in the plugin folder, kept equal to the repository's.
 - A square 512 px `icon.png` in `.claude-plugin/`. The listing takes the icon **once**, the first time the plugin is saved or submitted in the portal, and later changes do not replace it. Check it (`node scripts/gen-plugin-icons.mjs` regenerates it) before the first save.
 - No hooks, no agents and no MCP launcher. The directory blocks `npx` launchers that are not pinned to an exact version, and a committed file cannot know the release; so the MCP server is only added to the release archive `excaliplant-claude-plugin-<version>.zip`, pinned to that version. Everything else in the folder is text or PNG, well under the size limits (files under 256 KiB, at most 512 files, no symlinks).
-- No `version` in `plugin.json`: the directory follows commits. (The validator warns about it; if you ever set one, raise it with every release.)
+- No `version` in `plugin.json` on `main` (a committed file cannot know the release). The branch `plugin-release` (see above) carries the same plugin with the release version, raised by every release; prefer it as the tracked branch.
 
 ### Steps
 
 1. Open <https://claude.ai/directory/manage> and choose **Submit new** → **Plugin bundle** (the other choice is _MCP connector_).
-2. **Source:** Repository `grethel-labs/excaliplant`, **Plugin path** `integrations/claude-plugin`, branch empty (follows the default branch). Click **Validate**, fix every finding marked _Blocks_, then **Re-validate**.
+2. **Source:** Repository `grethel-labs/excaliplant`, **Plugin path** `integrations/claude-plugin`, **Branch or tag** `plugin-release` (the versioned release branch; it exists after the first release that includes the `plugin-release` job. Empty would follow `main`, whose plugin has no version). Click **Validate**, fix every finding marked _Blocks_, then **Re-validate**.
 3. **Listing details** are read from `plugin.json` and the README; check name and short description.
 4. **Data handling:** answer the questions (the plugin stores nothing and sends nothing; the CLI it invokes is fetched from npm and runs locally; not intended for people under 18 is your call).
 5. **Compliance:** a contact email and all four acknowledgements.

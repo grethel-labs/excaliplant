@@ -14,7 +14,8 @@
 // Everything is deterministic: no network, no clock. The package version is a
 // `{{version}}` placeholder in the committed files; `--pack` substitutes the
 // version from the EXCALIPLANT_VERSION environment variable (falling back to
-// package.json) while it builds the artefacts.
+// package.json) while it builds the artefacts. `refEntries` does the same for
+// the `plugin-release` branch (see scripts/plugin-ref.mjs).
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -351,10 +352,27 @@ function writeTree(tree) {
  */
 export function packVersion(env = process.env) {
   const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
-  const version = env.EXCALIPLANT_VERSION || pkg.version;
+  return assertVersion(env.EXCALIPLANT_VERSION || pkg.version);
+}
+
+/**
+ * @param {string} version
+ * @returns {string} The version when it is `x.y.z` or `x.y.z-pre`.
+ */
+export function assertVersion(version) {
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version))
     throw new Error(`Invalid version "${version}" (set EXCALIPLANT_VERSION to e.g. 1.2.3)`);
   return version;
+}
+
+/**
+ * Re-serialise a JSON manifest with a `version`.
+ * @param {string} json
+ * @param {string} version
+ * @returns {string}
+ */
+function withVersion(json, version) {
+  return `${JSON.stringify({ ...JSON.parse(json), version }, null, 2)}\n`;
 }
 
 /**
@@ -375,8 +393,6 @@ export function packEntries(tree, version) {
     skillFiles.map((f) => ({ path: `${prefix}${f.path}`, data: f.data }));
   const read = (/** @type {string} */ rel) => readFileSync(path.join(ROOT, rel), "utf8");
 
-  const plugin = JSON.parse(read("integrations/claude-plugin/.claude-plugin/plugin.json"));
-  plugin.version = version;
   const gemini = JSON.parse(read("gemini-extension.json"));
   gemini.version = version;
   gemini.contextFileName = "GEMINI.md";
@@ -398,17 +414,21 @@ export function packEntries(tree, version) {
     },
   };
   artefacts.set(`excaliplant-claude-plugin-${version}.zip`, [
-    { path: ".claude-plugin/plugin.json", data: `${JSON.stringify(plugin, null, 2)}\n` },
+    {
+      path: ".claude-plugin/plugin.json",
+      data: withVersion(read("integrations/claude-plugin/.claude-plugin/plugin.json"), version),
+    },
     { path: ".mcp.json", data: `${JSON.stringify(mcp, null, 2)}\n` },
     { path: "README.md", data: read("integrations/claude-plugin/README.md") },
     { path: "LICENSE", data: read("integrations/claude-plugin/LICENSE") },
     ...under("skills/excaliplant/"),
   ]);
   // Skills-only package for the OpenAI plugin portal / Codex marketplaces.
-  const codexPlugin = JSON.parse(read("integrations/codex-plugin/plugin.json"));
-  codexPlugin.version = version;
   artefacts.set(`excaliplant-codex-plugin-${version}.zip`, [
-    { path: "plugin.json", data: `${JSON.stringify(codexPlugin, null, 2)}\n` },
+    {
+      path: "plugin.json",
+      data: withVersion(read("integrations/codex-plugin/plugin.json"), version),
+    },
     { path: "README.md", data: read("integrations/codex-plugin/README.md") },
     { path: "LICENSE", data: read("integrations/codex-plugin/LICENSE") },
     ...under("skills/excaliplant/"),
@@ -429,6 +449,88 @@ export function packEntries(tree, version) {
     })),
   );
   return artefacts;
+}
+
+/** Files of the `plugin-release` branch that are copied from the repository as they are. */
+const REF_COPY = [".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json"];
+/** Plugin folders of that branch; their `skills/` come from the generated tree. */
+const REF_PLUGINS = [
+  {
+    dir: "integrations/claude-plugin",
+    manifest: "integrations/claude-plugin/.claude-plugin/plugin.json",
+  },
+  { dir: "integrations/codex-plugin", manifest: "integrations/codex-plugin/plugin.json" },
+];
+
+/**
+ * Files below a repository folder (binary-safe), without the generated `skills/`.
+ * @param {string} rel
+ * @returns {string[]} Repository-relative paths, sorted.
+ */
+function listPluginFiles(rel) {
+  /** @type {string[]} */
+  const out = [];
+  /** @param {string} dir */
+  const walk = (dir) => {
+    for (const entry of readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+      const child = `${dir}/${entry.name}`;
+      if (child === `${rel}/skills`) continue;
+      if (entry.isDirectory()) walk(child);
+      else if (entry.isFile()) out.push(child);
+      else throw new Error(`${child} is not a regular file`);
+    }
+  };
+  walk(rel);
+  return out.sort();
+}
+
+/**
+ * Content of the `plugin-release` branch for one release: only what the plugin
+ * directories need (both marketplace manifests, both plugin folders and a short
+ * README), with the release version in both `plugin.json` files and in the
+ * skill copies. Nothing from `.github/`.
+ * @param {Map<string, string>} tree Output of {@link buildTree}.
+ * @param {string} version
+ * @returns {{ path: string, data: string | Buffer }[]} Sorted by path (code-unit order).
+ */
+export function refEntries(tree, version) {
+  assertVersion(version);
+  const sub = (/** @type {string} */ s) => s.replaceAll("{{version}}", version);
+  /** @type {Map<string, string | Buffer>} */
+  const files = new Map();
+  files.set(
+    "README.md",
+    [
+      "# excaliplant plugin release branch",
+      "",
+      "Generated release branch - do not edit. The source is the `main` branch of",
+      "[grethel-labs/excaliplant](https://github.com/grethel-labs/excaliplant).",
+      "",
+      "Each release adds one commit here with the plugin files of that release",
+      `(latest: ${version}); the commit message names the source commit on \`main\`.`,
+      "",
+    ].join("\n"),
+  );
+  for (const rel of REF_COPY) files.set(rel, readFileSync(path.join(ROOT, rel)));
+  for (const { dir, manifest } of REF_PLUGINS) {
+    for (const rel of listPluginFiles(dir)) {
+      files.set(
+        rel,
+        rel === manifest
+          ? withVersion(readFileSync(path.join(ROOT, rel), "utf8"), version)
+          : readFileSync(path.join(ROOT, rel)),
+      );
+    }
+    for (const [rel, content] of tree)
+      if (rel.startsWith(`${dir}/skills/`)) files.set(rel, sub(content));
+  }
+  for (const [rel, data] of files) {
+    if (Buffer.from(data).includes("{{version}}"))
+      throw new Error(`${rel} still contains {{version}}`);
+  }
+  return [...files]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([p, data]) => ({ path: p, data }));
 }
 
 /**
