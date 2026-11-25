@@ -3,6 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { score } from "../src/diagrams/detect.mjs";
 import { detectKind } from "../src/index.mjs";
 
 const cases = /** @type {[string, string][]} */ ([
@@ -45,4 +46,11 @@ test("bare snippets without @start default to @startuml", () => {
 
 test("unknown start keywords raise a clear error", () => {
   assert.throws(() => detectKind("@startfoo\nx\n@endfoo"), /Unsupported diagram type/);
+});
+test("detection scores only the first 400 lines and 500 characters per trimmed line", () => {
+  const detector = [[/x$/, 1]];
+  assert.equal(score([{ text: `  ${"a".repeat(499)}x tail`, line: 1 }], detector), 1);
+  assert.equal(score([{ text: `${"a".repeat(500)}x`, line: 1 }], detector), 0);
+  const lines = Array.from({ length: 401 }, (_, i) => ({ text: "x", line: i + 1 }));
+  assert.equal(score(lines, detector), 400);
 });

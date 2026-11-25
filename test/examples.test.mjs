@@ -7,11 +7,28 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { render } from "../src/index.mjs";
+import { BUILTIN_DIAGRAMS, render } from "../src/index.mjs";
+import { createMeta } from "../src/syntax/commons.mjs";
+import { TYPES } from "../scripts/showcase.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "examples");
 const kinds = readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory());
 
+test("every registered kind has an example and a showcase entry", () => {
+  const registered = BUILTIN_DIAGRAMS.map(({ kind }) => kind).sort();
+  assert.deepEqual(kinds.map(({ name }) => name).sort(), registered);
+  assert.deepEqual(TYPES.map(([kind]) => kind).sort(), registered);
+  for (const { name } of kinds) {
+    assert.ok(
+      readdirSync(path.join(root, name), { withFileTypes: true }).some(
+        (entry) => entry.isFile() && entry.name.endsWith(".puml"),
+      ),
+      `${name} needs a .puml example`,
+    );
+  }
+});
+
+const metaFields = Object.keys(createMeta());
 for (const dir of kinds) {
   for (const file of readdirSync(path.join(root, dir.name)).filter((f) => f.endsWith(".puml"))) {
     test(`example ${dir.name}/${file}`, async () => {
@@ -23,6 +40,9 @@ for (const dir of kinds) {
         [],
         "example parses without warnings",
       );
+      for (const field of metaFields) {
+        assert.ok(Object.hasOwn(result.model.meta, field), `model meta is missing ${field}`);
+      }
 
       const doc = result.excalidraw;
       assert.equal(doc.type, "excalidraw");
@@ -49,6 +69,8 @@ test("rendering is deterministic", async () => {
   const a = await render(source);
   const b = await render(source);
   assert.deepEqual(a.excalidraw, b.excalidraw);
+  assert.equal(await a.toSvg({ embedFont: false }), await b.toSvg({ embedFont: false }));
+  assert.deepEqual(await a.toPng({ width: 320 }), await b.toPng({ width: 320 }));
   const c = await render(source, { seed: "other" });
   assert.notDeepEqual(
     a.excalidraw.elements.map((e) => e.seed),

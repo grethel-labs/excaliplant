@@ -3,7 +3,7 @@
 // them to `src/layout/font_metrics.mjs`. The output is committed so text
 // measurement works without reading binary assets at runtime (and in browsers).
 //
-// Usage: node scripts/gen-font-metrics.mjs
+// Usage: node scripts/gen-font-metrics.mjs [--check]
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -97,5 +97,16 @@ const lines = [
   `export const ADVANCES = [${entries.map(([c, w]) => `${c},${w}`).join(",")}];`,
   "",
 ];
-writeFileSync(path.join(root, "src/layout/font_metrics.mjs"), lines.join("\n"));
-console.log(`Wrote ${entries.length} glyph widths (unitsPerEm=${unitsPerEm}).`);
+const target = path.join(root, "src/layout/font_metrics.mjs");
+const generated = lines.join("\n");
+if (process.argv.includes("--check")) {
+  if (readFileSync(target, "utf8") === generated) {
+    console.log("Font metrics are up to date.");
+  } else {
+    console.error("Font metrics are stale. Run node scripts/gen-font-metrics.mjs.");
+    process.exitCode = 1;
+  }
+} else {
+  writeFileSync(target, generated);
+  console.log(`Wrote ${entries.length} glyph widths (unitsPerEm=${unitsPerEm}).`);
+}

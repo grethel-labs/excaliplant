@@ -53,9 +53,12 @@ jobs:
         run: |
           set -euo pipefail
           labels=$(gh pr view "$PR" -R "$REPO" --json labels --jq '[.labels[].name | select(startswith("release:"))] | join(",")')
-          count=$(printf '%s' "$labels" | awk -F, 'NF{print NF}')
-          if [ "${count:-0}" -ne 1 ]; then
-            echo "::error::Pull requests need exactly one of release:major, release:minor, release:patch, release:none (found: ${labels:-none})."
-            exit 1
-          fi
-          echo "Release label: $labels"
+          case "$labels" in
+            release:major|release:minor|release:patch|release:none)
+              echo "Release label: $labels"
+              ;;
+            *)
+              echo "::error::Pull requests need exactly one of release:major, release:minor, release:patch, release:none (found: ${labels:-none})."
+              exit 1
+              ;;
+          esac

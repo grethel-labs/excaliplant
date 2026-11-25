@@ -15,7 +15,7 @@ help a lot (`npx excaliplant input.puml -o out.png`).
 
 ## Making changes
 
-1. Read [AGENTS.md](AGENTS.md) — it describes the architecture and rules for humans and agents alike.
+1. Start with [AGENTS.md](AGENTS.md) and the [development guidelines](docs/development/guidelines.md) for the subsystem and its checks. The [system overview](docs/development/overview.md) includes editable diagrams.
 2. Add or update an example in `examples/<kind>/`; it becomes a test and a gallery entry.
 3. Add unit tests for tricky syntax in `test/`.
 4. Run `npm run docs` and commit the regenerated `README.md`, `docs/gallery*` and `docs/assets/`.

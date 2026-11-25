@@ -5,6 +5,7 @@
 //   docs/gallery.md                    gallery page with sources and images
 //   docs/assets/carousel.svg           animated README carousel (one slide per diagram type)
 //   docs/assets/*.png                  theme showcase and pipeline picture
+//   docs/development/diagrams/         editable scenes and previews next to their sources
 //   README.md                          rendered from docs/README.template.md
 //
 // Usage: node scripts/docs.mjs [--check]
@@ -13,7 +14,7 @@
 //            differ slightly between platforms. SVG path comparison ignores
 //            floating-point noise beyond subpixel precision.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import { render, THEME_NAMES } from "../src/index.mjs";
 import { ROOT, SITE_URL, TYPES, loadExamples, carouselSvg } from "./showcase.mjs";
@@ -114,6 +115,25 @@ const pipeline = await render(
   readFileSync(path.join(ROOT, "docs", "diagrams", "pipeline.puml"), "utf8"),
 );
 emit("docs/assets/pipeline.png", await pipeline.toPng({ scale: 1.5 }), { binary: true });
+
+// ── development diagrams ────────────────────────────────────────────
+const developmentDiagrams = "docs/development/diagrams";
+const diagramFiles = readdirSync(path.join(ROOT, developmentDiagrams)).sort();
+const diagramSources = new Set(diagramFiles.filter((file) => file.endsWith(".puml")));
+for (const file of diagramSources) {
+  const source = readFileSync(path.join(ROOT, developmentDiagrams, file), "utf8");
+  const result = await render(source, { strict: true, sketch: false, theme: "blueprint" });
+  const base = `${developmentDiagrams}/${file.slice(0, -5)}`;
+  emit(`${base}.excalidraw`, `${JSON.stringify(result.excalidraw, null, 2)}\n`);
+  emit(`${base}.svg`, await result.toSvg());
+}
+for (const file of diagramFiles) {
+  const source = file.replace(/\.(?:excalidraw|svg)$/, ".puml");
+  if (source === file || diagramSources.has(source)) continue;
+  const orphan = `${developmentDiagrams}/${file}`;
+  if (check) stale.push(`${orphan} (no PlantUML source)`);
+  else rmSync(path.join(ROOT, orphan));
+}
 
 // ── README ────────────────────────────────────────────────────────────
 const counts = new Map(kinds.map((k) => [k, examples.filter((e) => e.kind === k).length]));

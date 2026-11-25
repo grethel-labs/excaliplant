@@ -37,6 +37,7 @@
   ],
   "scripts": {
     "test": "node scripts/test.mjs",
+    "guardrails": "node --test test/guardrails.test.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "types": "tsc -p tsconfig.types.json",
     "site": "node scripts/site.mjs _site",
@@ -44,7 +45,7 @@
     "themes": "node scripts/themes.mjs",
     "themes:check": "node scripts/themes.mjs --check",
     "docs": "npm run themes && node scripts/docs.mjs && node scripts/skills.mjs && node scripts/gen-mcp-examples.mjs",
-    "docs:check": "npm run themes:check && node scripts/docs.mjs --check && node scripts/skills.mjs --check && node scripts/gen-mcp-examples.mjs --check",
+    "docs:check": "npm run themes:check && node scripts/gen-font-metrics.mjs --check && node scripts/docs.mjs --check && node scripts/skills.mjs --check && node scripts/gen-mcp-examples.mjs --check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run typecheck && npm test && npm run docs:check",

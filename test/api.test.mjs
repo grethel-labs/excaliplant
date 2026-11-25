@@ -99,6 +99,17 @@ test("parse returns the model without layout", () => {
   assert.equal(model.edges.length, 1);
 });
 
+test("simple state text is measured during layout only", async () => {
+  const source = "@startuml\nstate Ready : can run\n[*] --> Ready\n@enduml";
+  const parsed = parse(source).model.nodes.get("Ready");
+  assert.equal(parsed.description, "can run");
+  assert.equal(parsed.data.stateText, undefined);
+  const { model } = await render(source);
+  const { stateText } = model.nodes.get("Ready").data;
+  assert.ok(stateText.name.width > 0);
+  assert.ok(stateText.desc.width > 0);
+});
+
 test("custom diagram modules can be registered", async () => {
   const hello = defineDiagram({
     kind: "hello",
