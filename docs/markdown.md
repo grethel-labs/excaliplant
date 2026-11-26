@@ -25,23 +25,80 @@ info string (`{…}` is optional) override the global options for one block:
 
 ## Which route do I take?
 
-| You have…                             | Use                                                                                        |
-| ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| a README on GitHub                    | `excaliplant markdown --mode file` or the GitHub Action                                    |
-| a static site (Docusaurus, Astro, …)  | the remark plugin                                                                          |
-| markdown-it (VitePress, custom tools) | the markdown-it plugin                                                                     |
-| your own tooling                      | `extractBlocks`, `renderBlock`, `renderMarkdown` from `@grethel-labs/excaliplant/markdown` |
+| You have…                                         | Use                                                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| repository Markdown on GitHub, GitLab, or Forgejo | [File mode](#repository-previews-on-github-gitlab-and-forgejo)                             |
+| a static site (Docusaurus, Astro, …)              | the remark plugin                                                                          |
+| markdown-it (VitePress, custom tools)             | the markdown-it plugin                                                                     |
+| your own tooling                                  | `extractBlocks`, `renderBlock`, `renderMarkdown` from `@grethel-labs/excaliplant/markdown` |
 
-GitHub does not render PlantUML fences itself and strips inline `<svg>`. For
-GitHub use `--mode file`, which writes `assets/<hash>.svg` and links it with a
-normal Markdown image.
+## Repository previews on GitHub, GitLab, and Forgejo
+
+Use file mode for a README or other checked-in Markdown. It writes a
+standalone SVG with an embedded font and a standard Markdown image link.
+For a root `README.md` the link points into `assets/`. For
+`docs/reference/guide.md` it points into `docs/reference/assets/` from the
+repository root. Commit the rendered Markdown and its SVG assets together.
+The repository browser can display them without a PlantUML service.
+
+Install and lock excaliplant in the project, then run the same CLI for local
+regeneration and CI checks.
+
+```sh
+npm install --save-dev --save-exact @grethel-labs/excaliplant
+npm exec -- excaliplant markdown README.md docs/reference/guide.md --mode file --in-place
+npm exec -- excaliplant markdown README.md docs/reference/guide.md --mode file --check
+```
+
+`--in-place` retains the PlantUML source so the command can regenerate the
+images. Commit the npm lockfile so CI renders with the same version. Use
+matching render options for both commands, including `--include-dir .`
+if the diagrams use local files. `--check` reports stale Markdown and
+missing or changed assets without writing files.
+
+### GitHub Actions
+
+Use the [composite action](#github-action) with `mode: file` and
+`check: "true"`. The same CLI check also works after `npm ci` in a
+GitHub Actions step.
+
+### GitLab CI
+
+Add this job to `.gitlab-ci.yml` in a project with a Node-capable runner.
+
+```yaml
+excaliplant:
+  image: node:22-bookworm
+  script:
+    - npm ci
+    - npm exec -- excaliplant markdown README.md docs/reference/guide.md --mode file --check
+```
+
+### Forgejo Actions
+
+Add `.forgejo/workflows/diagrams.yml` and set `runs-on` to a label
+configured for your Forgejo Runner. This example uses the `docker` label.
+
+```yaml
+name: Diagrams
+on: [push, pull_request]
+jobs:
+  diagrams:
+    runs-on: docker
+    container:
+      image: node:24-bookworm
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v6
+      - run: npm ci
+      - run: npm exec -- excaliplant markdown README.md docs/reference/guide.md --mode file --check
+```
 
 ## Command line
 
 ```sh
 excaliplant markdown README.md -o README.out.md      # inline SVG, source dropped
 excaliplant markdown README.md --in-place --mode file # assets/<hash>.svg, source kept
-excaliplant markdown docs/*.md --check                # CI: exit 1 if anything is stale
+excaliplant markdown docs/*.md --mode file --check    # CI: exit 1 if anything is stale
 cat doc.md | excaliplant markdown - > rendered.md
 ```
 
