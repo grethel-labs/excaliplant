@@ -14,6 +14,8 @@ const THEME_LABELS = {
   mono: "Monochrome",
   dark: "Dark",
   blueprint: "Blueprint",
+  "grethel-labs-dark": "Grethel Labs Dark",
+  "grethel-labs-light": "Grethel Labs Light",
 };
 
 export class ExcaliplantSettingTab extends PluginSettingTab {

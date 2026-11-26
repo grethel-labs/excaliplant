@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { THEME_NAMES } from "../src/index.mjs";
+import { render, THEME_NAMES } from "../src/index.mjs";
 import { readThemeEnvironment } from "../src/draw/theme_env.mjs";
 import { assertThemeContrast } from "../scripts/theme_contrast.mjs";
 import { createTheme } from "../src/draw/theme.mjs";
@@ -89,6 +89,22 @@ test("host colour overrides resolve independently and reach aliases", () => {
   assert.ok(THEME_NAMES.includes("grethel-labs-dark"));
   assert.equal(createTheme("transparent-dark").background, "transparent");
   assert.equal(createTheme("transparent-dark").surface, "#111827");
+});
+
+test("the Grethel Labs themes apply coordinated teal to rendered components", async () => {
+  const source = '@startuml\ncomponent "Web App" as web\ndatabase Orders\nweb --> Orders\n@enduml';
+  for (const [id, outline, fill] of [
+    ["grethel-labs-dark", "#2db8a8", "#143a3b"],
+    ["grethel-labs-light", "#0b7168", "#d6f1e9"],
+  ]) {
+    assert.ok(THEME_NAMES.includes(id));
+    const result = await render(source, { theme: id });
+    assert.equal(result.kind, "component");
+    const svg = await result.toSvg();
+    assert.ok(svg.includes(`stroke="${outline}"`));
+    assert.ok(svg.includes(`fill="${fill}"`));
+    assert.match(svg, /Web App/);
+  }
 });
 
 test("contrast is checked from inherited tokens and alpha without rendering", () => {

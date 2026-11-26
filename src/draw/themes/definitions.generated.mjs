@@ -1378,19 +1378,27 @@ export const definitions = [
     extends: "dark",
     colors: {
       "canvas.background": "#111827",
-      "canvas.surface": "#192231",
+      "canvas.surface": "#1b3038",
       "colors.ink": "#f7f8fa",
-      "colors.muted": "#b6c2d1",
-      "roles.edge.stroke": "#7a8aa0",
-      "roles.class.stroke": "#7a8aa0",
+      "colors.muted": "#bfd1d3",
+      "roles.edge.stroke": "#7faeae",
+      "roles.class.stroke": {
+        ref: "palette.teal.stroke",
+      },
       "roles.class.fill": {
         ref: "canvas.surface",
       },
       "roles.component.fill": {
-        ref: "canvas.surface",
+        ref: "palette.teal.fill",
+      },
+      "roles.component.stroke": {
+        ref: "palette.teal.stroke",
       },
       "roles.participant.fill": {
         ref: "canvas.surface",
+      },
+      "roles.participant.stroke": {
+        ref: "palette.teal.stroke",
       },
       "palette.teal.stroke": "#2db8a8",
       "palette.teal.fill": "#143a3b",
@@ -1398,6 +1406,58 @@ export const definitions = [
     styles: {
       roughness: 0,
       edgeRoughness: 0,
+    },
+    contrast: {
+      pairs: [
+        {
+          foreground: "roles.component.stroke",
+          backgrounds: ["roles.component.fill"],
+          kind: "graphic",
+        },
+      ],
+    },
+  },
+  {
+    id: "grethel-labs-light",
+    extends: "plain",
+    colors: {
+      "canvas.background": "#f7fbfa",
+      "canvas.surface": "#e8f5f1",
+      "colors.ink": "#172e32",
+      "colors.muted": "#3f6261",
+      "roles.edge.stroke": "#427d77",
+      "roles.class.stroke": {
+        ref: "palette.teal.stroke",
+      },
+      "roles.class.fill": {
+        ref: "canvas.surface",
+      },
+      "roles.component.fill": {
+        ref: "palette.teal.fill",
+      },
+      "roles.component.stroke": {
+        ref: "palette.teal.stroke",
+      },
+      "roles.participant.fill": {
+        ref: "canvas.surface",
+      },
+      "roles.participant.stroke": {
+        ref: "palette.teal.stroke",
+      },
+      "palette.teal.stroke": "#0b7168",
+      "palette.teal.fill": "#d6f1e9",
+    },
+    styles: {
+      strokeWidth: 2,
+    },
+    contrast: {
+      pairs: [
+        {
+          foreground: "roles.component.stroke",
+          backgrounds: ["roles.component.fill"],
+          kind: "graphic",
+        },
+      ],
     },
   },
   {

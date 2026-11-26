@@ -8,6 +8,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- Add Grethel Labs Light and use coordinated teal outlines, fills, and connectors in both Grethel Labs themes.
 - The playground opens local PlantUML files and folders, resolves their includes in the browser, and exports diagrams together or individually from a carousel.
 - VS Code can switch PlantUML files between the source and a live preview in the same editor group.
 - Document the shared SVG asset workflow and CI checks for Markdown on GitHub, GitLab, and Forgejo.
