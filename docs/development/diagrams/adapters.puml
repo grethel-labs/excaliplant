@@ -1,0 +1,18 @@
+@startuml
+title Gemeinsamer Renderkern
+
+component "CLI\nDateien und Optionen" as cli
+component "Markdown\nFences und bereinigtes SVG" as markdown
+component "MCP\nProtokoll und Worker" as mcp
+component "Playground\nBrowser-Worker" as site
+component "VS Code und Obsidian\nVorschau und Export" as editors
+component "Gemeinsame API\nrender · parse · detectKind" as api
+component "Renderkern\nExcalidraw · SVG · PNG" as render
+
+cli --> api
+markdown --> api
+mcp --> api
+site --> api
+editors --> api
+api --> render
+@enduml

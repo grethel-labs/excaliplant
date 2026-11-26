@@ -1,0 +1,17 @@
+@startuml
+title Vom Auftrag zum geprüften PR
+
+component "AGENTS.md und\npassender Skill" as agents
+component "Änderung im\nzuständigen Modul" as code
+component "PlantUML-Beispiel" as example
+component "Test aller Formate" as test
+component "Galerie und\ngebündelte Beispiele" as gallery
+component "CI und Review\nGuardrails · Builds · Bildprüfung" as review
+
+agents --> code
+code --> example
+example --> test
+example --> gallery
+test --> review
+gallery --> review
+@enduml

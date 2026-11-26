@@ -1,107 +1,52 @@
-# Repository Instructions for Editing Agents
+# Repository instructions for editing agents
 
-This file is the canonical guide for Copilot, Claude Code, Gemini, Cursor,
-Windsurf, Cline, Roo and other editing agents. Tool-specific files
-(`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`,
-`.cursor/rules/…`, `.windsurf/rules/…`, `.clinerules`, `.roo/rules/…`) only
-point here. Put substantive guidance in this file.
+This is the shared entry point for Codex, Claude Code, Gemini, Copilot, Cursor, Windsurf, Cline and Roo. Their instruction files point here.
 
-## Project shape
+## Work in this order
+
+1. Reproduce the change through the closest public entry point or example. Trace it to the owning layer.
+2. Read the relevant development skill below. Read the [guardrails](docs/development/guardrails.md) for the CI contracts and the [guidelines](docs/development/guidelines.md) for review decisions.
+3. Change the owning layer, cover the behavior, regenerate affected outputs from their sources, and run the local gate. Follow the review guidance for diagrams, security, and release notes.
+
+## Choose a development skill
+
+| Change                                                                 | Skill                                                                         |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Source blocks, macros, diagnostics, detection, shared PlantUML grammar | [Source and syntax](.agents/skills/excaliplant-source-and-syntax/SKILL.md)    |
+| A diagram family, parser, layout, or connector                         | [Diagram modules](.agents/skills/excaliplant-diagram-modules/SKILL.md)        |
+| Canvas, SVG/PNG, fonts, themes, ELK performance                        | [Rendering and themes](.agents/skills/excaliplant-render-and-themes/SKILL.md) |
+| CLI or Markdown conversion and plugins                                 | [CLI and Markdown](.agents/skills/excaliplant-cli-and-markdown/SKILL.md)      |
+| MCP protocol, tools, limits, transports, workers                       | [MCP server](.agents/skills/excaliplant-mcp-server/SKILL.md)                  |
+| Pages playground and gallery, VS Code, Obsidian                        | [Site and editors](.agents/skills/excaliplant-site-and-editors/SKILL.md)      |
+| Generated docs, shipped skills, package/plugin builds, releases        | [Docs and release](.agents/skills/excaliplant-docs-and-release/SKILL.md)      |
+
+The skills above guide repository changes. The user-facing `excaliplant` skill has its source in `skills-src/excaliplant/` and is distributed with the package and plugins.
+
+## Write GitHub and Git messages
+
+- [GitHub issues](.agents/skills/excaliplant-github-issues/SKILL.md) for bug reports and proposals.
+- [Pull request descriptions](.agents/skills/excaliplant-pull-requests/SKILL.md) for changes and their verification.
+- [Commit messages](.agents/skills/excaliplant-commit-messages/SKILL.md) for a Git commit's subject and optional body.
+
+## Follow the pipeline
 
 ```text
-PlantUML text
-  → core/source        @start…@end blocks, comments, newpage
-  → core/preprocess    !define, $vars, !if/!while/!foreach, !procedure/!function, !include (resolver)
-  → registry.resolve   picks the diagram module (detect scores for @startuml)
-  → module.parse       lines → model (shared commons: title, skinparam, <style>, …)
-  → module.layout      model → geometry (ELK, sequence engine, tree, railroad, …)
-  → module.draw        geometry → Canvas (Excalidraw elements)
-  → render/            excalidraw | svg (roughjs) | png (resvg)
+PlantUML → source → preprocess → registry → parse → layout → draw → Excalidraw → SVG → PNG
 ```
 
-Directory map:
+- `src/index.mjs` and `src/api.mjs` expose the public API. `src/core/` owns source blocks, limits, preprocessing, diagnostics and orchestration. Shared PlantUML syntax lives in `src/syntax/`.
+- Diagram modules define detection, parsing, layout and drawing. Parsers produce models with `createMeta()`. Layout computes geometry and may measure text. Draw code passes geometry and theme roles to `Canvas`, which creates Excalidraw elements. The format renderers consume the scene.
+- Host adapters own I/O and options. The rendering pipeline handles untrusted input. Use bounds from `DEFAULT_LIMITS`, pass includes through the caller's resolver, and preserve sanitized output and deterministic seeded rendering.
+- The [architecture](docs/architecture.md) describes the runtime in detail. The [system overview](docs/development/overview.md) shows the runtime, adapters, CI and release in editable diagrams.
 
-- `src/index.mjs`, `src/api.mjs` — public API (`render`, `renderAll`, `parse`, `detectKind`, `renderPlantUml`, …).
-- `src/core/` — source handling, preprocessor (+ bundled stdlib shims), registry, pipeline, limits, errors, diagnostics, hashing.
-- `src/syntax/` — shared PlantUML language: line reader, text helpers, colours, creole, link/arrow grammar, common commands, skin application.
-- `src/model/graph.mjs` — graph model shared by node/edge diagrams.
-- `src/layout/` — text measurement (`font_metrics.mjs` is generated) and geometry helpers.
-- `src/draw/` — `Canvas` (the only producer of Excalidraw elements), shape library, themes, diagram chrome (title/legend/…).
-- `src/render/` — Excalidraw document assembly/validation, SVG, PNG, fonts.
-- `src/diagrams/<kind>/` — one folder per diagram family. `src/diagrams/graph/` is the shared toolkit for graph diagrams; `src/diagrams/index.mjs` lists the built-in modules in detection-priority order.
-- `examples/<kind>/*.puml` — examples = test fixtures = gallery entries.
-- `scripts/` — docs generator, font metrics generator, test runner, release helpers.
-- `src/markdown/` — Markdown front door (fence scanner, `renderMarkdown`, `markdown-it`/`remark` plugins, `excaliplant markdown`). `src/mcp/` — MCP server (`excaliplant mcp`, `excaliplant-mcp`), zero dependencies. `src/skills/` — `excaliplant skills install`. All three reuse `render()`; they never parse PlantUML themselves and follow the same security rules.
-- `skills-src/` → `skills/` — agent skill source and its generated output (`node scripts/skills.mjs`); `skills-src/excalidraw-spec/` is a committed snapshot of Excalidraw's element typings (`npm run spec:update`).
-- `site/` — the GitHub Pages website (live playground + example gallery): vanilla JS/CSS, bundled with esbuild by `scripts/site.mjs`; the library runs in a Web Worker. `npm run site:smoke` opens the built site in a headless browser (CI job "Site smoke test (browser)" and `pages.yml` before deploying): a change that touches `site/`, the worker bundle or how the library loads (lazy imports, globals such as `onmessage`) must keep it green. See `docs/site.md`.
-- `integrations/` — Claude Code plugin, Gemini extension, VS Code extension and Obsidian plugin. They have their own `package.json` (build tooling only, never a root dependency) and are bundled from `src/` by `scripts/build-*.mjs`.
-- `.claude-plugin/`, `.agents/plugins/`, `gemini-extension.json`, `server.json`, `action.yml` — install manifests that must sit in the repository root. `integrations/claude-plugin` and `integrations/codex-plugin` must stay directory-ready (README, LICENSE, an identical copy of the root `PRIVACY.md`, icon, no MCP server declared: the directory refuses local ones from unverified organizations, so `.mcp.json` exists only in the plugin archive, pinned by `pinnedMcpConfig` in `scripts/skills.mjs`; `test/skills.test.mjs` checks it); `docs/publishing.md` lists the listings.
-
-## Layer rules
-
-- A diagram module is a plain object created with `defineDiagram({ kind, title, starts, detect?, raw?, fallback?, parse, layout, draw })`.
-- Parsers produce models; they never measure text or create drawing elements.
-- Layout computes geometry; it may measure text (`layoutText`, `textWidth`) but never draws.
-- Draw code only uses the `Canvas` API and theme roles (`roleStyle(theme, "class")`). Never write Excalidraw fields, SVG or colours directly into elements.
-- Renderers (`src/render/`) know nothing about PlantUML.
-- The CLI (`bin/excaliplant.mjs`) does I/O and option parsing only.
-- Models expose `meta` from `createMeta()` so shared chrome works everywhere.
-
-## Adding or extending a diagram type
-
-1. Put parser rules in the owning module. Prefer `runRules` with small rule functions; shared syntax belongs in `src/syntax/`.
-2. Reuse the graph toolkit (`graphModule`, `parseDeclaration`, `parseLink`, `layoutGraph`, `drawGraph`) for node/edge diagrams.
-3. For `@startuml` types add weighted `detect` patterns via `score()`; keep regexes anchored and cheap.
-4. Add an example to `examples/<kind>/` — it is automatically tested (kind detection, no warnings, Excalidraw/SVG/PNG) and shown in the gallery.
-5. Add focused unit tests for tricky syntax in `test/`.
-6. Look at the rendered PNG/SVG before you finish; layout bugs are not caught by structural tests.
-
-## Language and style
-
-- Node `>=20`, ESM-only `.mjs`, explicit `.mjs` import extensions, no CommonJS in `src/`.
-- JSDoc types checked by `tsc --checkJs` (`npm run typecheck`). Public API needs JSDoc.
-- Prettier formats everything (`npm run format`). Comments explain contracts and non-obvious decisions, in English.
-- `camelCase` functions/variables, `PascalCase` classes, `UPPER_SNAKE_CASE` constants, `snake_case.mjs` or `index.mjs` file names.
-- Output must be deterministic: no `Math.random`, no wall-clock time. Seeds come from `stableHash32`.
-
-## Security expectations
-
-The library renders untrusted input.
-
-- Respect `DEFAULT_LIMITS`; new expensive paths need a budget in `src/core/limits.mjs` or a clamp.
-- No file-system or network access in `src/` rendering paths. `!include` goes through the caller's resolver only.
-- Escape all text/attributes in SVG; colours must pass `parseColor`; links only `http(s)`/`mailto`.
-- Use `Map` / `Object.create(null)` for attacker-controlled keys.
-- Avoid regexes with nested or overlapping quantifiers on unbounded input; prefer scanners. Detection only sees the first 500 characters of a line.
-- Add a case to `test/security.test.mjs` for security-relevant changes.
-
-## Generated files
-
-- `README.md` is generated from `docs/README.template.md`; `docs/gallery.md`, `docs/gallery/` and `docs/assets/` (including the animated `carousel.svg`) from `examples/` and `docs/diagrams/`. Display order and descriptions of diagram types live in `scripts/showcase.mjs`.
-- The website on GitHub Pages (playground and gallery, sources in `site/`) is built by `scripts/site.mjs` in `.github/workflows/pages.yml`; its output (`_site/`) is not committed. Run `npm run docs` after changing examples, the template or rendering, and commit the results. CI fails on stale docs (`npm run docs:check`).
-- `src/layout/font_metrics.mjs` is generated by `node scripts/gen-font-metrics.mjs`.
-- The branch `plugin-release` (versioned plugin files, one commit per release by `scripts/publish-plugin-branch.sh`) is generated by the release workflow; never change it by hand.
-- `skills/`, `integrations/claude-plugin/skills/`, `integrations/codex-plugin/skills/`, `integrations/gemini-extension/GEMINI.md` and `src/mcp/examples.generated.mjs` are generated by `npm run docs` (CI fails on drift via `npm run docs:check`). Never edit them by hand; edit `skills-src/` or `examples/`.
-
-## Validation
-
-Run before opening a PR (CI runs the same):
+## Validate and open a PR
 
 ```sh
-npm run format:check
-npm run typecheck
-npm test
-npm run docs:check
+npm run guardrails
+npm run check
 npm audit --omit=dev --audit-level=high
 ```
 
-`npm run check` runs the first four.
+`npm run guardrails` is the fast standalone architecture check and also runs in `npm test`. Format with Prettier and document public API contracts in JSDoc. Use `npm run docs` for changed generated outputs. For site or worker changes, also run `npm run site` and `npm run site:smoke`.
 
-## Pull requests and releases
-
-- Branch from `main`; open a PR into `main`.
-- Every PR needs exactly one label: `release:major`, `release:minor`, `release:patch` or `release:none`. The label workflow derives it from a `MAJOR`/`MINOR`/`PATCH`/`NONE` token in the branch name and defaults to `release:patch`.
-- Do not edit the version in `package.json`; it stays `0.0.0-development`. Versions come from git tags.
-- Merging into `main` runs `.github/workflows/release.yml`: it computes the next version from the latest `v*` tag and the PR label, runs the full gate, publishes to npm with provenance and creates the tag and GitHub release. No commits are pushed back to `main`.
-- After merging, check the Release workflow run and report the outcome (published version, or the concrete reason nothing was published).
-- User-visible changes get a line in `CHANGELOG.md` under "Unreleased".
+Branch from current `main` and open the PR into `main` with one supported release label. Keep the committed package version at `0.0.0-development`. The [release guide](docs/releasing.md) covers automated publishing and post-merge verification.

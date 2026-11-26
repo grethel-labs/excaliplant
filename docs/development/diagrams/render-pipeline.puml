@@ -1,0 +1,15 @@
+@startuml
+title Renderkern
+left to right direction
+
+component "PlantUML" as input
+component "Aufbereitung\nBlöcke · Präprozessor" as source
+component "Typwahl und Parser\nModell + Metadaten" as parser
+component "Layout und Canvas\nGeometrie + Theme" as draw
+component "Excalidraw-Szene\nSVG → PNG" as scene
+
+input --> source
+source --> parser
+parser --> draw
+draw --> scene
+@enduml

@@ -6,6 +6,7 @@
  */
 
 import { graphModule } from "../graph/module.mjs";
+import { defineDiagram } from "../../core/registry.mjs";
 import { declare, ensureNode, parseNameAlias } from "../graph/parse.mjs";
 import { parseLink, headsOf } from "../../syntax/arrows.mjs";
 import { parseColorSpec } from "../../syntax/color.mjs";
@@ -333,7 +334,7 @@ function drawState(c, n, style, s) {
   return id;
 }
 
-export default graphModule({
+const diagram = graphModule({
   kind: "state",
   title: "State diagram",
   keywords: [
@@ -368,15 +369,8 @@ export default graphModule({
         n.shape = "rounded";
         continue;
       }
-      const name = layoutText(n.label, { fontSize: fs, bold: true });
-      const desc = n.description
-        ? layoutText(n.description, { fontSize: fs * 0.85, align: "left", maxWidth: 320 })
-        : null;
-      n.data.stateText = { name, desc };
-      n.data.fixed = [
-        Math.max(90, name.width + 32, (desc?.width ?? 0) + 28),
-        name.height + 18 + (desc ? desc.height + 14 : 0),
-      ];
+      // Keep the original theme size used for simple states before skin overrides.
+      n.data.stateFontSize = fs;
       n.data.draw = drawState;
     }
   },
@@ -387,4 +381,24 @@ export default graphModule({
       [/-+>\s*\[\*\]/, 3],
       [/\[H\*?\]/, 2],
     ]),
+});
+
+export default defineDiagram({
+  ...diagram,
+  layout(model, ctx) {
+    for (const n of model.nodes.values()) {
+      const fs = n.data.stateFontSize;
+      if (fs === undefined) continue;
+      const name = layoutText(n.label, { fontSize: fs, bold: true });
+      const desc = n.description
+        ? layoutText(n.description, { fontSize: fs * 0.85, align: "left", maxWidth: 320 })
+        : null;
+      n.data.stateText = { name, desc };
+      n.data.fixed = [
+        Math.max(90, name.width + 32, (desc?.width ?? 0) + 28),
+        name.height + 18 + (desc ? desc.height + 14 : 0),
+      ];
+    }
+    return diagram.layout(model, ctx);
+  },
 });

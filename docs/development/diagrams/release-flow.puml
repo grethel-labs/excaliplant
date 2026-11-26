@@ -1,0 +1,18 @@
+@startuml
+title Veröffentlichung und Pages
+
+component "PR in main\nmit Release-Label" as pr
+component "Release-Workflow\nVersion aus Git-Tags" as release
+component "Paket prüfen\nund probeinstallieren" as pack
+component "npm mit Provenance" as npm
+component "GitHub Release\nund Plugin-Referenzen" as plugins
+component "MCP-Registry" as mcp
+component "Pages\nBuild + Browser-Smoke" as pages
+
+pr --> release
+release --> pack : major / minor / patch
+release --> pages : nach Workflow-Ende
+pack --> npm
+npm --> plugins
+npm --> mcp
+@enduml
