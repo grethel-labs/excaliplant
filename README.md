@@ -14,7 +14,7 @@
 
 <p align="center">
   <b><a href="https://grethel-labs.github.io/excaliplant/#play">▶ Try it live — write PlantUML in your browser</a></b><br />
-  <sub>Live preview, every render option, all 42 examples open and editable, share by link, export SVG, PNG or Excalidraw.</sub>
+  <sub>Live preview, every render option, all 43 examples open and editable, share by link, export SVG, PNG or Excalidraw.</sub>
 </p>
 
 <p align="center">
@@ -74,7 +74,7 @@
 
 - **Looks like a whiteboard, stays a diagram.** Output is a real Excalidraw scene: open it in Excalidraw, move boxes, arrows stay bound.
 - **Broad PlantUML coverage.** Sequence, class, activity, state, component, C4, Gantt, mind maps, JSON, regex, math — see the [full list](#supported-diagrams).
-- **Interactive hooks and tooltips.** Attach hover and click styles, browser events, and plain-text tooltips to diagram elements. [Usage](#interactive-element-hooks)
+- **Interactive hooks and tooltips.** Attach hover and click styles, browser events, and plain-text tooltips to diagram elements. [Hooks](#interactive-element-hooks) · [Tooltips](#element-tooltips)
 - **The PlantUML language, not just diagrams.** Preprocessor (`!procedure`, `!function`, loops, JSON variables, `!include`), Creole markup, `skinparam`, `<style>`, themes, colours and bundled C4/ArchiMate libraries.
 - **Pure JavaScript.** No Java, no Graphviz, no PlantUML server. Layout runs on [ELK](https://github.com/kieler/elkjs) and purpose-built engines.
 - **Deterministic.** Same input, same bytes — ideal for docs in git.
@@ -144,7 +144,7 @@ Each diagram type is a small module with four hooks — `detect`, `parse`, `layo
 | [Class & IE](https://grethel-labs.github.io/excaliplant/#gallery/class) | [3](docs/gallery.md#class) | Classes, interfaces, enums, generics, members, packages, all UML relations, IE crow's feet. |
 | [Activity](https://grethel-labs.github.io/excaliplant/#gallery/activity) | [3](docs/gallery.md#activity) | New syntax with if/switch/while/repeat/fork/split, partitions, notes and swimlanes. |
 | [State](https://grethel-labs.github.io/excaliplant/#gallery/state) | [2](docs/gallery.md#state) | Composite states, concurrent regions, choice, fork/join, history, entry/exit actions. |
-| [Component & C4](https://grethel-labs.github.io/excaliplant/#gallery/component) | [3](docs/gallery.md#component) | Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. |
+| [Component & C4](https://grethel-labs.github.io/excaliplant/#gallery/component) | [4](docs/gallery.md#component) | Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. |
 | [Use case](https://grethel-labs.github.io/excaliplant/#gallery/usecase) | [2](docs/gallery.md#usecase) | Actors, use cases, system boundaries, include/extend. |
 | [Deployment](https://grethel-labs.github.io/excaliplant/#gallery/deployment) | [2](docs/gallery.md#deployment) | Nodes, clouds, databases, queues, artifacts and nested deployment targets. |
 | [Object](https://grethel-labs.github.io/excaliplant/#gallery/object) | [1](docs/gallery.md#object) | Objects with fields, maps (`key => value`) and links. |
@@ -283,11 +283,6 @@ default. Add `click-from-children` to a parent hook binding to receive clicks
 from its hooked descendants. See [nested hooks](docs/hooks.md#nested-hooks) for
 parent resolution and the forwarded event payload.
 
-Use `@tooltip alias:orders "Tracks orders after checkout"` for a plain-text
-tooltip. It works with or without an `@hook`. In the Playground, hover over
-the element to read it. For connectors and their captions, use `@tooltip
-element:<id> "Tooltip text"` with the corresponding scene ID on one line.
-
 Render the SVG with `toSvg({ interactive: true })` and insert it inline into the
 host page. Then use the browser entry point to enable and listen for interactions.
 
@@ -313,6 +308,26 @@ and `detail.elementId` identifies the scene primitive that received the event.
 Each targeted Excalidraw element includes the hook metadata and resolved styles
 in `customData.excaliplantHook` for hosts that embed their own viewer. SVG image
 embedding and PNG provide a static preview.
+
+### Element tooltips
+
+Add a `@tooltip` directive before the diagram body and hover over the element
+in the Playground to read the text. Tooltips work on their own or alongside
+`@hook` directives.
+
+```plantuml
+@startuml
+@tooltip alias:storefront "Receives customer orders."
+@tooltip alias:events "Queues order events for downstream services."
+component "Storefront" as storefront
+component "Order events" as events
+storefront --> events : publishes orders
+@enduml
+```
+
+Use `element:<id>` to attach different tooltips to a connector and its caption.
+[Try the tooltip example in the Playground](https://grethel-labs.github.io/excaliplant/#play/component/element-tooltips)
+or see the [element tooltip specification](docs/tooltips.md).
 
 <details>
 <summary><b>Render options</b></summary>

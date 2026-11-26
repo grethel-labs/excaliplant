@@ -363,17 +363,21 @@ export async function runSmoke(dir, options = {}) {
         }
       },
     );
-    await step("a tooltip works without any hooks", play, async () => {
-      await play
-        .getByRole("textbox", { name: "PlantUML source" })
-        .fill('@startuml\n@tooltip alias:Web "The public site"\ncomponent Web\n@enduml');
-      const svg = play.locator("#interactive-preview > svg");
-      await svg.waitFor({ state: "visible", timeout: STEP_TIMEOUT });
-      if (!(await svg.locator("g > title").allTextContents()).includes("The public site"))
-        throw new Error("The tooltip-only diagram did not use the inline preview");
-      await play.locator("#hook-event").waitFor({ state: "hidden", timeout: STEP_TIMEOUT });
-    });
     await play.close();
+
+    const tooltips = await open("#play/component/element-tooltips");
+    await step("the Element tooltips example works without hooks", tooltips, async () => {
+      const svg = tooltips.locator("#interactive-preview > svg");
+      await svg.waitFor({ state: "visible", timeout: STEP_TIMEOUT });
+      const titles = await svg.locator("g > title").allTextContents();
+      if (
+        !titles.includes("Receives customer orders.") ||
+        !titles.includes("Queues order events for downstream services.")
+      )
+        throw new Error("The tooltip example did not show both tooltip texts");
+      await tooltips.locator("#hook-event").waitFor({ state: "hidden", timeout: STEP_TIMEOUT });
+    });
+    await tooltips.close();
 
     const legacyStrokes = Buffer.from(
       JSON.stringify({

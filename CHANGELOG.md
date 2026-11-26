@@ -30,6 +30,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Fixed
 
+- Document element tooltips in the README and a dedicated specification, with a standalone Playground example.
 - Gantt dependency arrows and other diagram connectors follow the selected sketch style while keeping their routes and endpoints.
 - The live playground on the GitHub Pages site rendered nothing since v1.4.0: loading the layout engine lazily let it replace the message handler of the page's worker, which then never answered. The handler is restored after the engine is created.
 

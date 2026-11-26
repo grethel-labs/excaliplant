@@ -79,13 +79,17 @@ Checkout also toggles and its event is marked **From child**.
 **Payments** uses `click-mode:button`. Each activation displays **Button click**
 in the event readout, and the click style lasts while the control is held down.
 
-Hover over **Orders** or **Storefront** to see native browser tooltips. Add
-`@tooltip alias:orders "Tracks orders after checkout"` at the start of a diagram
-to set your own text. Storefront shows how a tooltip can work on its own.
-
 SVG and PNG downloads use the diagram's normal appearance. The Excalidraw
-download carries the hook and tooltip metadata for another viewer. The [element hook
+download carries the hook metadata for another viewer. The [element hook
 specification](hooks.md) describes the API for embedding a live preview.
+
+## Element tooltip preview
+
+Open [Element tooltips](https://grethel-labs.github.io/excaliplant/#play/component/element-tooltips)
+and hover over **Storefront** or **Order events**. Add a `@tooltip` directive at
+the start of your own diagram to attach plain-text help. The [element tooltip
+specification](tooltips.md) covers target selectors, exported metadata and
+embedding tooltips in your own viewer.
 
 ## Local PlantUML projects
 

@@ -1,0 +1,7 @@
+@startuml
+@tooltip alias:storefront "Receives customer orders."
+@tooltip alias:events "Queues order events for downstream services."
+component "Storefront" as storefront
+component "Order events" as events
+storefront --> events : publishes orders
+@enduml

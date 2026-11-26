@@ -484,6 +484,24 @@ Rel(api, mail, "Sends e-mails", "SMTP")
 
 </details>
 
+### element-tooltips
+
+<img src="gallery/component/element-tooltips.svg" alt="component example: element-tooltips" />
+
+<details><summary>Source</summary>
+
+```plantuml
+@startuml
+@tooltip alias:storefront "Receives customer orders."
+@tooltip alias:events "Queues order events for downstream services."
+component "Storefront" as storefront
+component "Order events" as events
+storefront --> events : publishes orders
+@enduml
+```
+
+</details>
+
 ### interactive-services
 
 <img src="gallery/component/interactive-services.svg" alt="component example: interactive-services" />
