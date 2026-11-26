@@ -116,6 +116,7 @@ export function combineProject(documents, options, background) {
   let y = 0;
   let rowHeight = 0;
   for (const [index, document] of documents.entries()) {
+    const hookNames = new Map();
     const bound = canvas.bounds(document.elements);
     const width = bound.w + pad * 2;
     const height = bound.h + pad * 2;
@@ -127,11 +128,24 @@ export function combineProject(documents, options, background) {
     });
     elements.push(
       { ...canvas.elements.at(-1), id: `project-background-${index}` },
-      ...document.elements.map((element) => ({
-        ...element,
-        x: element.x + x + pad - bound.x,
-        y: element.y + y + pad - bound.y,
-      })),
+      ...document.elements.map((element) => {
+        const placed = {
+          ...element,
+          x: element.x + x + pad - bound.x,
+          y: element.y + y + pad - bound.y,
+        };
+        const hook = element.customData?.excaliplantHook;
+        if (hook) {
+          // Author IDs and selectors may repeat across independent documents.
+          if (!hookNames.has(hook.name))
+            hookNames.set(hook.name, `@line:${index}:${hookNames.size}`);
+          placed.customData = {
+            ...element.customData,
+            excaliplantHook: { ...hook, name: hookNames.get(hook.name) },
+          };
+        }
+        return placed;
+      }),
     );
     rowHeight = Math.max(rowHeight, height);
     if (index % 2 === 0) x = width + pad;

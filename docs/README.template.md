@@ -164,6 +164,7 @@ reference backdrop. Text pairs require 4.5:1 and graphic pairs require 3:1.
 
 Use the [element hook specification](docs/hooks.md) and [JSON Schema](docs/hooks.schema.json)
 when integrating a viewer or validating hook data.
+[Try the interactive services example in the Playground](https://grethel-labs.github.io/excaliplant/#play/component/interactive-services).
 
 Put excaliplant `@hook` directives at the start of the diagram or `newpage` page,
 before the diagram body. Use a unique `#id`, one or more reusable `.classes`, or

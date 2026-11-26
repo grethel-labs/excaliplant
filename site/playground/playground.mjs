@@ -1,5 +1,6 @@
 // The playground view: editor, options, live rendering, export and sharing.
 
+import { bindHooks } from "../../src/browser/hooks.mjs";
 import { byId, h } from "./dom.mjs";
 import { createEditor } from "./editor.mjs";
 import { createEngineClient } from "./engine.mjs";
@@ -26,6 +27,16 @@ import {
 export const RENDER_DEBOUNCE_MS = 150;
 
 const DEFAULT_EXAMPLE = "sequence/lifecycle";
+const SVG_NS = "http://www.w3.org/2000/svg";
+const HOOK_PART = "g[data-excaliplant-hook][data-excaliplant-element-id]";
+
+/** @param {EventTarget | null} target */
+function isPreviewAction(target) {
+  return (
+    target instanceof Element &&
+    target.closest(`#interactive-preview :is(${HOOK_PART}, a[href])`) !== null
+  );
+}
 
 /**
  * @param {{
@@ -58,6 +69,10 @@ export function initPlayground(config) {
   let last = null;
   /** @type {string | null} */
   let blobUrl = null;
+  /** @type {{ width: number, height: number } | null} */
+  let interactiveSize = null;
+  /** @type {(() => void) | null} */
+  let clearHooks = null;
   /** @type {"fit" | number} */
   let zoom = "fit";
   /** @type {{ files: { path: string, text: string }[], output: any, index: number, mode: string } | null} */
@@ -68,6 +83,9 @@ export function initPlayground(config) {
   const panes = byId("panes");
   const canvas = byId("canvas");
   const preview = /** @type {HTMLImageElement} */ (byId("preview"));
+  const interactivePreview = byId("interactive-preview");
+  const hookPanel = byId("hook-panel");
+  const hookEvent = byId("hook-event");
   const placeholder = byId("placeholder");
   const diagnostics = byId("diagnostics");
   const toast = byId("toast");
@@ -165,13 +183,78 @@ export function initPlayground(config) {
     } else showResult(res);
   }
 
-  function showEmpty() {
-    if (busyTimer) clearTimeout(busyTimer);
-    last = null;
+  function clearPreview() {
+    clearHooks?.();
+    clearHooks = null;
+    interactiveSize = null;
+    interactivePreview.hidden = true;
+    interactivePreview.replaceChildren();
+    hookPanel.hidden = true;
+    hookEvent.replaceChildren();
     preview.hidden = true;
+    preview.onload = null;
     preview.removeAttribute("src");
     if (blobUrl) URL.revokeObjectURL(blobUrl);
     blobUrl = null;
+  }
+
+  /**
+   * Mount the worker's sanitized, style-free SVG and bind its hook controls.
+   * @param {{ svg: string, width: number, height: number }} data
+   * @param {string} label
+   */
+  function showInteractive({ svg: markup, width, height }, label) {
+    const xml = new DOMParser().parseFromString(markup, "image/svg+xml");
+    const root = xml.documentElement;
+    if (
+      root?.localName !== "svg" ||
+      root.namespaceURI !== SVG_NS ||
+      xml.querySelector("parsererror") ||
+      !root.querySelector(HOOK_PART)
+    )
+      return false;
+
+    const svg = /** @type {SVGSVGElement} */ (document.importNode(root, true));
+    svg.setAttribute("role", "group");
+    svg.setAttribute("aria-label", label);
+    for (const link of svg.querySelectorAll("a[href]")) {
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener noreferrer");
+    }
+    const unbind = bindHooks(svg);
+    /** @param {CustomEvent<import("../../src/browser/hooks.mjs").HookEventDetail>} event */
+    function showHookEvent({ detail: { type, active, id, classes } }) {
+      const state =
+        type === "hover"
+          ? active
+            ? "Hover enter"
+            : "Hover exit"
+          : active
+            ? "Click on"
+            : "Click off";
+      const values = [...(id ? [`#${id}`] : []), ...classes.map((name) => `.${name}`)];
+      hookEvent.replaceChildren(
+        h("span", { class: "hook-state" }, [state]),
+        ...values.map((value) => h("code", {}, [value])),
+      );
+    }
+    svg.addEventListener("excaliplant:hook", showHookEvent);
+    clearHooks = () => {
+      svg.removeEventListener("excaliplant:hook", showHookEvent);
+      unbind();
+    };
+    interactiveSize = { width, height };
+    interactivePreview.replaceChildren(svg);
+    interactivePreview.hidden = false;
+    hookEvent.textContent = "Hover over or activate a hooked element.";
+    hookPanel.hidden = false;
+    return true;
+  }
+
+  function showEmpty() {
+    if (busyTimer) clearTimeout(busyTimer);
+    last = null;
+    clearPreview();
     placeholder.textContent = project
       ? "Rendering the selected files…"
       : "Write some PlantUML to see it here.";
@@ -185,13 +268,16 @@ export function initPlayground(config) {
   /** @param {any} res */
   function showResult(res) {
     last = { svg: res.svg, width: res.width, height: res.height, title: res.title, slot: res.slot };
-    const url = URL.createObjectURL(new Blob([res.svg], { type: "image/svg+xml" }));
-    if (blobUrl) URL.revokeObjectURL(blobUrl);
-    blobUrl = url;
-    preview.onload = applyZoom;
-    preview.src = url;
-    preview.alt = res.title ? `Diagram: ${res.title}` : `${res.kind} diagram`;
-    preview.hidden = false;
+    clearPreview();
+    const label = res.title ? `Diagram: ${res.title}` : `${res.kind} diagram`;
+    if (!res.interactive || !showInteractive(res.interactive, label)) {
+      blobUrl = URL.createObjectURL(new Blob([res.svg], { type: "image/svg+xml" }));
+      preview.onload = applyZoom;
+      preview.src = blobUrl;
+      preview.alt = label;
+      preview.hidden = false;
+    }
+    applyZoom();
     placeholder.className = "placeholder";
     canvas.classList.remove("stale");
     if (!project) updateStructureFields(res);
@@ -388,22 +474,25 @@ export function initPlayground(config) {
   // ---- zoom and pan ----------------------------------------------------
 
   function fitScale() {
-    if (!last) return 1;
+    const size = interactiveSize ?? last;
+    if (!size) return 1;
     const cs = getComputedStyle(canvas);
     const w =
       canvas.clientWidth - Number.parseFloat(cs.paddingLeft) - Number.parseFloat(cs.paddingRight);
     const hgt =
       canvas.clientHeight - Number.parseFloat(cs.paddingTop) - Number.parseFloat(cs.paddingBottom);
-    return Math.max(0.05, Math.min(1.5, w / last.width, hgt / last.height));
+    return Math.max(0.05, Math.min(1.5, w / size.width, hgt / size.height));
   }
   function currentScale() {
     return zoom === "fit" ? fitScale() : zoom;
   }
   function applyZoom() {
-    if (!last) return;
+    const size = interactiveSize ?? last;
+    if (!size) return;
+    const image = interactiveSize ? interactivePreview : preview;
     const s = currentScale();
-    preview.style.setProperty("width", `${Math.round(last.width * s)}px`);
-    preview.style.setProperty("height", `${Math.round(last.height * s)}px`);
+    image.style.setProperty("width", `${Math.round(size.width * s)}px`);
+    image.style.setProperty("height", `${Math.round(size.height * s)}px`);
   }
   /** @param {number} factor */
   function zoomBy(factor) {
@@ -439,7 +528,7 @@ export function initPlayground(config) {
   /** @type {{ x: number, y: number, left: number, top: number } | null} */
   let drag = null;
   canvas.addEventListener("pointerdown", (e) => {
-    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    if (e.pointerType !== "mouse" || e.button !== 0 || isPreviewAction(e.target)) return;
     drag = { x: e.clientX, y: e.clientY, left: canvas.scrollLeft, top: canvas.scrollTop };
     canvas.setPointerCapture(e.pointerId);
     canvas.classList.add("dragging");
@@ -455,7 +544,8 @@ export function initPlayground(config) {
   };
   canvas.addEventListener("pointerup", endDrag);
   canvas.addEventListener("pointercancel", endDrag);
-  canvas.addEventListener("dblclick", () => {
+  canvas.addEventListener("dblclick", (e) => {
+    if (isPreviewAction(e.target)) return;
     zoom = zoom === "fit" ? 1 : "fit";
     applyZoom();
   });

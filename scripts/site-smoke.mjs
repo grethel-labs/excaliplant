@@ -9,8 +9,9 @@
 // is loaded lazily, v1.4.0) shipped and nobody noticed. This script serves the
 // built site the way GitHub Pages does (under /excaliplant/), opens it in
 // Chromium and checks what a visitor sees: the playground renders, still renders
-// after the layout engine has been loaded, plain-text links work, broken links
-// are reported, and the gallery shows its images. Exit code 1 on any failure.
+// after the layout engine has been loaded, element hooks work, plain-text links
+// work, broken links are reported, and the gallery shows its images. Exit code
+// 1 on any failure.
 //
 // Browser: $SITE_SMOKE_BROWSER (path to an executable) → Google Chrome from the
 // system → Playwright's own Chromium (`npx playwright-core install chromium`).
@@ -229,6 +230,78 @@ export async function runSmoke(dir, options = {}) {
       await play.evaluate(() => (location.hash = "#play/sequence/checkout-flow"));
       await waitRendered(play, "sequence");
       await previewIsShown(play);
+    });
+    await step("the playground runs element hooks in a live preview", play, async () => {
+      await play.evaluate(() => (location.hash = "#play/component/interactive-services"));
+      await waitRendered(play, "component");
+      const host = play.locator("#interactive-preview");
+      const svg = host.locator(":scope > svg");
+      const image = play.locator("#preview");
+      const readout = play.locator("#hook-event");
+      await svg.waitFor({ state: "visible", timeout: STEP_TIMEOUT });
+      await image.waitFor({ state: "hidden", timeout: STEP_TIMEOUT });
+
+      const orders = svg.getByRole("button", { name: "Orders", exact: true });
+      const payments = svg.getByRole("button", { name: "Payments", exact: true });
+      await orders.waitFor({ state: "visible", timeout: STEP_TIMEOUT });
+
+      /** @param {string} state @param {string[]} tokens */
+      async function hookEvent(state, tokens) {
+        await readout.getByText(state, { exact: true }).waitFor({ timeout: STEP_TIMEOUT });
+        const seen = await readout.locator("code").allTextContents();
+        if (seen.join(" ") !== tokens.join(" "))
+          throw new Error(`The hook readout showed ${seen.join(" ")} for ${state}`);
+      }
+
+      /** @param {string} state @param {string} color */
+      async function ordersFill(state, color) {
+        await svg
+          .locator(
+            `[data-excaliplant-hook-id="orders"] [data-excaliplant-variant="${state}"]:not([display]) :is([fill="${color}"], [stroke="${color}"])`,
+          )
+          .first()
+          .waitFor({ state: "visible", timeout: STEP_TIMEOUT });
+      }
+
+      await play.locator("#zoom-out").click();
+      const width = await host.evaluate((el) => el.getBoundingClientRect().width);
+      const box = await orders.boundingBox();
+      if (!box) throw new Error("The Orders hook has no hit region");
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      await play.mouse.move(x, y);
+      await hookEvent("Hover enter", ["#orders", ".service", ".navigation"]);
+      await ordersFill("hover", "#ccfbf1");
+      await play.mouse.click(x, y);
+      await hookEvent("Click on", ["#orders", ".service", ".navigation"]);
+      await ordersFill("click", "#99f6e4");
+      await play.mouse.dblclick(x, y);
+      if ((await host.evaluate((el) => el.getBoundingClientRect().width)) !== width)
+        throw new Error("Double-clicking the Orders hook changed the preview zoom");
+
+      await payments.focus();
+      await play.keyboard.press("Enter");
+      await hookEvent("Click on", [".service"]);
+      if ((await payments.getAttribute("aria-pressed")) !== "true")
+        throw new Error("Enter did not select the Payments hook");
+      await play.keyboard.press("Space");
+      await hookEvent("Click off", [".service"]);
+      if ((await payments.getAttribute("aria-pressed")) !== "false")
+        throw new Error("Space did not deselect the Payments hook");
+
+      await play.locator("#btn-export").click();
+      const pendingDownload = play.waitForEvent("download");
+      await play.locator('[data-export="svg"]').click();
+      const download = await pendingDownload;
+      const exported = await readFile(await download.path(), "utf8");
+      if (!exported.includes("Orders") || exported.includes("data-excaliplant-hook"))
+        throw new Error("The playground SVG export did not contain the static Orders diagram");
+
+      await play.evaluate(() => (location.hash = "#play/sequence/checkout-flow"));
+      await waitRendered(play, "sequence");
+      await previewIsShown(play);
+      await svg.waitFor({ state: "detached", timeout: STEP_TIMEOUT });
+      await readout.waitFor({ state: "hidden", timeout: STEP_TIMEOUT });
     });
     await step(
       "local files render together or in the carousel without network requests",

@@ -8,14 +8,14 @@
 //                   { type: "export", id, what: "excalidraw" | "clipboard" }
 //   worker → page   { type: "ready", version }
 //                   { type: "result", id, ok: true, svg, width, height, kind, pages,
-//                     blocks, diagnostics, title, ms }
+//                     blocks, diagnostics, title, interactive?: { svg, width, height }, ms }
 //                   { type: "result", id, ok: false, error, line, ms }
 //                   { type: "stale", id }
 //                   { type: "export", id, ok, text }
 
 import { render } from "../../src/api.mjs";
 import { extractBlocks } from "../../src/core/source.mjs";
-import { sanitizeSvg } from "../../src/markdown/sanitize.mjs";
+import { sanitizeHookPreview, sanitizeSvg } from "../../src/markdown/sanitize.mjs";
 import { excalidrawToSvg } from "../../src/render/svg.mjs";
 import { THEME_CHOICES, KIND_CHOICES, MAX_SOURCE_BYTES } from "./options.mjs";
 import { combineProject, renderProject } from "./project.mjs";
@@ -39,6 +39,8 @@ export const PLAYGROUND_LIMITS = Object.freeze({
 export const WARMUP_SOURCE = "@startuml\nclass A\nclass B\nA --> B\n@enduml";
 
 const encoder = new TextEncoder();
+const MAX_PROJECT_SVG_BYTES = 16 * 1024 * 1024;
+const MAX_PREVIEW_SVG_BYTES = 16 * 1024 * 1024;
 
 /**
  * Whitelist and type-check the render options coming from the page.
@@ -96,6 +98,21 @@ function svgSize(svg) {
   };
 }
 
+/**
+ * @param {import("../../src/render/excalidraw.mjs").ExcalidrawDocument} doc
+ * @param {{ background?: string }} options
+ * @param {number} bytesAvailable
+ */
+function hookPreview(doc, options, bytesAvailable) {
+  if (bytesAvailable <= 0 || !doc.elements.some((element) => element.customData?.excaliplantHook))
+    return null;
+  const raw = excalidrawToSvg(doc, { ...options, interactive: true, embedFont: false });
+  if (raw.length > bytesAvailable) return null;
+  const svg = sanitizeHookPreview(raw);
+  const bytes = encoder.encode(svg).length;
+  return bytes <= bytesAvailable ? { interactive: { svg, ...svgSize(svg) }, bytes } : null;
+}
+
 /** @param {unknown} err */
 function describe(err) {
   const e = /** @type {{ message?: unknown, line?: unknown }} */ (err ?? {});
@@ -109,12 +126,16 @@ function describe(err) {
 }
 
 /**
- * @param {{ version?: string, now?: () => number }} [config]
+ * @param {{ version?: string, now?: () => number, maxPreviewBytes?: number }} [config]
  */
 export function createEngine(config = {}) {
   const now =
     config.now ?? (() => (typeof performance !== "undefined" ? performance.now() : Date.now()));
   const version = config.version ?? "dev";
+  const maxPreviewBytes = Math.min(
+    config.maxPreviewBytes ?? MAX_PREVIEW_SVG_BYTES,
+    MAX_PREVIEW_SVG_BYTES,
+  );
   /** @type {import("../../src/render/excalidraw.mjs").ExcalidrawDocument | null} */
   let last = null;
   /** @type {Map<number, import("../../src/render/excalidraw.mjs").ExcalidrawDocument>} */
@@ -154,9 +175,11 @@ export function createEngine(config = {}) {
       // A newer request arrived while this one was laying out: skip the work of
       // serialising and shipping a result nobody will look at.
       if (id < newest) return { type: "stale", id };
-      const raw = await result.toSvg(cleanSvgOptions(msg.svg));
+      const svgOptions = cleanSvgOptions(msg.svg);
+      const raw = await result.toSvg(svgOptions);
       const svg = sanitizeSvg(raw);
       if (id < newest) return { type: "stale", id };
+      const preview = hookPreview(result.excalidraw, svgOptions, maxPreviewBytes);
       if (keep) {
         last = result.excalidraw;
         projectDocs.clear();
@@ -168,6 +191,7 @@ export function createEngine(config = {}) {
         ok: true,
         svg,
         ...svgSize(svg),
+        ...(preview && { interactive: preview.interactive }),
         kind: result.kind,
         pages: result.pages,
         blocks,
@@ -205,12 +229,24 @@ export function createEngine(config = {}) {
 
       const docs = new Map();
       let outputBytes = 0;
+      let previewBytes = 0;
       async function asset(doc, slot, title, kind, diagnostics) {
         const svg = sanitizeSvg(await excalidrawToSvg(doc, svgOptions));
         outputBytes += encoder.encode(svg).length;
-        if (outputBytes > 16 * 1024 * 1024) throw new Error("Project SVG output exceeds 16 MiB.");
+        if (outputBytes > MAX_PROJECT_SVG_BYTES)
+          throw new Error("Project SVG output exceeds 16 MiB.");
+        const preview = hookPreview(doc, svgOptions, maxPreviewBytes - previewBytes);
+        if (preview) previewBytes += preview.bytes;
         docs.set(slot, doc);
-        return { slot, title, kind, svg, ...svgSize(svg), diagnostics };
+        return {
+          slot,
+          title,
+          kind,
+          svg,
+          ...svgSize(svg),
+          ...(preview && { interactive: preview.interactive }),
+          diagnostics,
+        };
       }
       const assets = [];
       for (const [slot, entry] of entries.entries()) {

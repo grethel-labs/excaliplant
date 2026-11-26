@@ -2,6 +2,7 @@
 // Build the GitHub Pages site into _site/ (default):
 //
 //   index.html, app.js, worker.js, boot.js, styles.css   playground + gallery (see site/)
+//   excalifont.css                                      local font for the inline preview
 //   d/<kind>/<name>.svg|.excalidraw|.puml                the gallery's pre-rendered examples
 //
 // Everything is static and uses relative URLs, so it works under
@@ -18,6 +19,7 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { render } from "../src/index.mjs";
+import { excalifontFaceCss } from "../src/render/font.mjs";
 import { bundleApp, bundleBoot, bundleWorker, buildStyles } from "../site/build.mjs";
 import { ROOT, SITE_URL, loadExamples } from "./showcase.mjs";
 
@@ -111,6 +113,7 @@ export async function buildSite(out) {
     "worker.js": await bundleWorker({ version: version ?? "dev" }),
     "boot.js": await bundleBoot(),
     "styles.css": await buildStyles(),
+    "excalifont.css": excalifontFaceCss(),
   };
   const vars = {
     themeOptions: THEME_NAMES.map(
@@ -148,7 +151,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const out = path.resolve(ROOT, process.argv[2] ?? "_site");
   const { files, slides, kinds } = await buildSite(out);
   const kb = (/** @type {number} */ n) => `${(n / 1024).toFixed(1)} KB`;
-  for (const name of ["index.html", "app.js", "worker.js", "boot.js", "styles.css"]) {
+  for (const name of [
+    "index.html",
+    "app.js",
+    "worker.js",
+    "boot.js",
+    "styles.css",
+    "excalifont.css",
+  ]) {
     console.log(
       `  ${name.padEnd(12)} ${kb(files[name]).padStart(10)}  (${kb(files[`${name}.gz`])} gzip)`,
     );

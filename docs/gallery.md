@@ -484,6 +484,45 @@ Rel(api, mail, "Sends e-mails", "SMTP")
 
 </details>
 
+### interactive-services
+
+<img src="gallery/component/interactive-services.svg" alt="component example: interactive-services" />
+
+<details><summary>Source</summary>
+
+```plantuml
+@startuml
+@hook #orders alias:orders .service .navigation
+@hook alias:payments .service
+@hook #events alias:events .infrastructure
+@hook .service hover BackgroundColor #ccfbf1
+@hook .service hover LineColor #0f766e
+@hook .service hover FontColor #134e4a
+@hook .service click BackgroundColor #99f6e4
+@hook .service click LineColor #0f766e
+@hook .service click FontColor #134e4a
+@hook #orders click LineThickness 4
+@hook .infrastructure hover BackgroundColor #e0f2fe
+@hook .infrastructure hover LineColor #0369a1
+@hook .infrastructure hover FontColor #0c4a6e
+@hook .infrastructure click BackgroundColor #bae6fd
+@hook .infrastructure click LineColor #0369a1
+@hook .infrastructure click FontColor #0c4a6e
+
+title Interactive services
+component "Storefront" as web
+component "Orders" as orders
+component "Payments" as payments
+queue "Events" as events
+
+web --> orders : checkout
+orders --> payments : authorize
+orders ..> events : publish
+@enduml
+```
+
+</details>
+
 ### web-platform
 
 <img src="gallery/component/web-platform.svg" alt="component example: web-platform" />

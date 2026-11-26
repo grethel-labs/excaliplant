@@ -46,7 +46,7 @@ node --test test/site*.test.mjs
 The output is static and uses relative URLs only, so it works under the GitHub Pages sub-path `/excaliplant/` and from `file://`:
 
 ```text
-_site/index.html, app.js, worker.js, boot.js, styles.css
+_site/index.html, app.js, worker.js, boot.js, styles.css, excalifont.css
 _site/d/<kind>/<name>.svg | .excalidraw | .puml     (unchanged gallery URLs)
 ```
 
@@ -61,8 +61,21 @@ The library is bundled by esbuild into `worker.js` (about 1.8 MB, 575 KB gzip; E
 - A render that takes longer than **20 s** is abandoned: the worker is terminated and a new one is started.
 - Input is limited to **200 KB**, and the library limits are tightened in the page (`PLAYGROUND_LIMITS` in `site/playground/protocol.mjs`).
 - Where a browser refuses workers (Chrome on `file://`), the page loads `worker.js` as a normal script and renders on the main thread. It works, but long renders block the UI. The page marks this with `data-engine="page"` on `<html>`.
-- The worker returns the SVG after the library's sanitiser (`sanitizeSvg`); the page shows it as an `<img>` from a `blob:` URL, never through `innerHTML`.
+- The worker returns sanitised SVG. The page displays regular diagrams as an image and mounts a dedicated inline SVG preview for diagrams with element hooks.
 - PNG export draws the SVG on a canvas in the browser (not resvg) and is limited to 16 megapixels (iOS Safari's canvas limit); larger requests are scaled down and the page says so.
+
+## Interactive hook preview
+
+Open [Interactive services](https://grethel-labs.github.io/excaliplant/#play/component/interactive-services)
+from the example picker or add `@hook` directives to your source. Hover over
+**Orders** or **Payments** to see the shared service style. Click an element
+or focus it and press Enter or Space to toggle selection. The preview shows
+the latest hook event with its ID and classes. Edits and diagram changes reset
+the displayed interaction state.
+
+SVG and PNG downloads use the diagram's normal appearance. The Excalidraw
+download carries the hook metadata for another viewer. The [element hook
+specification](hooks.md) describes the API for embedding a live preview.
 
 ## Local PlantUML projects
 
@@ -142,7 +155,8 @@ The text typed into the editor is untrusted input, like everything the library r
 
 - CSP (`<meta>` in `site/index.html`): `default-src 'self'`; `script-src 'self'`; `style-src 'self'`; `img-src 'self' data: blob:`; `worker-src 'self' blob:`; `connect-src 'none'`; `object-src`, `base-uri` and `form-action` are `'none'`. No inline scripts, no inline styles, no `unsafe-eval`.
 - The page has no `fetch`/XHR/WebSocket calls; a test checks that the built files contain no external URL except links to GitHub, npm and the docs, and that nothing is marked `unsafe-inline`.
-- The preview is an `<img>` from the sanitised SVG, so SVG links (`[[https://…]]`) are not clickable there; the downloaded SVG keeps them.
+- Regular previews use SVG images. The inline hook preview mounts SVG from an allow-list covering the renderer's hook markers and visual states. Embedded style blocks and executable SVG content are filtered out. The browser helpers implement the interactions, and the host page uses its bundled Excalifont.
+- Diagram links are available in the inline preview and downloaded SVG. The sanitiser limits link targets to HTTP(S) and mailto.
 - The editor builds its highlight layer with DOM nodes and `textContent`; there is no `innerHTML` anywhere in the page.
 
 ## Editor

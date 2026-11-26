@@ -21,6 +21,7 @@
     <link rel="icon" type="image/svg+xml" sizes="any" href="brand/icon.svg" />
     <link rel="icon" type="image/svg+xml" sizes="16x16" href="brand/favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="excalifont.css" />
     <script src="boot.js"></script>
   </head>
   <body>
@@ -346,7 +347,17 @@
               aria-label="Diagram preview. Use plus and minus to zoom, 0 to fit."
             >
               <img id="preview" alt="" hidden />
+              <div id="interactive-preview" hidden></div>
               <p class="placeholder" id="placeholder">Loading engine…</p>
+            </div>
+            <div class="hook-panel" id="hook-panel" hidden>
+              <span class="hook-heading" id="hook-heading">Hook event</span>
+              <div
+                class="hook-event"
+                id="hook-event"
+                role="status"
+                aria-labelledby="hook-heading"
+              ></div>
             </div>
           </section>
         </div>
