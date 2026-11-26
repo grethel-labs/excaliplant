@@ -200,18 +200,19 @@ export function initPlayground(config) {
   }
 
   /**
-   * Mount the worker's sanitized, style-free SVG and bind its hook controls.
+   * Mount the worker's sanitized, style-free SVG and bind any hook controls.
    * @param {{ svg: string, width: number, height: number }} data
    * @param {string} label
    */
   function showInteractive({ svg: markup, width, height }, label) {
     const xml = new DOMParser().parseFromString(markup, "image/svg+xml");
     const root = xml.documentElement;
+    const hasHooks = Boolean(root?.querySelector(HOOK_PART));
     if (
       root?.localName !== "svg" ||
       root.namespaceURI !== SVG_NS ||
       xml.querySelector("parsererror") ||
-      !root.querySelector(HOOK_PART)
+      !(hasHooks || root.querySelector("g > title"))
     )
       return false;
 
@@ -222,7 +223,6 @@ export function initPlayground(config) {
       link.setAttribute("target", "_blank");
       link.setAttribute("rel", "noopener noreferrer");
     }
-    const unbind = bindHooks(svg);
     /** @param {CustomEvent<import("../../src/browser/hooks.mjs").HookEventDetail>} event */
     function showHookEvent({ detail: { type, active, id, classes, sourceElementId } }) {
       const state =
@@ -240,16 +240,19 @@ export function initPlayground(config) {
       );
       if (sourceElementId) hookEvent.append(h("span", { title: sourceElementId }, ["From child"]));
     }
-    svg.addEventListener("excaliplant:hook", showHookEvent);
-    clearHooks = () => {
-      svg.removeEventListener("excaliplant:hook", showHookEvent);
-      unbind();
-    };
+    if (hasHooks) {
+      const unbind = bindHooks(svg);
+      svg.addEventListener("excaliplant:hook", showHookEvent);
+      clearHooks = () => {
+        svg.removeEventListener("excaliplant:hook", showHookEvent);
+        unbind();
+      };
+      hookEvent.textContent = "Hover over or activate a hooked element.";
+      hookPanel.hidden = false;
+    }
     interactiveSize = { width, height };
     interactivePreview.replaceChildren(svg);
     interactivePreview.hidden = false;
-    hookEvent.textContent = "Hover over or activate a hooked element.";
-    hookPanel.hidden = false;
     return true;
   }
 

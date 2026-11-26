@@ -106,8 +106,13 @@ function svgSize(svg) {
  * @param {{ background?: string }} options
  * @param {number} bytesAvailable
  */
-function hookPreview(doc, options, bytesAvailable) {
-  if (bytesAvailable <= 0 || !doc.elements.some((element) => element.customData?.excaliplantHook))
+function interactivePreview(doc, options, bytesAvailable) {
+  if (
+    bytesAvailable <= 0 ||
+    !doc.elements.some(
+      ({ customData }) => customData?.excaliplantHook || customData?.excaliplantTooltip,
+    )
+  )
     return null;
   const raw = excalidrawToSvg(doc, { ...options, interactive: true, embedFont: false });
   if (raw.length > bytesAvailable) return null;
@@ -182,7 +187,7 @@ export function createEngine(config = {}) {
       const raw = await result.toSvg(svgOptions);
       const svg = sanitizeSvg(raw);
       if (id < newest) return { type: "stale", id };
-      const preview = hookPreview(result.excalidraw, svgOptions, maxPreviewBytes);
+      const preview = interactivePreview(result.excalidraw, svgOptions, maxPreviewBytes);
       if (keep) {
         last = result.excalidraw;
         projectDocs.clear();
@@ -238,7 +243,7 @@ export function createEngine(config = {}) {
         outputBytes += encoder.encode(svg).length;
         if (outputBytes > MAX_PROJECT_SVG_BYTES)
           throw new Error("Project SVG output exceeds 16 MiB.");
-        const preview = hookPreview(doc, svgOptions, maxPreviewBytes - previewBytes);
+        const preview = interactivePreview(doc, svgOptions, maxPreviewBytes - previewBytes);
         if (preview) previewBytes += preview.bytes;
         docs.set(slot, doc);
         return {

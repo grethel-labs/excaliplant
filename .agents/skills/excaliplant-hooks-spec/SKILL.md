@@ -1,6 +1,6 @@
 ---
 name: excaliplant-hooks-spec
-description: Keep the public element hook specification, JSON Schema and usage examples aligned with excaliplant's PlantUML directives, scene metadata and browser events.
+description: Keep the public element hook and tooltip specification, JSON Schema and usage examples aligned with excaliplant's PlantUML directives, scene metadata and browser behavior.
 ---
 
 # Element hook contract
@@ -29,3 +29,7 @@ with `EXCALIPLANT_HOOKS_BROWSER_TEST=1`. Verify scene metadata and serialized
 event details against the schema when changing their fields. Run `npm run docs`
 after editing the [README template](../../../docs/README.template.md) and
 `npm run docs:check` to verify generated output.
+
+For tooltip changes, verify `customData.excaliplantTooltip` against the schema's
+`elementTooltip` definition and confirm the Playground preview with and without
+hooks through `npm run site` and `npm run site:smoke`.

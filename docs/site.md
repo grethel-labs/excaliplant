@@ -61,7 +61,7 @@ The library is bundled by esbuild into `worker.js` (about 1.8 MB, 575 KB gzip; E
 - A render that takes longer than **20 s** is abandoned: the worker is terminated and a new one is started.
 - Input is limited to **200 KB**, and the library limits are tightened in the page (`PLAYGROUND_LIMITS` in `site/playground/protocol.mjs`).
 - Where a browser refuses workers (Chrome on `file://`), the page loads `worker.js` as a normal script and renders on the main thread. It works, but long renders block the UI. The page marks this with `data-engine="page"` on `<html>`.
-- The worker returns sanitised SVG. The page displays regular diagrams as an image and mounts a dedicated inline SVG preview for diagrams with element hooks.
+- The worker returns sanitised SVG. The page displays regular diagrams as an image and mounts a dedicated inline SVG preview for diagrams with element hooks or tooltips.
 - PNG export draws the SVG on a canvas in the browser (not resvg) and is limited to 16 megapixels (iOS Safari's canvas limit); larger requests are scaled down and the page says so.
 
 ## Interactive hook preview
@@ -77,8 +77,12 @@ Hover the **Checkout** frame outside the services to see its own hook. Append
 `click-from-children` to the `#checkout` binding and click **Orders** again.
 Checkout also toggles and its event is marked **From child**.
 
+Hover over **Orders** or **Storefront** to see native browser tooltips. Add
+`@tooltip alias:orders "Tracks orders after checkout"` at the start of a diagram
+to set your own text. Storefront shows how a tooltip can work on its own.
+
 SVG and PNG downloads use the diagram's normal appearance. The Excalidraw
-download carries the hook metadata for another viewer. The [element hook
+download carries the hook and tooltip metadata for another viewer. The [element hook
 specification](hooks.md) describes the API for embedding a live preview.
 
 ## Local PlantUML projects
