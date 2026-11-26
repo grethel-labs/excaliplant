@@ -167,11 +167,50 @@ function innerSvg(doc) {
 const esc = (s) =>
   s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 
+const brandPalettes = {
+  light: { background: "#f7fbfa", ink: "#172e32", accent: "#0b7168", line: "#c9ddd7" },
+  dark: { background: "#111827", ink: "#bfd1d3", accent: "#2db8a8", line: "#315058" },
+};
+
+/**
+ * Place the same outlined logo used by the website inside a generated SVG.
+ * @param {"light" | "dark"} mode
+ * @param {number} x
+ * @param {number} y
+ * @param {number} width
+ */
+function brandLogo(mode, x, y, width) {
+  return readFileSync(path.join(ROOT, "assets", "brand", `logo-${mode}.svg`), "utf8")
+    .trim()
+    .replace(/\bwidth="350" height="64"/, `width="${width}" height="${(width * 64) / 350}"`)
+    .replace(/^<svg /, `<svg x="${x}" y="${y}" `);
+}
+
+/** @param {any} document An Excalidraw document used in the share card. */
+export function socialCardSvg(document) {
+  const { body, w, h } = innerSvg(document);
+  const scale = Math.min(1040 / w, 230 / h);
+  const width = w * scale;
+  const height = h * scale;
+  const { background, ink, accent, line } = brandPalettes.dark;
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">',
+    `<rect width="1200" height="630" fill="${background}"/>`,
+    `<path d="M72 233H1128" stroke="${line}" stroke-width="2"/>`,
+    brandLogo("dark", 63, 56, 545),
+    `<text x="72" y="199" font-family="Excalifont" font-size="30" fill="${ink}">PlantUML in, hand-drawn diagrams out.</text>`,
+    `<rect x="72" y="273" width="1056" height="283" rx="24" fill="#1b3038" stroke="${line}" stroke-width="2"/>`,
+    `<svg x="${(1200 - width) / 2}" y="${414.5 - height / 2}" width="${width}" height="${height}" viewBox="0 0 ${w} ${h}">${body}</svg>`,
+    `<path d="M72 598H1128" stroke="${accent}" stroke-width="4" stroke-linecap="round"/>`,
+    "</svg>",
+  ].join("");
+}
+
 /**
  * Build an auto-playing carousel SVG (CSS animation; works in GitHub READMEs,
  * which strip scripts but keep animated SVG images).
  * @param {{ kind: string, title: string, name: string, doc: any }[]} slides
- * @param {{ seconds?: number }} [options]
+ * @param {{ seconds?: number, mode?: "light" | "dark" }} [options]
  * @returns {string}
  */
 export function carouselSvg(slides, options = {}) {
@@ -179,6 +218,8 @@ export function carouselSvg(slides, options = {}) {
   const H = 700;
   const header = 74;
   const footer = 40;
+  const mode = options.mode ?? "light";
+  const { background, ink, accent, line } = brandPalettes[mode];
   const per = options.seconds ?? 4;
   const n = slides.length;
   const total = per * n;
@@ -196,15 +237,22 @@ export function carouselSvg(slides, options = {}) {
       `</style></defs>`,
   );
   out.push(
-    `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="18" fill="#ffffff" stroke="#dee2e6" stroke-width="2"/>`,
+    `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="18" fill="${background}" stroke="${line}" stroke-width="2"/>`,
   );
-  out.push(`<text x="32" y="46" font-size="26" fill="#1e1e1e">excaliplant</text>`);
+  out.push(brandLogo(mode, 26, 19, 176));
   out.push(
-    `<text x="${W - 32}" y="46" font-size="15" fill="#868e96" text-anchor="end">PlantUML in, hand-drawn diagrams out</text>`,
+    `<text x="${W - 32}" y="46" font-size="15" fill="${ink}" text-anchor="end">PlantUML in, hand-drawn diagrams out</text>`,
   );
   out.push(
-    `<line x1="24" y1="${header - 8}" x2="${W - 24}" y2="${header - 8}" stroke="#e9ecef" stroke-width="2"/>`,
+    `<line x1="24" y1="${header - 8}" x2="${W - 24}" y2="${header - 8}" stroke="${line}" stroke-width="2"/>`,
   );
+  const dx = (W - n * 12) / 2 + 6;
+  // Inactive dots are painted underneath the animated slides.
+  for (let i = 0; i < n; i++) {
+    out.push(
+      `<circle cx="${(dx + i * 12).toFixed(1)}" cy="${H - footer + 4}" r="3" fill="${line}"/>`,
+    );
+  }
   const areaW = W - 64;
   const areaH = H - header - footer - 16;
   slides.forEach((slide, i) => {
@@ -216,31 +264,19 @@ export function carouselSvg(slides, options = {}) {
     const y = header + (areaH - dh) / 2;
     out.push(`<g class="s${i === 0 ? " s0" : ""}" style="animation-delay:${i * per}s">`);
     out.push(
-      `<text x="${W / 2}" y="46" font-size="22" fill="#1971c2" text-anchor="middle">${esc(slide.title)}</text>`,
+      `<text x="${W / 2}" y="46" font-size="22" fill="${accent}" text-anchor="middle">${esc(slide.title)}</text>`,
     );
     out.push(
       `<svg x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${dw.toFixed(1)}" height="${dh.toFixed(1)}" viewBox="0 0 ${w} ${h}">${body}</svg>`,
     );
     out.push(
-      `<text x="${W / 2}" y="${H - 16}" font-size="13" fill="#868e96" text-anchor="middle">${i + 1} / ${n} · examples/${esc(slide.kind)}/${esc(slide.name)}.puml</text>`,
+      `<text x="${W / 2}" y="${H - 16}" font-size="13" fill="${ink}" text-anchor="middle">${i + 1} / ${n} · examples/${esc(slide.kind)}/${esc(slide.name)}.puml</text>`,
     );
-    const dotsW = n * 12;
-    const dx = (W - dotsW) / 2 + 6;
     out.push(
-      `<circle cx="${(dx + i * 12).toFixed(1)}" cy="${H - footer + 4}" r="4" fill="#1971c2"/>`,
+      `<circle cx="${(dx + i * 12).toFixed(1)}" cy="${H - footer + 4}" r="4" fill="${accent}"/>`,
     );
     out.push(`</g>`);
   });
-  const dotsW = n * 12;
-  const dx = (W - dotsW) / 2 + 6;
-  const dots = slides
-    .map(
-      (_, i) =>
-        `<circle cx="${(dx + i * 12).toFixed(1)}" cy="${H - footer + 4}" r="3" fill="#ced4da"/>`,
-    )
-    .join("");
-  // Inactive dots go underneath the animated slides.
-  out.splice(5, 0, dots);
   out.push("</svg>");
   return out.join("");
 }

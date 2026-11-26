@@ -3,7 +3,10 @@
 excaliplant turns PlantUML text into Excalidraw scenes. SVG and PNG are
 rendered _from_ the Excalidraw scene, so all three outputs always agree.
 
-![pipeline](assets/pipeline.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/pipeline-dark.png" />
+  <img src="assets/pipeline.png" alt="excaliplant pipeline from PlantUML to Excalidraw, SVG and PNG" />
+</picture>
 
 ## Pipeline
 

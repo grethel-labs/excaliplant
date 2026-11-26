@@ -13,7 +13,7 @@
 
 import { THEME_NAMES } from "../src/draw/theme.mjs";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
@@ -84,6 +84,12 @@ const esc = (s) =>
 export async function buildSite(out) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(path.join(out, "d"), { recursive: true });
+  const brand = path.join(out, "brand");
+  cpSync(path.join(ROOT, "assets", "brand"), brand, { recursive: true });
+  copyFileSync(
+    path.join(ROOT, "docs", "assets", "social-card.png"),
+    path.join(brand, "social-card.png"),
+  );
   const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const version = await publishedVersion(pkg.name);
   const commit = commitId();
