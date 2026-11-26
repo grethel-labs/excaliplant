@@ -2,7 +2,7 @@
 ' Append click-from-children to the checkout hook to forward clicks from its services.
 @hook #checkout alias:checkout .container
 @hook #orders alias:orders .service .navigation
-@hook alias:payments .service
+@hook alias:payments .service click-mode:button
 @hook #events alias:events .infrastructure
 @hook .service hover BackgroundColor #ccfbf1
 @hook .service hover LineColor #0f766e

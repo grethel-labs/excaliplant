@@ -9,8 +9,8 @@ const HOOK_NAME = /^(?:[A-Za-z_][A-Za-z0-9_-]{0,63}|@line:[0-9]{1,15}:[0-9]{1,15
 const bindings = new WeakMap();
 
 /** @typedef {"base" | "hover" | "click"} State */
-/** @typedef {{ id: string | undefined, classes: string[], type: "hover" | "click", active: boolean, elementId: string, sourceElementId?: string }} HookEventDetail */
-/** @typedef {{ id: string | undefined, classes: string[], hovered: boolean, selected: boolean, state: State, parts: Part[], representative: Part | null, parent: string | null, clickFromChildren: boolean }} Hook */
+/** @typedef {{ id: string | undefined, classes: string[], type: "hover" | "click", active: boolean, elementId: string, sourceElementId?: string, clickMode?: "button" }} HookEventDetail */
+/** @typedef {{ id: string | undefined, classes: string[], hovered: boolean, selected: boolean, pressed: number, button: boolean, state: State, parts: Part[], representative: Part | null, parent: string | null, clickFromChildren: boolean }} Hook */
 /** @typedef {{ hook: Hook, element: Element, id: string, variants: Map<string, Element>, link: Element | null }} Part */
 
 /** @param {SVGSVGElement} svg */
@@ -57,7 +57,7 @@ export function onHook(svg, selector, listener) {
  * Enable pointer and keyboard hooks on an inline SVG rendered with
  * `{ interactive: true }`. Each interaction dispatches a bubbling
  * `excaliplant:hook` CustomEvent with a {@link HookEventDetail} payload.
- * Selection takes precedence over hover until toggled off.
+ * Toggle selection and button presses take visual precedence over hover.
  * A click forwarded to an enclosing hook includes the original primitive's
  * ID as `sourceElementId`.
  *
@@ -76,6 +76,8 @@ export function bindHooks(svg) {
   const parts = new Map();
   /** @type {Map<EventTarget, Part>} */
   const controls = new Map();
+  /** @type {Map<number | string, Hook[]>} */
+  const presses = new Map();
   /** @type {(() => void)[]} */
   const restore = [];
 
@@ -100,6 +102,8 @@ export function bindHooks(svg) {
         classes,
         hovered: false,
         selected: false,
+        pressed: 0,
+        button: element.getAttribute("data-excaliplant-click-mode") === "button",
         state: "base",
         parts: [],
         representative: null,
@@ -114,6 +118,8 @@ export function bindHooks(svg) {
     parts.set(element, part);
     hook.parts.push(part);
   }
+
+  const hasButtons = [...hooks.values()].some((hook) => hook.button);
 
   /** @param {Element} el @param {string} key @param {string} value */
   function setControlAttribute(el, key, value) {
@@ -139,7 +145,7 @@ export function bindHooks(svg) {
     setControlAttribute(control, "aria-label", label || hook.id || hook.classes.join(" "));
     if (!part.link) {
       setControlAttribute(control, "role", "button");
-      setControlAttribute(control, "aria-pressed", "false");
+      if (!hook.button) setControlAttribute(control, "aria-pressed", "false");
     }
     for (const sibling of hook.parts) {
       if (sibling.link && sibling !== part) setControlAttribute(sibling.link, "tabindex", "-1");
@@ -160,6 +166,11 @@ export function bindHooks(svg) {
     hook.state = state;
   }
 
+  /** @param {Hook} hook */
+  function updateAppearance(hook) {
+    show(hook, hook.selected || hook.pressed ? "click" : hook.hovered ? "hover" : "base");
+  }
+
   /**
    * @param {Part} part
    * @param {HookEventDetail["type"]} type
@@ -167,9 +178,9 @@ export function bindHooks(svg) {
    * @param {string} [sourceElementId] Original primitive ID for a forwarded click.
    */
   function publish({ hook, element, id }, type, active, sourceElementId) {
-    show(hook, hook.selected ? "click" : hook.hovered ? "hover" : "base");
+    updateAppearance(hook);
     const control = hook.representative.link ?? hook.representative.element;
-    if (type === "click" && control.getAttribute("role") === "button")
+    if (type === "click" && !hook.button && control.getAttribute("role") === "button")
       control.setAttribute("aria-pressed", String(active));
     element.dispatchEvent(
       new view.CustomEvent("excaliplant:hook", {
@@ -181,6 +192,7 @@ export function bindHooks(svg) {
           active,
           elementId: id,
           ...(sourceElementId !== undefined ? { sourceElementId } : {}),
+          ...(type === "click" && hook.button && { clickMode: "button" }),
         },
       }),
     );
@@ -203,16 +215,10 @@ export function bindHooks(svg) {
     publish(part, "hover", active);
   }
 
-  /** @param {Part} part @param {string} [sourceElementId] */
-  function toggle(part, sourceElementId) {
-    part.hook.selected = !part.hook.selected;
-    publish(part, "click", part.hook.selected, sourceElementId);
-  }
-
-  /** @param {Part} part */
-  function activate(part) {
+  /** @param {Part} part @param {(recipient: Part, sourceElementId?: string) => void} visit */
+  function visitClickRecipients(part, visit) {
     const wasConnected = svg.isConnected;
-    toggle(part);
+    visit(part);
     let parent = hooks.get(part.hook.parent);
     if (!parent) return;
     const visited = new Set([part.hook]);
@@ -225,9 +231,66 @@ export function bindHooks(svg) {
       const representative = parent.representative;
       if (representative.element.closest("svg") !== svg) break;
       visited.add(parent);
-      if (parent.clickFromChildren) toggle(representative, part.id);
+      if (parent.clickFromChildren) visit(representative, part.id);
       parent = hooks.get(parent.parent);
     }
+  }
+
+  /** @param {Part} part */
+  function activate(part) {
+    visitClickRecipients(part, (recipient, sourceElementId) => {
+      const { hook } = recipient;
+      if (!hook.button) hook.selected = !hook.selected;
+      publish(recipient, "click", hook.button || hook.selected, sourceElementId);
+    });
+  }
+
+  /** @param {number | string} input @param {Part} part */
+  function press(input, part) {
+    if (presses.has(input)) return;
+    /** @type {Hook[]} */
+    const recipients = [];
+    visitClickRecipients(part, ({ hook }) => {
+      if (!hook.button) return;
+      recipients.push(hook);
+      hook.pressed++;
+      updateAppearance(hook);
+    });
+    if (recipients.length) presses.set(input, recipients);
+  }
+
+  /** @param {number | string} input */
+  function release(input) {
+    const recipients = presses.get(input);
+    if (!recipients) return;
+    presses.delete(input);
+    for (const hook of recipients) {
+      hook.pressed--;
+      updateAppearance(hook);
+    }
+  }
+
+  /** @param {PointerEvent} event */
+  function pointerdown(event) {
+    if (event.button !== 0 || event.defaultPrevented) return;
+    const part = findPart(event.target);
+    if (part) press(event.pointerId, part);
+  }
+
+  /** @param {PointerEvent} event */
+  function releasePointer(event) {
+    release(event.pointerId);
+  }
+
+  function releaseAll() {
+    for (const input of presses.keys()) release(input);
+  }
+
+  /** @param {FocusEvent} event */
+  function focusout(event) {
+    if (!controls.has(event.target)) return;
+    release("Enter");
+    release(" ");
   }
 
   /** @param {MouseEvent} event */
@@ -240,6 +303,8 @@ export function bindHooks(svg) {
   function keydown(event) {
     const part = controls.get(event.target);
     if (!part || event.defaultPrevented) return;
+    if (hasButtons && !event.repeat && (event.key === "Enter" || event.key === " "))
+      press(event.key, part);
     if (event.key === " ") event.preventDefault();
     if (event.key === "Enter") {
       if (event.repeat || !part.link) event.preventDefault();
@@ -250,8 +315,11 @@ export function bindHooks(svg) {
   /** @param {KeyboardEvent} event */
   function keyup(event) {
     const part = controls.get(event.target);
+    const wasPressed = presses.has(event.key);
+    release(event.key);
     if (!part || event.defaultPrevented || event.key !== " ") return;
     event.preventDefault();
+    if (part.hook.button && !wasPressed) return;
     if (part.link)
       part.link.dispatchEvent(new view.MouseEvent("click", { bubbles: true, cancelable: true }));
     else activate(part);
@@ -262,6 +330,13 @@ export function bindHooks(svg) {
   svg.addEventListener("click", click);
   svg.addEventListener("keydown", keydown);
   svg.addEventListener("keyup", keyup);
+  if (hasButtons) {
+    svg.addEventListener("pointerdown", pointerdown);
+    svg.addEventListener("focusout", focusout);
+    view.addEventListener("pointerup", releasePointer, true);
+    view.addEventListener("pointercancel", releasePointer, true);
+    view.addEventListener("blur", releaseAll);
+  }
 
   function cleanup() {
     if (bindings.get(svg) !== cleanup) return;
@@ -271,6 +346,14 @@ export function bindHooks(svg) {
     svg.removeEventListener("click", click);
     svg.removeEventListener("keydown", keydown);
     svg.removeEventListener("keyup", keyup);
+    if (hasButtons) {
+      svg.removeEventListener("pointerdown", pointerdown);
+      svg.removeEventListener("focusout", focusout);
+      view.removeEventListener("pointerup", releasePointer, true);
+      view.removeEventListener("pointercancel", releasePointer, true);
+      view.removeEventListener("blur", releaseAll);
+      presses.clear();
+    }
     for (const hook of hooks.values()) show(hook, "base");
     for (const reset of restore) reset();
   }

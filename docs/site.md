@@ -68,7 +68,7 @@ The library is bundled by esbuild into `worker.js` (about 1.8 MB, 575 KB gzip; E
 
 Open [Interactive services](https://grethel-labs.github.io/excaliplant/#play/component/interactive-services)
 from the example picker or add `@hook` directives to your source. Hover over
-**Orders** or **Payments** to see the shared service style. Click an element
+**Orders** or **Payments** to see the shared service style. Click **Orders**
 or focus it and press Enter or Space to toggle selection. The preview shows
 the latest hook event with its ID and classes. Edits and diagram changes reset
 the displayed interaction state.
@@ -76,6 +76,8 @@ the displayed interaction state.
 Hover the **Checkout** frame outside the services to see its own hook. Append
 `click-from-children` to the `#checkout` binding and click **Orders** again.
 Checkout also toggles and its event is marked **From child**.
+**Payments** uses `click-mode:button`. Each activation displays **Button click**
+in the event readout, and the click style lasts while the control is held down.
 
 SVG and PNG downloads use the diagram's normal appearance. The Excalidraw
 download carries the hook metadata for another viewer. The [element hook

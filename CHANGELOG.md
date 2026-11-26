@@ -8,6 +8,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- Configure a hook with `click-mode:button` to run an action on every activation with a momentary pressed style.
 - Support nested hook hit targets and opt-in click forwarding from child hooks to their parent hooks.
 - Choose Architect, Artist, or Cartoonist strokes in the playground and fine-tune shape and connector roughness independently.
 - Preview PlantUML hooks interactively in the Playground, with a live event readout and an interactive services example.

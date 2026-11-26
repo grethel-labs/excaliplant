@@ -281,13 +281,9 @@ export async function runSmoke(dir, options = {}) {
 
       await payments.focus();
       await play.keyboard.press("Enter");
-      await hookEvent("Click on", [".service"]);
-      if ((await payments.getAttribute("aria-pressed")) !== "true")
-        throw new Error("Enter did not select the Payments hook");
-      await play.keyboard.press("Space");
-      await hookEvent("Click off", [".service"]);
-      if ((await payments.getAttribute("aria-pressed")) !== "false")
-        throw new Error("Space did not deselect the Payments hook");
+      await hookEvent("Button click", [".service"]);
+      if ((await payments.getAttribute("aria-pressed")) !== null)
+        throw new Error("The Payments button exposes a toggle state");
 
       await play.locator("#btn-export").click();
       const pendingDownload = play.waitForEvent("download");

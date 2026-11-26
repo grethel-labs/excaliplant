@@ -224,15 +224,17 @@ export function initPlayground(config) {
     }
     const unbind = bindHooks(svg);
     /** @param {CustomEvent<import("../../src/browser/hooks.mjs").HookEventDetail>} event */
-    function showHookEvent({ detail: { type, active, id, classes, sourceElementId } }) {
+    function showHookEvent({ detail: { type, active, id, classes, sourceElementId, clickMode } }) {
       const state =
         type === "hover"
           ? active
             ? "Hover enter"
             : "Hover exit"
-          : active
-            ? "Click on"
-            : "Click off";
+          : clickMode === "button"
+            ? "Button click"
+            : active
+              ? "Click on"
+              : "Click off";
       const values = [...(id ? [`#${id}`] : []), ...classes.map((name) => `.${name}`)];
       hookEvent.replaceChildren(
         h("span", { class: "hook-state" }, [state]),
