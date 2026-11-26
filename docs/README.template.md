@@ -177,7 +177,7 @@ diagram formats such as Ditaa and JSON, put a binding before its style lines.
 
 ```plantuml
 @startuml
-@hook #openOrders alias:orders .service .navigation
+@hook #openOrders alias:orders .service .navigation click-mode:button
 @hook alias:payments .service
 @hook .service hover FontColor navy
 @hook #openOrders click BackgroundColor gold
@@ -195,8 +195,9 @@ including `BackgroundColor`, `LineColor`, `LineThickness`, `LineStyle`,
 `RoundCorner`, `FontColor` and `FontSize`. Both states start from the diagram
 and the `roles.hook-hover.*` and `roles.hook-click.*` theme defaults. Classes
 override defaults in the order on the binding line, and ID styles take priority
-over class styles. A click toggles selection, which takes visual precedence over
-hover. The existing diagram layout stays in place.
+over class styles. The default `click-mode:toggle` keeps the hook selected
+until the next click. Use `click-mode:button` to trigger an action on every
+activation and show the click style only while the control is held down.
 
 Nested elements handle hover and click on the element under the pointer by
 default. Add `click-from-children` to a parent hook binding to receive clicks
@@ -224,8 +225,10 @@ const stopServices = onHook(svg, ".service", ({ detail }) => {
 // Call stopOrders(), stopServices() and stop() when unmounting this SVG.
 ```
 
-The bubbling `excaliplant:hook` event reports hover enter and leave or click
-selection and deselection. Enter and Space also activate a focused hook.
+The bubbling `excaliplant:hook` event reports hover enter and leave, toggle
+selection and deselection, and button activation. A button click always reports
+`detail.active: true` and `detail.clickMode: "button"`. Enter and Space also
+activate a focused hook.
 `detail.id` is the optional hook ID, `detail.classes` lists the hook's classes,
 and `detail.elementId` identifies the scene primitive that received the event.
 Each targeted Excalidraw element includes the hook metadata and resolved styles

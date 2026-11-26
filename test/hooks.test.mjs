@@ -19,13 +19,31 @@ test("the public hook specification example produces the documented bindings", a
   const orders = metadata(ordersLabel);
   const payments = metadata(labels.find((el) => el.text === "Payments"));
   assert.equal(orders.id, "orders");
+  assert.equal(orders.clickMode, "button");
   assert.deepEqual(orders.classes, ["service", "navigation"]);
   assert.equal(orders.click.fill, "#ffd700");
   assert.equal(orders.hover.text, "#000080");
   assert.equal(ordersLabel.customData.excaliplantTooltip, "Tracks orders after checkout");
   assert.equal(payments.id, undefined);
+  assert.equal(payments.clickMode, undefined);
   assert.deepEqual(payments.classes, ["service"]);
   assert.equal(payments.hover.text, "#000080");
+});
+
+test("hook click modes are case-insensitive and reject invalid or repeated modes", async () => {
+  const declaration = "@hook #openOrders alias:orders";
+  const result = await render(wrap(`${declaration} CLICK-MODE:TOGGLE\n${graph}`), {
+    strict: true,
+  });
+  const parts = result.excalidraw.elements.filter(metadata);
+  assert.ok(parts.length > 0);
+  assert.ok(parts.every((part) => metadata(part).clickMode === "toggle"));
+  for (const mode of ["click-mode:unknown", "click-mode:toggle CLICK-MODE:BUTTON"]) {
+    await assert.rejects(render(wrap(`${declaration} ${mode}\n${graph}`), { strict: true }), {
+      code: "INVALID_HOOK",
+      line: 2,
+    });
+  }
 });
 
 test("tooltips target aliases, connector and caption IDs independently of hook bindings", async () => {

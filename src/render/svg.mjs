@@ -37,7 +37,7 @@ function isHookName(value) {
  * @property {boolean} [interactive] Include hook states and full hover hit regions for an inline SVG host (default false).
  */
 
-/** @typedef {{ name: string, id: string | null, classes: string[], hover: any, click: any, parent: string | null, clickFromChildren: boolean }} HookVariants */
+/** @typedef {{ name: string, id: string | null, classes: string[], hover: any, click: any, parent: string | null, clickFromChildren: boolean, button: boolean }} HookVariants */
 
 /**
  * Escape text content for XML.
@@ -177,6 +177,7 @@ function readHook(el) {
     classes,
     parent: isHookName(hook.parent) ? hook.parent : null,
     clickFromChildren: hook.clickFromChildren === true,
+    button: hook.clickMode === "button",
     hover: styleHookElement(el, hook.hover),
     click: styleHookElement(el, hook.click),
   };
@@ -222,7 +223,8 @@ function renderElement(el, bg, hook, interactive) {
   const clickFromChildren = hook.clickFromChildren
     ? ' data-excaliplant-click-from-children="true"'
     : "";
-  return `<g data-excaliplant-hook="${escapeXml(hook.name)}"${hookId}${hookClasses}${hookParent}${clickFromChildren} data-excaliplant-element-id="${escapeXml(el.id)}">${title}${wrapLink(visuals + hit, link)}</g>`;
+  const clickMode = hook.button ? ' data-excaliplant-click-mode="button"' : "";
+  return `<g data-excaliplant-hook="${escapeXml(hook.name)}"${hookId}${hookClasses}${hookParent}${clickFromChildren}${clickMode} data-excaliplant-element-id="${escapeXml(el.id)}">${title}${wrapLink(visuals + hit, link)}</g>`;
 }
 
 /** @param {string} body @param {string | null} link */

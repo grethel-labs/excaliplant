@@ -58,7 +58,7 @@ export const NATIVE_HEADS = new Set([
 /** @typedef {import("../syntax/hooks.mjs").Hook} Hook */
 /** @typedef {import("../syntax/hooks.mjs").Tooltip} Tooltip */
 /** @typedef {{ parent: HookOwner | null }} HookOwner */
-/** @typedef {Pick<Hook, "name" | "id" | "clickFromChildren" | "hover" | "click"> & { classes?: string[], parent?: string }} SceneHook */
+/** @typedef {Pick<Hook, "name" | "id" | "clickFromChildren" | "clickMode" | "hover" | "click"> & { classes?: string[], parent?: string }} SceneHook */
 /** @typedef {{ hook: Hook, data: SceneHook, owner?: HookOwner }} BoundHook */
 
 /**
@@ -289,6 +289,7 @@ export class Canvas {
       ...(hook.id && { id: hook.id }),
       ...(hook.classes.length && { classes: hook.classes }),
       ...(hook.clickFromChildren && { clickFromChildren: true }),
+      ...(hook.clickMode && { clickMode: hook.clickMode }),
       hover: { ...defaults("hookHover"), ...hook.hover },
       click: { ...defaults("hookClick"), ...hook.click },
     };

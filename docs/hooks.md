@@ -15,7 +15,7 @@ this contract follow excaliplant's [major release policy](releasing.md).
 ## PlantUML input
 
 ```text
-@hook [#id] (alias:<target> | element:<target>) [.class ...] [click-from-children] [parent:#id]
+@hook [#id] (alias:<target> | element:<target>) [.class ...] [click-from-children] [parent:#id] [click-mode:toggle|button]
 @hook (#id | .class) (hover | click) <property> <value>
 @tooltip (alias:<target> | element:<target>) "<text>"
 ```
@@ -29,8 +29,11 @@ this contract follow excaliplant's [major release policy](releasing.md).
   match `[A-Za-z_][A-Za-z0-9_-]{0,63}` and are stored without `#` or `.`.
   A binding accepts up to 32 distinct classes. Repeated classes are deduplicated
   in first-occurrence order. The `#` is optional on ID directives in PlantUML.
-  The `click-from-children` and `parent:#id` modifiers follow the class list
-  and can appear in either order.
+  The `click-from-children`, `parent:#id` and `click-mode` modifiers follow the
+  class list and can appear in any order. A binding accepts each modifier once.
+- `click-mode:toggle` selects or deselects the hook on each activation and is the
+  default. `click-mode:button` triggers an action on each activation and shows
+  the click style while the pointer or activation key is held down.
 - `alias:` selects a graph node or a sequence participant by its PlantUML
   identifier, including the drawing primitives that make up its shape and
   caption. Sequence bindings include both the head and the footbox when drawn.
@@ -49,7 +52,7 @@ this contract follow excaliplant's [major release policy](releasing.md).
 
 ```plantuml
 @startuml
-@hook #orders alias:orders .service .navigation
+@hook #orders alias:orders .service .navigation click-mode:button
 @hook alias:payments .service
 @hook .service hover FontColor navy
 @hook #orders click BackgroundColor gold
@@ -109,11 +112,11 @@ priority over inferred nesting. An ambiguous container with multiple separate
 primitive bindings requires an explicit parent reference to select one.
 
 Hover applies to the hit hook. A click or keyboard activation also applies
-to the hit hook by default. Add `click-from-children` on a parent to toggle
+to the hit hook by default. Add `click-from-children` on a parent to activate
 that hook when a descendant hook is activated. The direct hook emits its click
 event first. Enabled ancestors follow in order from the closest parent outwards,
 including through any intermediate hooks that have forwarding disabled. Each
-receiving hook toggles its own selection state. Moving the pointer from a child
+receiving hook uses its own click mode. Moving the pointer from a child
 onto the visible area of its parent activates that parent's hover state.
 Unbinding or removing the inline SVG during an event stops further forwarding.
 
@@ -153,8 +156,9 @@ overlays the corresponding theme role, `roles.hook-hover.*` or
 ID-specific styles overlay class styles. A later declaration of the same
 property for a given ID or class and state takes precedence.
 
-In the live view, a selected hook displays the click style. An unselected hook
-displays its hover style while hovered, then its normal appearance on exit.
+In the live view, selected toggles and held buttons display the click style.
+Other hooks display their hover style while hovered and their normal appearance
+on exit.
 The existing diagram layout and pointer hit geometry remain fixed during
 state changes. A larger font in an interaction state can extend past its
 original label bounds.
@@ -170,7 +174,8 @@ object at `elements[].customData.excaliplantHook` on each targeted primitive.
 | `classes`           | Optional nonempty list of author-supplied classes in binding order.                 |
 | `name`              | Opaque grouping token shared by the primitives of one binding in the current scene. |
 | `hover`             | Resolved style overrides for hover.                                                 |
-| `click`             | Resolved style overrides for selection.                                             |
+| `click`             | Resolved style overrides for selected toggles and held buttons.                     |
+| `clickMode`         | Optional `toggle` or `button`. Defaults to `toggle`.                                |
 | `parent`            | Optional `name` of the nearest enclosing hook in the same scene.                    |
 | `clickFromChildren` | Optional `true` enabling click forwarding from descendant hooks.                    |
 
@@ -203,6 +208,7 @@ type HookEventDetail = {
   active: boolean;
   elementId: string;
   sourceElementId?: string;
+  clickMode?: "button";
 };
 ```
 
@@ -211,16 +217,19 @@ type HookEventDetail = {
 - `type: "hover"` reports pointer entry (`active: true`) and exit
   (`active: false`). Movement between parts of one hook stays within the same
   hover state. Touch pointers can activate a hook by tapping it.
-- `type: "click"` reports selection (`active: true`) and deselection
-  (`active: false`). Each hook has independent selection state. Enter and Space
-  activate a focused hook. Ordinary SVG hyperlinks retain their navigation.
+- Toggle clicks report selection (`active: true`) and deselection
+  (`active: false`). Each toggle has independent selection state.
+- A button emits one `type: "click"` event with `active: true` and
+  `clickMode: "button"` per activation. Pointer release or cancellation clears
+  the pressed style. Enter activates a focused hook on press and Space
+  activates it on release. Ordinary SVG hyperlinks retain their navigation.
 - `elementId` is the Excalidraw primitive ID that received the interaction. On
   a compound element the outline and caption can report different primitive
   IDs with the same hook ID and classes.
 - A forwarded click names the receiving ancestor's representative primitive in
   `elementId` and the directly activated child primitive in `sourceElementId`.
-  Forwarded clicks change selection and notify listeners. Normal link navigation
-  follows the directly activated SVG link.
+  Forwarded clicks activate the ancestor and notify its listeners. Normal link
+  navigation follows the directly activated SVG link.
 
 ```js
 import { bindHooks, onHook } from "@grethel-labs/excaliplant/hooks";

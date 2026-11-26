@@ -223,6 +223,112 @@ test(
   },
 );
 
+test(
+  "button hooks respond once per activation and show the click style while held",
+  { skip: !runBrowser },
+  async (t) => {
+    const { page, result } = await openHookDiagram(
+      t,
+      `@startuml
+@hook #outer alias:outer click-mode:button click-from-children
+@hook #inner alias:inner click-mode:toggle
+@hook #outer click BackgroundColor gold
+@tooltip alias:outer "Open the outer group"
+package "Outer" as outer {
+  component "Inner" as inner
+}
+@enduml`,
+    );
+    await page.evaluate(() => {
+      window.clicks = [];
+      const svg = document.querySelector("svg");
+      svg.addEventListener("excaliplant:hook", ({ detail }) => {
+        if (detail.type === "click") window.clicks.push(detail);
+      });
+      window.cleanup = window.bindHooks(svg);
+    });
+    const outer = page.getByRole("button", { name: "Outer", exact: true });
+    const inner = page.getByRole("button", { name: "Inner", exact: true });
+    const surface = result.excalidraw.elements.find(
+      (element) =>
+        element.type === "rectangle" && element.customData?.excaliplantHook?.id === "outer",
+    );
+    const part = page.locator(`[data-excaliplant-element-id="${surface.id}"]`);
+    const visible = part.locator("[data-excaliplant-variant]:not([display])");
+    const state = () => visible.getAttribute("data-excaliplant-variant");
+    const clicks = () => page.evaluate(() => window.clicks.splice(0));
+    const outerId = await outer.getAttribute("data-excaliplant-element-id");
+    const innerId = await inner.getAttribute("data-excaliplant-element-id");
+    const buttonClick = {
+      id: "outer",
+      classes: [],
+      type: "click",
+      clickMode: "button",
+      active: true,
+      elementId: outerId,
+    };
+    assert.equal(await outer.getAttribute("aria-pressed"), null);
+    assert.equal(await part.locator(":scope > title").textContent(), "Open the outer group");
+    const box = await visible.locator("rect").boundingBox();
+    const point = [box.x + 7, box.y + box.height / 2];
+    await page.mouse.move(...point);
+    await page.mouse.down();
+    assert.equal(await state(), "click");
+    assert.deepEqual(await clicks(), []);
+    await page.mouse.up();
+    assert.equal(await state(), "hover");
+    await page.mouse.click(...point);
+    const pointerClick = { ...buttonClick, elementId: surface.id };
+    assert.deepEqual(await clicks(), [pointerClick, pointerClick]);
+
+    await page.mouse.down();
+    await page.mouse.move(1, 1);
+    await page.mouse.up();
+    assert.equal(await state(), "base");
+    assert.deepEqual(await clicks(), []);
+
+    await outer.focus();
+    await page.keyboard.down("Space");
+    assert.equal(await state(), "click");
+    assert.deepEqual(await clicks(), []);
+    await page.keyboard.up("Space");
+    assert.equal(await state(), "base");
+    await page.keyboard.down("Enter");
+    await page.keyboard.down("Enter");
+    assert.equal(await state(), "click");
+    await page.keyboard.up("Enter");
+    assert.equal(await state(), "base");
+    assert.deepEqual(await clicks(), [buttonClick, buttonClick]);
+
+    await page.keyboard.down("Space");
+    await inner.focus();
+    assert.equal(await state(), "base");
+    await outer.focus();
+    await page.keyboard.up("Space");
+    assert.deepEqual(await clicks(), []);
+
+    await inner.focus();
+    await page.keyboard.down("Space");
+    assert.equal(await state(), "click");
+    assert.equal(await inner.getAttribute("aria-pressed"), "false");
+    await page.keyboard.up("Space");
+    assert.equal(await state(), "base");
+    assert.equal(await inner.getAttribute("aria-pressed"), "true");
+    assert.deepEqual(await clicks(), [
+      { id: "inner", classes: [], type: "click", active: true, elementId: innerId },
+      { ...buttonClick, sourceElementId: innerId },
+    ]);
+
+    await page.mouse.move(...point);
+    await page.mouse.down();
+    assert.equal(await state(), "click");
+    await page.evaluate(() => window.cleanup());
+    await page.mouse.up();
+    assert.equal(await state(), "base");
+    assert.deepEqual(await clicks(), []);
+  },
+);
+
 for (const forward of [false, true]) {
   test(
     forward

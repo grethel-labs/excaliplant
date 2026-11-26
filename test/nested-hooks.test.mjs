@@ -59,7 +59,7 @@ ${nested}`),
 
 test("explicit parents override graph ownership and can be forward references", async () => {
   const result = await render(
-    wrap(`@hook #inside alias:child .nested CLICK-FROM-CHILDREN PARENT:#Away
+    wrap(`@hook #inside alias:child .nested CLICK-FROM-CHILDREN CLICK-MODE:BUTTON PARENT:#Away
 @hook #outer alias:outer click-from-children
 @hook #Away alias:nearby parent:#outer click-from-children
 ${nested}`),
@@ -69,6 +69,7 @@ ${nested}`),
   const other = metadata(byLabel(result, "Nearby"));
   assert.deepEqual(child.classes, ["nested"]);
   assert.equal(child.clickFromChildren, true);
+  assert.equal(child.clickMode, "button");
   assert.equal(child.parent, other.name);
   assert.equal(other.clickFromChildren, true);
   assert.equal(other.parent, "outer");

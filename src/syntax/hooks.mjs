@@ -15,6 +15,7 @@ import { parseStyleProperty } from "./skin.mjs";
  * @property {"alias" | "element"} selector
  * @property {string} target
  * @property {true} [clickFromChildren] Forward descendant clicks to this binding.
+ * @property {"toggle" | "button"} [clickMode] Activation behavior. Defaults to toggle.
  * @property {string} [parentId] Explicit author-defined parent ID.
  * @property {number} line
  * @property {RoleStyle} hover
@@ -74,7 +75,7 @@ export function extractInteractions(lines, diagnostics, options) {
     }
     if (!/^@hook(?:\s|$)/i.test(trimmed)) break;
     const declaration =
-      /^@hook\s+(?:#?([A-Za-z_][\w-]{0,63})\s+)?(alias|element):(?:"([^"\r\n]+)"|([^"\s]+))((?:\s+\.[A-Za-z_][\w-]{0,63})*)((?:\s+(?:click-from-children|parent:#[A-Za-z_][\w-]{0,63})){0,2})$/i.exec(
+      /^@hook\s+(?:#?([A-Za-z_][\w-]{0,63})\s+)?(alias|element):(?:"([^"\r\n]+)"|([^"\s]+))((?:\s+\.[A-Za-z_][\w-]{0,63})*)((?:\s+(?:click-from-children|parent:#[A-Za-z_][\w-]{0,63}|click-mode:(?:toggle|button))){0,3})$/i.exec(
         trimmed,
       );
     const style = declaration
@@ -113,7 +114,11 @@ export function extractInteractions(lines, diagnostics, options) {
         /^click-from-children$/i.test(modifier),
       );
       const parentId = modifiers.find((modifier) => /^parent:#/i.test(modifier))?.slice(8);
-      if (modifiers.length > Number(clickFromChildren) + Number(Boolean(parentId))) {
+      const clickMode = modifiers.find((modifier) => /^click-mode:/i.test(modifier))?.slice(11);
+      if (
+        modifiers.length >
+        new Set(modifiers.map((modifier) => modifier.split(":")[0].toLowerCase())).size
+      ) {
         reportHookError(diagnostics, line, "Duplicate hook modifier");
         continue;
       }
@@ -125,6 +130,7 @@ export function extractInteractions(lines, diagnostics, options) {
         selector: /** @type {Hook["selector"]} */ (selector.toLowerCase()),
         target: quoted ?? token,
         ...(clickFromChildren && { clickFromChildren: true }),
+        ...(clickMode && { clickMode: clickMode.toLowerCase() === "button" ? "button" : "toggle" }),
         ...(parentId && { parentId }),
         line,
         hover: {},

@@ -167,6 +167,8 @@ function safeHookAttribute(key, value) {
       );
     case "data-excaliplant-click-from-children":
       return value === "true";
+    case "data-excaliplant-click-mode":
+      return value === "button";
     case "data-excaliplant-hook-id":
       return isHookToken(value);
     case "data-excaliplant-hook-classes": {

@@ -226,7 +226,7 @@ test("playground sanitizer keeps only the SVG attributes needed for live hook pr
   assert.doesNotMatch(markdownSvg, /data-excaliplant-|display=|pointer-events=|aria-hidden=/);
 });
 
-test("nested hook markers accept only valid parent names and literal opt-in values", async () => {
+test("hook markers accept only valid parent names and literal opt-in values", async () => {
   const result = await render(
     "@startuml\n@hook #details alias:Details\ncomponent Details\n@enduml",
     { strict: true },
@@ -237,17 +237,20 @@ test("nested hook markers accept only valid parent names and literal opt-in valu
     ...valid.customData.excaliplantHook,
     parent: "@line:5:2",
     clickFromChildren: true,
+    clickMode: "button",
   };
   invalid.customData.excaliplantHook = {
     ...invalid.customData.excaliplantHook,
     parent: 'details" onload="alert(1)',
     clickFromChildren: "true",
+    clickMode: 'button" onload="alert(1)',
   };
   const svg = excalidrawToSvg(doc, { interactive: true, embedFont: false });
-  const markers = / data-excaliplant-(?:hook-parent|click-from-children)="[^"]*"/g;
+  const markers = / data-excaliplant-(?:hook-parent|click-from-children|click-mode)="[^"]*"/g;
   const validMarkers = [
     ' data-excaliplant-hook-parent="@line:5:2"',
     ' data-excaliplant-click-from-children="true"',
+    ' data-excaliplant-click-mode="button"',
   ];
   assert.deepEqual(svg.match(markers), validMarkers);
 
@@ -255,9 +258,10 @@ test("nested hook markers accept only valid parent names and literal opt-in valu
     svg.replace(
       "</svg>",
       `<g data-excaliplant-hook-parent="outer" data-excaliplant-click-from-children="True"/>
-       <g data-excaliplant-hook-parent="outer\n" data-excaliplant-click-from-children="t&#x72;ue"/>
+       <g data-excaliplant-hook-parent="outer\n" data-excaliplant-click-from-children="t&#x72;ue" data-excaliplant-click-mode="Button"/>
+       <g data-excaliplant-click-mode="b&#x75;tton"/>
        <g data-excaliplant-hook-parent="@line:5:2:1" data-excaliplant-click-from-children="false"/>
-       <rect data-excaliplant-hook-parent="outer" data-excaliplant-click-from-children="true"/>
+       <rect data-excaliplant-hook-parent="outer" data-excaliplant-click-from-children="true" data-excaliplant-click-mode="button"/>
        </svg>`,
     ),
   );
