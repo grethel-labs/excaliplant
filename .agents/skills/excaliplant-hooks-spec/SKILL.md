@@ -5,7 +5,8 @@ description: Keep the public element hook and tooltip specification, JSON Schema
 
 # Element hook contract
 
-Start with the [public specification](../../../docs/hooks.md) and its
+Start with the [element hook specification](../../../docs/hooks.md) or
+[element tooltip specification](../../../docs/tooltips.md) and the shared
 [JSON Schema](../../../docs/hooks.schema.json). Reproduce the behavior through
 `render()`, `toSvg({ interactive: true })` and the browser helpers. Compare the
 observed behavior with the last released contract before documenting a change.

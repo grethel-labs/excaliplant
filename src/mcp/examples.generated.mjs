@@ -88,6 +88,13 @@ export const EXAMPLES = Object.freeze([
   },
   {
     kind: "component",
+    name: "element-tooltips",
+    diagram: "component",
+    source:
+      '@startuml\n@tooltip alias:storefront "Receives customer orders."\n@tooltip alias:events "Queues order events for downstream services."\ncomponent "Storefront" as storefront\ncomponent "Order events" as events\nstorefront --> events : publishes orders\n@enduml\n',
+  },
+  {
+    kind: "component",
     name: "interactive-services",
     diagram: "component",
     source:

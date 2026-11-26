@@ -46,7 +46,7 @@
 
 - **Looks like a whiteboard, stays a diagram.** Output is a real Excalidraw scene: open it in Excalidraw, move boxes, arrows stay bound.
 - **Broad PlantUML coverage.** Sequence, class, activity, state, component, C4, Gantt, mind maps, JSON, regex, math — see the [full list](#supported-diagrams).
-- **Interactive hooks and tooltips.** Attach hover and click styles, browser events, and plain-text tooltips to diagram elements. [Usage](#interactive-element-hooks)
+- **Interactive hooks and tooltips.** Attach hover and click styles, browser events, and plain-text tooltips to diagram elements. [Hooks](#interactive-element-hooks) · [Tooltips](#element-tooltips)
 - **The PlantUML language, not just diagrams.** Preprocessor (`!procedure`, `!function`, loops, JSON variables, `!include`), Creole markup, `skinparam`, `<style>`, themes, colours and bundled C4/ArchiMate libraries.
 - **Pure JavaScript.** No Java, no Graphviz, no PlantUML server. Layout runs on [ELK](https://github.com/kieler/elkjs) and purpose-built engines.
 - **Deterministic.** Same input, same bytes — ideal for docs in git.
@@ -204,11 +204,6 @@ default. Add `click-from-children` to a parent hook binding to receive clicks
 from its hooked descendants. See [nested hooks](docs/hooks.md#nested-hooks) for
 parent resolution and the forwarded event payload.
 
-Use `@tooltip alias:orders "Tracks orders after checkout"` for a plain-text
-tooltip. It works with or without an `@hook`. In the Playground, hover over
-the element to read it. For connectors and their captions, use `@tooltip
-element:<id> "Tooltip text"` with the corresponding scene ID on one line.
-
 Render the SVG with `toSvg({ interactive: true })` and insert it inline into the
 host page. Then use the browser entry point to enable and listen for interactions.
 
@@ -234,6 +229,26 @@ and `detail.elementId` identifies the scene primitive that received the event.
 Each targeted Excalidraw element includes the hook metadata and resolved styles
 in `customData.excaliplantHook` for hosts that embed their own viewer. SVG image
 embedding and PNG provide a static preview.
+
+### Element tooltips
+
+Add a `@tooltip` directive before the diagram body and hover over the element
+in the Playground to read the text. Tooltips work on their own or alongside
+`@hook` directives.
+
+```plantuml
+@startuml
+@tooltip alias:storefront "Receives customer orders."
+@tooltip alias:events "Queues order events for downstream services."
+component "Storefront" as storefront
+component "Order events" as events
+storefront --> events : publishes orders
+@enduml
+```
+
+Use `element:<id>` to attach different tooltips to a connector and its caption.
+[Try the tooltip example in the Playground](https://grethel-labs.github.io/excaliplant/#play/component/element-tooltips)
+or see the [element tooltip specification](docs/tooltips.md).
 
 <details>
 <summary><b>Render options</b></summary>
