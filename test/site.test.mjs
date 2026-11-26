@@ -66,6 +66,9 @@ test("normalizeOptions repairs anything", () => {
     pngScale: 99,
     seed: 42,
     clean: "yes",
+    strokePreset: "constructor",
+    roughness: "0.5",
+    edgeRoughness: 2.1,
     bogus: 1,
   });
   assert.equal(o.theme, "auto");
@@ -78,7 +81,9 @@ test("normalizeOptions repairs anything", () => {
   assert.equal(o.pngWidth, 16);
   assert.equal(o.pngScale, 8);
   assert.equal(o.seed, "");
-  assert.equal(o.clean, false);
+  assert.equal(o.strokePreset, "theme");
+  assert.equal(o.roughness, null);
+  assert.equal(o.edgeRoughness, null);
   assert.ok(!("bogus" in o));
 });
 
@@ -116,7 +121,7 @@ test("toRenderOptions maps the UI state onto render()", async () => {
 
   const o = normalizeOptions({
     theme: "blueprint",
-    clean: true,
+    strokePreset: "artist",
     seed: "s1",
     strict: true,
     page: 1,
@@ -130,7 +135,8 @@ test("toRenderOptions maps the UI state onto render()", async () => {
   });
   const { render: ro, svg } = toRenderOptions(o);
   assert.equal(ro.theme, "blueprint");
-  assert.equal(ro.sketch, false);
+  assert.equal(ro.roughness, 1);
+  assert.equal(ro.edgeRoughness, 1);
   assert.equal(ro.seed, "s1");
   assert.equal(ro.strict, true);
   assert.equal(ro.page, 1);
@@ -153,6 +159,26 @@ test("toRenderOptions maps the UI state onto render()", async () => {
   assert.equal(first.pages, 2);
   const second = await render(doc, cleanRenderOptions({ block: 1 }));
   assert.equal(second.kind, "sequence");
+});
+
+test("stroke presets set both values and advanced options can override either one", () => {
+  for (const [strokePreset, level] of [
+    ["architect", 0],
+    ["artist", 1],
+    ["cartoonist", 2],
+  ]) {
+    assert.deepEqual(toRenderOptions(normalizeOptions({ strokePreset })).render, {
+      roughness: level,
+      edgeRoughness: level,
+    });
+  }
+  assert.deepEqual(
+    toRenderOptions(normalizeOptions({ strokePreset: "cartoonist", roughness: 0 })).render,
+    { roughness: 0, edgeRoughness: 2 },
+  );
+  assert.deepEqual(toRenderOptions(normalizeOptions({ edgeRoughness: 0.35 })).render, {
+    edgeRoughness: 0.35,
+  });
 });
 
 test("PNG size: width wins over scale and stays within canvas limits", () => {
@@ -178,7 +204,15 @@ test("base64url round trips arbitrary bytes", () => {
 });
 
 test("hash state round trips text and options, compressed and plain", async () => {
-  const options = normalizeOptions({ theme: "dark", seed: "x", defines: "A=1", strict: true });
+  const options = normalizeOptions({
+    theme: "dark",
+    strokePreset: "cartoonist",
+    roughness: 1.25,
+    edgeRoughness: 0,
+    seed: "x",
+    defines: "A=1",
+    strict: true,
+  });
   for (const compress of [true, false]) {
     const enc = await encodeState({ source: SOURCE, options }, { compress });
     assert.ok(enc.ok);
@@ -193,6 +227,15 @@ test("hash state round trips text and options, compressed and plain", async () =
     assert.ok(enc.ok);
     assert.equal((await decodeState(enc.payload))?.source, source);
   }
+});
+
+test("legacy share links and saved options migrate clean strokes to Architect", async () => {
+  const json = JSON.stringify({ v: 1, s: SOURCE, o: { clean: true } });
+  const expected = { source: SOURCE, options: { ...DEFAULT_OPTIONS, strokePreset: "architect" } };
+  assert.deepEqual(await decodeState(`r${toBase64Url(new TextEncoder().encode(json))}`), expected);
+  assert.deepEqual(loadSaved({ getItem: () => json }), expected);
+  assert.equal(normalizeOptions({ clean: true, strokePreset: "theme" }).strokePreset, "theme");
+  assert.equal(normalizeOptions({ clean: false }).strokePreset, "theme");
 });
 
 test("hash state refuses oversized, corrupt and hostile payloads", async () => {
@@ -676,6 +719,25 @@ test("worker protocol: export, stale requests and warm-up", async () => {
   assert.ok(parsed.elements.length > 0);
 });
 
+test("worker exports the selected preset and independent overrides", async () => {
+  const engine = createEngine();
+  const options = toRenderOptions(
+    normalizeOptions({ strokePreset: "cartoonist", roughness: 0.75 }),
+  );
+  const result = await engine.handle({
+    type: "render",
+    id: 1,
+    source: SOURCE,
+    options: options.render,
+    svg: options.svg,
+  });
+  assert.equal(result.ok, true, result.error);
+  const file = await engine.handle({ type: "export", id: 2, what: "excalidraw" });
+  const elements = JSON.parse(file.text).elements;
+  assert.equal(elements.find((e) => e.type === "rectangle").roughness, 0.75);
+  assert.equal(elements.find((e) => e.type === "arrow").roughness, 2);
+});
+
 test("cleanRenderOptions whitelists what the page may send", () => {
   const o = cleanRenderOptions({
     theme: "mono",
@@ -686,12 +748,16 @@ test("cleanRenderOptions whitelists what the page may send", () => {
     page: 1.5,
     block: 2,
     date: new Date(NaN),
+    roughness: Infinity,
+    edgeRoughness: "0.4",
   });
   assert.equal(o.theme, "mono");
   assert.ok(!("kind" in o));
   assert.ok(!("include" in o));
   assert.ok(!("page" in o));
   assert.ok(!("date" in o));
+  assert.ok(!("roughness" in o));
+  assert.ok(!("edgeRoughness" in o));
   assert.equal(o.block, 2);
   assert.deepEqual({ ...o.defines }, { OK: "1" });
   assert.ok(o.limits.maxInputBytes <= MAX_SOURCE_BYTES, "page cannot raise the limits");

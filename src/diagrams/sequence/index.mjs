@@ -122,6 +122,11 @@ function drawSequence(laid, c) {
       }
       case "lifeline": {
         const s = roleStyle(theme, "lifeline");
+        const line = {
+          stroke: s.stroke,
+          strokeWidth: s.strokeWidth,
+          roughness: theme.edgeRoughness,
+        };
         let y1 = it.y1;
         for (const [g1, g2] of it.gaps) {
           if (g2 <= y1 || g1 >= it.y2) continue;
@@ -130,14 +135,14 @@ function drawSequence(laid, c) {
               [it.x, y1],
               [it.x, g1],
             ],
-            { stroke: s.stroke, strokeWidth: s.strokeWidth, strokeStyle: "dashed", roughness: 0 },
+            { ...line, strokeStyle: "dashed" },
           );
           c.line(
             [
               [it.x, g1],
               [it.x, g2],
             ],
-            { stroke: s.stroke, strokeWidth: s.strokeWidth, strokeStyle: "dotted", roughness: 0 },
+            { ...line, strokeStyle: "dotted" },
           );
           y1 = g2;
         }
@@ -146,7 +151,7 @@ function drawSequence(laid, c) {
             [it.x, y1],
             [it.x, it.y2],
           ],
-          { stroke: s.stroke, strokeWidth: s.strokeWidth, strokeStyle: "dashed", roughness: 0 },
+          { ...line, strokeStyle: "dashed" },
         );
         break;
       }

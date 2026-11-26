@@ -117,6 +117,8 @@ function drawFiles(laid, c) {
   const folder = roleStyle(theme, "package");
   const file = roleStyle(theme, "file");
   const indent = 26;
+  const guide = { stroke: theme.muted, strokeWidth: 1, roughness: theme.edgeRoughness };
+  const iconRoughness = Math.min(theme.roughness, 0.5);
   const maxRight = Math.max(...rows.map((r) => r.depth * indent + 28 + r.laid.width), 0);
   rows.forEach((r, i) => {
     const x = r.depth * indent;
@@ -129,7 +131,7 @@ function drawFiles(laid, c) {
           [gx, cy],
           [x, cy],
         ],
-        { stroke: theme.muted, strokeWidth: 1, roughness: 0 },
+        guide,
       );
     }
     if (r.depth > 0) {
@@ -141,7 +143,7 @@ function drawFiles(laid, c) {
           [gx, top],
           [gx, cy],
         ],
-        { stroke: theme.muted, strokeWidth: 1, roughness: 0 },
+        guide,
       );
     }
     if (r.entry.folder) {
@@ -152,13 +154,17 @@ function drawFiles(laid, c) {
           [x + 7, cy - 8],
           [x + 9, cy - 5],
         ],
-        { stroke: themeColor(theme, "special.folder.stroke"), strokeWidth: 1.5, roughness: 0.5 },
+        {
+          stroke: themeColor(theme, "special.folder.stroke"),
+          strokeWidth: 1.5,
+          roughness: iconRoughness,
+        },
       );
       c.rect(x, cy - 5, 18, 12, {
         fill: themeColor(theme, "special.folder.fill"),
         stroke: themeColor(theme, "special.folder.stroke"),
         strokeWidth: 1.5,
-        roughness: 0.5,
+        roughness: iconRoughness,
       });
     } else {
       c.line(
@@ -174,7 +180,7 @@ function drawFiles(laid, c) {
           fill: theme.surface ?? theme.background,
           stroke: theme.muted,
           strokeWidth: 1.5,
-          roughness: 0.5,
+          roughness: iconRoughness,
         },
       );
     }
@@ -191,7 +197,7 @@ function drawFiles(laid, c) {
           [x + 28 + r.laid.width + 4, cy],
           [nx, cy],
         ],
-        { stroke: note.stroke, strokeWidth: 1, strokeStyle: "dotted", roughness: 0 },
+        { ...guide, stroke: note.stroke, strokeStyle: "dotted" },
       );
       c.rect(nx, cy - t.height / 2 - 4, t.width + 16, t.height + 8, {
         fill: note.fill,

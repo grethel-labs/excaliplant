@@ -406,10 +406,14 @@ function linear(el, bg, isArrow) {
     }
   } else {
     const o = roughOptions(el, closed);
+    if (!closed) o.preserveVertices = true;
     if (stroke === "transparent") o.stroke = "none";
     let d;
-    if (curved && pts.length > 2) d = closed ? generator.curve(pts, o) : generator.curve(pts, o);
-    else if (closed) d = generator.polygon(pts.slice(0, -1), o);
+    if (curved && pts.length > 2) {
+      // RoughJS jitters every point of a curve. For arrows, roughen the Bézier
+      // handles of the existing route so the shaft meets its heads at the tips.
+      d = isArrow ? generator.path(smoothPath(pts, false), o) : generator.curve(pts, o);
+    } else if (closed) d = generator.polygon(pts.slice(0, -1), o);
     else d = generator.linearPath(pts, o);
     out += drawable(d);
   }
@@ -465,6 +469,7 @@ function arrowhead(el, from, tip, head, bg) {
   const o = {
     ...roughOptions({ ...el, strokeStyle: "solid", backgroundColor: "transparent" }, false),
     roughness: Math.min(el.roughness, 0.6),
+    preserveVertices: true,
   };
   /** @param {[number, number][]} poly @param {string} fill */
   const polygon = (poly, fill) =>

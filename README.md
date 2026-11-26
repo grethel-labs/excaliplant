@@ -304,7 +304,9 @@ embedding and PNG provide a static preview.
 | Option           | Default          | Description                                                               |
 | ---------------- | ---------------- | ------------------------------------------------------------------------- |
 | `theme`          | `"sketch"`       | Theme name or theme object                                                |
-| `sketch`         | theme default    | `false` for clean strokes                                                 |
+| `sketch`         | theme default    | `false` for clean strokes, `true` for hand-drawn strokes                  |
+| `roughness`      | theme default    | Shape roughness from `0` (clean) to `2` (very sketchy)                    |
+| `edgeRoughness`  | theme default    | Connector roughness from `0` (clean) to `2` (very sketchy)                |
 | `seed`           | `"excaliplant"`  | Seed for ids and stroke wobble                                            |
 | `block`          | `0`              | Block index or `@startuml name`                                           |
 | `page`           | `0`              | Page of a `newpage` document                                              |
@@ -317,6 +319,10 @@ embedding and PNG provide a static preview.
 | `limits`         | `DEFAULT_LIMITS` | Input size, lines, nodes, edges, elements, preprocessor budget, PNG width |
 | `kind`           | auto             | Force a diagram module                                                    |
 | `registry`       | built-in         | Custom `DiagramRegistry`                                                  |
+
+Numeric roughness values override the corresponding setting from the theme or
+`sketch`. Both accept decimals. The playground presets use `0` for Architect,
+`1` for Artist and `2` for Cartoonist.
 
 </details>
 

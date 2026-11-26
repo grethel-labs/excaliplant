@@ -98,20 +98,21 @@ local storage and share links. Each file can be up to 200 KB, with up to
 
 ## Options
 
-| Control                      | `render()` / export option                                                    |
-| ---------------------------- | ----------------------------------------------------------------------------- |
-| Theme                        | `theme`; **Auto** passes nothing on a light page and `dark` on a dark page    |
-| Clean strokes                | `sketch: false`                                                               |
-| Seed                         | `seed` (empty: library default)                                               |
-| Background                   | `toSvg({ background })`: theme default, `transparent` or a colour (SVG + PNG) |
-| Strict                       | `strict`                                                                      |
-| Page (only with `newpage`)   | `page` (0-based)                                                              |
-| Block (only with 2+ blocks)  | `block` (index of the `@start…@end` block)                                    |
-| Diagram type                 | `kind` (force a module instead of detection)                                  |
-| Defines (`NAME=value` lines) | `defines`, like the CLI's `-D`                                                |
-| `%filename()`                | `filename`                                                                    |
-| `%date()`                    | `date` (UTC midnight of the chosen day)                                       |
-| PNG width / scale            | width in pixels, or scale relative to the SVG size (default 2)                |
+| Control                       | `render()` / export option                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| Theme                         | `theme`; **Auto** passes nothing on a light page and `dark` on a dark page    |
+| Stroke style                  | Theme default, Architect (`0`), Artist (`1`), or Cartoonist (`2`)             |
+| Shape and connector roughness | `roughness` and `edgeRoughness`, independently from `0` to `2`                |
+| Seed                          | `seed` (empty: library default)                                               |
+| Background                    | `toSvg({ background })`: theme default, `transparent` or a colour (SVG + PNG) |
+| Strict                        | `strict`                                                                      |
+| Page (only with `newpage`)    | `page` (0-based)                                                              |
+| Block (only with 2+ blocks)   | `block` (index of the `@start…@end` block)                                    |
+| Diagram type                  | `kind` (force a module instead of detection)                                  |
+| Defines (`NAME=value` lines)  | `defines`, like the CLI's `-D`                                                |
+| `%filename()`                 | `filename`                                                                    |
+| `%date()`                     | `date` (UTC midnight of the chosen day)                                       |
+| PNG width / scale             | width in pixels, or scale relative to the SVG size (default 2)                |
 
 The editor resolves bundled includes such as `<C4/…>` and `<archimate/…>`.
 With a local project open, the worker also resolves includes from the selected
@@ -119,6 +120,11 @@ files. Diagram types are detected separately for each entry. The page sets
 the render limits and uses `toRenderOptions` in `site/playground/options.mjs`.
 
 With **Auto**, a `!theme` line in the source is honoured on a light page and overridden by `dark` on a dark page; pick an explicit theme to prevent that.
+
+In **Advanced stroke options**, enter a decimal to fine-tune shape or connector
+roughness. An empty field uses the selected stroke style or the theme's default
+for that field. Choosing another stroke style clears both overrides. Saved
+options and share links using **Clean strokes** open with **Architect**.
 
 ## Share links
 
@@ -180,7 +186,7 @@ npm run site          # build into _site/
 npm run site:smoke    # open it in a browser
 ```
 
-It checks default and graph examples, worker requests after layout, local project rendering and export, plain-text and shared links, invalid link handling, the gallery, and browser errors. It exits with code 1 on any failure. Use `--shots <dir>` to save screenshots of failed steps.
+It checks default and graph examples, worker requests after layout, stroke presets and overrides, local project rendering and export, plain-text and shared links, invalid link handling, the gallery, and browser errors. It exits with code 1 on any failure. Use `--shots <dir>` to save screenshots of failed steps.
 
 It runs in the CI job "Site smoke test (browser)" on every pull request and in `pages.yml` before the site is deployed, so a site that does not render is not published. It was written after v1.4.0, where the lazily loaded layout engine replaced the worker's message handler and the deployed playground rendered nothing while every test passed; against that build 7 of its 9 checks fail.
 

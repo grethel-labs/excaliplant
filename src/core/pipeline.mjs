@@ -21,6 +21,8 @@ import { createDocument, validateDocument } from "../render/excalidraw.mjs";
  * @property {string | import("../draw/theme.mjs").Theme} [theme] Theme name (`sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`) or object.
  * @property {Record<string, string>} [themeColors] Individual colour overrides by theme path.
  * @property {boolean} [sketch] Force hand-drawn (`true`) or clean (`false`) strokes.
+ * @property {number} [roughness] Shape roughness from 0 (clean) to 2 (very sketchy). Overrides the theme and `sketch`.
+ * @property {number} [edgeRoughness] Connector roughness from 0 to 2. Overrides the theme and `sketch`.
  * @property {string | number} [seed] Seed for ids and stroke wobble (default `excaliplant`).
  * @property {number} [page] Page index for `newpage` documents (default 0).
  * @property {boolean} [strict] Throw on unrecognised lines instead of warning.
@@ -100,7 +102,12 @@ export function parseBlock(block, registry, options = {}) {
     });
 
   const themeName = options.theme ?? mapPlantUmlTheme(ppTheme) ?? "sketch";
-  const theme = createTheme(themeName, { sketch: options.sketch, colors: options.themeColors });
+  const theme = createTheme(themeName, {
+    sketch: options.sketch,
+    roughness: options.roughness,
+    edgeRoughness: options.edgeRoughness,
+    colors: options.themeColors,
+  });
   /** @type {import("./registry.mjs").ModuleContext} */
   const ctx = {
     diagnostics,

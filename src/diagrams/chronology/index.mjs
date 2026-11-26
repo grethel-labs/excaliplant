@@ -198,7 +198,7 @@ function drawChrono(laid, c) {
         [cx, above ? y0 - 8 : y0 + 8],
         [cx, ly1],
       ],
-      { stroke: color, strokeWidth: 1, strokeStyle: "dotted" },
+      { stroke: color, strokeWidth: 1, strokeStyle: "dotted", roughness: theme.edgeRoughness },
     );
     c.rect(cx - it.text.width / 2 - 8, labelY - 4, it.text.width + 16, it.text.height + 8, {
       fill: pal.fill,
@@ -225,7 +225,7 @@ function drawChrono(laid, c) {
         [b.x, top],
         [b.x, y0 - 9],
       ],
-      { stroke: theme.muted, strokeWidth: 1, strokeStyle: "dashed", end: "arrow", roughness: 0 },
+      { stroke: theme.muted, strokeWidth: 1, strokeStyle: "dashed", end: "arrow" },
     );
     if (l.label) {
       const t = layoutText(l.label, { fontSize: fs * 0.75 });

@@ -138,9 +138,18 @@ export function mapPlantUmlTheme(name) {
 }
 
 /**
+ * Check the supported roughness range for render option overrides.
+ * @param {unknown} value
+ * @returns {value is number}
+ */
+export function validRoughness(value) {
+  return typeof value === "number" && value >= 0 && value <= 2;
+}
+
+/**
  * Create a theme instance with per-diagram overrides.
  * @param {string | Theme | undefined} base
- * @param {{ sketch?: boolean, colors?: Record<string, string> }} [options]
+ * @param {{ sketch?: boolean, roughness?: number, edgeRoughness?: number, colors?: Record<string, string> }} [options]
  * @returns {Theme}
  */
 export function createTheme(base, options = {}) {
@@ -180,8 +189,12 @@ export function createTheme(base, options = {}) {
   if (options.sketch === false) {
     theme.roughness = 0;
     theme.edgeRoughness = 0;
+  } else if (options.sketch === true) {
+    if (theme.roughness === 0) theme.roughness = THEMES.sketch.roughness;
+    if (theme.edgeRoughness === 0) theme.edgeRoughness = THEMES.sketch.edgeRoughness;
   }
-  if (options.sketch === true && theme.roughness === 0) theme.roughness = 1;
+  if (validRoughness(options.roughness)) theme.roughness = options.roughness;
+  if (validRoughness(options.edgeRoughness)) theme.edgeRoughness = options.edgeRoughness;
   return theme;
 }
 

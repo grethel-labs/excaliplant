@@ -130,21 +130,56 @@
                   {{themeOptions}}
                 </select>
               </label>
-              <label class="check"
-                ><input type="checkbox" id="opt-clean" />
-                <span>Clean strokes (no hand-drawn wobble)</span></label
-              >
               <label class="field">
-                <span>Seed</span>
-                <input
-                  type="text"
-                  id="opt-seed"
-                  inputmode="text"
-                  placeholder="default"
-                  maxlength="100"
-                  autocomplete="off"
-                />
+                <span>Stroke style</span>
+                <select id="opt-stroke-preset">
+                  <option value="theme">Theme default</option>
+                  <option value="architect">Architect</option>
+                  <option value="artist">Artist</option>
+                  <option value="cartoonist">Cartoonist</option>
+                </select>
               </label>
+              <details class="stroke-options">
+                <summary>Advanced stroke options</summary>
+                <label class="field">
+                  <span>Shape roughness</span>
+                  <input
+                    type="number"
+                    id="opt-roughness"
+                    min="0"
+                    max="2"
+                    step="any"
+                    inputmode="decimal"
+                    aria-describedby="opt-roughness-hint"
+                  />
+                </label>
+                <label class="field">
+                  <span>Connector roughness</span>
+                  <input
+                    type="number"
+                    id="opt-edge-roughness"
+                    min="0"
+                    max="2"
+                    step="any"
+                    inputmode="decimal"
+                    aria-describedby="opt-roughness-hint"
+                  />
+                </label>
+                <p class="hint" id="opt-roughness-hint">
+                  Use a value from 0 to 2, or leave a field blank to use the selected stroke style.
+                </p>
+                <label class="field">
+                  <span>Seed</span>
+                  <input
+                    type="text"
+                    id="opt-seed"
+                    inputmode="text"
+                    placeholder="default"
+                    maxlength="100"
+                    autocomplete="off"
+                  />
+                </label>
+              </details>
               <div class="field">
                 <label for="opt-background">Background</label>
                 <div class="row">

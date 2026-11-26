@@ -618,7 +618,7 @@ function drawGantt(laid, c) {
               [xb - 16, b.y],
               [xb, b.y],
             ];
-    c.arrow(pts, { stroke: edge.stroke, strokeWidth: 1.2, end: "triangle", roughness: 0 });
+    c.arrow(pts, { stroke: edge.stroke, strokeWidth: 1.2, end: "triangle" });
   }
 }
 
