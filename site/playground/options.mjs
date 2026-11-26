@@ -2,7 +2,16 @@
 // Pure functions only (no DOM), shared by the page, the worker and the tests.
 
 export { THEME_NAMES as THEME_CHOICES } from "../../src/draw/theme.mjs";
-import { THEME_NAMES as THEME_CHOICES } from "../../src/draw/theme.mjs";
+import { THEME_NAMES as THEME_CHOICES, validRoughness } from "../../src/draw/theme.mjs";
+
+export const STROKE_PRESETS = Object.freeze({
+  theme: null,
+  architect: 0,
+  artist: 1,
+  cartoonist: 2,
+});
+
+/** @typedef {keyof typeof STROKE_PRESETS} StrokePreset */
 
 /** Diagram kinds that can be forced; a test keeps this in sync with `listDiagramTypes()`. */
 export const KIND_CHOICES = Object.freeze([
@@ -46,7 +55,9 @@ export const MAX_PNG_PIXELS = 16_000_000;
 /**
  * @typedef {object} PlaygroundOptions
  * @property {string} theme `auto` (follows the page) or a theme name.
- * @property {boolean} clean Clean strokes instead of hand-drawn ones.
+ * @property {StrokePreset} strokePreset Stroke style for shapes and connectors.
+ * @property {number | null} roughness Shape override in [0, 2]. Null inherits the preset.
+ * @property {number | null} edgeRoughness Connector override in [0, 2]. Null inherits the preset.
  * @property {string} seed Seed for stroke wobble; empty uses the library default.
  * @property {"default" | "transparent" | "custom"} background
  * @property {string} backgroundColor `#rrggbb`, used when `background` is `custom`.
@@ -64,7 +75,9 @@ export const MAX_PNG_PIXELS = 16_000_000;
 /** @type {Readonly<PlaygroundOptions>} */
 export const DEFAULT_OPTIONS = Object.freeze({
   theme: "auto",
-  clean: false,
+  strokePreset: "theme",
+  roughness: null,
+  edgeRoughness: null,
   seed: "",
   background: "default",
   backgroundColor: "#ffffff",
@@ -112,7 +125,14 @@ export function normalizeOptions(raw) {
       o.theme === "auto" || THEME_CHOICES.includes(/** @type {any} */ (o.theme))
         ? /** @type {string} */ (o.theme)
         : d.theme,
-    clean: o.clean === true,
+    strokePreset:
+      typeof o.strokePreset === "string" && Object.hasOwn(STROKE_PRESETS, o.strokePreset)
+        ? /** @type {StrokePreset} */ (o.strokePreset)
+        : o.clean === true
+          ? "architect"
+          : d.strokePreset,
+    roughness: validRoughness(o.roughness) ? o.roughness : null,
+    edgeRoughness: validRoughness(o.edgeRoughness) ? o.edgeRoughness : null,
     seed: str(o.seed, d.seed, 100),
     background:
       o.background === "transparent" || o.background === "custom" ? o.background : "default",
@@ -194,7 +214,11 @@ export function toRenderOptions(options, env = {}) {
   // on a light page and picks `dark` on a dark page.
   if (o.theme !== "auto") render.theme = o.theme;
   else if (env.pageDark) render.theme = "dark";
-  if (o.clean) render.sketch = false;
+  const preset = STROKE_PRESETS[o.strokePreset];
+  const roughness = o.roughness ?? preset;
+  const edgeRoughness = o.edgeRoughness ?? preset;
+  if (roughness !== null) render.roughness = roughness;
+  if (edgeRoughness !== null) render.edgeRoughness = edgeRoughness;
   if (o.seed !== "") render.seed = o.seed;
   if (o.strict) render.strict = true;
   if (o.page > 0) render.page = o.page;

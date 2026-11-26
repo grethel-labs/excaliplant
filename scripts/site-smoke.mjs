@@ -354,6 +354,78 @@ export async function runSmoke(dir, options = {}) {
     );
     await play.close();
 
+    const legacyStrokes = Buffer.from(
+      JSON.stringify({
+        v: 1,
+        s: "@startgantt\nProject starts 2026-01-05\n[A] lasts 2 days\n[B] lasts 3 days\n[A] -> [B]\n@endgantt",
+        o: { clean: true },
+      }),
+    ).toString("base64url");
+    const strokes = await open(`#p=r${legacyStrokes}`);
+    await step(
+      "stroke presets and advanced overrides update and persist the preview",
+      strokes,
+      async () => {
+        await waitRendered(strokes, "gantt");
+        await previewIsShown(strokes);
+        const options = strokes.locator("#btn-options");
+        const preset = strokes.getByLabel("Stroke style");
+        const advanced = strokes.getByText("Advanced stroke options", { exact: true });
+        const shape = strokes.getByLabel("Shape roughness");
+        const connector = strokes.getByLabel("Connector roughness");
+        await options.click();
+        if ((await preset.inputValue()) !== "architect" || (await shape.isVisible()))
+          throw new Error(
+            "Legacy clean strokes did not open in Architect with advanced options collapsed",
+          );
+
+        /** @param {() => Promise<void>} change */
+        async function refreshPreview(change) {
+          const before = await strokes.locator("#preview").getAttribute("src");
+          await change();
+          await strokes.waitForFunction(
+            (src) => document.getElementById("preview")?.getAttribute("src") !== src,
+            before,
+            { timeout: STEP_TIMEOUT },
+          );
+          await previewIsShown(strokes);
+        }
+
+        await refreshPreview(async () => {
+          await preset.selectOption("cartoonist");
+        });
+        await advanced.click();
+        await refreshPreview(async () => {
+          await shape.fill("0.75");
+          await connector.fill("0.35");
+        });
+
+        await strokes.reload({ waitUntil: "load" });
+        await waitRendered(strokes, "gantt");
+        await options.click();
+        await advanced.click();
+        if (
+          (await preset.inputValue()) !== "cartoonist" ||
+          (await shape.inputValue()) !== "0.75" ||
+          (await connector.inputValue()) !== "0.35"
+        )
+          throw new Error("Stroke options changed after reloading the page");
+
+        await refreshPreview(async () => {
+          await preset.selectOption("artist");
+        });
+        if ((await shape.inputValue()) || (await connector.inputValue()))
+          throw new Error("Switching the stroke preset did not clear the overrides");
+
+        await refreshPreview(async () => {
+          await strokes.locator("#opt-reset").click();
+        });
+        if ((await preset.inputValue()) !== "theme")
+          throw new Error("Reset options did not restore the theme stroke preset");
+      },
+    );
+    await strokes.close();
+
     // A fresh worker per link, as when someone opens a shared link.
     const link = await open(
       `#src=${plain("@startuml\nclass A\nclass B\nA --> B : uses\n@enduml")}`,

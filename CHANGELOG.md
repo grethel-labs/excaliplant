@@ -9,6 +9,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 ### Added
 
 - Support nested hook hit targets and opt-in click forwarding from child hooks to their parent hooks.
+- Choose Architect, Artist, or Cartoonist strokes in the playground and fine-tune shape and connector roughness independently.
 - Preview PlantUML hooks interactively in the Playground, with a live event readout and an interactive services example.
 - Add PlantUML `@hook` bindings with IDs and classes, themed hover and click styles, and JavaScript events for inline SVG viewers.
 - Add Grethel Labs Light and use coordinated teal outlines, fills, and connectors in both Grethel Labs themes.
@@ -27,6 +28,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Fixed
 
+- Gantt dependency arrows and other diagram connectors follow the selected sketch style while keeping their routes and endpoints.
 - The live playground on the GitHub Pages site rendered nothing since v1.4.0: loading the layout engine lazily let it replace the message handler of the page's worker, which then never answered. The handler is restored after the engine is created.
 
 ### Changed

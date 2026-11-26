@@ -567,20 +567,21 @@ function drawRail(laid, c) {
       y += t.height + 4;
     }
     const base = y + row.box.up + 6;
-    const track = { stroke: theme.muted, strokeWidth: 2 };
+    const marker = { stroke: theme.muted, strokeWidth: 2 };
+    const track = { ...marker, roughness: theme.edgeRoughness };
     c.line(
       [
         [0, base - 8],
         [0, base + 8],
       ],
-      track,
+      marker,
     );
     c.line(
       [
         [5, base - 8],
         [5, base + 8],
       ],
-      track,
+      marker,
     );
     c.line(
       [
@@ -603,14 +604,14 @@ function drawRail(laid, c) {
         [end + 15, base - 8],
         [end + 15, base + 8],
       ],
-      track,
+      marker,
     );
     c.line(
       [
         [end + 20, base - 8],
         [end + 20, base + 8],
       ],
-      track,
+      marker,
     );
     y = base + row.box.down + 36;
   }

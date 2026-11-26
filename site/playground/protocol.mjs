@@ -15,6 +15,7 @@
 
 import { render } from "../../src/api.mjs";
 import { extractBlocks } from "../../src/core/source.mjs";
+import { validRoughness } from "../../src/draw/theme.mjs";
 import { sanitizeHookPreview, sanitizeSvg } from "../../src/markdown/sanitize.mjs";
 import { excalidrawToSvg } from "../../src/render/svg.mjs";
 import { THEME_CHOICES, KIND_CHOICES, MAX_SOURCE_BYTES } from "./options.mjs";
@@ -52,7 +53,9 @@ export function cleanRenderOptions(raw) {
   /** @type {Record<string, unknown>} */
   const out = { limits: { ...PLAYGROUND_LIMITS } };
   if (typeof o.theme === "string" && THEME_CHOICES.includes(o.theme)) out.theme = o.theme;
-  if (o.sketch === false) out.sketch = false;
+  if (typeof o.sketch === "boolean") out.sketch = o.sketch;
+  if (validRoughness(o.roughness)) out.roughness = o.roughness;
+  if (validRoughness(o.edgeRoughness)) out.edgeRoughness = o.edgeRoughness;
   if (typeof o.seed === "string" || typeof o.seed === "number")
     out.seed = String(o.seed).slice(0, 100);
   if (o.strict === true) out.strict = true;

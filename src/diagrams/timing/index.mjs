@@ -473,7 +473,6 @@ function drawTiming(laid, c) {
         strokeWidth: 1.2,
         start: "arrow",
         end: "arrow",
-        roughness: 0,
       },
     );
     if (k.text) {

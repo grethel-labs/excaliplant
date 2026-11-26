@@ -10,6 +10,7 @@ import { readProjectFiles } from "./project-files.mjs";
 import {
   KIND_CHOICES,
   MAX_SOURCE_BYTES,
+  STROKE_PRESETS,
   normalizeOptions,
   parseDefines,
   toRenderOptions,
@@ -626,9 +627,20 @@ export function initPlayground(config) {
   for (const k of KIND_CHOICES) kindSelect.append(new Option(titles.get(k) ?? k, k));
 
   /** @param {import("./options.mjs").PlaygroundOptions} o */
+  function strokeOverridesToUi(o) {
+    const preset = STROKE_PRESETS[o.strokePreset];
+    const placeholder = preset === null ? "Theme default" : String(preset);
+    $("opt-roughness").placeholder = placeholder;
+    $("opt-edge-roughness").placeholder = placeholder;
+    $("opt-roughness").value = o.roughness ?? "";
+    $("opt-edge-roughness").value = o.edgeRoughness ?? "";
+  }
+
+  /** @param {import("./options.mjs").PlaygroundOptions} o */
   function optionsToUi(o) {
     $("opt-theme").value = o.theme;
-    $("opt-clean").checked = o.clean;
+    $("opt-stroke-preset").value = o.strokePreset;
+    strokeOverridesToUi(o);
     $("opt-seed").value = o.seed;
     $("opt-background").value = o.background;
     $("opt-background-color").value = o.backgroundColor;
@@ -645,9 +657,13 @@ export function initPlayground(config) {
     showDefineErrors();
   }
   function uiToOptions() {
+    const strokePreset = $("opt-stroke-preset").value;
+    const presetChanged = strokePreset !== options.strokePreset;
     return normalizeOptions({
       theme: $("opt-theme").value,
-      clean: $("opt-clean").checked,
+      strokePreset,
+      roughness: presetChanged ? null : $("opt-roughness").valueAsNumber,
+      edgeRoughness: presetChanged ? null : $("opt-edge-roughness").valueAsNumber,
       seed: $("opt-seed").value,
       background: $("opt-background").value,
       backgroundColor: $("opt-background-color").value,
@@ -672,6 +688,7 @@ export function initPlayground(config) {
   }
   byId("options").addEventListener("input", () => {
     const next = uiToOptions();
+    if (next.strokePreset !== options.strokePreset) strokeOverridesToUi(next);
     $("opt-background-color").hidden = next.background !== "custom";
     showDefineErrors();
     const renderChanged =

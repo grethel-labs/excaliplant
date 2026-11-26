@@ -570,7 +570,7 @@ function mbox(n, fs, ink) {
                 [x + 2, by],
                 [x + w - 2, by],
               ],
-              { stroke: ink, strokeWidth: 1.5, roughness: 0.5 },
+              { stroke: ink, strokeWidth: 1.5, roughness: Math.min(c.theme.roughness, 0.5) },
             );
           num.draw(c, x + (w - num.w) / 2, by - num.desc - 4);
           den.draw(c, x + (w - den.w) / 2, by + den.asc + 4);
@@ -616,7 +616,7 @@ function mbox(n, fs, ink) {
               [sx, top],
               [sx + body.w + 4, top],
             ],
-            { stroke: ink, strokeWidth: 1.5, roughness: 0.5 },
+            { stroke: ink, strokeWidth: 1.5, roughness: Math.min(c.theme.roughness, 0.5) },
           );
           if (index) index.draw(c, sx - fs * 0.6 - index.w + fs * 0.3, b - fs * 0.45);
           body.draw(c, sx + 2, b);
@@ -634,7 +634,7 @@ function mbox(n, fs, ink) {
         const top = b - body.asc - 2;
         const bot = b + body.desc + 2;
         const mid = (top + bot) / 2;
-        const st = { stroke: ink, strokeWidth: 1.5, roughness: 0.4 };
+        const st = { stroke: ink, strokeWidth: 1.5, roughness: Math.min(c.theme.roughness, 0.4) };
         if (ch === "(" || ch === ")") {
           const dir = ch === "(" ? 1 : -1;
           const ox = ch === "(" ? x + bw * 0.8 : x + bw * 0.2;

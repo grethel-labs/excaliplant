@@ -450,6 +450,15 @@ legend {
   display: flex;
   gap: 8px;
 }
+.stroke-options {
+  margin: 10px 0;
+}
+.stroke-options > summary {
+  cursor: pointer;
+}
+.stroke-options input:invalid {
+  border-color: var(--error);
+}
 .check {
   display: flex;
   align-items: center;

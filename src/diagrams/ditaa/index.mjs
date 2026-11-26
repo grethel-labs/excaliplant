@@ -378,6 +378,7 @@ function drawDitaa(laid, c) {
       stroke: ink,
       fillStyle: "solid",
       strokeWidth: 1,
+      roughness: theme.edgeRoughness,
     });
   }
   for (const p of laid.points)
