@@ -16,7 +16,12 @@ import {
 } from "../integrations/vscode/src/config.mjs";
 import { blockOptions } from "../integrations/vscode/src/options.mjs";
 import { createIncludeResolver, resolveIncludeRoot } from "../integrations/vscode/src/include.mjs";
-import { escapeHtml, previewBody, previewHtml } from "../integrations/vscode/src/preview.mjs";
+import {
+  DIAGRAM_EDITOR_TYPE,
+  escapeHtml,
+  previewBody,
+  previewHtml,
+} from "../integrations/vscode/src/preview.mjs";
 import { Position, Uri, createMiniMarkdownIt, createMockVscode, waitFor } from "./vscode_shim.mjs";
 
 const EXT = path.resolve(
@@ -57,6 +62,18 @@ describe("manifest", () => {
     const { state } = activated();
     assert.deepEqual(contributed, [...state.commands.keys()].sort());
     assert.deepEqual(contributed, Object.values(COMMANDS).sort());
+  });
+
+  it("offers the diagram editor as a preview option for all PlantUML files", () => {
+    const [editor] = manifest.contributes.customEditors;
+    assert.equal(editor.viewType, DIAGRAM_EDITOR_TYPE);
+    assert.equal(editor.priority, "option");
+    for (const ext of manifest.contributes.languages[0].extensions)
+      assert.ok(editor.selector[0].filenamePattern.includes(ext.slice(1)));
+    const source = manifest.contributes.menus["editor/title"].find(
+      (item) => item.command === COMMANDS.openSource,
+    );
+    assert.equal(source.when, `activeCustomEditorId == ${DIAGRAM_EDITOR_TYPE}`);
   });
 
   it("restricts include, limits and asset settings in untrusted workspaces", () => {
@@ -557,6 +574,55 @@ describe("side preview", () => {
     await state.commands.get(COMMANDS.openPreviewToSide)();
     ext.deactivate();
     assert.equal(state.commands.size, 0, "commands are unregistered");
+  });
+});
+
+describe("PlantUML editor preview", () => {
+  it("round-trips the same unsaved document in the current editor group", async () => {
+    const { state, addDocument, ext } = activated();
+    const doc = addDocument("/ws/flow.puml", "plantuml", SEQ, { active: true });
+    state.tabGroup.viewColumn = 2;
+    doc.text = "@startuml\nUnsaved -> Bob : preview\n@enduml";
+    await state.commands.get(COMMANDS.openPreview)();
+    assert.deepEqual(state.executed.at(-1), [
+      "vscode.openWith",
+      doc.uri,
+      DIAGRAM_EDITOR_TYPE,
+      { viewColumn: 2 },
+    ]);
+    const [panel] = state.panels;
+    assert.deepEqual(panel.webview.options, {
+      enableScripts: false,
+      enableCommandUris: false,
+      localResourceRoots: [],
+    });
+    const svg = Buffer.from(/base64,([^"]+)"/.exec(panel.webview.html)[1], "base64").toString();
+    assert.match(svg, /Unsaved/);
+    await state.commands.get(COMMANDS.openSource)();
+    assert.deepEqual(state.shownDocuments, [[doc, { viewColumn: 2 }]]);
+    assert.equal(state.activeTextEditor.document, doc);
+    assert.match(doc.text, /Unsaved/);
+    assert.equal(state.files.size, 0);
+    ext.deactivate();
+    assert.equal(state.customEditors.size, 0);
+  });
+
+  it("refreshes the side preview when the editor preview is closed", async () => {
+    const { state, events, addDocument, ext } = activated();
+    const doc = addDocument("/ws/flow.iuml", "plantuml", SEQ, { active: true });
+    await state.commands.get(COMMANDS.openPreviewToSide)();
+    await state.commands.get(COMMANDS.openPreview)();
+    const [side, inline] = state.panels;
+    assert.equal(side.webview.html, inline.webview.html);
+    inline.dispose();
+    const before = side.webview.html;
+    doc.text = "Later -> Bob";
+    events.changeDoc.fire({ document: doc });
+    await waitFor(() => side.webview.html !== before);
+    const svg = Buffer.from(/base64,([^"]+)"/.exec(side.webview.html)[1], "base64").toString();
+    assert.match(svg, /Later/);
+    assert.equal(inline.webview.html, before);
+    ext.deactivate();
   });
 });
 

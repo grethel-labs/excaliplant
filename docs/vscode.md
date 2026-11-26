@@ -5,7 +5,8 @@ The extension in [`integrations/vscode/`](../integrations/vscode) draws PlantUML
 ## Features
 
 - **Markdown preview**: `plantuml`, `puml` and `uml` fences (attributes as in [Markdown](markdown.md)) are rendered in the built-in preview.
-- **Open Preview to the Side**: live preview of a `.puml` file.
+- **Show Diagram Preview** and **Show PlantUML Source** switch between a saved PlantUML file's source editor and its live preview in the current editor group. The preview renders unsaved edits from the same document.
+- **Open Preview to the Side** opens a separate live preview for editing and viewing together.
 - **Render to Excalidraw (.excalidraw)** and **Render to SVG**: for a `.puml` file or the Markdown block under the cursor.
 - **Replace diagrams in Markdown with SVG files**: `renderMarkdown` in `file` mode; writes `assets/<hash>.svg` and keeps the source in a comment (the route for GitHub).
 - Language `plantuml` for `.puml`, `.plantuml`, `.pu` and `.iuml` with basic highlighting. It does not claim `.wsd` and uses its own grammar scope, so it coexists with other PlantUML extensions.
@@ -38,7 +39,7 @@ Diagram text is untrusted input.
 
 - **Workspace Trust**: `capabilities.untrustedWorkspaces.supported` is `limited`. Rendering works everywhere, but `excaliplant.includeDir`, `excaliplant.limits` and `excaliplant.markdown.assetsDir` are restricted settings (VS Code ignores workspace values in restricted mode), and the extension itself drops include and limit overrides when the workspace is not trusted. A repository you just cloned therefore cannot make the extension read files or relax limits.
 - **`!include`** is off by default. With `includeDir` set, only regular files below that folder are read; symbolic links leaving it, URLs and `..` are refused; the size limit applies per file. Included files are watched, and diagrams re-render when they change.
-- **Side preview**: a webview with `enableScripts: false`, `localResourceRoots: []` and a CSP of `default-src 'none'; img-src data:; style-src 'nonce-…'`. The sanitised SVG is shown as a `data:` image, where it cannot run script or load anything.
+- PlantUML previews use webviews with `enableScripts: false`, `localResourceRoots: []` and a CSP of `default-src 'none'; img-src data:; style-src 'nonce-…'`. The sanitised SVG is shown as a `data:` image, where it cannot run script or load anything.
 - **Markdown preview**: the SVG is rebuilt from an allow-list (see [Markdown](markdown.md#limits-and-safety)) before it enters the preview, and the preview applies its own CSP.
 - **Commands** write only where you choose (save dialog) or, for _Replace diagrams_, below the workspace folder.
 

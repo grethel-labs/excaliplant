@@ -96,6 +96,9 @@ export function createMockVscode(init = {}) {
     trusted: init.trusted !== false,
     colorKind: init.dark ? 2 : 1,
     commands: new Map(),
+    customEditors: new Map(),
+    tabGroup: { viewColumn: 1, activeTab: /** @type {any} */ (undefined) },
+    shownDocuments: /** @type {any[][]} */ ([]),
     executed: /** @type {any[][]} */ ([]),
     messages: /** @type {{ level: string, text: string }[]} */ ([]),
     files: new Map(),
@@ -143,11 +146,21 @@ export function createMockVscode(init = {}) {
       },
       async executeCommand(id, ...args) {
         state.executed.push([id, ...args]);
+        if (id === "vscode.openWith") {
+          const [uri, viewType, options] = args;
+          const provider = state.customEditors.get(viewType);
+          const doc = await vscode.workspace.openTextDocument(uri);
+          const panel = vscode.window.createWebviewPanel(viewType, "", options, {});
+          state.activeTextEditor = undefined;
+          state.tabGroup.activeTab = { input: { uri, viewType } };
+          return provider.resolveCustomTextEditor(doc, panel);
+        }
         const fn = state.commands.get(id);
         return fn ? fn(...args) : undefined;
       },
     },
     window: {
+      tabGroups: { activeTabGroup: state.tabGroup },
       get activeTextEditor() {
         return state.activeTextEditor;
       },
@@ -167,6 +180,16 @@ export function createMockVscode(init = {}) {
       },
       withProgress: (_o, task) => task(),
       onDidChangeActiveColorTheme: events.theme.event,
+      registerCustomEditorProvider(viewType, provider) {
+        state.customEditors.set(viewType, provider);
+        return { dispose: () => state.customEditors.delete(viewType) };
+      },
+      async showTextDocument(document, options) {
+        state.shownDocuments.push([document, options]);
+        state.tabGroup.activeTab = { input: { uri: document.uri } };
+        state.activeTextEditor = { document };
+        return state.activeTextEditor;
+      },
       createWebviewPanel(viewType, title, column, options) {
         const disposed = emitter();
         const panel = {
