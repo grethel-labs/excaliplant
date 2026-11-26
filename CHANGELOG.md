@@ -8,6 +8,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- VS Code can switch PlantUML files between the source and a live preview in the same editor group.
 - Document the shared SVG asset workflow and CI checks for Markdown on GitHub, GitLab, and Forgejo.
 - The CLI discovers entry diagrams in PlantUML projects and resolves nested local includes. Markdown can render a linked PlantUML file and its dependencies.
 - Theme definitions support inheritance and individual colour and alpha overrides. Added Grethel Labs Dark, light and dark pastel palettes, and transparent palettes for light and dark backdrops.

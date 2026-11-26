@@ -39,6 +39,7 @@ does not override anything.
 
 | Command                                         | What it does                                                                                                |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Excaliplant: Show Diagram Preview** / **Show PlantUML Source** | Switch between the same file's live preview and source in the current editor group. Unsaved edits appear in the preview and stay in the source editor. |
 | **Excaliplant: Open Preview to the Side**       | Live preview of the file in a side panel (also in the editor title bar and the Explorer context menu).     |
 | **Excaliplant: Render to Excalidraw**           | Writes an `.excalidraw` file you can open and edit in Excalidraw. Works on a `.puml` file or a Markdown block. |
 | **Excaliplant: Render to SVG**                  | Writes a standalone SVG with the font embedded.                                                             |
@@ -69,7 +70,7 @@ Diagrams come from files you open, so they are treated as untrusted input.
 - The renderer enforces size and complexity limits and never touches the network.
 - SVG is rebuilt from an allow-list: no scripts, event handlers, external images or
   `foreignObject`.
-- The side preview is a webview without scripts, with a Content Security Policy that
+- The PlantUML previews use webviews without scripts, with a Content Security Policy that
   only allows `data:` images, and without access to any local folder.
 - `!include` is off by default. `excaliplant.includeDir` enables it for one folder
   (symbolic links that leave the folder are refused), and only in trusted workspaces:

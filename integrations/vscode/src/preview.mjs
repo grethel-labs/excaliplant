@@ -1,5 +1,5 @@
 /**
- * "Open Preview to the Side" for PlantUML files: a script-free webview that
+ * Live PlantUML previews in the editor and beside it: a script-free webview that
  * shows each diagram as an `<img>` with a `data:` URL and updates while typing.
  *
  * Security model: `enableScripts` is off, `localResourceRoots` is empty, the
@@ -17,6 +17,8 @@ const UPDATE_DELAY_MS = 300;
 /** Diagrams shown per file; the rest is mentioned in a note. */
 const MAX_PREVIEW_DIAGRAMS = 20;
 export const PREVIEW_VIEW_TYPE = "excaliplant.preview";
+export const DIAGRAM_EDITOR_TYPE = "excaliplant.diagramPreview";
+const WEBVIEW_OPTIONS = { enableScripts: false, enableCommandUris: false, localResourceRoots: [] };
 
 /** @param {string} text */
 export function escapeHtml(text) {
@@ -82,13 +84,13 @@ ${body}
  */
 
 /**
- * Manages one preview panel per document.
+ * Shares a render among the preview panels that display a document.
  * @param {PreviewDeps} deps
  */
 export function createPreviewManager(deps) {
   const { vscode } = deps;
   const log = deps.log ?? (() => {});
-  /** @type {Map<string, { panel: any, uri: any, token: number }>} */
+  /** @type {Map<string, { instances: Set<any>, side?: any, uri: any, token: number }>} */
   const panels = new Map();
   /** @type {Map<string, ReturnType<typeof setTimeout>>} */
   const timers = new Map();
@@ -107,7 +109,7 @@ export function createPreviewManager(deps) {
   }
 
   /**
-   * Render the document into its panel. A newer render supersedes an older one.
+   * Render the document into its panels. A newer render supersedes an older one.
    * @param {string} key
    */
   async function update(key) {
@@ -142,8 +144,8 @@ export function createPreviewManager(deps) {
     } catch (err) {
       html = previewHtml(previewBody([{ error: messageOf(err), title: "" }]));
     }
-    if (token !== entry.token || !panels.has(key)) return;
-    entry.panel.webview.html = html;
+    if (token !== entry.token || panels.get(key) !== entry) return;
+    for (const panel of entry.instances) panel.webview.html = html;
   }
 
   /** @param {string} key */
@@ -160,14 +162,41 @@ export function createPreviewManager(deps) {
   }
 
   /**
+   * Attach a panel to the live document.
+   * @param {any} uri
+   * @param {any} panel
+   * @param {boolean} [side]
+   */
+  function attach(uri, panel, side = false) {
+    const key = uri.toString();
+    let entry = panels.get(key);
+    if (!entry) {
+      entry = { instances: new Set(), uri, token: 0 };
+      panels.set(key, entry);
+    }
+    panel.webview.options = WEBVIEW_OPTIONS;
+    entry.instances.add(panel);
+    if (side) entry.side = panel;
+    panel.onDidDispose(() => {
+      entry.instances.delete(panel);
+      if (entry.side === panel) entry.side = undefined;
+      if (entry.instances.size) return;
+      panels.delete(key);
+      const timer = timers.get(key);
+      if (timer) clearTimeout(timer);
+      timers.delete(key);
+    });
+    return update(key).catch((/** @type {unknown} */ err) => log(`preview update failed: ${err}`));
+  }
+
+  /**
    * Open (or reveal) the preview of `uri` beside the active editor.
    * @param {any} uri
    */
   function open(uri) {
-    const key = uri.toString();
-    const existing = panels.get(key);
+    const existing = panels.get(uri.toString())?.side;
     if (existing) {
-      existing.panel.reveal(vscode.ViewColumn.Beside, true);
+      existing.reveal(vscode.ViewColumn.Beside, true);
       return;
     }
     const name =
@@ -178,16 +207,9 @@ export function createPreviewManager(deps) {
       PREVIEW_VIEW_TYPE,
       `Preview ${name}`,
       { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
-      { enableScripts: false, enableCommandUris: false, localResourceRoots: [] },
+      WEBVIEW_OPTIONS,
     );
-    panels.set(key, { panel, uri, token: 0 });
-    panel.onDidDispose(() => {
-      panels.delete(key);
-      const t = timers.get(key);
-      if (t) clearTimeout(t);
-      timers.delete(key);
-    });
-    update(key).catch((/** @type {unknown} */ err) => log(`preview update failed: ${err}`));
+    void attach(uri, panel, true);
   }
 
   /** @param {{ uri: any }} doc */
@@ -204,9 +226,10 @@ export function createPreviewManager(deps) {
   function dispose() {
     for (const t of timers.values()) clearTimeout(t);
     timers.clear();
-    for (const { panel } of [...panels.values()]) panel.dispose();
+    for (const { instances } of [...panels.values()])
+      for (const panel of instances) panel.dispose();
     panels.clear();
   }
 
-  return { open, documentChanged, refreshAll, dispose, panels };
+  return { open, attach, documentChanged, refreshAll, dispose };
 }

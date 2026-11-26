@@ -10,13 +10,15 @@ import { warmup as defaultWarmup } from "./engine.mjs";
 import { resolveIncludeRoot } from "./include.mjs";
 import { createCommands } from "./commands.mjs";
 import { createMarkdownIntegration } from "./markdown.mjs";
-import { createPreviewManager } from "./preview.mjs";
+import { createPreviewManager, DIAGRAM_EDITOR_TYPE } from "./preview.mjs";
 
 /** Command ids; keep in sync with `contributes.commands` in package.json. */
 export const COMMANDS = Object.freeze({
   renderExcalidraw: "excaliplant.renderExcalidraw",
   renderSvg: "excaliplant.renderSvg",
   openPreviewToSide: "excaliplant.openPreviewToSide",
+  openPreview: "excaliplant.openPreview",
+  openSource: "excaliplant.openSource",
   replaceInMarkdown: "excaliplant.replaceInMarkdown",
 });
 
@@ -100,10 +102,25 @@ export function createExtension(vscode, options = {}) {
     const preview = createPreviewManager({ vscode, getContext, log });
     const commands = createCommands({ vscode, getContext });
 
+    /** @param {any} uri */
+    const previewTarget = (uri) => {
+      const target = uri?.scheme ? uri : vscode.window.activeTextEditor?.document.uri;
+      if (!target) vscode.window.showWarningMessage("Excaliplant: open a PlantUML file first.");
+      return target;
+    };
+
     /** @type {Array<{ dispose(): void }>} */
     const subs = [
       { dispose: () => markdown.dispose() },
       { dispose: () => preview.dispose() },
+      vscode.window.registerCustomEditorProvider(
+        DIAGRAM_EDITOR_TYPE,
+        {
+          resolveCustomTextEditor: (/** @type {any} */ document, /** @type {any} */ panel) =>
+            preview.attach(document.uri, panel),
+        },
+        { supportsMultipleEditorsPerDocument: true },
+      ),
       vscode.commands.registerCommand(COMMANDS.renderExcalidraw, (/** @type {any} */ uri) =>
         commands.renderTo("excalidraw", uri),
       ),
@@ -114,12 +131,22 @@ export function createExtension(vscode, options = {}) {
         commands.replaceInMarkdown(uri),
       ),
       vscode.commands.registerCommand(COMMANDS.openPreviewToSide, (/** @type {any} */ uri) => {
-        const target = uri && uri.scheme ? uri : vscode.window.activeTextEditor?.document.uri;
-        if (!target) {
-          vscode.window.showWarningMessage("Excaliplant: open a PlantUML file first.");
-          return;
-        }
-        preview.open(target);
+        const target = previewTarget(uri);
+        if (target) preview.open(target);
+      }),
+      vscode.commands.registerCommand(COMMANDS.openPreview, (/** @type {any} */ uri) => {
+        const target = previewTarget(uri);
+        if (!target) return;
+        return vscode.commands.executeCommand("vscode.openWith", target, DIAGRAM_EDITOR_TYPE, {
+          viewColumn: vscode.window.tabGroups.activeTabGroup.viewColumn,
+        });
+      }),
+      vscode.commands.registerCommand(COMMANDS.openSource, async () => {
+        const group = vscode.window.tabGroups.activeTabGroup;
+        const input = group.activeTab?.input;
+        if (input?.viewType !== DIAGRAM_EDITOR_TYPE) return;
+        const document = await vscode.workspace.openTextDocument(input.uri);
+        return vscode.window.showTextDocument(document, { viewColumn: group.viewColumn });
       }),
       vscode.workspace.onDidChangeTextDocument((/** @type {any} */ e) => {
         preview.documentChanged(e.document);
