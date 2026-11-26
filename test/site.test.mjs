@@ -398,6 +398,14 @@ test("tokenizer classifies PlantUML", () => {
 
 // --- worker protocol ---------------------------------------------------------------
 
+const hookSource = (label) => `@startuml
+@hook #open alias:item .service
+@hook alias:helper .service
+@hook .service hover FontSize 46
+component "${label}" as item [[https://example.com/orders]]
+component "Help" as helper
+@enduml`;
+
 test("projects resolve nested files and export separate and combined outputs", async () => {
   const engine = createEngine();
   const files = [
@@ -456,6 +464,88 @@ test("projects resolve nested files and export separate and combined outputs", a
   assert.match(ambiguous.error, /Ambiguous local file.*worker\.iuml/);
 });
 
+test("worker returns a live hook preview alongside the same static SVG", async () => {
+  const engine = createEngine();
+  const source = hookSource("Orders and delivery");
+  const msg = { type: "render", id: 1, source, options: { strict: true, theme: "plain" } };
+  const result = await engine.handle(msg);
+  assert.equal(result.ok, true, result.error);
+  const plain = await engine.handle({ ...msg, id: 2, source: source.replace(/^@hook.*\n/gm, "") });
+  assert.equal(plain.ok, true, plain.error);
+  assert.equal(result.svg, plain.svg);
+  assert.match(result.svg, /<style>@font-face/);
+  assert.equal(plain.interactive, undefined);
+
+  const { svg, width, height } = result.interactive;
+  assert.ok(width > result.width && height >= result.height);
+  assert.match(svg, /data-excaliplant-hook-id="open" data-excaliplant-hook-classes="service"/);
+  assert.match(svg, /data-excaliplant-variant="hover" display="none"/);
+  assert.match(svg, /pointer-events="painted"/);
+  assert.match(svg, /href="https:\/\/example\.com\/orders"/);
+  assert.doesNotMatch(svg, /<style/);
+});
+
+test("combined project previews keep same-named and class-only hooks independent", async () => {
+  const engine = createEngine();
+  const files = [
+    { path: "first.puml", text: hookSource("First") },
+    { path: "second.puml", text: hookSource("Second") },
+  ];
+  const msg = { type: "project", id: 1, files, options: { strict: true, theme: "plain" } };
+  const result = await engine.handle(msg);
+  assert.equal(result.ok, true, result.error);
+  const { entries, combined } = result.project;
+  const getHooks = (svg) =>
+    new Map(
+      Array.from(
+        svg.matchAll(
+          /data-excaliplant-hook="([^"]+)"(?: data-excaliplant-hook-id="([^"]+)")? data-excaliplant-hook-classes="([^"]+)"/g,
+        ),
+        ([, name, id, classes]) => [name, { id, classes }],
+      ),
+    );
+  const expected = [
+    { id: "open", classes: "service" },
+    { id: undefined, classes: "service" },
+  ];
+  for (const entry of entries) {
+    assert.doesNotMatch(entry.svg, /data-excaliplant-hook/);
+    const hooks = getHooks(entry.interactive.svg);
+    assert.deepEqual([...hooks.values()], expected);
+    assert.ok(hooks.has("open"));
+    const exported = await engine.handle({
+      type: "export",
+      id: 2,
+      slot: entry.slot,
+      what: "excalidraw",
+    });
+    const hook = JSON.parse(exported.text).elements.find(
+      (el) => el.customData?.excaliplantHook?.id === "open",
+    );
+    assert.equal(hook.customData.excaliplantHook.name, "open");
+  }
+  assert.doesNotMatch(combined.svg, /data-excaliplant-hook/);
+  const combinedHooks = getHooks(combined.interactive.svg);
+  assert.deepEqual([...combinedHooks.values()], [...expected, ...expected]);
+
+  // Each entry fits on its own, and the second falls back after the first uses the budget.
+  const onePreviewBytes = Math.max(
+    ...entries.map(({ interactive }) => Buffer.byteLength(interactive.svg)),
+  );
+  const limited = await createEngine({ maxPreviewBytes: Math.floor(onePreviewBytes * 1.5) }).handle(
+    msg,
+  );
+  assert.equal(limited.ok, true, limited.error);
+  assert.deepEqual(
+    limited.project.entries.map((entry) => entry.svg),
+    entries.map((entry) => entry.svg),
+  );
+  assert.deepEqual(limited.project.entries[0].interactive, entries[0].interactive);
+  assert.equal(limited.project.entries[1].interactive, undefined);
+  assert.equal(limited.project.combined.svg, combined.svg);
+  assert.equal(limited.project.combined.interactive, undefined);
+});
+
 test("worker protocol renders graph and non-graph diagrams", async () => {
   const engine = createEngine({ version: "9.9.9" });
   const graph = await engine.handle({
@@ -471,6 +561,7 @@ test("worker protocol renders graph and non-graph diagrams", async () => {
   assert.ok(graph.width > 0 && graph.height > 0);
   assert.equal(graph.pages, 1);
   assert.ok(graph.ms >= 1);
+  assert.equal(graph.interactive, undefined);
 
   const seq = await engine.handle({
     type: "render",

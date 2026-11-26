@@ -46,6 +46,7 @@
 
 - **Looks like a whiteboard, stays a diagram.** Output is a real Excalidraw scene: open it in Excalidraw, move boxes, arrows stay bound.
 - **Broad PlantUML coverage.** Sequence, class, activity, state, component, C4, Gantt, mind maps, JSON, regex, math — see the [full list](#supported-diagrams).
+- **Interactive hooks.** Attach hover and click styles and browser events to elements by ID or class. [Usage](#interactive-element-hooks)
 - **The PlantUML language, not just diagrams.** Preprocessor (`!procedure`, `!function`, loops, JSON variables, `!include`), Creole markup, `skinparam`, `<style>`, themes, colours and bundled C4/ArchiMate libraries.
 - **Pure JavaScript.** No Java, no Graphviz, no PlantUML server. Layout runs on [ELK](https://github.com/kieler/elkjs) and purpose-built engines.
 - **Deterministic.** Same input, same bytes — ideal for docs in git.
@@ -160,6 +161,10 @@ reference backdrop. Text pairs require 4.5:1 and graphic pairs require 3:1.
 `RenderResult` has `kind`, `name`, `excalidraw`, `diagnostics`, `pages`, `model`, `toJSON()`, `toSvg({ padding, background, embedFont, interactive })` and `toPng({ width, scale, background })`.
 
 ### Interactive element hooks
+
+Use the [element hook specification](docs/hooks.md) and [JSON Schema](docs/hooks.schema.json)
+when integrating a viewer or validating hook data.
+[Try the interactive services example in the Playground](https://grethel-labs.github.io/excaliplant/#play/component/interactive-services).
 
 Put excaliplant `@hook` directives at the start of the diagram or `newpage` page,
 before the diagram body. Use a unique `#id`, one or more reusable `.classes`, or

@@ -20,6 +20,7 @@ When implementing an existing issue, follow the [ticket workflow](.agents/skills
 | CLI or Markdown conversion and plugins                                 | [CLI and Markdown](.agents/skills/excaliplant-cli-and-markdown/SKILL.md)      |
 | MCP protocol, tools, limits, transports, workers                       | [MCP server](.agents/skills/excaliplant-mcp-server/SKILL.md)                  |
 | Pages playground and gallery, VS Code, Obsidian                        | [Site and editors](.agents/skills/excaliplant-site-and-editors/SKILL.md)      |
+| Element hook directives, metadata, browser events, or compatibility    | [Hook specification](.agents/skills/excaliplant-hooks-spec/SKILL.md)          |
 | Generated docs, shipped skills, package/plugin builds, releases        | [Docs and release](.agents/skills/excaliplant-docs-and-release/SKILL.md)      |
 
 The skills above guide repository changes. The user-facing `excaliplant` skill has its source in `skills-src/excaliplant/` and is distributed with the package and plugins.

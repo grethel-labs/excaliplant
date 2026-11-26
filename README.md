@@ -14,7 +14,7 @@
 
 <p align="center">
   <b><a href="https://grethel-labs.github.io/excaliplant/#play">▶ Try it live — write PlantUML in your browser</a></b><br />
-  <sub>Live preview, every render option, all 41 examples open and editable, share by link, export SVG, PNG or Excalidraw.</sub>
+  <sub>Live preview, every render option, all 42 examples open and editable, share by link, export SVG, PNG or Excalidraw.</sub>
 </p>
 
 <p align="center">
@@ -74,6 +74,7 @@
 
 - **Looks like a whiteboard, stays a diagram.** Output is a real Excalidraw scene: open it in Excalidraw, move boxes, arrows stay bound.
 - **Broad PlantUML coverage.** Sequence, class, activity, state, component, C4, Gantt, mind maps, JSON, regex, math — see the [full list](#supported-diagrams).
+- **Interactive hooks.** Attach hover and click styles and browser events to elements by ID or class. [Usage](#interactive-element-hooks)
 - **The PlantUML language, not just diagrams.** Preprocessor (`!procedure`, `!function`, loops, JSON variables, `!include`), Creole markup, `skinparam`, `<style>`, themes, colours and bundled C4/ArchiMate libraries.
 - **Pure JavaScript.** No Java, no Graphviz, no PlantUML server. Layout runs on [ELK](https://github.com/kieler/elkjs) and purpose-built engines.
 - **Deterministic.** Same input, same bytes — ideal for docs in git.
@@ -143,7 +144,7 @@ Each diagram type is a small module with four hooks — `detect`, `parse`, `layo
 | [Class & IE](https://grethel-labs.github.io/excaliplant/#gallery/class) | [3](docs/gallery.md#class) | Classes, interfaces, enums, generics, members, packages, all UML relations, IE crow's feet. |
 | [Activity](https://grethel-labs.github.io/excaliplant/#gallery/activity) | [3](docs/gallery.md#activity) | New syntax with if/switch/while/repeat/fork/split, partitions, notes and swimlanes. |
 | [State](https://grethel-labs.github.io/excaliplant/#gallery/state) | [2](docs/gallery.md#state) | Composite states, concurrent regions, choice, fork/join, history, entry/exit actions. |
-| [Component & C4](https://grethel-labs.github.io/excaliplant/#gallery/component) | [2](docs/gallery.md#component) | Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. |
+| [Component & C4](https://grethel-labs.github.io/excaliplant/#gallery/component) | [3](docs/gallery.md#component) | Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. |
 | [Use case](https://grethel-labs.github.io/excaliplant/#gallery/usecase) | [2](docs/gallery.md#usecase) | Actors, use cases, system boundaries, include/extend. |
 | [Deployment](https://grethel-labs.github.io/excaliplant/#gallery/deployment) | [2](docs/gallery.md#deployment) | Nodes, clouds, databases, queues, artifacts and nested deployment targets. |
 | [Object](https://grethel-labs.github.io/excaliplant/#gallery/object) | [1](docs/gallery.md#object) | Objects with fields, maps (`key => value`) and links. |
@@ -239,6 +240,10 @@ reference backdrop. Text pairs require 4.5:1 and graphic pairs require 3:1.
 `RenderResult` has `kind`, `name`, `excalidraw`, `diagnostics`, `pages`, `model`, `toJSON()`, `toSvg({ padding, background, embedFont, interactive })` and `toPng({ width, scale, background })`.
 
 ### Interactive element hooks
+
+Use the [element hook specification](docs/hooks.md) and [JSON Schema](docs/hooks.schema.json)
+when integrating a viewer or validating hook data.
+[Try the interactive services example in the Playground](https://grethel-labs.github.io/excaliplant/#play/component/interactive-services).
 
 Put excaliplant `@hook` directives at the start of the diagram or `newpage` page,
 before the diagram body. Use a unique `#id`, one or more reusable `.classes`, or

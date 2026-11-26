@@ -79,6 +79,7 @@ const ATTRIBUTES = new Set([
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const XLINK_NS = "http://www.w3.org/1999/xlink";
+const HOOK_TOKEN = /^[A-Za-z_][A-Za-z0-9_-]{0,63}$/;
 
 /** Maximum input handled; the renderer is bounded far below this. */
 const MAX_INPUT = 64 * 1024 * 1024;
@@ -146,6 +147,43 @@ function safeValue(value) {
     c.includes("@import") ||
     c.includes("&#")
   );
+}
+
+/** @param {string} value */
+const isHookToken = (value) => HOOK_TOKEN.test(value) && value === value.trim();
+
+/**
+ * Allow only the markers and visibility controls generated for hook groups.
+ * @param {string} key
+ * @param {string} value
+ */
+function safeHookAttribute(key, value) {
+  switch (key) {
+    case "data-excaliplant-hook":
+      return (
+        isHookToken(value) ||
+        (/^@line:[0-9]{1,15}:[0-9]{1,15}$/.test(value) && value === value.trim())
+      );
+    case "data-excaliplant-hook-id":
+      return isHookToken(value);
+    case "data-excaliplant-hook-classes": {
+      if (value.length > 32 * 65 - 1) return false;
+      const classes = value.split(" ");
+      return classes.length <= 32 && classes.every(isHookToken);
+    }
+    case "data-excaliplant-element-id":
+      return /^[A-Za-z0-9_-]{1,256}$/.test(value) && value === value.trim();
+    case "data-excaliplant-variant":
+      return value === "base" || value === "hover" || value === "click";
+    case "display":
+      return value === "none";
+    case "pointer-events":
+      return value === "painted" || value === "none";
+    case "aria-hidden":
+      return value === "true";
+    default:
+      return false;
+  }
 }
 
 /**
@@ -322,6 +360,23 @@ function parseTag(s, lt) {
  * @returns {string} Sanitised SVG; throws if there is no `<svg>` root.
  */
 export function sanitizeSvg(svg, options = {}) {
+  return rebuildSvg(svg, options, false);
+}
+
+/**
+ * Sanitize a playground hook preview for inline SVG under the site's CSP.
+ * @param {string} svg
+ */
+export function sanitizeHookPreview(svg) {
+  return rebuildSvg(svg, {}, true);
+}
+
+/**
+ * @param {string} svg
+ * @param {SanitizeOptions} options
+ * @param {boolean} hookPreview
+ */
+function rebuildSvg(svg, options, hookPreview) {
   if (typeof svg !== "string") throw new TypeError("SVG must be a string");
   if (svg.length > MAX_INPUT) throw new RangeError("SVG too large to sanitise");
   const scope = options.scope ?? "";
@@ -375,7 +430,7 @@ export function sanitizeSvg(svg, options = {}) {
       if (stack.length === 0) break; // the root is closed; ignore anything after it
       continue;
     }
-    if (!ELEMENTS.has(name) || (!sawRoot && name !== "svg")) {
+    if (!ELEMENTS.has(name) || (!sawRoot && name !== "svg") || (hookPreview && name === "style")) {
       if (RAW_TEXT.has(name) && !tag.selfClosing) {
         const end = lower().indexOf(`</${name}`, i);
         if (end < 0) {
@@ -400,7 +455,7 @@ export function sanitizeSvg(svg, options = {}) {
       }
       continue;
     }
-    out.push(openTag(name, tag.attrs, stack.length === 0 && name === "svg", options));
+    out.push(openTag(name, tag.attrs, stack.length === 0 && name === "svg", options, hookPreview));
     if (tag.selfClosing) out[out.length - 1] = out[out.length - 1].replace(/>$/, "/>");
     else stack.push(name);
   }
@@ -414,8 +469,9 @@ export function sanitizeSvg(svg, options = {}) {
  * @param {[string, string][]} attrs
  * @param {boolean} root
  * @param {SanitizeOptions} options
+ * @param {boolean} hookPreview
  */
-function openTag(name, attrs, root, options) {
+function openTag(name, attrs, root, options, hookPreview) {
   /** @type {Map<string, string>} */
   const kept = new Map();
   for (const [key, value] of attrs) {
@@ -426,7 +482,10 @@ function openTag(name, attrs, root, options) {
       if (root && value === XLINK_NS) kept.set(key, value);
     } else if (key === "href" || key === "xlink:href") {
       if (name === "a" && safeHref(value)) kept.set(key, value);
-    } else if (ATTRIBUTES.has(key) && safeValue(value)) {
+    } else if (
+      (ATTRIBUTES.has(key) && (!hookPreview || !value.includes("\\")) && safeValue(value)) ||
+      (hookPreview && name === "g" && safeHookAttribute(key, value))
+    ) {
       kept.set(key, value);
     }
   }

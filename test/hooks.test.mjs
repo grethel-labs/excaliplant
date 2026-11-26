@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { render, renderAll, THEMES } from "../src/index.mjs";
 
@@ -7,6 +8,23 @@ component "Orders" as orders
 web --> orders`;
 const wrap = (source) => `@startuml\n${source}\n@enduml`;
 const metadata = (element) => element.customData?.excaliplantHook;
+
+test("the public hook specification example produces the documented bindings", async () => {
+  const spec = await readFile(new URL("../docs/hooks.md", import.meta.url), "utf8");
+  const diagram = spec.match(/^```plantuml\n([\s\S]+?)^```$/m)?.[1];
+  assert.ok(diagram, "the specification must contain a runnable PlantUML example");
+  const result = await render(diagram, { strict: true });
+  const labels = result.excalidraw.elements.filter((el) => el.type === "text");
+  const orders = metadata(labels.find((el) => el.text === "Orders"));
+  const payments = metadata(labels.find((el) => el.text === "Payments"));
+  assert.equal(orders.id, "orders");
+  assert.deepEqual(orders.classes, ["service", "navigation"]);
+  assert.equal(orders.click.fill, "#ffd700");
+  assert.equal(orders.hover.text, "#000080");
+  assert.equal(payments.id, undefined);
+  assert.deepEqual(payments.classes, ["service"]);
+  assert.equal(payments.hover.text, "#000080");
+});
 
 test("hook aliases bind the whole component and reuse PlantUML styles and theme defaults", async () => {
   const text = "@hook openOrders alias:orders\n";

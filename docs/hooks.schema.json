@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "excaliplant element hook contract",
+  "description": "Excalidraw hook metadata and serialized browser event details introduced in excaliplant 1.11.0.",
+  "$ref": "#/$defs/sceneHook",
+  "$defs": {
+    "token": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,63}$"
+    },
+    "classes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/token" },
+      "maxItems": 32,
+      "uniqueItems": true
+    },
+    "style": {
+      "type": "object",
+      "properties": {
+        "fill": { "type": "string" },
+        "stroke": { "type": "string" },
+        "text": { "type": "string" },
+        "fontSize": { "type": "number" },
+        "strokeWidth": { "type": "number" },
+        "strokeStyle": { "enum": ["solid", "dashed", "dotted"] },
+        "rounded": { "type": "boolean" }
+      }
+    },
+    "sceneHook": {
+      "type": "object",
+      "required": ["name", "hover", "click"],
+      "anyOf": [{ "required": ["id"] }, { "required": ["classes"] }],
+      "properties": {
+        "id": { "$ref": "#/$defs/token" },
+        "classes": { "$ref": "#/$defs/classes", "minItems": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "hover": { "$ref": "#/$defs/style" },
+        "click": { "$ref": "#/$defs/style" }
+      }
+    },
+    "hookEventDetail": {
+      "type": "object",
+      "required": ["classes", "type", "active", "elementId"],
+      "anyOf": [{ "required": ["id"] }, { "properties": { "classes": { "minItems": 1 } } }],
+      "properties": {
+        "id": { "$ref": "#/$defs/token" },
+        "classes": { "$ref": "#/$defs/classes" },
+        "type": { "enum": ["hover", "click"] },
+        "active": { "type": "boolean" },
+        "elementId": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

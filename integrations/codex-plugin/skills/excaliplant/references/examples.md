@@ -38,7 +38,7 @@ npx -y @grethel-labs/excaliplant assets/examples/state-order-lifecycle.puml.txt 
 
 ## Component & C4
 
-Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. Source: `assets/examples/component-c4-container.puml.txt`. More: [web-platform](https://github.com/grethel-labs/excaliplant/blob/main/examples/component/web-platform.puml).
+Components, interfaces, ports, packages, nodes — and C4 via `!include <C4/...>`. Source: `assets/examples/component-c4-container.puml.txt`. More: [interactive-services](https://github.com/grethel-labs/excaliplant/blob/main/examples/component/interactive-services.puml), [web-platform](https://github.com/grethel-labs/excaliplant/blob/main/examples/component/web-platform.puml).
 
 ```sh
 npx -y @grethel-labs/excaliplant assets/examples/component-c4-container.puml.txt -o component.svg

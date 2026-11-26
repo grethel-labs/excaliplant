@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { render, preprocessText } from "../src/index.mjs";
 import { LimitError } from "../src/core/errors.mjs";
+import { sanitizeHookPreview } from "../src/markdown/sanitize.mjs";
 import { excalidrawToSvg } from "../src/render/svg.mjs";
 import { svgToPng } from "../src/render/png.mjs";
 
@@ -199,6 +200,30 @@ test("markdown: sanitizer removes active content from foreign SVG", async () => 
     '<svg xmlns="http://www.w3.org/2000/svg"><script>x</script><g onclick="x()"><use href="http://e/x.svg#a"/></g><a href=" jav&#x61;script:x()"><rect/></a><image href="http://e/i.png"/><style>@import "http://e/x.css";</style></svg>',
   );
   assert.doesNotMatch(svg, /script|onclick|<use|<image|@import|http:\/\/e|jav/i);
+});
+
+test("playground sanitizer keeps only the SVG attributes needed for live hook previews", async () => {
+  const input = `<svg onload="alert(1)" display="none" data-excaliplant-hook="root">
+    <style>text{white-space:pre;}</style>
+    <script>alert(1)</script>
+    <foreignObject><div>foreign</div></foreignObject>
+    <g data-excaliplant-hook="@line:0:1" data-excaliplant-hook-id="open" data-excaliplant-hook-classes="first second" data-excaliplant-element-id="abc-1" onclick="alert(1)" role="button" tabindex="0" style="display:block" data-excaliplant-unknown="x" id="doc" class="outer">
+      <a href="https://example.com/?a=1&amp;b=2"><g data-excaliplant-variant="hover" display="none" pointer-events="none"/></a>
+      <a href="jav&#x61;script:x()"><g aria-hidden="true" pointer-events="painted"/></a>
+    </g>
+    <g data-excaliplant-hook="@line:0:1\n" data-excaliplant-hook-id="&#x61;" data-excaliplant-hook-classes="first\tsecond" data-excaliplant-element-id="bad\nvalue" data-excaliplant-variant="selected" display="block" pointer-events="all" aria-hidden="false" fill="url(https://example.com/resource)"/>
+    <rect data-excaliplant-hook="open" data-excaliplant-variant="base" aria-hidden="true" pointer-events="none" width="10"/>
+  </svg>`;
+  const preview = sanitizeHookPreview(input).replace(/\s+</g, "<");
+  assert.equal(
+    preview,
+    '<svg xmlns="http://www.w3.org/2000/svg"><g data-excaliplant-hook="@line:0:1" data-excaliplant-hook-id="open" data-excaliplant-hook-classes="first second" data-excaliplant-element-id="abc-1"><a href="https://example.com/?a=1&amp;b=2"><g data-excaliplant-variant="hover" display="none" pointer-events="none"/></a><a><g aria-hidden="true" pointer-events="painted"/></a></g><g/><rect width="10"/></svg>',
+  );
+
+  const { sanitizeSvg } = await import("../src/markdown/index.mjs");
+  const markdownSvg = sanitizeSvg(input);
+  assert.match(markdownSvg, /<style>text\{white-space:pre;\}<\/style>/);
+  assert.doesNotMatch(markdownSvg, /data-excaliplant-|display=|pointer-events=|aria-hidden=/);
 });
 
 test("mcp: tool arguments cannot name files or switch on includes", async () => {

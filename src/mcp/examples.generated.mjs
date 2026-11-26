@@ -88,6 +88,13 @@ export const EXAMPLES = Object.freeze([
   },
   {
     kind: "component",
+    name: "interactive-services",
+    diagram: "component",
+    source:
+      '@startuml\n@hook #orders alias:orders .service .navigation\n@hook alias:payments .service\n@hook #events alias:events .infrastructure\n@hook .service hover BackgroundColor #ccfbf1\n@hook .service hover LineColor #0f766e\n@hook .service hover FontColor #134e4a\n@hook .service click BackgroundColor #99f6e4\n@hook .service click LineColor #0f766e\n@hook .service click FontColor #134e4a\n@hook #orders click LineThickness 4\n@hook .infrastructure hover BackgroundColor #e0f2fe\n@hook .infrastructure hover LineColor #0369a1\n@hook .infrastructure hover FontColor #0c4a6e\n@hook .infrastructure click BackgroundColor #bae6fd\n@hook .infrastructure click LineColor #0369a1\n@hook .infrastructure click FontColor #0c4a6e\n\ntitle Interactive services\ncomponent "Storefront" as web\ncomponent "Orders" as orders\ncomponent "Payments" as payments\nqueue "Events" as events\n\nweb --> orders : checkout\norders --> payments : authorize\norders ..> events : publish\n@enduml\n',
+  },
+  {
+    kind: "component",
     name: "web-platform",
     diagram: "component",
     source:

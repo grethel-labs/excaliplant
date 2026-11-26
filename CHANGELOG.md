@@ -8,6 +8,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- Preview PlantUML hooks interactively in the Playground, with a live event readout and an interactive services example.
 - Add PlantUML `@hook` bindings with IDs and classes, themed hover and click styles, and JavaScript events for inline SVG viewers.
 - Add Grethel Labs Light and use coordinated teal outlines, fills, and connectors in both Grethel Labs themes.
 - The playground opens local PlantUML files and folders, resolves their includes in the browser, and exports diagrams together or individually from a carousel.

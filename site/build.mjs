@@ -3,7 +3,7 @@
  * `src/`; `src/` itself is not modified.
  *
  *   worker.js   the library + message protocol (loaded as a Worker)
- *   app.js      the page: playground, gallery, editor (no library code)
+ *   app.js      the page: playground, gallery, editor, and hook binding
  *   boot.js     tiny blocking script that applies the saved colour theme
  *   styles.css
  *
