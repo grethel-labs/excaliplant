@@ -36,6 +36,8 @@ export const defaultCache = createCache({ max: 200 });
  * @property {boolean} [strict] Fail on unrecognised lines.
  * @property {Partial<import("../core/limits.mjs").Limits>} [limits] Per-diagram limits.
  * @property {import("../core/preprocess/preprocessor.mjs").IncludeResolver} [include] `!include` resolver.
+ * @property {string} [sourcePath] Entry path in the include resolver's namespace.
+ * @property {boolean} [strictIncludes] Fail when an include cannot be resolved.
  * @property {string} [includeKey] Identifies the include resolver's content. Without it, results
  *   rendered with `include` are not stored in the shared cache.
  * @property {Record<string, string | number | boolean>} [defines] Predefined preprocessor variables.
@@ -90,7 +92,7 @@ function stableStringify(value, depth = 0) {
  * @param {string} text
  * @returns {string} 16 hex characters.
  */
-function hash16(text) {
+export function hash16(text) {
   return createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
@@ -132,6 +134,8 @@ function prepare(source, options) {
     strict: o.strict,
     limits: o.limits,
     include: o.include,
+    sourcePath: o.sourcePath,
+    strictIncludes: o.strictIncludes,
     defines: o.defines,
     date: o.date,
     filename: o.filename,

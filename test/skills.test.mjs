@@ -9,6 +9,7 @@ import {
   cpSync,
   existsSync,
   lstatSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -201,6 +202,10 @@ test("documented CLI commands run", { skip: process.platform === "win32" }, () =
       path.join(cwd, "main.puml"),
       "@startuml\n!include part.puml\nAlice -> Included : hello\n@enduml\n",
     );
+    const project = path.join(cwd, "docs", "diagrams");
+    mkdirSync(project, { recursive: true });
+    cpSync(path.join(cwd, "main.puml"), path.join(project, "main.puml"));
+    cpSync(path.join(cwd, "part.puml"), path.join(project, "part.puml"));
     const prefix = "npx -y @grethel-labs/excaliplant";
     const commands = [];
     for (const file of listFiles(SKILL_DIR).filter((f) => f.endsWith(".md"))) {
@@ -224,6 +229,8 @@ test("documented CLI commands run", { skip: process.platform === "win32" }, () =
     assert.ok(existsSync(path.join(cwd, "diagram.svg")));
     assert.match(readFileSync(path.join(cwd, "diagram.svg"), "utf8"), /^<svg/);
     assert.ok(existsSync(path.join(cwd, "out-2.svg")));
+    assert.ok(existsSync(path.join(cwd, "diagram-1.svg")));
+    assert.match(readFileSync(path.join(cwd, "main.svg"), "utf8"), /Included/);
     assert.equal(
       JSON.parse(readFileSync(path.join(cwd, "diagram.excalidraw"), "utf8")).type,
       "excalidraw",

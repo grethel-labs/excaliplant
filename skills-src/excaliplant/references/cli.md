@@ -26,6 +26,21 @@ The first `@start…@end` block is rendered. `--all` renders every block and `--
 npx -y @grethel-labs/excaliplant blocks.puml --all -o out-{n}.svg
 ```
 
+## Projects
+
+Pass a directory or use `--project <dir>` to discover complete diagram files.
+Nested includes are relative to the file that contains them. Use `--all` for
+multiple entries, or give one file relative to the project root to choose it.
+
+```sh
+npx -y @grethel-labs/excaliplant --project docs --all -o diagram-{n}.svg
+npx -y @grethel-labs/excaliplant --project docs diagrams/main.puml -o main.svg
+```
+
+For Markdown, use `markdown --include-dir <dir>` and an empty
+`plantuml {src="diagrams/main.puml"}` fence to render a file relative to the
+Markdown document. Inline fences can also use local `!include`.
+
 ## Output
 
 The format comes from the extension of `-o` (`.svg`, `.png`, anything else is Excalidraw JSON) or from `-f excalidraw|svg|png`. Without `-o` the result is written to stdout; PNG refuses to write to a terminal.
@@ -41,7 +56,8 @@ SVG output embeds the Excalifont font, so it renders the same everywhere. PNG is
 
 ## Preprocessor
 
-Predefine variables with `-D`, and allow `!include` below one directory with `--include-dir`. Without it `!include` of files is refused:
+Predefine variables with `-D` and allow local `!include` in a single-file
+invocation with `--include-dir`.
 
 ```sh
 npx -y @grethel-labs/excaliplant main.puml --include-dir . -D ENV=prod -o main.svg

@@ -65,7 +65,7 @@ Themes: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs
 - Quote names that contain spaces and give them an alias: `participant "Order Service" as Orders`.
 - Prefer one concept per diagram; split a diagram that needs more than about 25 nodes.
 - `skinparam`, `<style>`, colours (`#lightblue`), Creole markup and the preprocessor (`!define`, `!procedure`, loops) work. C4 and ArchiMate macros are bundled: `!include <C4/C4_Container>`.
-- `!include` of files only works with `--include-dir <dir>`; URLs are refused.
+- Local `!include` works inside a selected project or under `--include-dir <dir>`. URLs are refused.
 - Sprites and `<&icons>` render as placeholders, and layout differs from the Java PlantUML. Judge the picture, not the line-for-line match.
 - Examples for every type: [examples.md](references/examples.md) and `assets/examples/`.
 
@@ -79,7 +79,7 @@ The `.excalidraw` file is plain JSON. To change it by hand or with a script (mov
 - Errors print `excaliplant: <message>` and exit with code 1. Typical causes: no `@start…@end` block, unknown diagram kind, input over the size limit (`--max-input-bytes`), or a resource budget exceeded (too many nodes or elements).
 - Unrecognised lines are warnings, never silent. Fix them or accept them knowingly.
 - PNG cannot be written to a terminal; always pass `-o file.png`.
-- Rendering never reads files or the network, except `!include` through `--include-dir`.
+- The CLI resolves local files only within the selected project or include directory. Rendering uses no network.
 
 ## MCP server
 

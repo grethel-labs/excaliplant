@@ -4,10 +4,12 @@
  */
 
 import { LimitError } from "../core/errors.mjs";
+import { isPlantUmlFile } from "../core/project.mjs";
 import {
   assetRef,
   altText,
   escapeMarkdownAlt,
+  hash16,
   inlineHtml,
   mergeAttrs,
   normalizeAssetsDir,
@@ -131,6 +133,8 @@ function resolveKeep(keepSource) {
  * - `keepSource` wraps the result in `<!-- excaliplant:begin … -->` markers that
  *   carry the source (safe against `-->`), so the block can be re-rendered
  *   later. Existing regions are always re-rendered and keep their source.
+ * - An empty fence with `src="path.puml"` loads the diagram through `include`
+ *   and retains the reference by default.
  *
  * Blocks that fail to render, or exceed the budget, stay exactly as written
  * and are reported in `blocks[].error`. Running the function on its own output
@@ -203,25 +207,45 @@ export async function renderMarkdown(markdown, options = {}) {
       fail(`Block budget exceeded (at most ${budget.maxBlocks} diagrams per document)`);
       continue;
     }
-    const size = byteLength(item.source);
+    rendered++;
+    let source = item.source;
+    let options = mergeAttrs(base, item.attrs);
+    const reference = item.attrs.src;
+    if (reference !== undefined) {
+      if (source.trim() || !isPlantUmlFile(reference)) {
+        fail("Use src= with a PlantUML file path and an empty fence");
+        continue;
+      }
+      try {
+        const found = base.include?.(reference, { kind: "file", from: base.sourcePath ?? null });
+        if (found == null) {
+          fail(`Cannot resolve PlantUML source ${JSON.stringify(reference)}`);
+          continue;
+        }
+        const sourcePath = typeof found === "string" ? reference : found.path;
+        source = typeof found === "string" ? found : found.text;
+        options = { ...options, sourcePath, filename: sourcePath.split("/").at(-1) };
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
+        continue;
+      }
+    }
+    const size = byteLength(source);
     if (sourceBytes + size > budget.maxTotalSourceBytes) {
       fail(`Source budget exceeded (at most ${budget.maxTotalSourceBytes} bytes per document)`);
       continue;
     }
-    const first = rendered === 0;
-    rendered++;
+    const first = outputBytes === 0;
     sourceBytes += size;
 
     const embedFont = base.embedFont !== false && (mode === "file" || !shareFont || first);
-    const result = await renderBlock(item.source, {
-      ...mergeAttrs(base, item.attrs),
-      embedFont,
-    });
+    const result = await renderBlock(source, { ...options, embedFont });
     info.hash = result.hash;
     info.diagnostics = result.diagnostics;
     if (result.error !== undefined || result.svg === undefined) {
-      info.errorLine = result.line ?? null;
-      fail(result.error ?? "Rendering failed");
+      info.errorLine = reference === undefined ? (result.line ?? null) : null;
+      const message = result.error ?? "Rendering failed";
+      fail(reference === undefined ? message : `${options.sourcePath}: ${message}`);
       continue;
     }
     if (outputBytes + result.svg.length > budget.maxTotalOutputBytes) {
@@ -229,11 +253,17 @@ export async function renderMarkdown(markdown, options = {}) {
       continue;
     }
     outputBytes += result.svg.length;
+    // Anonymous file resolvers can return new dependency contents on each run.
+    const hash =
+      options.sourcePath && options.include && options.includeKey === undefined
+        ? hash16(`${result.hash}\n${result.svg}`)
+        : result.hash;
+    info.hash = hash;
 
     const alt = altText(result, item.attrs);
     let body;
     if (mode === "file") {
-      const ref = assetRef(result.hash, dir, urlPrefix);
+      const ref = assetRef(hash, dir, urlPrefix);
       assets.set(ref.name, result.svg);
       info.asset = ref.name;
       body = `![${escapeMarkdownAlt(alt)}](${ref.url})`;
@@ -246,11 +276,13 @@ export async function renderMarkdown(markdown, options = {}) {
       ? markdown.slice(item.start, item.end).includes("<details>")
         ? "details"
         : "comment"
-      : keep;
+      : reference !== undefined && opts.keepSource === undefined
+        ? "comment"
+        : keep;
     /** @type {string[]} */
     const lines = [];
     if (style) {
-      lines.push(`${BEGIN_PREFIX} hash=${result.hash} -->`);
+      lines.push(`${BEGIN_PREFIX} hash=${hash} -->`);
       lines.push(`${SOURCE_PREFIX}${item.info ? ` ${encodeComment(item.info)}` : ""}`);
       lines.push(encodeComment(item.source));
       lines.push("-->");
@@ -264,7 +296,7 @@ export async function renderMarkdown(markdown, options = {}) {
           "<details>",
           "<summary>PlantUML source</summary>",
           "",
-          `${f}plantuml`,
+          `${f}${reference === undefined ? "plantuml" : item.info}`,
           item.source,
           f,
           "",

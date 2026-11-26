@@ -19,6 +19,7 @@ import { renderMarkdown } from "./document.mjs";
  * @property {{ write(chunk: string): unknown }} stdout
  * @property {{ write(chunk: string): unknown }} stderr
  * @property {import("../core/preprocess/preprocessor.mjs").IncludeResolver} [include] Optional `!include` resolver.
+ * @property {(root: string, input: string) => { include: import("../core/preprocess/preprocessor.mjs").IncludeResolver, sourcePath: string }} [openIncludes] File resolver for an opted-in directory.
  */
 
 export const MARKDOWN_HELP = `excaliplant markdown — render PlantUML code blocks in Markdown
@@ -33,6 +34,7 @@ Options:
   -i, --in-place            Rewrite the input files (implies --keep-source)
       --mode <inline|file>  inline: <div> with SVG (default); file: assets/<hash>.svg + image link
       --assets-dir <dir>    Asset directory for --mode file, relative to the output (default: assets)
+      --include-dir <dir>   Allow local PlantUML references and !include below <dir>
       --keep-source[=how]   Keep the PlantUML text as a comment (how: comment | details)
       --no-keep-source      Drop the source (default unless --in-place)
       --check               Write nothing; exit 1 if a file (or asset) would change
@@ -60,6 +62,7 @@ class UsageError extends Error {}
  * @property {boolean} inPlace
  * @property {"inline" | "file"} mode
  * @property {string} [assetsDir]
+ * @property {string} [includeDir]
  * @property {false | "comment" | "details" | undefined} keep
  * @property {boolean} check
  * @property {string} [theme]
@@ -127,6 +130,10 @@ function parseArgs(argv) {
       }
       case "--assets-dir":
         a.assetsDir = value();
+        break;
+      case "--include-dir":
+        a.includeDir = value();
+        if (!a.includeDir) throw new UsageError("--include-dir needs a directory");
         break;
       case "--keep-source": {
         const how = inline ?? "comment";
@@ -228,6 +235,8 @@ export async function runMarkdownCommand(argv, io) {
     if (args.check && args.output === undefined && args.inputs.includes("-")) {
       throw new UsageError("--check with stdin needs --output");
     }
+    if (args.includeDir && !io.openIncludes)
+      throw new UsageError("Filesystem includes are unavailable");
   } catch (err) {
     io.stderr.write(`excaliplant markdown: ${/** @type {Error} */ (err).message}\n`);
     if (err instanceof UsageError)
@@ -262,9 +271,10 @@ async function processFile(input, args, io) {
   } else text = await io.readFile(input);
 
   const target = args.output ?? (!isStdin && (args.inPlace || args.check) ? input : null);
-  const keepSource = args.keep ?? (target !== null && target === input ? "comment" : false);
+  const keepSource = args.keep ?? (target !== null && target === input ? "comment" : undefined);
   const docDir = path.dirname(target ?? (isStdin ? "." : input));
   const label = isStdin ? "<stdin>" : input;
+  const includes = args.includeDir ? io.openIncludes(args.includeDir, input) : null;
 
   const result = await renderMarkdown(text, {
     mode: args.mode,
@@ -276,7 +286,9 @@ async function processFile(input, args, io) {
     seed: args.seed,
     width: args.width,
     filename: isStdin ? undefined : path.basename(input),
-    include: io.include,
+    include: includes?.include ?? io.include,
+    sourcePath: includes?.sourcePath,
+    strictIncludes: includes ? true : undefined,
     budget: args.maxBlocks === undefined ? undefined : { maxBlocks: args.maxBlocks },
   });
 

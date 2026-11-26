@@ -29,7 +29,7 @@ const END_RE = /^\s*@end([a-z]+)\b/i;
  * single implicit `@startuml` block, which matches how most PlantUML tools
  * behave with bare snippets.
  * @param {string} text
- * @param {{ maxBlocks?: number }} [options]
+ * @param {{ maxBlocks?: number, completeOnly?: boolean }} [options] Complete-only discovery ignores fragments and unclosed blocks.
  * @returns {SourceBlock[]}
  */
 export function extractBlocks(text, options = {}) {
@@ -39,14 +39,14 @@ export function extractBlocks(text, options = {}) {
   const blocks = [];
   /** @type {SourceBlock | null} */
   let current = null;
-  for (let i = 0; i < raw.length; i++) {
-    const lineText = raw[i];
+  const lines = raw.map((text, i) => ({ text, line: i + 1 }));
+  for (const { text: lineText, line } of options.completeOnly ? stripComments(lines) : lines) {
     if (!current) {
       const m = START_RE.exec(lineText);
       if (m) {
         if (blocks.length >= maxBlocks)
           throw new LimitError(`More than ${maxBlocks} diagram blocks`);
-        current = { type: m[1].toLowerCase(), name: parseBlockName(m[2]), lines: [], line: i + 1 };
+        current = { type: m[1].toLowerCase(), name: parseBlockName(m[2]), lines: [], line };
       }
       continue;
     }
@@ -56,11 +56,11 @@ export function extractBlocks(text, options = {}) {
       current = null;
       continue;
     }
-    current.lines.push({ text: lineText, line: i + 1 });
+    current.lines.push({ text: lineText, line });
   }
+  if (options.completeOnly) return blocks;
   if (current) blocks.push(current);
   if (blocks.length === 0) {
-    const lines = raw.map((t, i) => ({ text: t, line: i + 1 }));
     blocks.push({ type: "uml", name: null, lines, line: 1 });
   }
   return blocks;

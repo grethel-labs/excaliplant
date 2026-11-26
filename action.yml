@@ -23,6 +23,10 @@ inputs:
     description: Asset directory for file mode, relative to each Markdown file.
     required: false
     default: assets
+  include-dir:
+    description: Directory in the workspace that may supply local PlantUML references and includes.
+    required: false
+    default: ""
   check:
     description: >-
       `true` writes nothing and fails the step if a file or asset would change
@@ -61,6 +65,7 @@ runs:
         EXCALIPLANT_FILES: ${{ inputs.files }}
         EXCALIPLANT_MODE: ${{ inputs.mode }}
         EXCALIPLANT_ASSETS_DIR: ${{ inputs.assets-dir }}
+        EXCALIPLANT_INCLUDE_DIR: ${{ inputs.include-dir }}
         EXCALIPLANT_CHECK: ${{ inputs.check }}
         EXCALIPLANT_KEEP_SOURCE: ${{ inputs.keep-source }}
         EXCALIPLANT_VERSION: ${{ inputs.version }}
@@ -112,6 +117,14 @@ runs:
         fi
 
         args=(markdown --mode "$EXCALIPLANT_MODE" --assets-dir "$EXCALIPLANT_ASSETS_DIR")
+        if [ -n "$EXCALIPLANT_INCLUDE_DIR" ]; then
+          workspace="$(pwd -P)"
+          include_dir="$(cd -- "$EXCALIPLANT_INCLUDE_DIR" >/dev/null && pwd -P)" || fail "include-dir must exist"
+          case "$include_dir" in
+            "$workspace" | "$workspace"/*) args+=(--include-dir "$include_dir") ;;
+            *) fail "include-dir must be inside the workspace" ;;
+          esac
+        fi
         if [ -n "$EXCALIPLANT_THEME" ]; then args+=(--theme "$EXCALIPLANT_THEME"); fi
         if [ "$EXCALIPLANT_KEEP_SOURCE" = "true" ]; then args+=(--keep-source); else args+=(--no-keep-source); fi
         if [ "$EXCALIPLANT_CHECK" = "true" ]; then args+=(--check); else args+=(--in-place); fi

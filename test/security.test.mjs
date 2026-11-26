@@ -253,6 +253,25 @@ test("mcp: --include-dir cannot be escaped through traversal or symlinks", async
   assert.equal(tiny("ok.puml", file), null);
 });
 
+test("project includes stay inside the canonical project root", async () => {
+  const { openProject } = await import("../bin/project.mjs");
+  const { mkdtempSync, writeFileSync, symlinkSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const path = await import("node:path");
+  const base = mkdtempSync(path.join(tmpdir(), "excaliplant-project-"));
+  const root = path.join(base, "root");
+  mkdirSync(root);
+  const outside = path.join(base, "outside.iuml");
+  writeFileSync(outside, "class Outside");
+  symlinkSync(outside, path.join(root, "link.iuml"));
+  const resolve = openProject(root).createResolver();
+  const file = { from: "parts/api.puml", kind: /** @type {const} */ ("file") };
+  assert.equal(resolve("../../outside.iuml", file), null);
+  assert.equal(resolve("../link.iuml", file), null);
+  assert.equal(resolve(outside, file), null);
+  assert.equal(resolve("https://example.test/file.puml", file), null);
+});
+
 test("mcp: HTTP transport refuses DNS-rebinding and cross-origin requests", async () => {
   const { createServer, serveHttp } = await import("../src/mcp/index.mjs");
   const server = createServer({ executor: "inline" });

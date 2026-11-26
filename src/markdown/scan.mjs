@@ -9,13 +9,14 @@
 export const PLANTUML_LANGS = Object.freeze(["plantuml", "puml", "uml"]);
 
 /**
- * Attributes parsed from a fence info string (theme, clean, seed, width, alt).
+ * Attributes parsed from a fence info string (theme, clean, seed, width, alt, src).
  * @typedef {object} FenceAttrs
  * @property {string} [theme]
  * @property {boolean} [clean]
  * @property {string} [seed]
  * @property {number} [width]
  * @property {string} [alt]
+ * @property {string} [src] Relative path to a PlantUML source file for document rendering.
  */
 
 /**
@@ -101,6 +102,9 @@ export function parseAttrs(rest) {
         break;
       case "seed":
         if (value) attrs.seed = value.slice(0, 64);
+        break;
+      case "src":
+        attrs.src = value && value.length <= 1000 ? value : "";
         break;
       case "width": {
         const w = Number(value);
