@@ -2,6 +2,8 @@
 
 This is the shared entry point for Codex, Claude Code, Gemini, Copilot, Cursor, Windsurf, Cline and Roo. Their instruction files point here.
 
+When implementing an existing issue, follow the [ticket workflow](.agents/skills/excaliplant-ticket-workflow/SKILL.md) from planning through review and delivery.
+
 ## Work in this order
 
 1. Reproduce the change through the closest public entry point or example. Trace it to the owning layer.
