@@ -734,11 +734,16 @@ test("markdown command: usage errors give exit code 2", async () => {
   assert.match(io.out.stdout, /Usage:/);
 });
 
-test("markdown command works with a real file system io", async () => {
+test("file mode produces portable assets for root and nested Markdown", async (t) => {
   const { promises: fs } = await import("node:fs");
   const dir = mkdtempSync(path.join(tmpdir(), "excaliplant-md-"));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const file = path.join(dir, "README.md");
+  const nested = path.join(dir, "docs", "reference", "guide.md");
+  mkdirSync(path.dirname(nested), { recursive: true });
   writeFileSync(file, `# R\n\n${fenced(PUML)}\n`);
+  writeFileSync(nested, `# Guide\n\n${fenced(PUML)}\n`);
+  const errors = [];
   const io = {
     readFile: (/** @type {string} */ f) => fs.readFile(f, "utf8"),
     writeFile: async (/** @type {string} */ f, /** @type {string} */ d) => {
@@ -746,13 +751,23 @@ test("markdown command works with a real file system io", async () => {
       await fs.writeFile(f, d);
     },
     stdout: process.stdout,
-    stderr: process.stderr,
+    stderr: { write: (/** @type {string} */ text) => errors.push(text) },
   };
-  assert.equal(await runMarkdownCommand([file, "-i", "--mode", "file"], io), 0);
-  const text = readFileSync(file, "utf8");
-  const m = /\(assets\/([0-9a-f]{16})\.svg\)/.exec(text);
-  assert.ok(m);
-  assert.ok(existsSync(path.join(dir, "assets", `${m[1]}.svg`)));
-  mkdirSync(path.join(dir, "keep"), { recursive: true });
-  assert.equal(await runMarkdownCommand([file, "--mode", "file", "--check"], io), 0);
+  const args = [file, nested, "--mode", "file"];
+  assert.equal(await runMarkdownCommand([...args, "--in-place"], io), 0);
+  const assets = [file, nested].map((doc) => {
+    const text = readFileSync(doc, "utf8");
+    const match = /!\[[^\]]+\]\((assets\/[0-9a-f]{16}\.svg)\)/.exec(text);
+    assert.ok(match, doc);
+    return path.join(path.dirname(doc), match[1]);
+  });
+  const svg = readFileSync(assets[0], "utf8");
+  assert.match(svg, /^<svg/);
+  assert.match(svg, /@font-face/);
+  assert.equal(readFileSync(assets[1], "utf8"), svg);
+  assert.equal(await runMarkdownCommand([...args, "--check"], io), 0);
+  await fs.unlink(assets[1]);
+  assert.equal(await runMarkdownCommand([...args, "--check"], io), 1);
+  assert.match(errors.join(""), /guide\.md: out of date/);
+  assert.equal(existsSync(assets[1]), false);
 });
