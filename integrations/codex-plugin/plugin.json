@@ -38,11 +38,11 @@
           "Turn this PlantUML into an editable .excalidraw file I can open in excalidraw.com.",
           "Make a C4 container diagram of a web app, an API and a database as a PNG in the blueprint theme."
         ],
-        "brandColor": "#1971C2",
+        "brandColor": "#0B7168",
         "composerIcon": "./assets/icon.png",
         "logo": "./assets/logo.png"
       }
     }
   },
-  "version": "1.10.0"
+  "version": "1.10.1"
 }
