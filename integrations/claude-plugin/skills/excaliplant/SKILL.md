@@ -56,7 +56,7 @@ Keep the diagram short (a few dozen lines) so the link stays usable; for a longe
 
 ## Look and feel
 
-Themes: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs-dark`, `pastel-dark`, `pastel-light`, `transparent-dark`, `transparent-light`. Pass `-t <theme>`, for example `-t blueprint` for a technical look or `-t dark` for dark backgrounds. `--clean` draws straight instead of hand-drawn strokes. Output is deterministic: the same source always gives the same bytes (`--seed` changes the wobble).
+Themes: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs-dark`, `grethel-labs-light`, `pastel-dark`, `pastel-light`, `transparent-dark`, `transparent-light`. Pass `-t <theme>`, for example `-t blueprint` for a technical look or `-t dark` for dark backgrounds. `--clean` draws straight instead of hand-drawn strokes. Output is deterministic: the same source always gives the same bytes (`--seed` changes the wobble).
 
 ## Writing good PlantUML
 

@@ -168,7 +168,7 @@ Each diagram type is a small module with four hooks — `detect`, `parse`, `layo
 
 ## Themes
 
-Pick a theme with `--theme` / `{ theme }`, or let PlantUML's `!theme` choose the closest match. Available: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs-dark`, `pastel-dark`, `pastel-light`, `transparent-dark`, `transparent-light`. Add `--clean` / `{ sketch: false }` for straight lines.
+Pick a theme with `--theme` / `{ theme }`, or let PlantUML's `!theme` choose the closest match. Available: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs-dark`, `grethel-labs-light`, `pastel-dark`, `pastel-light`, `transparent-dark`, `transparent-light`. Add `--clean` / `{ sketch: false }` for straight lines.
 
 <table>
   <tr>
@@ -183,10 +183,11 @@ Pick a theme with `--theme` / `{ theme }`, or let PlantUML's `!theme` choose the
   </tr>
   <tr>
     <td align="center"><img src="docs/assets/theme-grethel-labs-dark.png" width="250" alt="grethel-labs-dark theme" /><br /><code>grethel-labs-dark</code></td>
+    <td align="center"><img src="docs/assets/theme-grethel-labs-light.png" width="250" alt="grethel-labs-light theme" /><br /><code>grethel-labs-light</code></td>
     <td align="center"><img src="docs/assets/theme-pastel-dark.png" width="250" alt="pastel-dark theme" /><br /><code>pastel-dark</code></td>
-    <td align="center"><img src="docs/assets/theme-pastel-light.png" width="250" alt="pastel-light theme" /><br /><code>pastel-light</code></td>
   </tr>
   <tr>
+    <td align="center"><img src="docs/assets/theme-pastel-light.png" width="250" alt="pastel-light theme" /><br /><code>pastel-light</code></td>
     <td align="center"><img src="docs/assets/theme-transparent-dark.png" width="250" alt="transparent-dark theme" /><br /><code>transparent-dark</code></td>
     <td align="center"><img src="docs/assets/theme-transparent-light.png" width="250" alt="transparent-light theme" /><br /><code>transparent-light</code></td>
   </tr>

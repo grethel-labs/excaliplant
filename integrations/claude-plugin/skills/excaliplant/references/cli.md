@@ -25,7 +25,7 @@ Options:
   -o, --output <file>       Output file (format from extension unless -f is given).
                             With --all, "{n}" in the name is replaced by the block number.
   -f, --format <fmt>        excalidraw | svg | png (default: from extension, else excalidraw)
-  -t, --theme <name>        sketch | plain | hachure | mono | dark | blueprint | grethel-labs-dark | pastel-dark | pastel-light | transparent-dark | transparent-light (default: sketch)
+  -t, --theme <name>        sketch | plain | hachure | mono | dark | blueprint | grethel-labs-dark | grethel-labs-light | pastel-dark | pastel-light | transparent-dark | transparent-light (default: sketch)
       --clean               Clean strokes instead of the hand-drawn look
       --width <px>          PNG width in pixels (16–16000)
       --scale <n>           PNG scale relative to the SVG size (default 2)
