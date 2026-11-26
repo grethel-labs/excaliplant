@@ -128,7 +128,8 @@ export function stripComments(lines) {
 function findUnquoted(text, needle) {
   let quoted = false;
   for (let i = 0; i < text.length; i++) {
-    if (text[i] === '"') quoted = !quoted;
+    if (quoted && text[i] === "\\") i++;
+    else if (text[i] === '"') quoted = !quoted;
     else if (!quoted && text.startsWith(needle, i)) return i;
   }
   return -1;

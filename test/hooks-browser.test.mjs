@@ -17,6 +17,7 @@ const diagram = `@startuml
 @hook details click BorderThickness 5
 @hook details click RoundCorner 10
 @hook alias:linked .service .external
+@tooltip alias:linked "Opens the linked service"
 component Service as service
 component Linked as linked [[${url}#linked]]
 component Normal as normal [[${url}#normal]]
@@ -232,6 +233,7 @@ test(
 @hook #outer alias:outer click-mode:button click-from-children
 @hook #inner alias:inner click-mode:toggle
 @hook #outer click BackgroundColor gold
+@tooltip alias:outer "Open the outer group"
 package "Outer" as outer {
   component "Inner" as inner
 }
@@ -251,9 +253,8 @@ package "Outer" as outer {
       (element) =>
         element.type === "rectangle" && element.customData?.excaliplantHook?.id === "outer",
     );
-    const visible = page.locator(
-      `[data-excaliplant-element-id="${surface.id}"] [data-excaliplant-variant]:not([display])`,
-    );
+    const part = page.locator(`[data-excaliplant-element-id="${surface.id}"]`);
+    const visible = part.locator("[data-excaliplant-variant]:not([display])");
     const state = () => visible.getAttribute("data-excaliplant-variant");
     const clicks = () => page.evaluate(() => window.clicks.splice(0));
     const outerId = await outer.getAttribute("data-excaliplant-element-id");
@@ -267,6 +268,7 @@ package "Outer" as outer {
       elementId: outerId,
     };
     assert.equal(await outer.getAttribute("aria-pressed"), null);
+    assert.equal(await part.locator(":scope > title").textContent(), "Open the outer group");
     const box = await visible.locator("rect").boundingBox();
     const point = [box.x + 7, box.y + box.height / 2];
     await page.mouse.move(...point);

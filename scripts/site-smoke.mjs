@@ -271,6 +271,18 @@ export async function runSmoke(dir, options = {}) {
       const y = box.y + box.height / 2;
       await play.mouse.move(x, y);
       await hookEvent("Hover enter", ["#orders", ".service", ".navigation"]);
+      const hitTitle = await play.evaluate(
+        ({ x, y }) => {
+          const target = document.elementFromPoint(x, y);
+          return target?.closest("g:has(> title)")?.querySelector(":scope > title")?.textContent;
+        },
+        { x, y },
+      );
+      if (hitTitle !== "Tracks orders after checkout.")
+        throw new Error(`The Orders hit target had the tooltip ${hitTitle}`);
+      const storefront = svg.locator("g:not([data-excaliplant-hook]) > title");
+      if (!(await storefront.allTextContents()).includes("Customers start checkout here."))
+        throw new Error("The Storefront tooltip did not appear in the inline preview");
       await ordersFill("hover", "#ccfbf1");
       await play.mouse.click(x, y);
       await hookEvent("Click on", ["#orders", ".service", ".navigation"]);
@@ -290,7 +302,10 @@ export async function runSmoke(dir, options = {}) {
       await play.locator('[data-export="svg"]').click();
       const download = await pendingDownload;
       const exported = await readFile(await download.path(), "utf8");
-      if (!exported.includes("Orders") || exported.includes("data-excaliplant-hook"))
+      if (
+        !exported.includes("<title>Tracks orders after checkout.</title>") ||
+        exported.includes("data-excaliplant-hook")
+      )
         throw new Error("The playground SVG export did not contain the static Orders diagram");
 
       await play.evaluate(() => (location.hash = "#play/sequence/checkout-flow"));
@@ -348,6 +363,16 @@ export async function runSmoke(dir, options = {}) {
         }
       },
     );
+    await step("a tooltip works without any hooks", play, async () => {
+      await play
+        .getByRole("textbox", { name: "PlantUML source" })
+        .fill('@startuml\n@tooltip alias:Web "The public site"\ncomponent Web\n@enduml');
+      const svg = play.locator("#interactive-preview > svg");
+      await svg.waitFor({ state: "visible", timeout: STEP_TIMEOUT });
+      if (!(await svg.locator("g > title").allTextContents()).includes("The public site"))
+        throw new Error("The tooltip-only diagram did not use the inline preview");
+      await play.locator("#hook-event").waitFor({ state: "hidden", timeout: STEP_TIMEOUT });
+    });
     await play.close();
 
     const legacyStrokes = Buffer.from(

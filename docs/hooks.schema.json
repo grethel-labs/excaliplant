@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "excaliplant element hook contract",
-  "description": "Excalidraw hook metadata and serialized browser event details introduced in excaliplant 1.11.0.",
+  "description": "Excalidraw hook and tooltip metadata and serialized browser hook event details.",
   "$ref": "#/$defs/sceneHook",
   "$defs": {
     "token": {
@@ -13,6 +13,10 @@
       "items": { "$ref": "#/$defs/token" },
       "maxItems": 32,
       "uniqueItems": true
+    },
+    "elementTooltip": {
+      "type": "string",
+      "pattern": "\\S"
     },
     "style": {
       "type": "object",

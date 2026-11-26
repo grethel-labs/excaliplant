@@ -112,8 +112,7 @@ export function bindHooks(svg) {
       };
       hooks.set(name, hook);
     }
-    const child = element.firstElementChild;
-    const link = child?.localName === "a" && child.hasAttribute("href") ? child : null;
+    const link = element.querySelector(":scope > a[href]");
     const part = { hook, element, id, variants, link };
     parts.set(element, part);
     hook.parts.push(part);

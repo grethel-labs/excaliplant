@@ -15,13 +15,15 @@ test("the public hook specification example produces the documented bindings", a
   assert.ok(diagram, "the specification must contain a runnable PlantUML example");
   const result = await render(diagram, { strict: true });
   const labels = result.excalidraw.elements.filter((el) => el.type === "text");
-  const orders = metadata(labels.find((el) => el.text === "Orders"));
+  const ordersLabel = labels.find((el) => el.text === "Orders");
+  const orders = metadata(ordersLabel);
   const payments = metadata(labels.find((el) => el.text === "Payments"));
   assert.equal(orders.id, "orders");
   assert.equal(orders.clickMode, "button");
   assert.deepEqual(orders.classes, ["service", "navigation"]);
   assert.equal(orders.click.fill, "#ffd700");
   assert.equal(orders.hover.text, "#000080");
+  assert.equal(ordersLabel.customData.excaliplantTooltip, "Tracks orders after checkout");
   assert.equal(payments.id, undefined);
   assert.equal(payments.clickMode, undefined);
   assert.deepEqual(payments.classes, ["service"]);
@@ -42,6 +44,70 @@ test("hook click modes are case-insensitive and reject invalid or repeated modes
       line: 2,
     });
   }
+});
+
+test("tooltips target aliases, connector and caption IDs independently of hook bindings", async () => {
+  const body = graph.replace("web --> orders", "web --> orders : Checkout");
+  const base = await render(wrap(body), { strict: true });
+  const shape = base.excalidraw.elements.find((el) => el.type === "arrow");
+  const label = base.excalidraw.elements.find((el) => el.text === "Checkout");
+  const tip = 'Tracks "orders" /\' here.\nMore 📦';
+  const result = await render(
+    wrap(`@tooltip alias:orders ${JSON.stringify(tip)}
+@hook #orders alias:orders
+@tooltip element:${shape.id} "Calls the Orders service"
+@tooltip element:${label.id} "Checkout request"
+${body}`),
+    { strict: true },
+  );
+  assert.deepEqual(result.diagnostics, []);
+  assert.deepEqual(
+    result.excalidraw.elements.map((el) => el.id),
+    base.excalidraw.elements.map((el) => el.id),
+  );
+  const orders = result.excalidraw.elements.filter(metadata);
+  assert.ok(orders.some((el) => el.text === "Orders"));
+  assert.ok(orders.some((el) => el.type === "rectangle"));
+  assert.ok(orders.every((el) => el.customData.excaliplantTooltip === tip));
+  assert.deepEqual(
+    result.excalidraw.elements
+      .filter((el) => !metadata(el) && el.customData?.excaliplantTooltip)
+      .map((el) => [el.id, el.customData.excaliplantTooltip]),
+    [
+      [shape.id, "Calls the Orders service"],
+      [label.id, "Checkout request"],
+    ],
+  );
+  assert.deepEqual(await result.toPng(), await base.toPng());
+});
+
+test("tooltips keep the first binding and report invalid declarations and unknown targets", async () => {
+  const directives = [
+    '@tooltip alias:orders "First"',
+    '@tooltip alias:orders "Second"',
+    '@tooltip alias:missing "Unknown"',
+    '@tooltip alias:web "   "',
+  ];
+  const result = await render(wrap([...directives, graph].join("\n")));
+  assert.deepEqual(
+    result.diagnostics.map(({ line }) => line),
+    [5, 3, 4],
+  );
+  const texts = result.excalidraw.elements
+    .map((el) => el.customData?.excaliplantTooltip)
+    .filter(Boolean);
+  assert.deepEqual([...new Set(texts)], ["First"]);
+  await assert.rejects(
+    render(wrap([...directives.slice(0, 2), graph].join("\n")), { strict: true }),
+    {
+      code: "INVALID_TOOLTIP",
+      line: 3,
+    },
+  );
+  await assert.rejects(
+    render(wrap(`${directives[0]}\n${graph}`), { limits: { maxTextLength: 3 } }),
+    /Tooltip longer than 3 characters/,
+  );
 });
 
 test("hook aliases bind the whole component and reuse PlantUML styles and theme defaults", async () => {
@@ -146,10 +212,13 @@ ${graph}`),
   assert.equal(web.hover.text, "#0000ff");
 });
 
-test("a raw diagram can begin with a literal @hook row", async () => {
-  const result = await render("@startditaa\n@hook is a literal label\n@endditaa", { strict: true });
-  assert.deepEqual(result.diagnostics, []);
-  assert.ok(result.excalidraw.elements.some((el) => el.text === "@hook is a literal label"));
+test("a raw diagram can begin with a literal @hook or @tooltip row", async () => {
+  for (const directive of ["@hook", "@tooltip"]) {
+    const text = `${directive} is a literal label`;
+    const result = await render(`@startditaa\n${text}\n@endditaa`, { strict: true });
+    assert.deepEqual(result.diagnostics, []);
+    assert.ok(result.excalidraw.elements.some((el) => el.text === text));
+  }
 });
 
 test("custom theme roles can supply the same hook styles as the source", async () => {

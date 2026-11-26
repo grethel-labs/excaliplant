@@ -3,8 +3,8 @@
 Element hooks are available from excaliplant 1.11.0. Nested hook metadata and
 click forwarding are available from 1.12.0. This contract covers PlantUML input,
 Excalidraw scene metadata and the inline SVG browser API. The
-machine-readable [JSON Schema](hooks.schema.json) defines `sceneHook` and
-`hookEventDetail` for consumers that validate JSON. Use the schema root for
+machine-readable [JSON Schema](hooks.schema.json) defines `sceneHook`,
+`hookEventDetail` and `elementTooltip` for consumers that validate JSON. Use the schema root for
 scene metadata and `hooks.schema.json#/$defs/hookEventDetail` for serialized
 event details. It uses [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12).
 
@@ -17,6 +17,7 @@ this contract follow excaliplant's [major release policy](releasing.md).
 ```text
 @hook [#id] (alias:<target> | element:<target>) [.class ...] [click-from-children] [parent:#id] [click-mode:toggle|button]
 @hook (#id | .class) (hover | click) <property> <value>
+@tooltip (alias:<target> | element:<target>) "<text>"
 ```
 
 - Put the directives before the first diagram body line, or in the preamble
@@ -55,6 +56,7 @@ this contract follow excaliplant's [major release policy](releasing.md).
 @hook alias:payments .service
 @hook .service hover FontColor navy
 @hook #orders click BackgroundColor gold
+@tooltip alias:orders "Tracks orders after checkout"
 component "Orders" as orders
 component "Payments" as payments
 orders --> payments
@@ -71,6 +73,34 @@ individually. A shared class lets one listener handle both.
 @hook #dispatchLine element:<connection-id> .connection
 @hook #dispatchLabel element:<label-id> .connection
 ```
+
+### Tooltips
+
+Use `@tooltip` in the same page preamble and with the same `alias:` and
+`element:` selectors as `@hook`. For example, `@tooltip alias:orders "Tracks
+orders after checkout"` applies to the Orders shape and caption. To describe a
+connection or its label, use `element:` with the corresponding scene ID.
+
+The text is a JSON string literal on one source line. It accepts escapes such
+as `\"` and `\n` and must contain at least one non-whitespace character.
+The render option `limits.maxTextLength` bounds the decoded text. An alias
+binding copies the same string to every targeted drawing primitive at
+`elements[].customData.excaliplantTooltip`. Validate that string with
+`hooks.schema.json#/$defs/elementTooltip`.
+
+A primitive can have both a tooltip and a hook. The first tooltip takes
+precedence when targets overlap, and the entire later tooltip is skipped.
+Invalid directives, missing targets and overlaps report warnings or throw a
+`ParseError` with code `INVALID_TOOLTIP` and the original 1-based source line
+in strict mode. In raw formats such as JSON and Ditaa, leading lines that do
+not match a tooltip declaration remain diagram payload.
+
+SVG carries the tooltip as plain text in a `<title>` child of the relevant
+drawing group. The Playground and other inline SVG hosts can use the browser's
+native tooltip with `toSvg({ interactive: true })`, which adds full shape hit
+regions. Tooltips work independently of `bindHooks()` and emit no hook events.
+SVG downloads retain the text, and PNG downloads contain the normal diagram
+appearance.
 
 ### Nested hooks
 

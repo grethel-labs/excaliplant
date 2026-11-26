@@ -56,6 +56,7 @@ export const NATIVE_HEADS = new Set([
 
 /** @typedef {[number, number]} Point */
 /** @typedef {import("../syntax/hooks.mjs").Hook} Hook */
+/** @typedef {import("../syntax/hooks.mjs").Tooltip} Tooltip */
 /** @typedef {{ parent: HookOwner | null }} HookOwner */
 /** @typedef {Pick<Hook, "name" | "id" | "clickFromChildren" | "clickMode" | "hover" | "click"> & { classes?: string[], parent?: string }} SceneHook */
 /** @typedef {{ hook: Hook, data: SceneHook, owner?: HookOwner }} BoundHook */
@@ -108,7 +109,7 @@ function cyclicHooks(parents) {
 /** @public */
 export class Canvas {
   /**
-   * @param {{ seed: number, theme: import("./theme.mjs").Theme, maxElements?: number, hooks?: Hook[] }} options
+   * @param {{ seed: number, theme: import("./theme.mjs").Theme, maxElements?: number, hooks?: Hook[], tooltips?: Tooltip[] }} options
    */
   constructor(options) {
     this.theme = options.theme;
@@ -122,14 +123,17 @@ export class Canvas {
     /** @type {Map<string, any>} */
     this.byId = new Map();
     /** @type {Map<string, any[]>} */
-    this.hookAliases = new Map();
+    this.interactionAliases = new Map();
     /** @type {Set<string>} */
     this.hookElementTargets = new Set();
     /** @type {Map<string, HookOwner>} */
     this.hookOwners = new Map();
     for (const hook of options.hooks ?? []) {
-      if (hook.selector === "alias") this.hookAliases.set(hook.target, []);
+      if (hook.selector === "alias") this.interactionAliases.set(hook.target, []);
       else this.hookElementTargets.add(hook.target);
+    }
+    for (const tooltip of options.tooltips ?? []) {
+      if (tooltip.selector === "alias") this.interactionAliases.set(tooltip.target, []);
     }
   }
 
@@ -162,7 +166,7 @@ export class Canvas {
    * @returns {T}
    */
   withHookAlias(alias, draw, owner) {
-    const parts = this.hookAliases.get(alias);
+    const parts = this.interactionAliases.get(alias);
     if (!parts && !(owner && this.hookElementTargets.size)) return draw();
     const start = this.elements.length;
     const result = draw();
@@ -174,6 +178,33 @@ export class Canvas {
       }
     }
     return result;
+  }
+
+  /**
+   * Attach plain-text tooltips to the primitives of each target.
+   * @param {Tooltip[]} tooltips
+   * @param {(line: number, message: string) => void} reportError
+   */
+  applyTooltips(tooltips, reportError) {
+    for (const tooltip of tooltips) {
+      const parts = this.#targetParts(tooltip);
+      const target = `${tooltip.selector}:${tooltip.target}`;
+      if (!parts.length) reportError(tooltip.line, `Unknown tooltip target "${target}"`);
+      else if (parts.some((part) => part.customData?.excaliplantTooltip !== undefined))
+        reportError(tooltip.line, `Tooltip overlaps another tooltip on "${target}"`);
+      else {
+        for (const part of parts) {
+          part.customData = { ...part.customData, excaliplantTooltip: tooltip.text };
+        }
+      }
+    }
+  }
+
+  /** @param {Pick<Hook, "selector" | "target">} target */
+  #targetParts({ selector, target }) {
+    if (selector === "alias") return this.interactionAliases.get(target) ?? [];
+    const element = this.byId.get(target);
+    return element ? [element] : [];
   }
 
   /**
@@ -241,10 +272,8 @@ export class Canvas {
    * @returns {BoundHook | { error: string }}
    */
   #bindHook(hook) {
-    const element = hook.selector === "element" ? this.byId.get(hook.target) : null;
-    const parts =
-      hook.selector === "alias" ? this.hookAliases.get(hook.target) : element ? [element] : [];
-    if (!parts?.length) return { error: `Unknown hook target "${hook.selector}:${hook.target}"` };
+    const parts = this.#targetParts(hook);
+    if (!parts.length) return { error: `Unknown hook target "${hook.selector}:${hook.target}"` };
     if (parts.some((part) => part.customData?.excaliplantHook)) {
       return {
         error: `Hook "${hook.name}" overlaps another hook on "${hook.selector}:${hook.target}"`,
