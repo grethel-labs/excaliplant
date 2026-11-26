@@ -223,7 +223,7 @@ export function initPlayground(config) {
     }
     const unbind = bindHooks(svg);
     /** @param {CustomEvent<import("../../src/browser/hooks.mjs").HookEventDetail>} event */
-    function showHookEvent({ detail: { type, active, id, classes } }) {
+    function showHookEvent({ detail: { type, active, id, classes, sourceElementId } }) {
       const state =
         type === "hover"
           ? active
@@ -237,6 +237,7 @@ export function initPlayground(config) {
         h("span", { class: "hook-state" }, [state]),
         ...values.map((value) => h("code", {}, [value])),
       );
+      if (sourceElementId) hookEvent.append(h("span", { title: sourceElementId }, ["From child"]));
     }
     svg.addEventListener("excaliplant:hook", showHookEvent);
     clearHooks = () => {

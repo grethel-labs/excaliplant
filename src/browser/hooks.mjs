@@ -5,11 +5,12 @@
 
 const PART = "g[data-excaliplant-hook][data-excaliplant-element-id]";
 const VARIANT = "g[data-excaliplant-variant]";
+const HOOK_NAME = /^(?:[A-Za-z_][A-Za-z0-9_-]{0,63}|@line:[0-9]{1,15}:[0-9]{1,15})$/;
 const bindings = new WeakMap();
 
 /** @typedef {"base" | "hover" | "click"} State */
-/** @typedef {{ id: string | undefined, classes: string[], type: "hover" | "click", active: boolean, elementId: string }} HookEventDetail */
-/** @typedef {{ id: string | undefined, classes: string[], hovered: boolean, selected: boolean, state: State, parts: Part[], control: Element | null }} Hook */
+/** @typedef {{ id: string | undefined, classes: string[], type: "hover" | "click", active: boolean, elementId: string, sourceElementId?: string }} HookEventDetail */
+/** @typedef {{ id: string | undefined, classes: string[], hovered: boolean, selected: boolean, state: State, parts: Part[], representative: Part | null, parent: string | null, clickFromChildren: boolean }} Hook */
 /** @typedef {{ hook: Hook, element: Element, id: string, variants: Map<string, Element>, link: Element | null }} Part */
 
 /** @param {SVGSVGElement} svg */
@@ -57,6 +58,8 @@ export function onHook(svg, selector, listener) {
  * `{ interactive: true }`. Each interaction dispatches a bubbling
  * `excaliplant:hook` CustomEvent with a {@link HookEventDetail} payload.
  * Selection takes precedence over hover until toggled off.
+ * A click forwarded to an enclosing hook includes the original primitive's
+ * ID as `sourceElementId`.
  *
  * @param {SVGSVGElement} svg
  * @returns {() => void} Remove the listeners and restore the default visuals.
@@ -91,6 +94,7 @@ export function bindHooks(svg) {
     if (!hook) {
       const hookId = element.getAttribute("data-excaliplant-hook-id") ?? undefined;
       const classes = element.getAttribute("data-excaliplant-hook-classes")?.split(" ") ?? [];
+      const parent = element.getAttribute("data-excaliplant-hook-parent");
       hook = {
         id: hookId,
         classes,
@@ -98,7 +102,9 @@ export function bindHooks(svg) {
         selected: false,
         state: "base",
         parts: [],
-        control: null,
+        representative: null,
+        parent: parent && HOOK_NAME.test(parent) && parent === parent.trim() ? parent : null,
+        clickFromChildren: element.getAttribute("data-excaliplant-click-from-children") === "true",
       };
       hooks.set(name, hook);
     }
@@ -122,7 +128,7 @@ export function bindHooks(svg) {
   for (const hook of hooks.values()) {
     const part = hook.parts.find((p) => p.link) ?? hook.parts[0];
     const control = part.link ?? part.element;
-    hook.control = control;
+    hook.representative = part;
     controls.set(control, part);
     setControlAttribute(control, "tabindex", "0");
     let label = "";
@@ -154,23 +160,36 @@ export function bindHooks(svg) {
     hook.state = state;
   }
 
-  /** @param {Part} part @param {HookEventDetail["type"]} type @param {boolean} active */
-  function publish({ hook, element, id }, type, active) {
+  /**
+   * @param {Part} part
+   * @param {HookEventDetail["type"]} type
+   * @param {boolean} active
+   * @param {string} [sourceElementId] Original primitive ID for a forwarded click.
+   */
+  function publish({ hook, element, id }, type, active, sourceElementId) {
     show(hook, hook.selected ? "click" : hook.hovered ? "hover" : "base");
-    if (type === "click" && hook.control?.getAttribute("role") === "button")
-      hook.control.setAttribute("aria-pressed", String(active));
+    const control = hook.representative.link ?? hook.representative.element;
+    if (type === "click" && control.getAttribute("role") === "button")
+      control.setAttribute("aria-pressed", String(active));
     element.dispatchEvent(
       new view.CustomEvent("excaliplant:hook", {
         bubbles: true,
-        detail: { id: hook.id, classes: [...hook.classes], type, active, elementId: id },
+        detail: {
+          id: hook.id,
+          classes: [...hook.classes],
+          type,
+          active,
+          elementId: id,
+          ...(sourceElementId !== undefined ? { sourceElementId } : {}),
+        },
       }),
     );
   }
 
   /** @param {EventTarget | null} target */
   function findPart(target) {
-    const element = target instanceof view.Element ? target.closest(PART) : null;
-    return parts.get(element);
+    if (!(target instanceof view.Element) || target.closest("svg") !== svg) return;
+    return parts.get(target.closest(PART));
   }
 
   /** @param {PointerEvent} event */
@@ -184,10 +203,31 @@ export function bindHooks(svg) {
     publish(part, "hover", active);
   }
 
+  /** @param {Part} part @param {string} [sourceElementId] */
+  function toggle(part, sourceElementId) {
+    part.hook.selected = !part.hook.selected;
+    publish(part, "click", part.hook.selected, sourceElementId);
+  }
+
   /** @param {Part} part */
   function activate(part) {
-    part.hook.selected = !part.hook.selected;
-    publish(part, "click", part.hook.selected);
+    const wasConnected = svg.isConnected;
+    toggle(part);
+    let parent = hooks.get(part.hook.parent);
+    if (!parent) return;
+    const visited = new Set([part.hook]);
+    while (
+      parent &&
+      bindings.get(svg) === cleanup &&
+      (!wasConnected || svg.isConnected) &&
+      !visited.has(parent)
+    ) {
+      const representative = parent.representative;
+      if (representative.element.closest("svg") !== svg) break;
+      visited.add(parent);
+      if (parent.clickFromChildren) toggle(representative, part.id);
+      parent = hooks.get(parent.parent);
+    }
   }
 
   /** @param {MouseEvent} event */

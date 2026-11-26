@@ -56,6 +56,54 @@ export const NATIVE_HEADS = new Set([
 
 /** @typedef {[number, number]} Point */
 /** @typedef {import("../syntax/hooks.mjs").Hook} Hook */
+/** @typedef {{ parent: HookOwner | null }} HookOwner */
+/** @typedef {Pick<Hook, "name" | "id" | "clickFromChildren" | "hover" | "click"> & { classes?: string[], parent?: string }} SceneHook */
+/** @typedef {{ hook: Hook, data: SceneHook, owner?: HookOwner }} BoundHook */
+
+/**
+ * Find the nearest bound structural ancestor and cache the skipped owners.
+ * An ambiguous owner is stored as null and ends the search.
+ * @param {HookOwner | undefined} owner
+ * @param {Map<HookOwner, BoundHook | null>} byOwner
+ */
+function nearestHookAncestor(owner, byOwner) {
+  const skipped = [];
+  let node = owner?.parent;
+  while (node && !byOwner.has(node)) {
+    skipped.push(node);
+    node = node.parent;
+  }
+  const parent = node ? byOwner.get(node) : null;
+  for (const ancestor of skipped) byOwner.set(ancestor, parent);
+  return parent;
+}
+
+/**
+ * @param {Map<BoundHook, BoundHook>} parents
+ * @returns {Set<BoundHook>}
+ */
+function cyclicHooks(parents) {
+  const cyclic = new Set();
+  const visited = new Set();
+  for (const binding of parents.keys()) {
+    if (visited.has(binding)) continue;
+    const path = new Set();
+    let next = binding;
+    while (next && !visited.has(next)) {
+      visited.add(next);
+      path.add(next);
+      next = parents.get(next);
+    }
+    if (path.has(next)) {
+      const first = next;
+      do {
+        cyclic.add(next);
+        next = parents.get(next);
+      } while (next !== first);
+    }
+  }
+  return cyclic;
+}
 
 /** @public */
 export class Canvas {
@@ -75,8 +123,13 @@ export class Canvas {
     this.byId = new Map();
     /** @type {Map<string, any[]>} */
     this.hookAliases = new Map();
+    /** @type {Set<string>} */
+    this.hookElementTargets = new Set();
+    /** @type {Map<string, HookOwner>} */
+    this.hookOwners = new Map();
     for (const hook of options.hooks ?? []) {
       if (hook.selector === "alias") this.hookAliases.set(hook.target, []);
+      else this.hookElementTargets.add(hook.target);
     }
   }
 
@@ -105,45 +158,121 @@ export class Canvas {
    * @template T
    * @param {string} alias
    * @param {() => T} draw
+   * @param {HookOwner} [owner] Logical node that owns these primitives.
    * @returns {T}
    */
-  withHookAlias(alias, draw) {
+  withHookAlias(alias, draw, owner) {
     const parts = this.hookAliases.get(alias);
-    if (!parts) return draw();
+    if (!parts && !(owner && this.hookElementTargets.size)) return draw();
     const start = this.elements.length;
     const result = draw();
-    for (let i = start; i < this.elements.length; i++) parts.push(this.elements[i]);
+    for (let i = start; i < this.elements.length; i++) {
+      const part = this.elements[i];
+      parts?.push(part);
+      if (owner && (parts || this.hookElementTargets.has(part.id))) {
+        this.hookOwners.set(part.id, owner);
+      }
+    }
     return result;
   }
 
   /**
-   * Attach validated interaction styles to the scene after drawing.
+   * Attach a hook to existing drawing primitives in a custom diagram module.
    * @param {Hook} hook
    * @returns {string | null} A diagnostic when the binding cannot be applied.
    */
   applyHook(hook) {
+    const binding = this.#bindHook(hook);
+    return "error" in binding ? binding.error : null;
+  }
+
+  /**
+   * Attach interaction metadata and resolve relationships between bound hooks.
+   * @param {Hook[]} hooks
+   * @param {(line: number, message: string) => void} reportError
+   */
+  applyHooks(hooks, reportError) {
+    /** @type {Map<string, BoundHook>} */
+    const bindings = new Map();
+    /** @type {Map<HookOwner, BoundHook | null>} */
+    const byOwner = new Map();
+    for (const hook of hooks) {
+      const binding = this.#bindHook(hook);
+      if ("error" in binding) {
+        reportError(hook.line, binding.error);
+        continue;
+      }
+      bindings.set(hook.name, binding);
+      const { owner } = binding;
+      if (owner) byOwner.set(owner, byOwner.has(owner) ? null : binding);
+    }
+    /** @type {Map<BoundHook, BoundHook>} */
+    const parents = new Map();
+    for (const binding of bindings.values()) {
+      const { hook, owner } = binding;
+      if (hook.parentId) {
+        const parent = bindings.get(hook.parentId);
+        if (!parent) reportError(hook.line, `Unknown bound parent hook "#${hook.parentId}"`);
+        else if (parent === binding)
+          reportError(hook.line, `Hook "${hook.name}" is its own parent`);
+        else parents.set(binding, parent);
+      } else {
+        const parent = nearestHookAncestor(owner, byOwner);
+        if (parent) parents.set(binding, parent);
+      }
+    }
+    const cyclic = cyclicHooks(parents);
+    for (const [binding, parent] of parents) {
+      const { hook, data } = binding;
+      // Graph ownership is a tree; only explicit edges can introduce cycles.
+      if (hook.parentId && cyclic.has(binding)) {
+        reportError(
+          hook.line,
+          `Hook "${hook.name}" has a cyclic parent reference to "#${hook.parentId}"`,
+        );
+      } else {
+        data.parent = parent.data.name;
+      }
+    }
+  }
+
+  /**
+   * @param {Hook} hook
+   * @returns {BoundHook | { error: string }}
+   */
+  #bindHook(hook) {
     const element = hook.selector === "element" ? this.byId.get(hook.target) : null;
     const parts =
       hook.selector === "alias" ? this.hookAliases.get(hook.target) : element ? [element] : [];
-    if (!parts?.length) return `Unknown hook target "${hook.selector}:${hook.target}"`;
+    if (!parts?.length) return { error: `Unknown hook target "${hook.selector}:${hook.target}"` };
     if (parts.some((part) => part.customData?.excaliplantHook)) {
-      return `Hook "${hook.name}" overlaps another hook on "${hook.selector}:${hook.target}"`;
+      return {
+        error: `Hook "${hook.name}" overlaps another hook on "${hook.selector}:${hook.target}"`,
+      };
     }
     const defaults = (/** @type {string} */ role) => ({
       ...THEMES.sketch.roles[role],
       ...this.theme.roles[role],
     });
+    /** @type {SceneHook} */
     const data = {
       name: hook.name,
       ...(hook.id && { id: hook.id }),
       ...(hook.classes.length && { classes: hook.classes }),
+      ...(hook.clickFromChildren && { clickFromChildren: true }),
       hover: { ...defaults("hookHover"), ...hook.hover },
       click: { ...defaults("hookClick"), ...hook.click },
     };
     for (const part of parts) {
       part.customData = { ...part.customData, excaliplantHook: data };
     }
-    return null;
+    const owner = this.hookOwners.get(parts[0].id);
+    return {
+      hook,
+      data,
+      owner:
+        owner && parts.every((part) => this.hookOwners.get(part.id) === owner) ? owner : undefined,
+    };
   }
 
   /**

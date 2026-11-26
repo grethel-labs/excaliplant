@@ -117,11 +117,26 @@ test("custom diagram modules can be registered", async () => {
     starts: ["hello"],
     parse: (lines) => ({ meta: createMeta(), text: lines.map((l) => l.text).join(" ") }),
     layout: (m) => m,
-    draw: (m, canvas) => void canvas.text(m.text, 0, 0),
+    draw(m, canvas) {
+      const target = canvas.text(m.text, 0, 0);
+      const hook = {
+        name: "greeting",
+        id: "greeting",
+        selector: "element",
+        target,
+        line: 1,
+        classes: [],
+        hover: {},
+        click: {},
+      };
+      assert.equal(canvas.applyHook(hook), null);
+      assert.match(canvas.applyHook(hook), /overlaps another hook/);
+    },
   });
   const registry = new DiagramRegistry([...BUILTIN_DIAGRAMS, hello]);
   const r = await render("@starthello\nhi there\n@endhello", { registry });
   assert.equal(r.kind, "hello");
+  assert.equal(r.excalidraw.elements[0].customData.excaliplantHook.id, "greeting");
   assert.ok(listDiagramTypes(registry).some((t) => t.kind === "hello"));
   assert.throws(() => defineDiagram(/** @type {any} */ ({ kind: "Bad Kind" })), TypeError);
 });

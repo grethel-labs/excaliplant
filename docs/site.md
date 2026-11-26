@@ -73,6 +73,10 @@ or focus it and press Enter or Space to toggle selection. The preview shows
 the latest hook event with its ID and classes. Edits and diagram changes reset
 the displayed interaction state.
 
+Hover the **Checkout** frame outside the services to see its own hook. Append
+`click-from-children` to the `#checkout` binding and click **Orders** again.
+Checkout also toggles and its event is marked **From child**.
+
 SVG and PNG downloads use the diagram's normal appearance. The Excalidraw
 download carries the hook metadata for another viewer. The [element hook
 specification](hooks.md) describes the API for embedding a live preview.

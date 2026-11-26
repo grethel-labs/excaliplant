@@ -8,6 +8,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- Support nested hook hit targets and opt-in click forwarding from child hooks to their parent hooks.
 - Preview PlantUML hooks interactively in the Playground, with a live event readout and an interactive services example.
 - Add PlantUML `@hook` bindings with IDs and classes, themed hover and click styles, and JavaScript events for inline SVG viewers.
 - Add Grethel Labs Light and use coordinated teal outlines, fills, and connectors in both Grethel Labs themes.
