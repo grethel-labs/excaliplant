@@ -23,13 +23,21 @@ import { STDLIB } from "./stdlib.mjs";
 /** @typedef {import("./expression.mjs").PValue} PValue */
 
 /**
- * Resolve an `!include` target to PlantUML text, or null when not found / not allowed.
- * @typedef {(target: string, context: { from: string | null, kind: "file" | "stdlib" | "url" }) => string | null} IncludeResolver
+ * Text and its canonical path within the caller's namespace. Nested includes
+ * receive that path as `from`; bare strings retain the requested target as `from`.
+ * @typedef {{ text: string, path: string }} ResolvedInclude
+ */
+
+/**
+ * Resolve an `!include` target, or return null when it is unavailable.
+ * @typedef {(target: string, context: { from: string | null, kind: "file" | "stdlib" | "url" }) => string | ResolvedInclude | null} IncludeResolver
  */
 
 /**
  * @typedef {object} PreprocessOptions
  * @property {IncludeResolver} [include] Resolver for `!include`. Without it, only the bundled stdlib resolves.
+ * @property {string} [sourcePath] Entry path in the resolver's namespace.
+ * @property {boolean} [strictIncludes] Fail on missing or cyclic includes.
  * @property {Record<string, string | number | boolean>} [defines] Predefined `$variables`.
  * @property {import("../limits.mjs").Limits} [limits]
  * @property {Diagnostics} [diagnostics]
@@ -106,6 +114,9 @@ class Preprocessor {
     this.limits = options.limits ?? DEFAULT_LIMITS;
     this.diagnostics = options.diagnostics ?? new Diagnostics();
     this.resolver = options.include ?? null;
+    this.strictIncludes = options.strictIncludes === true;
+    this.includeBytes = 0;
+    this.encoder = new TextEncoder();
     this.date = options.date ?? null;
     this.filename = options.filename ?? "";
     /** @type {Map<string, PValue>} */
@@ -130,7 +141,8 @@ class Preprocessor {
     /** @type {SourceLine[]} */
     this.out = [];
     /** @type {string | null} */
-    this.currentFile = null;
+    this.currentFile = options.sourcePath ?? null;
+    this.activeFiles = new Set(this.currentFile === null ? [] : [this.currentFile]);
   }
 
   /**
@@ -497,26 +509,48 @@ class Preprocessor {
     }
     const isStdlib = spec.startsWith("<") && spec.endsWith(">");
     const name = isStdlib ? spec.slice(1, -1) : spec.replace(/^["']|["']$/g, "");
-    const key = `${isStdlib ? "<>" : ""}${name}`;
-    if (keyword === "include_once" || keyword === "include") {
-      if (this.included.has(key) && keyword === "include_once") return;
-    }
-    if (isStdlib && this.included.has(key)) return;
-    this.included.add(key);
+    const requestKey = `${isStdlib ? "stdlib" : "target"}:${name}`;
+    const once = isStdlib || keyword === "include_once";
+    if (once && this.included.has(requestKey)) return;
 
-    let text = isStdlib ? (STDLIB.get(name) ?? null) : null;
-    if (text === null && this.resolver) {
-      text = this.resolver(name, {
+    /** @type {string | ResolvedInclude | null} */
+    let resolved = isStdlib ? (STDLIB.get(name) ?? null) : null;
+    if (resolved === null && this.resolver) {
+      resolved = this.resolver(name, {
         from: this.currentFile,
         kind: isStdlib ? "stdlib" : /^https?:/i.test(name) ? "url" : "file",
       });
     }
-    if (text === null) {
-      this.diagnostics.warn(`Cannot resolve !${keyword} ${spec}`, src.line);
+    const location = this.currentFile ? ` from ${JSON.stringify(this.currentFile)}` : "";
+    if (resolved === null) {
+      if (this.strictIncludes)
+        throw new ParseError(`Cannot resolve !${keyword} ${JSON.stringify(spec)}${location}`, {
+          line: src.line,
+          code: "INCLUDE_NOT_FOUND",
+        });
+      this.diagnostics.warn(`Cannot resolve !${keyword} ${spec}${location}`, src.line);
       return;
     }
+    const canonical = typeof resolved === "string" ? null : resolved.path;
+    const key = canonical === null ? requestKey : `path:${canonical}`;
+    if (canonical !== null && this.activeFiles.has(canonical)) {
+      const message = `Include cycle${location} targeting ${JSON.stringify(spec)}`;
+      if (this.strictIncludes)
+        throw new ParseError(message, { line: src.line, code: "INCLUDE_CYCLE" });
+      this.diagnostics.warn(message, src.line);
+      return;
+    }
+    if (once && this.included.has(key)) return;
+    this.included.add(key);
     if (this.depth >= this.limits.maxPreprocessDepth)
       throw new LimitError("Include depth limit exceeded", src);
+
+    const text = typeof resolved === "string" ? resolved : resolved.text;
+    if (canonical !== null) {
+      this.includeBytes += this.encoder.encode(text).length;
+      if (this.includeBytes > this.limits.maxInputBytes)
+        throw new LimitError(`Included source exceeds ${this.limits.maxInputBytes} bytes`, src);
+    }
 
     const blocks = extractBlocks(text);
     let lines = blocks[0]?.lines ?? [];
@@ -529,12 +563,14 @@ class Preprocessor {
     // Included lines keep the including line number so diagnostics point at the !include.
     const mapped = stripComments(lines).map((l) => ({ text: l.text, line: src.line }));
     const previous = this.currentFile;
-    this.currentFile = name;
+    this.currentFile = canonical ?? name;
+    if (canonical !== null) this.activeFiles.add(canonical);
     this.depth++;
     try {
       this.exec(mapped, out);
     } finally {
       this.depth--;
+      if (canonical !== null) this.activeFiles.delete(canonical);
       this.currentFile = previous;
     }
   }

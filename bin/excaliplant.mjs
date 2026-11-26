@@ -2,16 +2,27 @@
 // excaliplant CLI: file/stdin I/O and option parsing only. All rendering
 // logic lives in src/.
 
-import { readFileSync, writeFileSync, mkdirSync, realpathSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { readThemeEnvironment } from "../src/draw/theme_env.mjs";
-import { render, renderAll, listDiagramTypes, THEME_NAMES } from "../src/index.mjs";
+import {
+  render,
+  renderAll,
+  listDiagramTypes,
+  defaultRegistry,
+  THEME_NAMES,
+  DEFAULT_LIMITS,
+} from "../src/index.mjs";
+import { findProjectEntries } from "../src/core/project.mjs";
+import { extractBlocks } from "../src/core/source.mjs";
+import { openProject } from "./project.mjs";
 
 const HELP = `excaliplant — render PlantUML as hand-drawn Excalidraw, SVG or PNG
 
 Usage:
   excaliplant [input.puml] [-o output] [options]
+  excaliplant --project <dir> [files relative to dir] [-o output] [options]
   cat diagram.puml | excaliplant -f svg > diagram.svg
   excaliplant markdown <file.md> [-i | -o out.md] [--mode inline|file]   (see: excaliplant markdown --help)
   excaliplant skills install --tool <claude|codex|gemini|opencode|cursor|copilot|all>   (see: excaliplant skills list)
@@ -29,6 +40,7 @@ Options:
       --seed <value>        Seed for stroke wobble and element ids
       --page <n>            Page of a newpage document (0-based)
       --all                 Render every @start…@end block
+      --project <dir>       Discover entry diagrams and resolve includes within this directory
       --include-dir <dir>   Allow !include of files below <dir>
   -D, --define NAME=value   Predefine a preprocessor variable (repeatable)
       --strict              Fail on unrecognised lines
@@ -93,6 +105,10 @@ function parseArgs(argv) {
       case "--include-dir":
         opts.includeDir = next();
         break;
+      case "--project":
+        opts.project = next();
+        if (!opts.project) throw new Error("--project needs a directory");
+        break;
       case "-D":
       case "--define": {
         const [k, ...v] = next().split("=");
@@ -126,26 +142,8 @@ function parseArgs(argv) {
     }
   }
   opts.input = positional[0];
+  opts.inputs = positional;
   return opts;
-}
-
-/**
- * Resolver for `!include` restricted to one directory tree.
- * @param {string} root
- */
-function includeResolver(root) {
-  const base = realpathSync(root);
-  return (/** @type {string} */ target, /** @type {{ kind: string }} */ ctx) => {
-    if (ctx.kind !== "file") return null;
-    try {
-      const resolved = realpathSync(path.resolve(base, target));
-      if (resolved !== base && !resolved.startsWith(base + path.sep)) return null;
-      if (statSync(resolved).size > 2 * 1024 * 1024) return null;
-      return readFileSync(resolved, "utf8");
-    } catch {
-      return null;
-    }
-  };
 }
 
 async function readStdin(limit) {
@@ -186,9 +184,74 @@ async function runMarkdown(argv) {
       writeFileSync(file, data);
     },
     readStdin: () => readStdin(10 * 1024 * 1024),
+    openIncludes: (root, input) => {
+      const project = openProject(root);
+      const sourcePath = input === "-" ? "stdin.md" : project.sourcePath(input);
+      if (!sourcePath)
+        throw new Error(`Markdown input must be inside the include directory: ${input}`);
+      return { sourcePath, include: project.createResolver() };
+    },
     stdout: process.stdout,
     stderr: process.stderr,
   });
+}
+
+/**
+ * @param {ReturnType<typeof openProject>} project
+ * @param {string[]} selection
+ * @param {import("../src/api.mjs").ApiOptions} options
+ * @param {boolean} all
+ */
+function prepareProject(project, selection, options, all) {
+  const files = project.list(selection);
+  const include = project.createResolver();
+  const entries =
+    selection.length === 1
+      ? [...files.keys()]
+      : findProjectEntries(files.values(), include, {
+          defines: options.defines,
+          raw: (type) => defaultRegistry.forStart(type).every((module) => module.raw),
+        });
+  if (!entries.length)
+    throw new Error(
+      "No complete PlantUML diagrams found. Pass a specific project file to render a bare snippet.",
+    );
+  if (entries.length > 1 && !all)
+    throw new Error(
+      `Several PlantUML entries found: ${entries.map((entry) => JSON.stringify(entry)).join(", ")}. Select one file or use --all.`,
+    );
+
+  const jobs = entries.flatMap((sourcePath) => {
+    const { text } = files.get(sourcePath);
+    const count = all ? extractBlocks(text).length : 1;
+    return Array.from({ length: count }, (_, block) => ({ sourcePath, text, block }));
+  });
+  if (jobs.length > DEFAULT_LIMITS.maxBlocks)
+    throw new Error(`Project contains more than ${DEFAULT_LIMITS.maxBlocks} diagram blocks`);
+  return { jobs, include };
+}
+
+/**
+ * @param {ReturnType<typeof prepareProject>} project
+ * @param {import("../src/api.mjs").ApiOptions} options
+ */
+async function* renderProject({ jobs, include }, options) {
+  for (const [index, { sourcePath, text, block }] of jobs.entries()) {
+    try {
+      const result = await render(text, {
+        ...options,
+        block,
+        include,
+        sourcePath,
+        strictIncludes: true,
+        filename: path.posix.basename(sourcePath),
+      });
+      yield { result, sourcePath, index };
+    } catch (error) {
+      process.stderr.write(`${sourcePath}: error: ${error.message}\n`);
+      process.exitCode = 1;
+    }
+  }
 }
 
 async function main() {
@@ -221,16 +284,15 @@ async function main() {
       ? opts.maxInputBytes
       : 10 * 1024 * 1024,
   );
-  let source;
-  if (!opts.input || opts.input === "-") source = await readStdin(limit);
-  else {
-    if (statSync(opts.input).size > limit) throw new Error(`Input exceeds ${limit} bytes`);
-    source = readFileSync(opts.input, "utf8");
-  }
+  const inputStat = !opts.project && opts.input && opts.input !== "-" ? statSync(opts.input) : null;
+  const projectRoot = opts.project ?? (inputStat?.isDirectory() ? opts.input : null);
+  if (projectRoot && opts.includeDir)
+    throw new Error("--project and --include-dir cannot be combined");
   const ext = opts.output ? path.extname(opts.output).slice(1).toLowerCase() : "";
   const format = opts.format ?? (ext === "svg" || ext === "png" ? ext : "excalidraw");
   if (!["svg", "png", "excalidraw", "json"].includes(format))
     throw new Error(`Unknown format ${format}`);
+  const legacyIncludes = opts.includeDir ? openProject(opts.includeDir) : null;
   const renderOptions = {
     theme: opts.theme,
     themeColors: readThemeEnvironment(process.env),
@@ -241,16 +303,35 @@ async function main() {
     defines: opts.defines,
     filename: opts.input ? path.basename(opts.input) : "",
     limits: { maxInputBytes: limit },
-    include: opts.includeDir ? includeResolver(opts.includeDir) : undefined,
+    include: legacyIncludes?.createResolver({ rootFallback: true }),
+    sourcePath: inputStat ? (legacyIncludes?.sourcePath(opts.input) ?? undefined) : undefined,
   };
-  const results = opts.all
-    ? await renderAll(source, renderOptions)
-    : [await render(source, renderOptions)];
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
+  let results;
+  let total;
+  if (projectRoot) {
+    const project = prepareProject(
+      openProject(projectRoot),
+      opts.project ? opts.inputs : opts.inputs.slice(1),
+      renderOptions,
+      opts.all === true,
+    );
+    results = renderProject(project, renderOptions);
+    total = project.jobs.length;
+  } else {
+    if (inputStat?.size > limit) throw new Error(`Input exceeds ${limit} bytes`);
+    const source = inputStat ? readFileSync(opts.input, "utf8") : await readStdin(limit);
+    const rendered = opts.all
+      ? await renderAll(source, renderOptions)
+      : [await render(source, renderOptions)];
+    results = rendered.map((result, index) => ({ result, sourcePath: "", index }));
+    total = results.length;
+  }
+  for await (const { result: r, sourcePath, index } of results) {
     if (!opts.quiet)
       for (const d of r.diagnostics)
-        process.stderr.write(`warning${d.line ? ` (line ${d.line})` : ""}: ${d.message}\n`);
+        process.stderr.write(
+          `${sourcePath ? `${sourcePath}: ` : ""}warning${d.line ? ` (line ${d.line})` : ""}: ${d.message}\n`,
+        );
     const data = await encode(r, opts, format);
     if (!opts.output) {
       if (format === "png" && process.stdout.isTTY)
@@ -258,12 +339,12 @@ async function main() {
       process.stdout.write(data);
       continue;
     }
-    const file =
-      results.length > 1
-        ? opts.output.includes("{n}")
-          ? opts.output.replace("{n}", String(i + 1))
-          : opts.output.replace(/(\.[^.]+)?$/, `-${i + 1}$1`)
-        : opts.output;
+    const numbered = total > 1 || (projectRoot && opts.all && opts.output.includes("{n}"));
+    const file = numbered
+      ? opts.output.includes("{n}")
+        ? opts.output.replace("{n}", String(index + 1))
+        : opts.output.replace(/(\.[^.]+)?$/, `-${index + 1}$1`)
+      : opts.output;
     writeFileSync(file, data);
   }
 }

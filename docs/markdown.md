@@ -51,6 +51,7 @@ cat doc.md | excaliplant markdown - > rendered.md
 | `-i, --in-place`                              | rewrite the inputs; implies `--keep-source`                        |
 | `--mode inline\|file`                         | `inline` (default) or `file`                                       |
 | `--assets-dir <dir>`                          | asset directory for `file` mode, relative to the output (`assets`) |
+| `--include-dir <dir>`                         | allow local PlantUML sources and includes inside this directory    |
 | `--keep-source[=how]`                         | keep the PlantUML text (`comment` or `details`)                    |
 | `--no-keep-source`                            | drop it                                                            |
 | `--check`                                     | write nothing; exit 1 if a file or asset would change              |
@@ -63,6 +64,33 @@ error. Failed diagrams stay in the document unchanged and are reported as
 `file:line: error: message`. Without `-o`/`--in-place` the result goes to
 stdout. `--watch` is deliberately not offered; use your editor or build tool's
 watcher around the command.
+
+### Local PlantUML files
+
+Set `--include-dir` to a directory containing the Markdown document and its
+PlantUML sources. An inline PlantUML fence can use `!include` relative to the
+Markdown file. Use an empty fence with `src` to render a complete PlantUML file.
+
+````markdown
+```plantuml {src="diagrams/architecture.puml" alt="Architecture"}
+
+```
+````
+
+```sh
+excaliplant markdown docs/README.md --include-dir docs --mode file --in-place
+```
+
+Each nested include is relative to the file that declares it. Paths are
+restricted to the selected directory, including after symlink resolution. For
+stdin, top-level references are relative to `--include-dir`. A missing file or
+an include cycle reports an error and leaves the corresponding Markdown block
+intact. Other diagrams can still render.
+
+The generated Markdown keeps the original reference by default. Editing a
+referenced diagram or dependency updates its image when the command reruns.
+For the GitHub Action, set `include-dir` to the shared directory, such as `docs`
+or `.` for the checkout root.
 
 ### Keeping the source
 
@@ -119,6 +147,7 @@ jobs:
 | `files`        | `README.md` | files or globs, whitespace/newline separated, relative paths only |
 | `mode`         | `file`      | `file` or `inline`                                                |
 | `assets-dir`   | `assets`    | asset directory relative to each file                             |
+| `include-dir`  | empty       | workspace directory allowed to supply local PlantUML files        |
 | `check`        | `false`     | `true`: fail if anything is stale; `false`: rewrite in place      |
 | `keep-source`  | `true`      | keep the PlantUML text in a comment                               |
 | `version`      | `latest`    | version of `@grethel-labs/excaliplant` to run                     |
@@ -254,7 +283,8 @@ import {
   `shareFont`, `budget`, plus the `renderBlock` options. Without `writeFile` the
   asset files are only returned in `assets`.
 - `runMarkdownCommand(argv, io)` is the command line entry point (see
-  `bin/excaliplant.mjs`); `io` is `{ readFile, writeFile, readStdin?, stdout, stderr, include? }`.
+  `bin/excaliplant.mjs`). Supply `openIncludes(root, input)` to handle `--include-dir`
+  with a host-provided resolver and source path.
 
 ## Limits and safety
 
@@ -265,7 +295,8 @@ import {
   event handlers, `foreignObject`, external images or `url(...)`; links only to
   `http(s)` and `mailto`. The embedded font is the only stylesheet content that
   survives, and the text rule is scoped to `.excaliplant`.
-- `!include` works only if you pass an `include` resolver. The CLI does not.
+- Local PlantUML references and includes require an explicit resolver. The CLI
+  supplies it through `--include-dir`.
 - Fences are detected as CommonMark does (up to three spaces of indentation,
   matching closing fence, nothing inside another fence). Fences nested in list
   items that are indented four or more spaces, and unclosed fences, are left alone.

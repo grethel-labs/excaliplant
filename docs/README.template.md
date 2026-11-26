@@ -149,20 +149,22 @@ reference backdrop. Text pairs require 4.5:1 and graphic pairs require 3:1.
 <details>
 <summary><b>Render options</b></summary>
 
-| Option     | Default          | Description                                                               |
-| ---------- | ---------------- | ------------------------------------------------------------------------- |
-| `theme`    | `"sketch"`       | Theme name or theme object                                                |
-| `sketch`   | theme default    | `false` for clean strokes                                                 |
-| `seed`     | `"excaliplant"`  | Seed for ids and stroke wobble                                            |
-| `block`    | `0`              | Block index or `@startuml name`                                           |
-| `page`     | `0`              | Page of a `newpage` document                                              |
-| `strict`   | `false`          | Throw on unrecognised lines instead of warning                            |
-| `include`  | —                | `(target, { from, kind }) => string \| null` resolver for `!include`      |
-| `defines`  | —                | Predefined preprocessor variables                                         |
-| `date`     | `null`           | Date returned by `%date()` (empty by default for reproducible output)     |
-| `limits`   | `DEFAULT_LIMITS` | Input size, lines, nodes, edges, elements, preprocessor budget, PNG width |
-| `kind`     | auto             | Force a diagram module                                                    |
-| `registry` | built-in         | Custom `DiagramRegistry`                                                  |
+| Option           | Default          | Description                                                               |
+| ---------------- | ---------------- | ------------------------------------------------------------------------- |
+| `theme`          | `"sketch"`       | Theme name or theme object                                                |
+| `sketch`         | theme default    | `false` for clean strokes                                                 |
+| `seed`           | `"excaliplant"`  | Seed for ids and stroke wobble                                            |
+| `block`          | `0`              | Block index or `@startuml name`                                           |
+| `page`           | `0`              | Page of a `newpage` document                                              |
+| `strict`         | `false`          | Throw on unrecognised lines instead of warning                            |
+| `include`        | —                | Resolver for `!include` returning text, `{ text, path }`, or `null`       |
+| `sourcePath`     | —                | Entry path in the include resolver's namespace                            |
+| `strictIncludes` | `false`          | Fail on missing or cyclic includes                                        |
+| `defines`        | —                | Predefined preprocessor variables                                         |
+| `date`           | `null`           | Date returned by `%date()` (empty by default for reproducible output)     |
+| `limits`         | `DEFAULT_LIMITS` | Input size, lines, nodes, edges, elements, preprocessor budget, PNG width |
+| `kind`           | auto             | Force a diagram module                                                    |
+| `registry`       | built-in         | Custom `DiagramRegistry`                                                  |
 
 </details>
 
@@ -182,6 +184,7 @@ excaliplant [input.puml] [-o output] [options]
       --seed <value>        Seed for stroke wobble and element ids
       --page <n>            Page of a newpage document
       --all                 Render every block ("{n}" in -o is the block number)
+      --project <dir>       Find and render entry diagrams in a PlantUML project
       --include-dir <dir>   Allow !include of files below <dir>
   -D, --define NAME=value   Predefine a preprocessor variable
       --strict              Fail on unrecognised lines
@@ -190,11 +193,16 @@ excaliplant [input.puml] [-o output] [options]
 
 </details>
 
+Pass a directory to discover its main diagram. Use `--project <dir> --all`
+to render every entry, or pass a file relative to the project directory to
+choose one. Markdown can also render a referenced PlantUML file with its
+local includes. See [Markdown includes](docs/markdown.md#local-plantuml-files).
+
 ## Security
 
 excaliplant is built to render untrusted PlantUML:
 
-- No file-system or network access while rendering. `!include` only works through a resolver you pass in (the CLI's `--include-dir` restricts includes to one directory tree); `!includeurl` and `!import` are refused.
+- No file-system or network access while rendering. `!include` only works through a resolver you pass in. The CLI restricts local includes to the selected project or `--include-dir` tree. It refuses `!includeurl` and `!import`.
 - Every text and attribute in SVG output is escaped; colours are validated; links are limited to `http(s)` and `mailto`.
 - Budgets for input size, lines, preprocessor steps/recursion/loop iterations, nodes, edges, drawing elements and PNG size (see `DEFAULT_LIMITS`).
 - Parsers are scanner-based or use bounded regular expressions; hostile inputs are covered by [`test/security.test.mjs`](test/security.test.mjs).

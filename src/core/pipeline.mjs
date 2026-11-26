@@ -25,6 +25,8 @@ import { createDocument, validateDocument } from "../render/excalidraw.mjs";
  * @property {boolean} [strict] Throw on unrecognised lines instead of warning.
  * @property {Partial<import("./limits.mjs").Limits>} [limits]
  * @property {import("./preprocess/preprocessor.mjs").IncludeResolver} [include] Resolver for `!include`.
+ * @property {string} [sourcePath] Entry path in the resolver's namespace.
+ * @property {boolean} [strictIncludes] Fail when an include cannot be resolved.
  * @property {Record<string, string | number | boolean>} [defines] Predefined preprocessor variables.
  * @property {Date | null} [date] Date returned by `%date()`.
  * @property {string} [filename] Value of `%filename()`.
@@ -68,6 +70,8 @@ export function parseBlock(block, registry, options = {}) {
       limits,
       diagnostics,
       include: options.include,
+      sourcePath: options.sourcePath,
+      strictIncludes: options.strictIncludes,
       defines: options.defines,
       date: options.date ?? null,
       filename: options.filename,
