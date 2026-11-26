@@ -398,6 +398,64 @@ test("tokenizer classifies PlantUML", () => {
 
 // --- worker protocol ---------------------------------------------------------------
 
+test("projects resolve nested files and export separate and combined outputs", async () => {
+  const engine = createEngine();
+  const files = [
+    {
+      path: "repo/architecture.puml",
+      text: "@startuml\ncomponent Main\n!include parts/worker.iuml\n@enduml",
+    },
+    { path: "repo/parts/worker.iuml", text: "component Worker\n!include detail.iuml" },
+    { path: "repo/parts/detail.iuml", text: "component SharedDetail" },
+    { path: "repo/login.puml", text: "@startuml\nClient -> Server : log in\n@enduml" },
+  ];
+  const result = await engine.handle({ type: "project", id: 1, files, options: { kind: "class" } });
+  assert.equal(result.ok, true, result.error);
+  const { entries, combined, problems } = result.project;
+  assert.deepEqual(problems, []);
+  assert.deepEqual(
+    entries.map((item) => [item.title, item.kind]),
+    [
+      ["repo/architecture.puml", "component"],
+      ["repo/login.puml", "sequence"],
+    ],
+  );
+  assert.match(entries[0].svg, /SharedDetail/);
+  assert.match(combined.svg, /SharedDetail/);
+  assert.match(combined.svg, /log in/);
+
+  const exportAt = async (slot) =>
+    JSON.parse((await engine.handle({ type: "export", id: 2, slot, what: "excalidraw" })).text);
+  const combinedDoc = await exportAt(combined.slot);
+  const ids = combinedDoc.elements.map((element) => element.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(combinedDoc.elements.some((element) => element.text === "SharedDetail"));
+  const sequenceDoc = await exportAt(entries[1].slot);
+  assert.ok(sequenceDoc.elements.some((element) => element.text === "log in"));
+  assert.ok(!sequenceDoc.elements.some((element) => element.text === "SharedDetail"));
+
+  const missing = await engine.handle({
+    type: "project",
+    id: 3,
+    files: files.filter((file) => !file.path.endsWith("detail.iuml")),
+  });
+  assert.equal(missing.ok, true);
+  assert.equal(missing.project.entries.length, 1);
+  assert.equal(missing.project.entries[0].kind, "sequence");
+  assert.match(missing.project.problems[0].message, /detail\.iuml.*repo\/parts\/worker\.iuml/);
+
+  const ambiguous = await engine.handle({
+    type: "project",
+    id: 4,
+    files: [
+      { path: "worker.iuml", text: "component First" },
+      { path: "worker.iuml", text: "component Second" },
+    ],
+  });
+  assert.equal(ambiguous.ok, false);
+  assert.match(ambiguous.error, /Ambiguous local file.*worker\.iuml/);
+});
+
 test("worker protocol renders graph and non-graph diagrams", async () => {
   const engine = createEngine({ version: "9.9.9" });
   const graph = await engine.handle({

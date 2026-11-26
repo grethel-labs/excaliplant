@@ -64,6 +64,25 @@ The library is bundled by esbuild into `worker.js` (about 1.8 MB, 575 KB gzip; E
 - The worker returns the SVG after the library's sanitiser (`sanitizeSvg`); the page shows it as an `<img>` from a `blob:` URL, never through `innerHTML`.
 - PNG export draws the SVG on a canvas in the browser (not resvg) and is limited to 16 megapixels (iOS Safari's canvas limit); larger requests are scaled down and the page says so.
 
+## Local PlantUML projects
+
+Use **Open files**, **Open folder**, or drop PlantUML files over the editor or
+preview. Folder selection keeps relative paths for nested `!include`
+references. With a flat file selection, include paths resolve by unique
+filename. If two files have the same name, open the folder to preserve their
+paths. Projects detect complete diagram blocks and their dependencies. Open a
+single file to render a bare snippet.
+
+The preview reports missing files and include cycles and shows independent
+diagrams that rendered successfully. With multiple results, choose
+**Combined** for one arrangement or **Carousel** to step through named
+diagrams. SVG, PNG, and Excalidraw export use the visible result. **Back to
+editor** returns to the text you were editing.
+
+Selected files stay in browser memory. Project sources are excluded from
+local storage and share links. Each file can be up to 200 KB, with up to
+100 files, 2 MiB of source and 16 diagrams per project.
+
 ## Options
 
 | Control                      | `render()` / export option                                                    |
@@ -81,7 +100,10 @@ The library is bundled by esbuild into `worker.js` (about 1.8 MB, 575 KB gzip; E
 | `%date()`                    | `date` (UTC midnight of the chosen day)                                       |
 | PNG width / scale            | width in pixels, or scale relative to the SVG size (default 2)                |
 
-`include` is not offered: a web page has no file system, so `!include` of files cannot work (bundled `<C4/…>` and `<archimate/…>` libraries do). `limits` are fixed by the page. The mapping is a pure function (`toRenderOptions` in `site/playground/options.mjs`) and is covered by `test/site.test.mjs`.
+The editor resolves bundled includes such as `<C4/…>` and `<archimate/…>`.
+With a local project open, the worker also resolves includes from the selected
+files. Diagram types are detected separately for each entry. The page sets
+the render limits and uses `toRenderOptions` in `site/playground/options.mjs`.
 
 With **Auto**, a `!theme` line in the source is honoured on a light page and overridden by `dark` on a dark page; pick an explicit theme to prevent that.
 
@@ -131,7 +153,7 @@ The editor is a plain `<textarea>` over a transparent-text highlight layer plus 
 
 - On `file://` Chrome does not start workers, so the page renders on the main thread there (see above); over `http(s)` the worker is always used.
 - Very large or pathological diagrams hit the 20 s timeout; the worker restarts and the last good preview stays visible (dimmed).
-- No `!include` of files, no remote includes, no `%getenv()` data.
+- Local `!include` uses the selected project files. Remote sources and `%getenv()` data are unavailable.
 - Preview and PNG show the SVG as an image: no text selection in the preview and no clickable links.
 - The `dark` diagram theme is the library's; diagrams that set explicit light colours (for example `box #f1f3f5`) keep them.
 
@@ -144,7 +166,7 @@ npm run site          # build into _site/
 npm run site:smoke    # open it in a browser
 ```
 
-It checks that the playground renders its default example, that graph examples render (which loads the layout engine inside the worker), that the worker **still answers afterwards**, that plain-text and shared links open, that a broken link is reported, that the gallery shows its diagram, and that no page error was logged. It exits with code 1 on any failure; `--shots <dir>` saves a screenshot per failed step.
+It checks default and graph examples, worker requests after layout, local project rendering and export, plain-text and shared links, invalid link handling, the gallery, and browser errors. It exits with code 1 on any failure. Use `--shots <dir>` to save screenshots of failed steps.
 
 It runs in the CI job "Site smoke test (browser)" on every pull request and in `pages.yml` before the site is deployed, so a site that does not render is not published. It was written after v1.4.0, where the lazily loaded layout engine replaced the worker's message handler and the deployed playground rendered nothing while every test passed; against that build 7 of its 9 checks fail.
 

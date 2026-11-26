@@ -79,6 +79,16 @@
           >
             Options
           </button>
+          <button type="button" class="btn" id="btn-open-files">Open files</button>
+          <button type="button" class="btn" id="btn-open-folder">Open folder</button>
+          <input
+            id="project-files-input"
+            type="file"
+            multiple
+            accept=".puml,.plantuml,.pu,.iuml"
+            hidden
+          />
+          <input id="project-folder-input" type="file" multiple webkitdirectory hidden />
           <div class="status" id="status" role="status" aria-live="polite"></div>
           <button
             type="button"
@@ -154,7 +164,7 @@
                 <span>Page (<code>newpage</code>)</span>
                 <input type="number" id="opt-page" min="0" max="999" step="1" inputmode="numeric" />
               </label>
-              <label class="field">
+              <label class="field" id="field-kind">
                 <span>Diagram type</span>
                 <select id="opt-kind"></select>
               </label>
@@ -191,7 +201,9 @@
                 <span><code>%date()</code></span>
                 <input type="date" id="opt-date" />
               </label>
-              <p class="hint"><code>!include</code> is off: a web page has no file access.</p>
+              <p class="hint">
+                Open files or a folder to resolve local <code>!include</code> references.
+              </p>
             </fieldset>
             <fieldset>
               <legend>PNG export</legend>
@@ -239,6 +251,11 @@
           </div>
         </div>
 
+        <div class="project-bar" id="project-bar" hidden>
+          <span id="project-file-count"></span>
+          <button type="button" class="btn small" id="btn-close-project">Back to editor</button>
+        </div>
+
         <div class="segmented" role="tablist" aria-label="Show">
           <button
             type="button"
@@ -281,6 +298,36 @@
                 </button>
                 <button type="button" class="btn small icon" id="zoom-in" aria-label="Zoom in">
                   +
+                </button>
+              </div>
+            </div>
+            <div class="project-bar project-outputs" id="project-outputs" hidden>
+              <label class="row" for="project-output-mode">
+                <span>Output</span>
+                <select id="project-output-mode">
+                  <option value="combined">Combined</option>
+                  <option value="carousel">Carousel</option>
+                </select>
+              </label>
+              <div
+                class="row"
+                id="project-carousel"
+                role="group"
+                aria-roledescription="carousel"
+                aria-label="Project diagrams"
+                hidden
+              >
+                <button
+                  type="button"
+                  class="btn small"
+                  id="project-prev"
+                  aria-label="Previous diagram"
+                >
+                  ‹
+                </button>
+                <span id="project-current" aria-live="polite"></span>
+                <button type="button" class="btn small" id="project-next" aria-label="Next diagram">
+                  ›
                 </button>
               </div>
             </div>
@@ -403,9 +450,9 @@
         </dl>
         <p class="hint">
           Share links keep your text and options in the part of the address after <code>#</code>,
-          which is never sent to a server. <code>!include</code> is not available because the page
-          has no file access. Input is limited to 200 KB; renders that run longer than 20 s are
-          stopped.
+          which is never sent to a server. Files you open stay in browser memory and can resolve
+          local <code>!include</code> references. Individual sources are limited to 200 KB. Renders
+          that run longer than 20 s are stopped.
         </p>
       </div>
     </dialog>

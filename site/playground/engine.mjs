@@ -182,8 +182,13 @@ export function createEngineClient(config) {
      * @param {Record<string, unknown>} svg
      */
     render: (source, options, svg) => request({ type: "render", source, options, svg }, true),
-    /** @param {"excalidraw" | "clipboard"} what */
-    exportJson: (what) => request({ type: "export", what }, false),
+    /** @param {{ path: string, text: string }[]} files */
+    renderProject: (files, options, svg) => request({ type: "project", files, options, svg }, true),
+    /**
+     * @param {"excalidraw" | "clipboard"} what
+     * @param {number} [slot]
+     */
+    exportJson: (what, slot) => request({ type: "export", what, slot }, false),
     restart,
   };
 }

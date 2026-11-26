@@ -218,6 +218,55 @@ export async function runSmoke(dir, options = {}) {
       await waitRendered(play, "sequence");
       await previewIsShown(play);
     });
+    await step(
+      "local files render together or in the carousel without network requests",
+      play,
+      async () => {
+        const requests = [];
+        const collect = (request) => {
+          if (request.url().startsWith("http")) requests.push(request.url());
+        };
+        play.on("request", collect);
+        try {
+          const local = (name, source) => ({
+            name,
+            mimeType: "text/plain",
+            buffer: Buffer.from(source),
+          });
+          await play
+            .locator("#project-files-input")
+            .setInputFiles([
+              local(
+                "architecture.puml",
+                "@startuml\ncomponent App\n!include parts/worker.iuml\n@enduml",
+              ),
+              local("worker.iuml", "component IncludedWorker"),
+              local("login.puml", "@startuml\nClient -> Server : local sign-in\n@enduml"),
+            ]);
+          await waitRendered(play, "project");
+          await previewIsShown(play);
+          await play.locator("#btn-export").click();
+          const combined = play.waitForEvent("download");
+          await play.locator('[data-export="excalidraw"]').click();
+          const download = await combined;
+          const text = await readFile(await download.path(), "utf8");
+          if (!text.includes("IncludedWorker") || !text.includes("local sign-in"))
+            throw new Error("The combined download is missing one of the project diagrams");
+
+          await play.locator("#project-output-mode").selectOption("carousel");
+          await waitRendered(play, "component");
+          await play.locator("#project-next").click();
+          await waitRendered(play, "sequence");
+          if (!(await play.locator("#project-current").textContent())?.includes("login.puml"))
+            throw new Error("The second diagram is missing from the carousel");
+          await play.locator("#btn-close-project").click();
+          await waitRendered(play, "sequence");
+          if (requests.length) throw new Error("Opening local files made a network request");
+        } finally {
+          play.off("request", collect);
+        }
+      },
+    );
     await play.close();
 
     // A fresh worker per link, as when someone opens a shared link.
