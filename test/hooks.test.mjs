@@ -84,6 +84,29 @@ test("an element-id hook reaches any primitive in a raw diagram", async () => {
   );
 });
 
+test("a connector and its caption can have separate hooks with one class", async () => {
+  const source = `component Sender as sender
+component Receiver as receiver
+sender --> receiver : dispatches`;
+  const { excalidraw } = await render(wrap(source), { strict: true });
+  const connector = excalidraw.elements.find((el) => el.type === "arrow");
+  const caption = excalidraw.elements.find((el) => el.text === "dispatches");
+  const result = await render(
+    wrap(`@hook #dispatchLine element:${connector.id} .connection
+@hook #dispatchLabel element:${caption.id} .connection
+${source}`),
+    { strict: true },
+  );
+  const targets = result.excalidraw.elements.filter(metadata);
+  assert.deepEqual(
+    targets.map((el) => [el.id, metadata(el).id, metadata(el).classes]),
+    [
+      [connector.id, "dispatchLine", ["connection"]],
+      [caption.id, "dispatchLabel", ["connection"]],
+    ],
+  );
+});
+
 test("hooks can share several classes and an explicit ID wins over class styles", async () => {
   const result = await render(
     wrap(`@hook .service hover FontColor red

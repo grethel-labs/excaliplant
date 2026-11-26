@@ -20,6 +20,15 @@ function isHookToken(value) {
   return typeof value === "string" && hookToken.test(value) && value === value.trim();
 }
 
+/** @param {unknown} value */
+function isHookName(value) {
+  return (
+    typeof value === "string" &&
+    (isHookToken(value) || /^@line:[0-9]{1,15}:[0-9]{1,15}$/.test(value)) &&
+    value === value.trim()
+  );
+}
+
 /**
  * @typedef {object} SvgOptions
  * @property {number} [padding] Whitespace around the drawing (default 24).
@@ -28,7 +37,7 @@ function isHookToken(value) {
  * @property {boolean} [interactive] Include hook markers and visual states for an inline SVG host (default false).
  */
 
-/** @typedef {{ name: string, id: string | null, classes: string[], hover: any, click: any }} HookVariants */
+/** @typedef {{ name: string, id: string | null, classes: string[], hover: any, click: any, parent: string | null, clickFromChildren: boolean }} HookVariants */
 
 /**
  * Escape text content for XML.
@@ -149,9 +158,7 @@ function extendTextBounds(points, el, hook) {
 function readHook(el) {
   const hook = el.customData?.excaliplantHook;
   if (
-    typeof hook?.name !== "string" ||
-    !(isHookToken(hook.name) || /^@line:[0-9]{1,15}:[0-9]{1,15}$/.test(hook.name)) ||
-    hook.name !== hook.name.trim() ||
+    !isHookName(hook?.name) ||
     typeof el.id !== "string" ||
     !el.id ||
     el.id.length > 256 ||
@@ -168,6 +175,8 @@ function readHook(el) {
     name: hook.name,
     id,
     classes,
+    parent: isHookName(hook.parent) ? hook.parent : null,
+    clickFromChildren: hook.clickFromChildren === true,
     hover: styleHookElement(el, hook.hover),
     click: styleHookElement(el, hook.click),
   };
@@ -193,7 +202,11 @@ function renderElement(el, bg, hook) {
   const hookClasses = hook.classes.length
     ? ` data-excaliplant-hook-classes="${escapeXml(hook.classes.join(" "))}"`
     : "";
-  return `<g data-excaliplant-hook="${escapeXml(hook.name)}"${hookId}${hookClasses} data-excaliplant-element-id="${escapeXml(el.id)}">${wrapLink(visuals + hit, link)}</g>`;
+  const hookParent = hook.parent ? ` data-excaliplant-hook-parent="${escapeXml(hook.parent)}"` : "";
+  const clickFromChildren = hook.clickFromChildren
+    ? ' data-excaliplant-click-from-children="true"'
+    : "";
+  return `<g data-excaliplant-hook="${escapeXml(hook.name)}"${hookId}${hookClasses}${hookParent}${clickFromChildren} data-excaliplant-element-id="${escapeXml(el.id)}">${wrapLink(visuals + hit, link)}</g>`;
 }
 
 /** @param {string} body @param {string | null} link */

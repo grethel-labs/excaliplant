@@ -249,7 +249,8 @@ Put excaliplant `@hook` directives at the start of the diagram or `newpage` page
 before the diagram body. Use a unique `#id`, one or more reusable `.classes`, or
 both. The `alias:` selector binds a graph node or sequence participant by its
 PlantUML alias. An `element:<id>` selector targets any drawing element in any
-diagram kind. Get that ID from `result.excalidraw.elements` using the same seed,
+diagram kind, including connectors and their labels. Get that ID from
+`result.excalidraw.elements` using the same seed,
 diagram block, page and drawing order. Quote aliases that contain spaces. In raw
 diagram formats such as Ditaa and JSON, put a binding before its style lines.
 
@@ -273,6 +274,11 @@ and the `roles.hook-hover.*` and `roles.hook-click.*` theme defaults. Classes
 override defaults in the order on the binding line, and ID styles take priority
 over class styles. A click toggles selection, which takes visual precedence over
 hover. The existing diagram layout stays in place.
+
+Nested elements handle hover and click on the element under the pointer by
+default. Add `click-from-children` to a parent hook binding to receive clicks
+from its hooked descendants. See [nested hooks](docs/hooks.md#nested-hooks) for
+parent resolution and the forwarded event payload.
 
 Render the SVG with `toSvg({ interactive: true })` and insert it inline into the
 host page. Then use the browser entry point to enable and listen for interactions.

@@ -226,6 +226,49 @@ test("playground sanitizer keeps only the SVG attributes needed for live hook pr
   assert.doesNotMatch(markdownSvg, /data-excaliplant-|display=|pointer-events=|aria-hidden=/);
 });
 
+test("nested hook markers accept only valid parent names and literal opt-in values", async () => {
+  const result = await render(
+    "@startuml\n@hook #details alias:Details\ncomponent Details\n@enduml",
+    { strict: true },
+  );
+  const doc = result.toJSON();
+  const [valid, invalid] = doc.elements.filter((el) => el.customData?.excaliplantHook);
+  valid.customData.excaliplantHook = {
+    ...valid.customData.excaliplantHook,
+    parent: "@line:5:2",
+    clickFromChildren: true,
+  };
+  invalid.customData.excaliplantHook = {
+    ...invalid.customData.excaliplantHook,
+    parent: 'details" onload="alert(1)',
+    clickFromChildren: "true",
+  };
+  const svg = excalidrawToSvg(doc, { interactive: true, embedFont: false });
+  const markers = / data-excaliplant-(?:hook-parent|click-from-children)="[^"]*"/g;
+  const validMarkers = [
+    ' data-excaliplant-hook-parent="@line:5:2"',
+    ' data-excaliplant-click-from-children="true"',
+  ];
+  assert.deepEqual(svg.match(markers), validMarkers);
+
+  const preview = sanitizeHookPreview(
+    svg.replace(
+      "</svg>",
+      `<g data-excaliplant-hook-parent="outer" data-excaliplant-click-from-children="True"/>
+       <g data-excaliplant-hook-parent="outer\n" data-excaliplant-click-from-children="t&#x72;ue"/>
+       <g data-excaliplant-hook-parent="@line:5:2:1" data-excaliplant-click-from-children="false"/>
+       <rect data-excaliplant-hook-parent="outer" data-excaliplant-click-from-children="true"/>
+       </svg>`,
+    ),
+  );
+  assert.deepEqual(preview.match(markers), [
+    ...validMarkers,
+    ' data-excaliplant-hook-parent="outer"',
+  ]);
+  const { sanitizeSvg } = await import("../src/markdown/index.mjs");
+  assert.doesNotMatch(sanitizeSvg(svg), markers);
+});
+
 test("mcp: tool arguments cannot name files or switch on includes", async () => {
   const { createServer } = await import("../src/mcp/index.mjs");
   const server = createServer({ executor: "inline" });

@@ -76,8 +76,10 @@ export function drawGraph(model, canvas) {
   /** @type {ContainerHeader[]} */
   const headers = [];
   for (const node of nodes) {
-    const id = canvas.withHookAlias(node.id, () =>
-      canvas.group(() => drawNode(node, canvas, theme, headers)),
+    const id = canvas.withHookAlias(
+      node.id,
+      () => canvas.group(() => drawNode(node, canvas, theme, headers)),
+      node,
     );
     if (id) ids.set(node.id, id);
   }
@@ -100,7 +102,7 @@ export function drawGraph(model, canvas) {
     drawEdge(v.edge, v.from, v.to, canvas, ids, v.pts, obstacles, backgroundAt);
   // Container titles last: placed where lines cross least, drawn above the lines.
   for (const { alias, draw } of headers)
-    canvas.withHookAlias(alias, () => draw(obstacles, backgroundAt));
+    canvas.withHookAlias(alias, () => draw(obstacles, backgroundAt), model.nodes.get(alias));
 }
 
 /**

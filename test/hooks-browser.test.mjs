@@ -63,31 +63,36 @@ test("interactive SVG validates untrusted hook metadata and bounds its visual st
 const runBrowser =
   process.env.EXCALIPLANT_HOOKS_BROWSER_TEST === "1" || Boolean(process.env.SITE_SMOKE_BROWSER);
 
+async function openHookDiagram(t, source) {
+  const { chromium } = await import("playwright-core");
+  const args = ["--no-sandbox"];
+  const browser = process.env.SITE_SMOKE_BROWSER
+    ? await chromium.launch({ executablePath: process.env.SITE_SMOKE_BROWSER, args })
+    : await chromium.launch({ channel: "chrome", args }).catch(() => chromium.launch({ args }));
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  const result = await render(source, { strict: true, theme: "plain" });
+  const svg = await result.toSvg({ interactive: true, padding: 0, embedFont: false });
+  await page.route(url, (route) =>
+    route.fulfill({ contentType: "text/html", body: `<!doctype html><main>${svg}</main>` }),
+  );
+  await page.goto(url);
+  const module = await readFile(new URL("../src/browser/hooks.mjs", import.meta.url), "utf8");
+  await page.addScriptTag({
+    type: "module",
+    content: `${module}\nObject.assign(window, { bindHooks, onHook });`,
+  });
+  return { page, result };
+}
+
 test(
   "inline SVG hooks combine real pointer and keyboard input with normal links",
   { skip: !runBrowser },
   async (t) => {
-    const { chromium } = await import("playwright-core");
-    const args = ["--no-sandbox"];
-    const browser = process.env.SITE_SMOKE_BROWSER
-      ? await chromium.launch({ executablePath: process.env.SITE_SMOKE_BROWSER, args })
-      : await chromium.launch({ channel: "chrome", args }).catch(() => chromium.launch({ args }));
-    t.after(() => browser.close());
-    const page = await browser.newPage();
-    const result = await render(diagram, { strict: true, theme: "plain" });
-    const svg = await result.toSvg({ interactive: true, padding: 0, embedFont: false });
+    const { page, result } = await openHookDiagram(t, diagram);
     const [shape] = result.excalidraw.elements;
     const label = result.excalidraw.elements.find((el) => el.text === "Service");
     const linked = result.excalidraw.elements.find((el) => el.link === `${url}#linked`);
-    await page.route(url, (route) =>
-      route.fulfill({ contentType: "text/html", body: `<!doctype html><main>${svg}</main>` }),
-    );
-    await page.goto(url);
-    const module = await readFile(new URL("../src/browser/hooks.mjs", import.meta.url), "utf8");
-    await page.addScriptTag({
-      type: "module",
-      content: `${module}\nObject.assign(window, { bindHooks, onHook });`,
-    });
     assert.ok(
       await page.evaluate(() => {
         window.events = [];
@@ -216,3 +221,156 @@ test(
     assert.equal(new URL(page.url()).hash, "#normal");
   },
 );
+
+for (const forward of [false, true]) {
+  test(
+    forward
+      ? "nested clicks reach an opted-in ancestor and skip the middle hook"
+      : "nested hooks respond independently by default",
+    { skip: !runBrowser },
+    async (t) => {
+      const { page, result } = await openHookDiagram(
+        t,
+        `@startuml
+@hook #parent alias:outer .group${forward ? " click-from-children" : ""}
+@hook #middle alias:middle
+@hook #child alias:inner .leaf
+@hook #parent hover BackgroundColor #fef0ad
+@hook #middle hover BackgroundColor #d5f5e3
+@hook #child hover BackgroundColor #fac0cb
+@hook #parent click BackgroundColor #ffd76a
+@hook #child click BackgroundColor #f1869a
+package "Outer" as outer {
+  package "Middle" as middle {
+    component "Inner" as inner
+  }
+}
+@enduml`,
+      );
+      await page.evaluate(() => {
+        window.events = [];
+        const svg = document.querySelector("svg");
+        document
+          .querySelector("main")
+          .addEventListener("excaliplant:hook", ({ detail }) => window.events.push(detail));
+        window.cleanup = window.bindHooks(svg);
+      });
+
+      const hooks = ["parent", "middle", "child"];
+      const surfaces = hooks.map((id) =>
+        result.excalidraw.elements.find(
+          (el) => el.type === "rectangle" && el.customData?.excaliplantHook?.id === id,
+        ),
+      );
+      const label = result.excalidraw.elements.find((el) => el.text === "Inner");
+      const part = (id) => page.locator(`[data-excaliplant-element-id="${id}"]`);
+      const appearance = (id, tag) =>
+        part(id).locator(`[data-excaliplant-variant]:not([display]) ${tag}`);
+      const controls = ["Outer", "Middle", "Inner"].map((name) =>
+        page.getByRole("button", { name, exact: true }),
+      );
+      const [outerControlId, , innerControlId] = await Promise.all(
+        controls.map((control) => control.getAttribute("data-excaliplant-element-id")),
+      );
+      const fills = () =>
+        Promise.all(surfaces.map(({ id }) => appearance(id, "rect").getAttribute("fill")));
+      const selected = () =>
+        Promise.all(
+          controls.map(async (control) => (await control.getAttribute("aria-pressed")) === "true"),
+        );
+      const events = () => page.evaluate(() => window.events.splice(0));
+      const direct = (id, classes, type, active, elementId) => ({
+        id,
+        classes,
+        type,
+        active,
+        elementId,
+      });
+      const outerHover = (active) => direct("parent", ["group"], "hover", active, surfaces[0].id);
+      const innerHover = (active) => direct("child", ["leaf"], "hover", active, label.id);
+      const innerClick = (active, id = label.id) => direct("child", ["leaf"], "click", active, id);
+      const forwarded = (active, sourceElementId = label.id) => ({
+        ...direct("parent", ["group"], "click", active, outerControlId),
+        sourceElementId,
+      });
+
+      const [outerBase, middleBase, innerBase] = await fills();
+      const outerBox = await appearance(surfaces[0].id, "rect").boundingBox();
+      const labelBox = await appearance(label.id, "text").boundingBox();
+      assert.ok(outerBox && labelBox);
+      const outerPoint = [outerBox.x + 7, outerBox.y + outerBox.height / 2];
+      const innerPoint = [labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2];
+
+      await page.mouse.move(...outerPoint);
+      assert.deepEqual(await fills(), ["#fef0ad", middleBase, innerBase]);
+      await page.mouse.move(...innerPoint);
+      assert.deepEqual(await fills(), [outerBase, middleBase, "#fac0cb"]);
+      await page.mouse.move(...outerPoint);
+      assert.deepEqual(await fills(), ["#fef0ad", middleBase, innerBase]);
+      assert.deepEqual(await events(), [
+        outerHover(true),
+        outerHover(false),
+        innerHover(true),
+        innerHover(false),
+        outerHover(true),
+      ]);
+
+      await page.mouse.click(...outerPoint);
+      assert.deepEqual(await selected(), [true, false, false]);
+      assert.deepEqual(await events(), [
+        direct("parent", ["group"], "click", true, surfaces[0].id),
+      ]);
+      await page.mouse.click(...innerPoint);
+      assert.deepEqual(await selected(), [!forward, false, true]);
+      assert.deepEqual(await fills(), [forward ? outerBase : "#ffd76a", middleBase, "#f1869a"]);
+      assert.deepEqual(await events(), [
+        outerHover(false),
+        innerHover(true),
+        innerClick(true),
+        ...(forward ? [forwarded(false)] : []),
+      ]);
+
+      await controls[2].focus();
+      await page.keyboard.press("Enter");
+      assert.deepEqual(await selected(), [true, false, false]);
+      await page.keyboard.press("Space");
+      assert.deepEqual(await selected(), [!forward, false, true]);
+      assert.deepEqual(await events(), [
+        innerClick(false, innerControlId),
+        ...(forward ? [forwarded(true, innerControlId)] : []),
+        innerClick(true, innerControlId),
+        ...(forward ? [forwarded(false, innerControlId)] : []),
+      ]);
+
+      await page.evaluate(() => {
+        const svg = document.querySelector("svg");
+        const stop = window.onHook(svg, "#child", ({ detail }) => {
+          if (detail.type !== "click") return;
+          stop();
+          window.cleanup();
+        });
+      });
+      await page.mouse.click(...innerPoint);
+      assert.deepEqual(await events(), [innerClick(false)]);
+      assert.deepEqual(await fills(), [outerBase, middleBase, innerBase]);
+      assert.equal(await page.locator("svg [aria-pressed]").count(), 0);
+      await page.mouse.click(...innerPoint);
+      assert.deepEqual(await events(), []);
+
+      if (forward) {
+        await page.evaluate(() => {
+          const svg = document.querySelector("svg");
+          window.bindHooks(svg);
+          window.detachedParentEvents = [];
+          window.onHook(svg, "#parent", ({ detail }) => window.detachedParentEvents.push(detail));
+          window.onHook(svg, "#child", ({ detail }) => {
+            if (detail.type === "click") svg.remove();
+          });
+        });
+        await page.mouse.click(...innerPoint);
+        assert.equal(await page.locator("svg").count(), 0);
+        assert.deepEqual(await page.evaluate(() => window.detachedParentEvents), []);
+      }
+    },
+  );
+}

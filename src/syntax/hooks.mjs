@@ -14,6 +14,8 @@ import { parseStyleProperty } from "./skin.mjs";
  * @property {string[]} classes
  * @property {"alias" | "element"} selector
  * @property {string} target
+ * @property {true} [clickFromChildren] Forward descendant clicks to this binding.
+ * @property {string} [parentId] Explicit author-defined parent ID.
  * @property {number} line
  * @property {RoleStyle} hover
  * @property {RoleStyle} click
@@ -50,7 +52,7 @@ export function extractHooks(lines, diagnostics, options = {}) {
     if (!trimmed) continue;
     if (!/^@hook(?:\s|$)/i.test(trimmed)) break;
     const declaration =
-      /^@hook\s+(?:#?([A-Za-z_][\w-]{0,63})\s+)?(alias|element):(?:"([^"\r\n]+)"|([^"\s]+))((?:\s+\.[A-Za-z_][\w-]{0,63})*)$/i.exec(
+      /^@hook\s+(?:#?([A-Za-z_][\w-]{0,63})\s+)?(alias|element):(?:"([^"\r\n]+)"|([^"\s]+))((?:\s+\.[A-Za-z_][\w-]{0,63})*)((?:\s+(?:click-from-children|parent:#[A-Za-z_][\w-]{0,63})){0,2})$/i.exec(
         trimmed,
       );
     const style = declaration
@@ -62,7 +64,7 @@ export function extractHooks(lines, diagnostics, options = {}) {
     if (options.raw && !declaration && !(found && style)) break;
     found = true;
     if (declaration) {
-      const [, id, selector, quoted, token, classList] = declaration;
+      const [, id, selector, quoted, token, classList, modifierList] = declaration;
       const classes = [
         ...new Set(
           classList
@@ -84,12 +86,24 @@ export function extractHooks(lines, diagnostics, options = {}) {
         reportHookError(diagnostics, line, `Duplicate hook ID "${id}"`);
         continue;
       }
+      const modifiers = modifierList.trim().split(/\s+/).filter(Boolean);
+      const clickFromChildren = modifiers.some((modifier) =>
+        /^click-from-children$/i.test(modifier),
+      );
+      const parentId = modifiers.find((modifier) => /^parent:#/i.test(modifier))?.slice(8);
+      if (modifiers.length > Number(clickFromChildren) + Number(Boolean(parentId))) {
+        reportHookError(diagnostics, line, "Duplicate hook modifier");
+        continue;
+      }
+      /** @type {Hook} */
       const hook = {
         name: id ?? `@line:${line}:${hooks.length}`,
         id,
         classes,
         selector: /** @type {Hook["selector"]} */ (selector.toLowerCase()),
         target: quoted ?? token,
+        ...(clickFromChildren && { clickFromChildren: true }),
+        ...(parentId && { parentId }),
         line,
         hover: {},
         click: {},
