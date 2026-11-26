@@ -4,7 +4,7 @@ description: Render PlantUML as hand-drawn Excalidraw, SVG or PNG. Use for any U
 license: MIT
 compatibility: Needs Node.js 20+ (runs with npx). No Java, Graphviz or network at render time.
 metadata:
-  version: "1.14.0"
+  version: "1.14.1"
   repository: https://github.com/grethel-labs/excaliplant
 ---
 
