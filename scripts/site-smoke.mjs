@@ -200,6 +200,17 @@ export async function runSmoke(dir, options = {}) {
       await waitRendered(play, "sequence");
       await previewIsShown(play);
     });
+    await step("the header switches to the matching brand asset", play, async () => {
+      const original = await play.locator("html").getAttribute("data-theme");
+      const alternate = original === "dark" ? "light" : "dark";
+      for (const mode of [alternate, original]) {
+        await play.locator("#theme-toggle").click();
+        const logo = play.locator(`.brand .brand-${mode}`);
+        await logo.waitFor({ state: "visible" });
+        if (!(await logo.evaluate((image) => /** @type {HTMLImageElement} */ (image).naturalWidth)))
+          throw new Error(`Header logo for ${mode} did not load`);
+      }
+    });
     await step(
       "a graph example renders (loads the layout engine in the worker)",
       play,

@@ -54,7 +54,7 @@ npm run build --prefix integrations/vscode      # dist/extension.js only
 node scripts/build-vscode.mjs --version 1.4.0   # dist/excaliplant-1.4.0.vsix (prints the path)
 ```
 
-`scripts/build-vscode.mjs` stages the files in a temporary directory, sets the version there (the checked-in `package.json` keeps `0.0.0`), copies `LICENSE`, `THIRD_PARTY_NOTICES.md` and the Excalifont licence from the repository root, and runs `vsce package --no-dependencies`. The font and the package version are inlined into the bundle; the PNG rasteriser is replaced by a stub. `node scripts/build-vscode.mjs --icon` regenerates `icon.png` from a diagram rendered by excaliplant.
+`scripts/build-vscode.mjs` stages the files in a temporary directory, sets the version there (the checked-in `package.json` keeps `0.0.0`), copies `LICENSE`, `THIRD_PARTY_NOTICES.md` and the Excalifont licence from the repository root, and runs `vsce package --no-dependencies`. The font and the package version are inlined into the bundle; the PNG rasteriser is replaced by a stub. `node scripts/build-vscode.mjs --icon` renders the shared SVG mark to the extension's PNG.
 
 ### Publish
 

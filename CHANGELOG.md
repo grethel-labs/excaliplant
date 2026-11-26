@@ -17,6 +17,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Changed
 
+- Use the Diagram Sprout logo and Grethel Labs colours across the README, website, and editor and plugin icons.
 - The Codex plugin carries the listing the OpenAI plugin portal asks for (display name, descriptions, category, starter prompts, support and privacy URLs, logo and composer icon), and `PRIVACY.md` answers the five points the OpenAI guidelines require. A test applies the portal's validation rules to the release archive.
 - State diagram text geometry is populated during layout. `parse()` returns the state model before text measurement.
 

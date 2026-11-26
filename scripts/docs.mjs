@@ -3,8 +3,8 @@
 //
 //   docs/gallery/<kind>/<name>.svg    every example (Excalifont embedded)
 //   docs/gallery.md                    gallery page with sources and images
-//   docs/assets/carousel.svg           animated README carousel (one slide per diagram type)
-//   docs/assets/*.png                  theme showcase and pipeline picture
+//   docs/assets/carousel*.svg          light and dark animated README carousels
+//   docs/assets/*.png                  theme showcase, pipeline and social preview
 //   docs/development/diagrams/         editable scenes and previews next to their sources
 //   README.md                          rendered from docs/README.template.md
 //
@@ -17,7 +17,8 @@
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import { render, THEME_NAMES } from "../src/index.mjs";
-import { ROOT, SITE_URL, TYPES, loadExamples, carouselSvg } from "./showcase.mjs";
+import { svgToPng } from "../src/render/png.mjs";
+import { ROOT, SITE_URL, TYPES, loadExamples, carouselSvg, socialCardSvg } from "./showcase.mjs";
 
 const check = process.argv.includes("--check");
 /** @type {string[]} */
@@ -77,15 +78,11 @@ const gallery = [
   kinds.map((k) => `[${titleOf.get(k)}](#${k})`).join(" · "),
   "",
 ];
-/** @type {{ kind: string, title: string, name: string, doc: any }[]} */
-const slides = [];
 for (const kind of kinds) {
   gallery.push(`## ${kind}`, "", `**${titleOf.get(kind)}** — ${noteOf.get(kind)}`, "");
   for (const ex of examples.filter((e) => e.kind === kind)) {
     const result = await render(ex.source);
     emit(`docs/gallery/${kind}/${ex.name}.svg`, await result.toSvg());
-    if (!slides.some((s) => s.kind === kind))
-      slides.push({ kind, title: ex.title, name: ex.name, doc: result.excalidraw });
     gallery.push(
       `### ${ex.name}`,
       "",
@@ -103,7 +100,31 @@ for (const kind of kinds) {
   }
 }
 emit("docs/gallery.md", `${gallery.join("\n").trimEnd()}\n`);
-emit("docs/assets/carousel.svg", carouselSvg(slides));
+
+const pipelineSource = readFileSync(path.join(ROOT, "docs", "diagrams", "pipeline.puml"), "utf8");
+for (const mode of /** @type {const} */ (["light", "dark"])) {
+  const theme = `grethel-labs-${mode}`;
+  const suffix = mode === "dark" ? "-dark" : "";
+  const slides = [];
+  for (const kind of kinds) {
+    const { title, name, source } = examples.find((example) => example.kind === kind);
+    const result = await render(source, { theme });
+    slides.push({ kind, title, name, doc: result.excalidraw });
+  }
+  emit(`docs/assets/carousel${suffix}.svg`, carouselSvg(slides, { mode }));
+  const pipeline = await render(pipelineSource, { theme });
+  emit(`docs/assets/pipeline${suffix}.png`, await pipeline.toPng({ scale: 1.5 }), { binary: true });
+}
+
+const brandSource = readFileSync(path.join(ROOT, "docs", "diagrams", "brand-preview.puml"), "utf8");
+const brandPreview = await render(brandSource, { theme: "grethel-labs-dark" });
+emit(
+  "docs/assets/social-card.png",
+  svgToPng(socialCardSvg(brandPreview.excalidraw), { width: 1200 }),
+  {
+    binary: true,
+  },
+);
 
 // ── theme showcase and pipeline picture ──────────────────────────────
 const themeSource = readFileSync(path.join(ROOT, "docs", "diagrams", "theme-demo.puml"), "utf8");
@@ -111,10 +132,6 @@ for (const theme of THEME_NAMES) {
   const result = await render(themeSource, { theme });
   emit(`docs/assets/theme-${theme}.png`, await result.toPng({ scale: 1.2 }), { binary: true });
 }
-const pipeline = await render(
-  readFileSync(path.join(ROOT, "docs", "diagrams", "pipeline.puml"), "utf8"),
-);
-emit("docs/assets/pipeline.png", await pipeline.toPng({ scale: 1.5 }), { binary: true });
 
 // ── development diagrams ────────────────────────────────────────────
 const developmentDiagrams = "docs/development/diagrams";
@@ -181,6 +198,6 @@ if (check) {
   console.log("Generated docs are up to date.");
 } else {
   console.log(
-    `Generated ${examples.length} gallery entries for ${kinds.length} diagram types, a ${slides.length}-slide carousel and README.md.`,
+    `Generated ${examples.length} gallery entries for ${kinds.length} diagram types, light and dark carousels, and README.md.`,
   );
 }

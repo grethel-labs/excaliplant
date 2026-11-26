@@ -54,6 +54,22 @@ test("the page shows the version and has no unresolved placeholders", () => {
   assert.match(html, /<meta name="viewport"/);
 });
 
+test("the site ships both logo variants, favicon and social preview", () => {
+  const html = read("index.html");
+  for (const file of ["icon.svg", "favicon.svg", "logo-light.svg", "logo-dark.svg"]) {
+    assert.ok(html.includes(`"brand/${file}"`));
+    assert.equal(
+      read(`brand/${file}`),
+      readFileSync(path.join(root, "assets", "brand", file), "utf8"),
+    );
+  }
+  assert.match(
+    html,
+    /property="og:image" content="https:\/\/grethel-labs\.github\.io\/excaliplant\/brand\/social-card\.png"/,
+  );
+  assert.ok(existsSync(path.join(out, "brand", "social-card.png")));
+});
+
 /** All absolute http(s) URLs in a text. */
 const urls = (/** @type {string} */ text) =>
   [...text.matchAll(/https?:\/\/[^\s"'<>)\\`]+/g)].map((m) => m[0]);
@@ -63,6 +79,7 @@ test("no external URLs in HTML, CSS and page scripts, except project links", () 
     /^https:\/\/github\.com\/grethel-labs\/excaliplant(\/|#|$)/,
     /^https:\/\/www\.npmjs\.com\/package\/@grethel-labs\/excaliplant(\/|$)/,
     /^https:\/\/grethel-labs\.github\.io\/excaliplant\/?$/,
+    /^https:\/\/grethel-labs\.github\.io\/excaliplant\/brand\/social-card\.png$/,
     /^http:\/\/www\.w3\.org\/2000\/svg$/, // XML namespace, never fetched
   ];
   for (const f of ["index.html", "styles.css", "app.js", "boot.js"]) {

@@ -242,33 +242,14 @@ export async function packageVsix(options = {}) {
 }
 
 /**
- * Regenerate `icon.png` (128x128 by default) from a diagram rendered by
- * excaliplant itself. The output is deterministic. Needs the repository's own
- * dependencies.
+ * Rasterise the shared brand icon for editor and plugin packages.
  * @param {string} [outfile]
  * @param {number} [size] Edge length in pixels; the drawing scales with it.
  * @returns {Promise<string>} Path of the written file.
  */
 export async function generateIcon(outfile = path.join(EXT_DIR, "icon.png"), size = 128) {
-  const { render } = await import(pathToFileURL(path.join(ROOT, "src", "api.mjs")).href);
-  const { svgToPng } = await import(
-    pathToFileURL(path.join(ROOT, "src", "render", "png.mjs")).href
-  );
-  const diagram = await render(
-    "@startuml\nrectangle UML as a\nrectangle SVG as b\na --> b\n@enduml",
-    { theme: "sketch", seed: 7 },
-  );
-  const inner = (await diagram.toSvg({ embedFont: false }))
-    .replace(/<\?xml[^>]*>/, "")
-    .replace(/<svg\b([^>]*)>/, (_m, attrs) => {
-      const clean = attrs.replace(/\s(?:width|height)="[^"]*"/g, "");
-      return `<svg${clean} x="26" y="12" width="76" height="104">`;
-    });
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ` +
-    `viewBox="0 0 128 128" width="128" height="128">` +
-    `<rect x="2" y="2" width="124" height="124" rx="24" fill="#ffffff" stroke="#1971c2" stroke-width="4"/>` +
-    `${inner}</svg>`;
+  const { svgToPng } = await import("../src/render/png.mjs");
+  const svg = readFileSync(path.join(ROOT, "assets", "brand", "icon.svg"), "utf8");
   writeFileSync(outfile, svgToPng(svg, { width: size }));
   return outfile;
 }

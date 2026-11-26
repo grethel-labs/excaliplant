@@ -1,0 +1,8 @@
+@startuml
+left to right direction
+component "PlantUML" as code
+component "Editable\nscene" as scene
+component "SVG / PNG" as export
+code --> scene
+scene --> export
+@enduml
