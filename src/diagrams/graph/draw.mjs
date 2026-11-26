@@ -12,6 +12,8 @@ import { tabWidth } from "./route.mjs";
 /** @typedef {import("../../model/graph.mjs").GraphModel} GraphModel */
 /** @typedef {import("../../model/graph.mjs").GraphNode} GraphNode */
 /** @typedef {import("../../draw/canvas.mjs").Canvas} Canvas */
+/** @typedef {(x: number, y: number) => string} BackgroundAt */
+/** @typedef {{ alias: string, draw: (obstacles: Obstacles, backgroundAt: BackgroundAt) => void }} ContainerHeader */
 
 const VISIBILITY = {
   "+": { shape: "circle", color: "special.visibility-public.stroke", filled: true },
@@ -71,10 +73,12 @@ export function drawGraph(model, canvas) {
     if (edge.endHead) obstacles.addHead(pts[pts.length - 1], pts[pts.length - 2]);
   }
 
-  /** @type {(() => void)[]} */
+  /** @type {ContainerHeader[]} */
   const headers = [];
   for (const node of nodes) {
-    const id = canvas.group(() => drawNode(node, canvas, theme, headers));
+    const id = canvas.withHookAlias(node.id, () =>
+      canvas.group(() => drawNode(node, canvas, theme, headers)),
+    );
     if (id) ids.set(node.id, id);
   }
   // Edge label backdrops take the colour of the innermost container below them.
@@ -95,7 +99,8 @@ export function drawGraph(model, canvas) {
   for (const v of visible)
     drawEdge(v.edge, v.from, v.to, canvas, ids, v.pts, obstacles, backgroundAt);
   // Container titles last: placed where lines cross least, drawn above the lines.
-  for (const draw of headers) draw.call(null, obstacles, backgroundAt);
+  for (const { alias, draw } of headers)
+    canvas.withHookAlias(alias, () => draw(obstacles, backgroundAt));
 }
 
 /**
@@ -108,7 +113,8 @@ export function nodeStyle(node, theme) {
   return roleStyle(theme, node.role, {
     fill: c.fill,
     stroke: c.stroke,
-    text: c.text,
+    text: c.text ?? node.data.textStyle?.text,
+    fontSize: node.data.textStyle?.fontSize,
     strokeStyle: c.strokeStyle,
     fillStyle: node.stereotypes.includes("c4") ? "solid" : undefined,
     strokeWidth: c.strokeWidth,
@@ -119,7 +125,7 @@ export function nodeStyle(node, theme) {
  * @param {GraphNode} node
  * @param {Canvas} canvas
  * @param {import("../../draw/theme.mjs").Theme} theme
- * @param {((obstacles: Obstacles) => void)[] | null} [headers] Deferred container titles.
+ * @param {ContainerHeader[] | null} [headers] Deferred container titles.
  * @returns {string | null} Bindable element id.
  */
 export function drawNode(node, canvas, theme, headers = null) {
@@ -179,6 +185,7 @@ export function drawNode(node, canvas, theme, headers = null) {
  * @param {Canvas} canvas
  * @param {import("../../draw/canvas.mjs").Style} style
  * @param {string} textColor
+ * @param {ContainerHeader[] | null} [headers]
  */
 function drawContainer(node, canvas, style, textColor, headers = null) {
   const { x, y, width: w, height: h } = node;
@@ -187,7 +194,7 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
   let id;
   // Title plates match what lies below them: the container's own fill, else
   // (unfilled frames, packages …) the fill of the container around it.
-  /** @type {((px: number, py: number) => string) | null} */
+  /** @type {BackgroundAt | null} */
   let backgroundAt = null;
   const plateFill = (/** @type {{ x: number, y: number, w: number, h: number }} */ box) =>
     style.fill && style.fill !== TRANSPARENT
@@ -208,7 +215,10 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
       { ...style, closed: true },
     );
     id = canvas.rect(x, y + tabH, w, h - tabH, style);
-    const drawTab = (/** @type {Obstacles | null} */ obstacles, /** @type {any} */ bg = null) => {
+    const drawTab = (
+      /** @type {Obstacles | null} */ obstacles,
+      /** @type {BackgroundAt | null} */ bg = null,
+    ) => {
       backgroundAt = bg;
       const bw = Math.max(0, ...geo.blocks.map((/** @type {any} */ b) => b.width));
       const bh = geo.blocks.reduce(
@@ -231,7 +241,7 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
         ty += b.height;
       }
     };
-    if (headers) headers.push(drawTab);
+    if (headers) headers.push({ alias: node.id, draw: drawTab });
     else drawTab(null);
     return id;
   }
@@ -253,7 +263,7 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
     const frameTop = ty - 4;
     const drawFrameTitle = (
       /** @type {Obstacles | null} */ obstacles,
-      /** @type {any} */ bg = null,
+      /** @type {BackgroundAt | null} */ bg = null,
     ) => {
       backgroundAt = bg;
       const box = { x: x + 6, y: frameTop - 2, w: lw - 8, h: lh - 6 };
@@ -271,12 +281,15 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
         cy += b.height;
       }
     };
-    if (headers) headers.push(drawFrameTitle);
+    if (headers) headers.push({ alias: node.id, draw: drawFrameTitle });
     else drawFrameTitle(null);
     return id;
   }
   const top = ty;
-  const drawTitle = (/** @type {Obstacles | null} */ obstacles, /** @type {any} */ bg = null) => {
+  const drawTitle = (
+    /** @type {Obstacles | null} */ obstacles,
+    /** @type {BackgroundAt | null} */ bg = null,
+  ) => {
     backgroundAt = bg;
     const bw = Math.max(0, ...geo.blocks.map((/** @type {any} */ b) => b.width));
     const bh = geo.blocks.reduce(
@@ -314,7 +327,7 @@ function drawContainer(node, canvas, style, textColor, headers = null) {
       cy += b.height;
     }
   };
-  if (headers) headers.push(drawTitle);
+  if (headers) headers.push({ alias: node.id, draw: drawTitle });
   else drawTitle(null);
   if (node.role === "compositeState") {
     canvas.line(

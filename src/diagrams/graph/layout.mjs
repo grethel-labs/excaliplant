@@ -8,6 +8,7 @@
 import { layoutText } from "../../layout/measure.mjs";
 import { shape as shapeDef } from "../../draw/shapes.mjs";
 import { roleStyle } from "../../draw/theme.mjs";
+import { explicitSkinText } from "../../syntax/skin.mjs";
 import { tidyRoutes } from "./route.mjs";
 import { runElk } from "./elk_runner.mjs";
 
@@ -52,12 +53,15 @@ const ICON_ROW = 16;
  * Compute node geometry and size for every node.
  * @param {GraphModel} model
  * @param {import("../../draw/theme.mjs").Theme} theme
+ * @param {GraphLayoutOptions["sizeNode"]} [sizeNode]
  */
-export function sizeGraph(model, theme) {
+export function sizeGraph(model, theme, sizeNode) {
   const hide = model.meta.hide;
   const hideStereo = hide.has("stereotype") || hide.has("stereotypes");
+  resolveTextStyles(model, theme);
   for (const node of model.nodes.values()) {
-    const style = roleStyle(theme, node.role);
+    sizeNode?.(node, node.data.textStyle?.fontSize);
+    const style = roleStyle(theme, node.role, node.data.textStyle);
     const fs = style.fontSize;
     // Internal marker stereotypes (bundled stdlib shims) are never displayed.
     const shown = node.stereotypes.filter((s) => !/^(c4|c4boundary)$/i.test(s));
@@ -151,6 +155,25 @@ export function sizeGraph(model, theme) {
       placement: "inside",
       icon: null,
     };
+  }
+}
+
+/**
+ * Cascade text properties through the container hierarchy before sizing labels.
+ * @param {GraphModel} model
+ * @param {import("../../draw/theme.mjs").Theme} theme
+ */
+function resolveTextStyles(model, theme) {
+  const pending = model.roots();
+  for (let i = 0; i < pending.length; i++) {
+    const node = pending[i];
+    const own = explicitSkinText(theme, node.role);
+    const inherited = node.parent?.data.textStyle;
+    node.data.textStyle = {
+      text: node.colors.text ?? own?.text ?? inherited?.text,
+      fontSize: own?.fontSize ?? inherited?.fontSize,
+    };
+    for (const child of node.children) pending.push(child);
   }
 }
 
@@ -257,6 +280,7 @@ function classGeometry(node, fs, stereo, hide) {
  * @property {number} [nodeSpacing]
  * @property {number} [layerSpacing]
  * @property {"ORTHOGONAL" | "POLYLINE" | "SPLINES"} [routing]
+ * @property {(node: GraphNode, explicitFontSize: number | undefined) => void} [sizeNode] Set custom geometry before ELK.
  */
 
 /**
@@ -268,7 +292,7 @@ function classGeometry(node, fs, stereo, hide) {
  * @returns {Promise<GraphModel>}
  */
 export async function layoutGraph(model, theme, options = {}, runtime = {}) {
-  sizeGraph(model, theme);
+  sizeGraph(model, theme, options.sizeNode);
   const lr = model.direction === "LR";
   const linetype = (model.meta.skin.get("linetype") ?? "").toLowerCase();
   const routing = options.routing ?? (linetype === "polyline" ? "POLYLINE" : "ORTHOGONAL");

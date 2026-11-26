@@ -47,7 +47,10 @@ function drawSequence(laid, c) {
     }
     switch (it.type) {
       case "box": {
-        const s = roleStyle(theme, "participantBox", { fill: it.color ?? undefined });
+        const s = roleStyle(theme, "participantBox", {
+          fill: it.color ?? undefined,
+          text: it.textColor ?? undefined,
+        });
         c.rect(it.x, it.y, it.w, it.h, {
           fill: s.fill,
           stroke: s.stroke,
@@ -162,9 +165,9 @@ function drawSequence(laid, c) {
         const s = roleStyle(theme, "participant", {
           fill: p.colors.fill,
           stroke: p.colors.stroke,
-          text: p.colors.text,
+          text: p.colors.text ?? it.textColor,
         });
-        c.group(() => {
+        const drawHead = () => {
           if (it.icon) {
             const [iw, ih] = it.icon;
             const ix = it.x + (it.w - iw) / 2;
@@ -205,7 +208,8 @@ function drawSequence(laid, c) {
               { color: s.text },
             );
           }
-        });
+        };
+        c.withHookAlias(p.id, () => c.group(drawHead));
         break;
       }
       case "message": {

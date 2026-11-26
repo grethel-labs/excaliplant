@@ -15,6 +15,7 @@
 // Browser: $SITE_SMOKE_BROWSER (path to an executable) → Google Chrome from the
 // system → Playwright's own Chromium (`npx playwright-core install chromium`).
 
+import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { readFile, stat, mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -341,11 +342,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   const args = process.argv.slice(2);
   const shotsAt = args.indexOf("--shots");
   const shots = shotsAt >= 0 ? args.splice(shotsAt, 2)[1] : undefined;
-  const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)), args[0] ?? "_site");
+  const project = fileURLToPath(new URL("..", import.meta.url));
+  const root = path.resolve(project, args[0] ?? "_site");
   runSmoke(root, { shots })
     .then(({ passed, failed }) => {
       console.log(`\n${passed} passed, ${failed.length} failed`);
-      process.exit(failed.length ? 1 : 0);
+      if (failed.length) process.exit(1);
+      execFileSync(process.execPath, ["--test", "test/hooks-browser.test.mjs"], {
+        cwd: project,
+        env: { ...process.env, EXCALIPLANT_HOOKS_BROWSER_TEST: "1" },
+        stdio: "inherit",
+      });
     })
     .catch((err) => {
       console.error(`site-smoke: ${err instanceof Error ? err.message : err}`);

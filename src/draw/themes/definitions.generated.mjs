@@ -44,6 +44,24 @@ export const definitions = [
       "roles.default.text": {
         ref: "colors.ink",
       },
+      "roles.hook-hover.fill": {
+        ref: "palette.yellow.fill",
+      },
+      "roles.hook-hover.stroke": {
+        ref: "palette.yellow.stroke",
+      },
+      "roles.hook-hover.text": {
+        ref: "colors.ink",
+      },
+      "roles.hook-click.fill": {
+        ref: "palette.blue.fill",
+      },
+      "roles.hook-click.stroke": {
+        ref: "palette.blue.stroke",
+      },
+      "roles.hook-click.text": {
+        ref: "colors.ink",
+      },
       "roles.class.fill": {
         ref: "palette.blue.fill",
       },
@@ -608,6 +626,8 @@ export const definitions = [
       "special.monochrome-reverse.fill": "#000000",
     },
     styles: {
+      "roles.hook-hover.strokeWidth": 2.4,
+      "roles.hook-click.strokeWidth": 3,
       fontSize: 16,
       roughness: 1,
       edgeRoughness: 0.3,
@@ -653,6 +673,16 @@ export const definitions = [
     ],
     contrast: {
       pairs: [
+        {
+          foreground: "roles.hook-hover.text",
+          backgrounds: ["roles.hook-hover.fill"],
+          kind: "text",
+        },
+        {
+          foreground: "roles.hook-click.text",
+          backgrounds: ["roles.hook-click.fill"],
+          kind: "text",
+        },
         {
           foreground: "roles.default.text",
           backgrounds: ["roles.default.fill"],

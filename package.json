@@ -16,6 +16,10 @@
     },
     "./svg": "./src/render/svg.mjs",
     "./png": "./src/render/png.mjs",
+    "./hooks": {
+      "types": "./types/browser/hooks.d.mts",
+      "default": "./src/browser/hooks.mjs"
+    },
     "./preprocess": "./src/core/preprocess/preprocessor.mjs",
     "./registry": "./src/core/registry.mjs",
     "./markdown": "./src/markdown/index.mjs",

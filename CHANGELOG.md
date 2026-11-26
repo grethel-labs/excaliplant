@@ -8,6 +8,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Added
 
+- Add PlantUML `@hook` bindings with IDs and classes, themed hover and click styles, and JavaScript events for inline SVG viewers.
 - Add Grethel Labs Light and use coordinated teal outlines, fills, and connectors in both Grethel Labs themes.
 - The playground opens local PlantUML files and folders, resolves their includes in the browser, and exports diagrams together or individually from a carousel.
 - VS Code can switch PlantUML files between the source and a live preview in the same editor group.
@@ -17,6 +18,7 @@ and the [GitHub releases](https://github.com/grethel-labs/excaliplant/releases).
 
 ### Changed
 
+- Inherit explicit text colour and size from graph containers and sequence boxes, with child styles taking precedence.
 - Use the Diagram Sprout logo and Grethel Labs colours across the README, website, and editor and plugin icons.
 - The Codex plugin carries the listing the OpenAI plugin portal asks for (display name, descriptions, category, starter prompts, support and privacy URLs, logo and composer icon), and `PRIVACY.md` answers the five points the OpenAI guidelines require. A test applies the portal's validation rules to the release archive.
 - State diagram text geometry is populated during layout. `parse()` returns the state model before text measurement.

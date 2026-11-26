@@ -6,7 +6,6 @@
  */
 
 import { graphModule } from "../graph/module.mjs";
-import { defineDiagram } from "../../core/registry.mjs";
 import { declare, ensureNode, parseNameAlias } from "../graph/parse.mjs";
 import { parseLink, headsOf } from "../../syntax/arrows.mjs";
 import { parseColorSpec } from "../../syntax/color.mjs";
@@ -334,7 +333,26 @@ function drawState(c, n, style, s) {
   return id;
 }
 
-const diagram = graphModule({
+/**
+ * @param {GraphNode} node
+ * @param {number | undefined} explicitFontSize
+ */
+function sizeState(node, explicitFontSize) {
+  const originalSize = node.data.stateFontSize;
+  if (originalSize === undefined) return;
+  const fs = explicitFontSize ?? originalSize;
+  const name = layoutText(node.label, { fontSize: fs, bold: true });
+  const desc = node.description
+    ? layoutText(node.description, { fontSize: fs * 0.85, align: "left", maxWidth: 320 })
+    : null;
+  node.data.stateText = { name, desc };
+  node.data.fixed = [
+    Math.max(90, name.width + 32, (desc?.width ?? 0) + 28),
+    name.height + 18 + (desc ? desc.height + 14 : 0),
+  ];
+}
+
+export default graphModule({
   kind: "state",
   title: "State diagram",
   keywords: [
@@ -347,6 +365,7 @@ const diagram = graphModule({
     keyword: "state",
   }),
   rules: RULES,
+  layout: { sizeNode: sizeState },
   finish: (model, ctx) => {
     const fs = ctx.module.theme.fontSize;
     for (const n of model.nodes.values()) {
@@ -369,7 +388,7 @@ const diagram = graphModule({
         n.shape = "rounded";
         continue;
       }
-      // Keep the original theme size used for simple states before skin overrides.
+      // Simple states fall back to the base theme size without an explicit style.
       n.data.stateFontSize = fs;
       n.data.draw = drawState;
     }
@@ -381,24 +400,4 @@ const diagram = graphModule({
       [/-+>\s*\[\*\]/, 3],
       [/\[H\*?\]/, 2],
     ]),
-});
-
-export default defineDiagram({
-  ...diagram,
-  layout(model, ctx) {
-    for (const n of model.nodes.values()) {
-      const fs = n.data.stateFontSize;
-      if (fs === undefined) continue;
-      const name = layoutText(n.label, { fontSize: fs, bold: true });
-      const desc = n.description
-        ? layoutText(n.description, { fontSize: fs * 0.85, align: "left", maxWidth: 320 })
-        : null;
-      n.data.stateText = { name, desc };
-      n.data.fixed = [
-        Math.max(90, name.width + 32, (desc?.width ?? 0) + 28),
-        name.height + 18 + (desc ? desc.height + 14 : 0),
-      ];
-    }
-    return diagram.layout(model, ctx);
-  },
 });

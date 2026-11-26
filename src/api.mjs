@@ -60,13 +60,13 @@ export class RenderResult {
 
   /**
    * Render as PNG.
-   * @param {import("./render/png.mjs").PngOptions & import("./render/svg.mjs").SvgOptions} [options]
+   * @param {import("./render/png.mjs").PngOptions & Omit<import("./render/svg.mjs").SvgOptions, "interactive">} [options]
    * @returns {Promise<Buffer>}
    */
   async toPng(options = {}) {
     const { svgToPng } = await import("./render/png.mjs");
     const { background, ...pngOptions } = options;
-    return svgToPng(await this.toSvg({ ...options, background }), pngOptions);
+    return svgToPng(await this.toSvg({ ...options, background, interactive: false }), pngOptions);
   }
 }
 
