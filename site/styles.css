@@ -703,6 +703,33 @@ legend {
 
 /* Preview */
 
+.project-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.project-outputs {
+  border-bottom: 1px solid var(--line);
+}
+
+.project-outputs .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+#project-current {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .canvas {
   position: relative;
   flex: 1;

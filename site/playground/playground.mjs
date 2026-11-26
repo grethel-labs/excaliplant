@@ -5,6 +5,7 @@ import { createEditor } from "./editor.mjs";
 import { createEngineClient } from "./engine.mjs";
 import { download, copyText, fileStem, svgToPngBlob } from "./export.mjs";
 import { filterExamples, findExample } from "./examples.mjs";
+import { readProjectFiles } from "./project-files.mjs";
 import {
   KIND_CHOICES,
   MAX_SOURCE_BYTES,
@@ -53,12 +54,15 @@ export function initPlayground(config) {
   let saveTimer = null;
   /** @type {ReturnType<typeof setTimeout> | null} */
   let toastTimer = null;
-  /** @type {{ svg: string, width: number, height: number, title: string | null } | null} */
+  /** @type {{ svg: string, width: number, height: number, title: string | null, slot?: number } | null} */
   let last = null;
   /** @type {string | null} */
   let blobUrl = null;
   /** @type {"fit" | number} */
   let zoom = "fit";
+  /** @type {{ files: { path: string, text: string }[], output: any, index: number, mode: string } | null} */
+  let project = null;
+  let selection = 0;
 
   const status = byId("status");
   const panes = byId("panes");
@@ -67,10 +71,12 @@ export function initPlayground(config) {
   const placeholder = byId("placeholder");
   const diagnostics = byId("diagnostics");
   const toast = byId("toast");
+  const modeSelect = /** @type {HTMLSelectElement} */ (byId("project-output-mode"));
 
   const editor = createEditor(byId("editor"), {
     label: "PlantUML source",
     onChange(value) {
+      clearProject();
       source = value;
       exampleId = null;
       byId("example-label").textContent = "";
@@ -122,7 +128,7 @@ export function initPlayground(config) {
   /** @param {boolean} immediate */
   function schedule(immediate) {
     if (renderTimer) clearTimeout(renderTimer);
-    if (!immediate && enc.encode(source).length > MAX_SOURCE_BYTES) {
+    if (!project && !immediate && enc.encode(source).length > MAX_SOURCE_BYTES) {
       seq++;
       showError({
         error: `Input exceeds ${MAX_SOURCE_BYTES / 1024} KB. Shorten the text.`,
@@ -136,7 +142,7 @@ export function initPlayground(config) {
   async function run() {
     renderTimer = null;
     const mine = ++seq;
-    if (!source.trim()) {
+    if (!project && !source.trim()) {
       showEmpty();
       return;
     }
@@ -145,56 +151,67 @@ export function initPlayground(config) {
       if (mine === seq) setStatus(last ? "Rendering…" : "Loading engine…", "busy");
     }, 200);
     const mapped = toRenderOptions(options, { pageDark: config.isDark() });
-    const res = await engine.render(source, mapped.render, mapped.svg);
+    const res = project
+      ? await engine.renderProject(project.files, mapped.render, mapped.svg)
+      : await engine.render(source, mapped.render, mapped.svg);
     if (mine !== seq) return; // a newer render was requested: drop this one
     if (busyTimer) clearTimeout(busyTimer);
     if (res.superseded || res.type === "stale") return;
     if (res.retry) return schedule(true);
-    if (res.ok) showResult(res);
-    else showError(res);
+    if (!res.ok) showError(res);
+    else if (project) {
+      project.output = { ...res.project, ms: res.ms };
+      showProjectOutput();
+    } else showResult(res);
   }
 
   function showEmpty() {
     if (busyTimer) clearTimeout(busyTimer);
     last = null;
     preview.hidden = true;
-    placeholder.textContent = "Write some PlantUML to see it here.";
+    preview.removeAttribute("src");
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    blobUrl = null;
+    placeholder.textContent = project
+      ? "Rendering the selected files…"
+      : "Write some PlantUML to see it here.";
     placeholder.className = "placeholder";
     canvas.classList.remove("stale");
-    setStatus("Nothing to render");
+    setStatus(project ? "Rendering local files…" : "Nothing to render", project ? "busy" : "");
     showDiagnostics([]);
     editor.setMarks(new Map());
   }
 
   /** @param {any} res */
   function showResult(res) {
-    last = { svg: res.svg, width: res.width, height: res.height, title: res.title };
+    last = { svg: res.svg, width: res.width, height: res.height, title: res.title, slot: res.slot };
     const url = URL.createObjectURL(new Blob([res.svg], { type: "image/svg+xml" }));
-    const old = blobUrl;
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
     blobUrl = url;
-    preview.onload = () => {
-      if (old) URL.revokeObjectURL(old);
-      applyZoom();
-    };
+    preview.onload = applyZoom;
     preview.src = url;
     preview.alt = res.title ? `Diagram: ${res.title}` : `${res.kind} diagram`;
     preview.hidden = false;
     placeholder.className = "placeholder";
     canvas.classList.remove("stale");
-    updateStructureFields(res);
-    const warnings = res.diagnostics.length;
-    setStatus(
-      `Rendered in ${res.ms} ms · ${res.kind}${warnings ? ` · ${warnings} warning${warnings === 1 ? "" : "s"}` : ""}`,
-    );
+    if (!project) updateStructureFields(res);
+    const warnings = res.diagnostics.filter((d) => d.severity === "warning").length;
+    const errors = res.diagnostics.filter((d) => d.severity === "error").length;
+    const counts = [
+      errors ? `${errors} error${errors === 1 ? "" : "s"}` : "",
+      warnings ? `${warnings} warning${warnings === 1 ? "" : "s"}` : "",
+    ].filter(Boolean);
+    setStatus([`Rendered in ${res.ms} ms`, res.kind, ...counts].join(" · "), errors ? "error" : "");
     /** @type {Map<number, "error" | "warning" | "info">} */
     const marks = new Map();
-    for (const d of res.diagnostics)
-      if (d.line && !marks.has(d.line)) marks.set(d.line, d.severity);
+    if (!project)
+      for (const d of res.diagnostics)
+        if (d.line && !marks.has(d.line)) marks.set(d.line, d.severity);
     showDiagnostics(res.diagnostics);
     editor.setMarks(marks);
   }
 
-  /** @param {{ error: string, line: number | null }} res */
+  /** @param {{ error: string, line: number | null, diagnostics?: any[] }} res */
   function showError(res) {
     setStatus(res.line ? `Error in line ${res.line}` : "Error", "error");
     if (last) canvas.classList.add("stale");
@@ -204,8 +221,8 @@ export function initPlayground(config) {
     }
     const item = { severity: "error", message: res.error, line: res.line };
     const marks = new Map();
-    if (res.line) marks.set(res.line, "error");
-    showDiagnostics([item]);
+    if (res.line && !project) marks.set(res.line, "error");
+    showDiagnostics(res.diagnostics?.length ? res.diagnostics : [item]);
     editor.setMarks(marks);
   }
 
@@ -262,6 +279,110 @@ export function initPlayground(config) {
       blockField.dataset.sig = res.blocks.map((b) => b.name).join("|");
     }
     select.value = String(options.block);
+  }
+
+  function updateProjectControls() {
+    const open = project !== null;
+    byId("project-bar").hidden = !open;
+    byId("field-kind").hidden = open;
+    if (open) {
+      byId("field-block").hidden = true;
+      byId("field-page").hidden = true;
+    }
+    byId("project-outputs").hidden = true;
+    byId("project-carousel").hidden = true;
+    /** @type {HTMLButtonElement} */ (byId("btn-share")).disabled = open;
+    /** @type {HTMLButtonElement} */ (
+      byId("export-menu").querySelector('[data-export="puml"]')
+    ).hidden = open;
+    byId(open ? "pane-preview" : "pane-editor").append(diagnostics);
+  }
+
+  function clearProject() {
+    selection++;
+    if (!project) return;
+    project = null;
+    seq++;
+    updateProjectControls();
+    showEmpty();
+  }
+
+  function showProjectOutput() {
+    if (!project?.output) return;
+    const { entries, combined, problems, ms } = project.output;
+    const carousel = project.mode === "carousel" && entries.length > 1;
+    project.index = Math.min(project.index, entries.length - 1);
+    byId("project-outputs").hidden = !combined;
+    byId("project-carousel").hidden = !carousel;
+    modeSelect.value = project.mode;
+    const item = carousel || !combined ? entries[project.index] : combined;
+    if (carousel)
+      byId("project-current").textContent =
+        `${project.index + 1} / ${entries.length} · ${item.title}`;
+    showResult({ ...item, ms, diagnostics: [...problems, ...item.diagnostics] });
+  }
+
+  /** @param {FileList} files */
+  async function openFiles(files) {
+    if (!files.length) return;
+    const mine = ++selection;
+    setStatus("Reading local files…", "busy");
+    try {
+      const sources = await readProjectFiles(files);
+      if (mine !== selection) return;
+      seq++;
+      project = { files: sources, output: null, index: 0, mode: "combined" };
+      showEmpty();
+      updateProjectControls();
+      byId("project-file-count").textContent =
+        `${sources.length} local PlantUML ${sources.length === 1 ? "file" : "files"}`;
+      showPane("preview");
+      zoom = "fit";
+      schedule(true);
+    } catch (error) {
+      if (mine === selection) showError({ error: error.message, line: null });
+    }
+  }
+
+  for (const [button, input] of [
+    ["btn-open-files", "project-files-input"],
+    ["btn-open-folder", "project-folder-input"],
+  ]) {
+    const picker = /** @type {HTMLInputElement} */ (byId(input));
+    byId(button).addEventListener("click", () => picker.click());
+    picker.addEventListener("change", () => {
+      if (picker.files) void openFiles(picker.files);
+      picker.value = "";
+    });
+  }
+  panes.addEventListener("dragover", (event) => {
+    if (event.dataTransfer?.types.includes("Files")) event.preventDefault();
+  });
+  panes.addEventListener("drop", (event) => {
+    if (!event.dataTransfer?.files.length) return;
+    event.preventDefault();
+    void openFiles(event.dataTransfer.files);
+  });
+  byId("btn-close-project").addEventListener("click", () => {
+    clearProject();
+    showPane("editor");
+    schedule(true);
+  });
+  modeSelect.addEventListener("change", () => {
+    if (!project) return;
+    project.mode = modeSelect.value;
+    showProjectOutput();
+  });
+  for (const [button, offset] of [
+    ["project-prev", -1],
+    ["project-next", 1],
+  ]) {
+    byId(button).addEventListener("click", () => {
+      if (!project?.output) return;
+      const count = project.output.entries.length;
+      project.index = (project.index + count + offset) % count;
+      showProjectOutput();
+    });
   }
 
   // ---- zoom and pan ----------------------------------------------------
@@ -483,6 +604,7 @@ export function initPlayground(config) {
   function loadExample(id) {
     const hit = findExample(index, id);
     if (!hit) return false;
+    clearProject();
     source = hit.item.source;
     exampleId = id;
     editor.setValue(source);
@@ -593,6 +715,7 @@ export function initPlayground(config) {
   async function doExport(what) {
     closePopover(true);
     if (what === "puml") {
+      if (project) return;
       download(new Blob([source], { type: "text/plain;charset=utf-8" }), `${stem()}.puml`);
       return;
     }
@@ -613,6 +736,7 @@ export function initPlayground(config) {
       } else {
         const res = await engine.exportJson(
           what === "copy-excalidraw" ? "clipboard" : "excalidraw",
+          last.slot,
         );
         if (!res.ok) return say("Render the diagram first.");
         if (what === "excalidraw") {
@@ -635,6 +759,7 @@ export function initPlayground(config) {
   }
 
   byId("btn-share").addEventListener("click", async () => {
+    if (project) return;
     const res = await encodeState({ source, options });
     if (!res.ok) {
       say(
@@ -683,6 +808,7 @@ export function initPlayground(config) {
           : await decodeState(/** @type {string} */ (route.payload));
       history.replaceState(null, "", "#play");
       if (state) {
+        clearProject();
         source = state.source;
         options = state.options;
         exampleId = null;

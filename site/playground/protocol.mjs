@@ -4,6 +4,7 @@
 // directly.
 //
 //   page → worker   { type: "render", id, source, options, svg }
+//                   { type: "project", id, files, options, svg }
 //                   { type: "export", id, what: "excalidraw" | "clipboard" }
 //   worker → page   { type: "ready", version }
 //                   { type: "result", id, ok: true, svg, width, height, kind, pages,
@@ -15,7 +16,9 @@
 import { render } from "../../src/api.mjs";
 import { extractBlocks } from "../../src/core/source.mjs";
 import { sanitizeSvg } from "../../src/markdown/sanitize.mjs";
+import { excalidrawToSvg } from "../../src/render/svg.mjs";
 import { THEME_CHOICES, KIND_CHOICES, MAX_SOURCE_BYTES } from "./options.mjs";
+import { combineProject, renderProject } from "./project.mjs";
 
 /**
  * Limits applied in the page: tighter than the library defaults so a pasted
@@ -76,7 +79,8 @@ export function cleanRenderOptions(raw) {
 function cleanSvgOptions(raw) {
   const o = raw && typeof raw === "object" ? /** @type {Record<string, any>} */ (raw) : {};
   const bg = o.background;
-  return typeof bg === "string" && /^(#[0-9a-fA-F]{3,8}|transparent)$/.test(bg)
+  return typeof bg === "string" &&
+    /^(#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})|transparent)$/i.test(bg)
     ? { background: bg }
     : {};
 }
@@ -111,8 +115,10 @@ export function createEngine(config = {}) {
   const now =
     config.now ?? (() => (typeof performance !== "undefined" ? performance.now() : Date.now()));
   const version = config.version ?? "dev";
-  /** @type {import("../../src/api.mjs").RenderResult | null} */
+  /** @type {import("../../src/render/excalidraw.mjs").ExcalidrawDocument | null} */
   let last = null;
+  /** @type {Map<number, import("../../src/render/excalidraw.mjs").ExcalidrawDocument>} */
+  let projectDocs = new Map();
   let newest = -1;
 
   /**
@@ -150,7 +156,11 @@ export function createEngine(config = {}) {
       if (id < newest) return { type: "stale", id };
       const raw = await result.toSvg(cleanSvgOptions(msg.svg));
       const svg = sanitizeSvg(raw);
-      if (keep) last = result;
+      if (id < newest) return { type: "stale", id };
+      if (keep) {
+        last = result.excalidraw;
+        projectDocs.clear();
+      }
       const title = /** @type {any} */ (result.model)?.meta?.title;
       return {
         type: "result",
@@ -171,10 +181,78 @@ export function createEngine(config = {}) {
   }
 
   /** @param {any} msg */
+  async function projectMessage(msg) {
+    const id = Number(msg.id);
+    newest = Math.max(newest, id);
+    const t0 = now();
+    const ms = () => Math.max(1, Math.round(now() - t0));
+    try {
+      const opts = cleanRenderOptions(msg.options);
+      const svgOptions = cleanSvgOptions(msg.svg);
+      const results = await renderProject(msg.files, opts, () => id === newest);
+      if (!results || id < newest) return { type: "stale", id };
+      const { entries, problems } = results;
+      if (!entries.length)
+        return {
+          type: "result",
+          id,
+          ok: false,
+          error: problems[0]?.message ?? "No diagrams were rendered.",
+          line: null,
+          diagnostics: problems,
+          ms: ms(),
+        };
+
+      const docs = new Map();
+      let outputBytes = 0;
+      async function asset(doc, slot, title, kind, diagnostics) {
+        const svg = sanitizeSvg(await excalidrawToSvg(doc, svgOptions));
+        outputBytes += encoder.encode(svg).length;
+        if (outputBytes > 16 * 1024 * 1024) throw new Error("Project SVG output exceeds 16 MiB.");
+        docs.set(slot, doc);
+        return { slot, title, kind, svg, ...svgSize(svg), diagnostics };
+      }
+      const assets = [];
+      for (const [slot, entry] of entries.entries()) {
+        if (id < newest) return { type: "stale", id };
+        const { result, name } = entry;
+        const warnings = result.diagnostics.map((d) => ({
+          ...d,
+          message: `${name}${d.line ? `:${d.line}` : ""}: ${d.message}`,
+          line: null,
+        }));
+        assets.push(await asset(result.excalidraw, slot, name, result.kind, warnings));
+      }
+      const combined =
+        entries.length > 1
+          ? await asset(
+              combineProject([...docs.values()], opts, svgOptions.background),
+              -1,
+              "PlantUML project",
+              "project",
+              assets.flatMap((item) => item.diagnostics),
+            )
+          : null;
+      if (id < newest) return { type: "stale", id };
+      last = null;
+      projectDocs = docs;
+      return {
+        type: "result",
+        id,
+        ok: true,
+        project: { entries: assets, combined, problems },
+        ms: ms(),
+      };
+    } catch (err) {
+      return { type: "result", id, ok: false, ...describe(err), ms: ms() };
+    }
+  }
+
+  /** @param {any} msg */
   function exportMessage(msg) {
     const id = Number(msg.id);
-    if (!last) return { type: "export", id, ok: false, text: "" };
-    const doc = last.excalidraw;
+    const doc = Number.isInteger(msg.slot) ? projectDocs.get(msg.slot) : last;
+    if (!doc) return { type: "export", id, ok: false, text: "" };
     const data =
       msg.what === "clipboard"
         ? { type: "excalidraw/clipboard", elements: doc.elements, files: {} }
@@ -197,6 +275,7 @@ export function createEngine(config = {}) {
       const msg = /** @type {any} */ (message);
       if (!msg || typeof msg !== "object") return null;
       if (msg.type === "render") return renderMessage(msg);
+      if (msg.type === "project") return projectMessage(msg);
       if (msg.type === "export") return exportMessage(msg);
       return null;
     },
