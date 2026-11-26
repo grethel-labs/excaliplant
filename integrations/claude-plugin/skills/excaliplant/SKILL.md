@@ -4,7 +4,7 @@ description: Render PlantUML as hand-drawn Excalidraw, SVG or PNG. Use for any U
 license: MIT
 compatibility: Needs Node.js 20+ (runs with npx). No Java, Graphviz or network at render time.
 metadata:
-  version: "1.9.0"
+  version: "1.10.0"
   repository: https://github.com/grethel-labs/excaliplant
 ---
 
@@ -56,7 +56,7 @@ Keep the diagram short (a few dozen lines) so the link stays usable; for a longe
 
 ## Look and feel
 
-Themes: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs-dark`, `pastel-dark`, `pastel-light`, `transparent-dark`, `transparent-light`. Pass `-t <theme>`, for example `-t blueprint` for a technical look or `-t dark` for dark backgrounds. `--clean` draws straight instead of hand-drawn strokes. Output is deterministic: the same source always gives the same bytes (`--seed` changes the wobble).
+Themes: `sketch`, `plain`, `hachure`, `mono`, `dark`, `blueprint`, `grethel-labs-dark`, `grethel-labs-light`, `pastel-dark`, `pastel-light`, `transparent-dark`, `transparent-light`. Pass `-t <theme>`, for example `-t blueprint` for a technical look or `-t dark` for dark backgrounds. `--clean` draws straight instead of hand-drawn strokes. Output is deterministic: the same source always gives the same bytes (`--seed` changes the wobble).
 
 ## Writing good PlantUML
 
