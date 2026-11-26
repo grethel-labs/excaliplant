@@ -1,7 +1,8 @@
 # Element hook specification
 
-This contract describes the hooks introduced in excaliplant 1.11.0. It covers
-PlantUML input, Excalidraw scene metadata and the inline SVG browser API. The
+Element hooks are available from excaliplant 1.11.0. Nested hook metadata and
+click forwarding are available from 1.12.0. This contract covers PlantUML input,
+Excalidraw scene metadata and the inline SVG browser API. The
 machine-readable [JSON Schema](hooks.schema.json) defines `sceneHook` and
 `hookEventDetail` for consumers that validate JSON. Use the schema root for
 scene metadata and `hooks.schema.json#/$defs/hookEventDetail` for serialized
@@ -14,7 +15,7 @@ this contract follow excaliplant's [major release policy](releasing.md).
 ## PlantUML input
 
 ```text
-@hook [#id] (alias:<target> | element:<target>) [.class ...]
+@hook [#id] (alias:<target> | element:<target>) [.class ...] [click-from-children] [parent:#id]
 @hook (#id | .class) (hover | click) <property> <value>
 ```
 
@@ -27,6 +28,8 @@ this contract follow excaliplant's [major release policy](releasing.md).
   match `[A-Za-z_][A-Za-z0-9_-]{0,63}` and are stored without `#` or `.`.
   A binding accepts up to 32 distinct classes. Repeated classes are deduplicated
   in first-occurrence order. The `#` is optional on ID directives in PlantUML.
+  The `click-from-children` and `parent:#id` modifiers follow the class list
+  and can appear in either order.
 - `alias:` selects a graph node or a sequence participant by its PlantUML
   identifier, including the drawing primitives that make up its shape and
   caption. Sequence bindings include both the head and the footbox when drawn.
@@ -54,6 +57,48 @@ component "Payments" as payments
 orders --> payments
 @enduml
 ```
+
+### Connections and labels
+
+Connections and their labels are separate drawing primitives. Look up the
+connection shape and label in `result.excalidraw.elements` and bind their IDs
+individually. A shared class lets one listener handle both.
+
+```text
+@hook #dispatchLine element:<connection-id> .connection
+@hook #dispatchLabel element:<label-id> .connection
+```
+
+### Nested hooks
+
+In a graph diagram, a bound node or node primitive inherits its closest bound
+container as its parent. Use `parent:#id` on a binding to specify the parent
+directly, including for connectors and diagram families without structural
+hook nesting. The reference resolves to an author ID in the same page. It takes
+priority over inferred nesting. An ambiguous container with multiple separate
+primitive bindings requires an explicit parent reference to select one.
+
+Hover applies to the hit hook. A click or keyboard activation also applies
+to the hit hook by default. Add `click-from-children` on a parent to toggle
+that hook when a descendant hook is activated. The direct hook emits its click
+event first. Enabled ancestors follow in order from the closest parent outwards,
+including through any intermediate hooks that have forwarding disabled. Each
+receiving hook toggles its own selection state. Moving the pointer from a child
+onto the visible area of its parent activates that parent's hover state.
+Unbinding or removing the inline SVG during an event stops further forwarding.
+
+```plantuml
+@startuml
+@hook #checkout alias:checkout click-from-children
+@hook #orders alias:orders .service
+package "Checkout" as checkout {
+  component "Orders" as orders
+}
+@enduml
+```
+
+Missing explicit parents, self-references and cycles produce hook diagnostics.
+In normal mode the affected hooks keep their direct interactions.
 
 ## Styles and precedence
 
@@ -89,13 +134,15 @@ original label bounds.
 The `RenderResult.excalidraw` document and `.excalidraw` export expose this
 object at `elements[].customData.excaliplantHook` on each targeted primitive.
 
-| Field     | Meaning                                                                             |
-| --------- | ----------------------------------------------------------------------------------- |
-| `id`      | Optional author-supplied hook ID.                                                   |
-| `classes` | Optional nonempty list of author-supplied classes in binding order.                 |
-| `name`    | Opaque grouping token shared by the primitives of one binding in the current scene. |
-| `hover`   | Resolved style overrides for hover.                                                 |
-| `click`   | Resolved style overrides for selection.                                             |
+| Field               | Meaning                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `id`                | Optional author-supplied hook ID.                                                   |
+| `classes`           | Optional nonempty list of author-supplied classes in binding order.                 |
+| `name`              | Opaque grouping token shared by the primitives of one binding in the current scene. |
+| `hover`             | Resolved style overrides for hover.                                                 |
+| `click`             | Resolved style overrides for selection.                                             |
+| `parent`            | Optional `name` of the nearest enclosing hook in the same scene.                    |
+| `clickFromChildren` | Optional `true` enabling click forwarding from descendant hooks.                    |
 
 Other fields in `customData` remain available. A host that uses Excalidraw
 directly implements pointer input and state rendering through its own viewer.
@@ -125,6 +172,7 @@ type HookEventDetail = {
   type: "hover" | "click";
   active: boolean;
   elementId: string;
+  sourceElementId?: string;
 };
 ```
 
@@ -139,6 +187,10 @@ type HookEventDetail = {
 - `elementId` is the Excalidraw primitive ID that received the interaction. On
   a compound element the outline and caption can report different primitive
   IDs with the same hook ID and classes.
+- A forwarded click names the receiving ancestor's representative primitive in
+  `elementId` and the directly activated child primitive in `sourceElementId`.
+  Forwarded clicks change selection and notify listeners. Normal link navigation
+  follows the directly activated SVG link.
 
 ```js
 import { bindHooks, onHook } from "@grethel-labs/excaliplant/hooks";

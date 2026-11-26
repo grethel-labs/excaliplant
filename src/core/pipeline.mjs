@@ -132,9 +132,8 @@ export async function renderBlock(block, registry, options = {}, index = 0) {
   const canvas = new Canvas({ seed, theme: ctx.theme, maxElements: ctx.limits.maxElements, hooks });
   module.draw(laid, canvas, ctx);
   decorate(canvas, model.meta);
-  for (const hook of hooks) {
-    const error = canvas.applyHook(hook);
-    if (error) reportHookError(ctx.diagnostics, hook.line, error);
+  if (hooks.length) {
+    canvas.applyHooks(hooks, (line, message) => reportHookError(ctx.diagnostics, line, message));
   }
   const b = canvas.bounds();
   canvas.translate(-b.x, -b.y);

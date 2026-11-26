@@ -492,6 +492,8 @@ Rel(api, mail, "Sends e-mails", "SMTP")
 
 ```plantuml
 @startuml
+' Append click-from-children to the checkout hook to forward clicks from its services.
+@hook #checkout alias:checkout .container
 @hook #orders alias:orders .service .navigation
 @hook alias:payments .service
 @hook #events alias:events .infrastructure
@@ -511,9 +513,11 @@ Rel(api, mail, "Sends e-mails", "SMTP")
 
 title Interactive services
 component "Storefront" as web
-component "Orders" as orders
-component "Payments" as payments
-queue "Events" as events
+package "Checkout" as checkout {
+  component "Orders" as orders
+  component "Payments" as payments
+  queue "Events" as events
+}
 
 web --> orders : checkout
 orders --> payments : authorize

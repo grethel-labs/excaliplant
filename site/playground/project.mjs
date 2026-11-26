@@ -116,7 +116,13 @@ export function combineProject(documents, options, background) {
   let y = 0;
   let rowHeight = 0;
   for (const [index, document] of documents.entries()) {
+    // Author IDs and selectors may repeat across independent documents.
     const hookNames = new Map();
+    for (const element of document.elements) {
+      const hook = element.customData?.excaliplantHook;
+      if (hook && !hookNames.has(hook.name))
+        hookNames.set(hook.name, `@line:${index}:${hookNames.size}`);
+    }
     const bound = canvas.bounds(document.elements);
     const width = bound.w + pad * 2;
     const height = bound.h + pad * 2;
@@ -136,12 +142,15 @@ export function combineProject(documents, options, background) {
         };
         const hook = element.customData?.excaliplantHook;
         if (hook) {
-          // Author IDs and selectors may repeat across independent documents.
-          if (!hookNames.has(hook.name))
-            hookNames.set(hook.name, `@line:${index}:${hookNames.size}`);
+          const { name, parent, ...metadata } = hook;
+          const placedParent = hookNames.get(parent);
           placed.customData = {
             ...element.customData,
-            excaliplantHook: { ...hook, name: hookNames.get(hook.name) },
+            excaliplantHook: {
+              ...metadata,
+              name: hookNames.get(name),
+              ...(placedParent ? { parent: placedParent } : {}),
+            },
           };
         }
         return placed;

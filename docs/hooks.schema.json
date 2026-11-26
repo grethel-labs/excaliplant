@@ -34,6 +34,8 @@
         "id": { "$ref": "#/$defs/token" },
         "classes": { "$ref": "#/$defs/classes", "minItems": 1 },
         "name": { "type": "string", "minLength": 1 },
+        "parent": { "type": "string", "minLength": 1 },
+        "clickFromChildren": { "const": true },
         "hover": { "$ref": "#/$defs/style" },
         "click": { "$ref": "#/$defs/style" }
       }
@@ -42,12 +44,14 @@
       "type": "object",
       "required": ["classes", "type", "active", "elementId"],
       "anyOf": [{ "required": ["id"] }, { "properties": { "classes": { "minItems": 1 } } }],
+      "dependentSchemas": { "sourceElementId": { "properties": { "type": { "const": "click" } } } },
       "properties": {
         "id": { "$ref": "#/$defs/token" },
         "classes": { "$ref": "#/$defs/classes" },
         "type": { "enum": ["hover", "click"] },
         "active": { "type": "boolean" },
-        "elementId": { "type": "string", "minLength": 1 }
+        "elementId": { "type": "string", "minLength": 1 },
+        "sourceElementId": { "type": "string", "minLength": 1 }
       }
     }
   }

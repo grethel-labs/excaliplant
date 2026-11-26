@@ -160,10 +160,13 @@ const isHookToken = (value) => HOOK_TOKEN.test(value) && value === value.trim();
 function safeHookAttribute(key, value) {
   switch (key) {
     case "data-excaliplant-hook":
+    case "data-excaliplant-hook-parent":
       return (
         isHookToken(value) ||
         (/^@line:[0-9]{1,15}:[0-9]{1,15}$/.test(value) && value === value.trim())
       );
+    case "data-excaliplant-click-from-children":
+      return value === "true";
     case "data-excaliplant-hook-id":
       return isHookToken(value);
     case "data-excaliplant-hook-classes": {
