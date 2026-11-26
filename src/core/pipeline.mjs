@@ -13,7 +13,7 @@ import { Canvas } from "../draw/canvas.mjs";
 import { decorate } from "../draw/frame.mjs";
 import { createTheme, mapPlantUmlTheme } from "../draw/theme.mjs";
 import { applySkin } from "../syntax/skin.mjs";
-import { extractHooks, reportHookError } from "../syntax/hooks.mjs";
+import { extractInteractions, reportHookError, reportTooltipError } from "../syntax/hooks.mjs";
 import { createDocument, validateDocument } from "../render/excalidraw.mjs";
 
 /**
@@ -90,10 +90,14 @@ export function parseBlock(block, registry, options = {}) {
       throw new LimitError(`Line longer than ${limits.maxLineLength} characters`, { line: l.line });
   }
   const pages = raw ? [lines] : splitPages(lines);
-  const { lines: page, hooks } = extractHooks(
+  const {
+    lines: page,
+    hooks,
+    tooltips,
+  } = extractInteractions(
     pages[Math.min(Math.max(0, options.page ?? 0), pages.length - 1)],
     diagnostics,
-    { raw },
+    { raw, maxTextLength: limits.maxTextLength },
   );
   const module = options.kind ? registry.get(options.kind) : registry.resolve(block.type, page);
   if (!module)
@@ -119,7 +123,7 @@ export function parseBlock(block, registry, options = {}) {
   };
   const model = module.parse(page, ctx);
   applySkin(theme, model.meta.skin);
-  return { module, model, ctx, hooks, pages: pages.length };
+  return { module, model, ctx, hooks, tooltips, pages: pages.length };
 }
 
 /**
@@ -131,16 +135,27 @@ export function parseBlock(block, registry, options = {}) {
  * @returns {Promise<BlockOutput>}
  */
 export async function renderBlock(block, registry, options = {}, index = 0) {
-  const { module, model, ctx, hooks, pages } = parseBlock(block, registry, options);
+  const { module, model, ctx, hooks, tooltips, pages } = parseBlock(block, registry, options);
   const laid = await module.layout(model, ctx);
   const seed = stableHash32(
     `${options.seed ?? "excaliplant"}|${module.kind}|${index}|${options.page ?? 0}`,
   );
-  const canvas = new Canvas({ seed, theme: ctx.theme, maxElements: ctx.limits.maxElements, hooks });
+  const canvas = new Canvas({
+    seed,
+    theme: ctx.theme,
+    maxElements: ctx.limits.maxElements,
+    hooks,
+    tooltips,
+  });
   module.draw(laid, canvas, ctx);
   decorate(canvas, model.meta);
   if (hooks.length) {
     canvas.applyHooks(hooks, (line, message) => reportHookError(ctx.diagnostics, line, message));
+  }
+  if (tooltips.length) {
+    canvas.applyTooltips(tooltips, (line, message) =>
+      reportTooltipError(ctx.diagnostics, line, message),
+    );
   }
   const b = canvas.bounds();
   canvas.translate(-b.x, -b.y);

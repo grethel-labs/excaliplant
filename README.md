@@ -74,7 +74,7 @@
 
 - **Looks like a whiteboard, stays a diagram.** Output is a real Excalidraw scene: open it in Excalidraw, move boxes, arrows stay bound.
 - **Broad PlantUML coverage.** Sequence, class, activity, state, component, C4, Gantt, mind maps, JSON, regex, math — see the [full list](#supported-diagrams).
-- **Interactive hooks.** Attach hover and click styles and browser events to elements by ID or class. [Usage](#interactive-element-hooks)
+- **Interactive hooks and tooltips.** Attach hover and click styles, browser events, and plain-text tooltips to diagram elements. [Usage](#interactive-element-hooks)
 - **The PlantUML language, not just diagrams.** Preprocessor (`!procedure`, `!function`, loops, JSON variables, `!include`), Creole markup, `skinparam`, `<style>`, themes, colours and bundled C4/ArchiMate libraries.
 - **Pure JavaScript.** No Java, no Graphviz, no PlantUML server. Layout runs on [ELK](https://github.com/kieler/elkjs) and purpose-built engines.
 - **Deterministic.** Same input, same bytes — ideal for docs in git.
@@ -261,6 +261,8 @@ diagram formats such as Ditaa and JSON, put a binding before its style lines.
 @hook .service hover FontColor navy
 @hook #openOrders click BackgroundColor gold
 @hook #openOrders click LineThickness 3
+@tooltip alias:orders "Tracks orders after checkout"
+@tooltip alias:payments "Authorizes payments"
 component "Orders" as orders
 component "Payments" as payments
 orders --> payments
@@ -279,6 +281,11 @@ Nested elements handle hover and click on the element under the pointer by
 default. Add `click-from-children` to a parent hook binding to receive clicks
 from its hooked descendants. See [nested hooks](docs/hooks.md#nested-hooks) for
 parent resolution and the forwarded event payload.
+
+Use `@tooltip alias:orders "Tracks orders after checkout"` for a plain-text
+tooltip. It works with or without an `@hook`. In the Playground, hover over
+the element to read it. For connectors and their captions, use `@tooltip
+element:<id> "Tooltip text"` with the corresponding scene ID on one line.
 
 Render the SVG with `toSvg({ interactive: true })` and insert it inline into the
 host page. Then use the browser entry point to enable and listen for interactions.

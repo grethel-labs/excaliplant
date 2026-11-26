@@ -34,7 +34,7 @@ function isHookName(value) {
  * @property {number} [padding] Whitespace around the drawing (default 24).
  * @property {string} [background] Background colour (default: document background).
  * @property {boolean} [embedFont] Inline Excalifont as a data URL (default true).
- * @property {boolean} [interactive] Include hook markers and visual states for an inline SVG host (default false).
+ * @property {boolean} [interactive] Include hook states and full hover hit regions for an inline SVG host (default false).
  */
 
 /** @typedef {{ name: string, id: string | null, classes: string[], hover: any, click: any, parent: string | null, clickFromChildren: boolean }} HookVariants */
@@ -99,7 +99,7 @@ export function excalidrawToSvg(doc, options = {}) {
   );
   if (bg !== "transparent") out.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="${bg}"/>`);
   out.push(`<g transform="translate(${num(padding - b.x)} ${num(padding - b.y)})">`);
-  for (const el of elements) out.push(renderElement(el, bg, hooks?.get(el)));
+  for (const el of elements) out.push(renderElement(el, bg, hooks?.get(el), hooks !== null));
   out.push("</g></svg>");
   return out.join("");
 }
@@ -182,14 +182,31 @@ function readHook(el) {
   };
 }
 
-/** @param {any} el @param {string} bg @param {HookVariants | undefined} hook */
-function renderElement(el, bg, hook) {
+/** @param {unknown} value */
+function tooltipTitle(value) {
+  if (typeof value !== "string" || !value.trim()) return "";
+  const text = value.replace(
+    /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uD800-\uDFFF\uFFFE\uFFFF]/gu,
+    "\uFFFD",
+  );
+  return `<title>${escapeXml(text)}</title>`;
+}
+
+/** @param {any} el @param {string} bg @param {HookVariants | undefined} hook @param {boolean} interactive */
+function renderElement(el, bg, hook, interactive) {
   const body = renderBody(el, bg);
   const opacity = el.opacity < 100 ? ` opacity="${num(el.opacity / 100)}"` : "";
   const link = typeof el.link === "string" && /^(https?:|mailto:)/i.test(el.link) ? el.link : null;
-  if (!hook) return body ? wrapLink(`<g${opacity}>${body}</g>`, link) : "";
-  const geometry = hookHitRegion(el, bg);
+  const title = tooltipTitle(el.customData?.excaliplantTooltip);
+  if (!hook && !(interactive && title))
+    return body ? wrapLink(`<g${opacity}>${title}${body}</g>`, link) : "";
+  const geometry = interactionHitRegion(el, bg);
   if (!geometry && !body) return "";
+  const hit = `<g aria-hidden="true" opacity="0" pointer-events="painted">${geometry}</g>`;
+  if (!hook) {
+    const visuals = `<g${opacity} pointer-events="none">${body}</g>`;
+    return `<g>${title}${wrapLink(visuals + hit, link)}</g>`;
+  }
   let variants = `<g data-excaliplant-variant="base">${body}</g>`;
   for (const state of ["hover", "click"]) {
     const styled = hook[state];
@@ -197,7 +214,6 @@ function renderElement(el, bg, hook) {
       variants += `<g data-excaliplant-variant="${state}" display="none">${renderBody(styled, bg)}</g>`;
   }
   const visuals = `<g${opacity} pointer-events="none">${variants}</g>`;
-  const hit = `<g aria-hidden="true" opacity="0" pointer-events="painted">${geometry}</g>`;
   const hookId = hook.id ? ` data-excaliplant-hook-id="${escapeXml(hook.id)}"` : "";
   const hookClasses = hook.classes.length
     ? ` data-excaliplant-hook-classes="${escapeXml(hook.classes.join(" "))}"`
@@ -206,7 +222,7 @@ function renderElement(el, bg, hook) {
   const clickFromChildren = hook.clickFromChildren
     ? ' data-excaliplant-click-from-children="true"'
     : "";
-  return `<g data-excaliplant-hook="${escapeXml(hook.name)}"${hookId}${hookClasses}${hookParent}${clickFromChildren} data-excaliplant-element-id="${escapeXml(el.id)}">${wrapLink(visuals + hit, link)}</g>`;
+  return `<g data-excaliplant-hook="${escapeXml(hook.name)}"${hookId}${hookClasses}${hookParent}${clickFromChildren} data-excaliplant-element-id="${escapeXml(el.id)}">${title}${wrapLink(visuals + hit, link)}</g>`;
 }
 
 /** @param {string} body @param {string | null} link */
@@ -256,7 +272,7 @@ function styleHookElement(el, style) {
 }
 
 /** @param {any} el @param {string} bg */
-function hookHitRegion(el, bg) {
+function interactionHitRegion(el, bg) {
   if (el.type === "text")
     return `<rect x="${num(el.x)}" y="${num(el.y)}" width="${num(el.width)}" height="${num(el.height)}" fill="#000000"/>`;
 

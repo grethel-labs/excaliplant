@@ -17,6 +17,7 @@ const diagram = `@startuml
 @hook details click BorderThickness 5
 @hook details click RoundCorner 10
 @hook alias:linked .service .external
+@tooltip alias:linked "Opens the linked service"
 component Service as service
 component Linked as linked [[${url}#linked]]
 component Normal as normal [[${url}#normal]]

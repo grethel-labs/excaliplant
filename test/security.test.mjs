@@ -269,6 +269,22 @@ test("nested hook markers accept only valid parent names and literal opt-in valu
   assert.doesNotMatch(sanitizeSvg(svg), markers);
 });
 
+test("SVG tooltips escape markup and replace invalid XML characters", async () => {
+  const payload = "</title><script>alert(1)</script> & 📦\u0000\uD800";
+  const result = await render(
+    `@startuml\n@tooltip alias:Details ${JSON.stringify(payload)}\ncomponent Details\n@enduml`,
+    { strict: true },
+  );
+  const title = "<title>&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt; &amp; 📦��</title>";
+  const { sanitizeSvg } = await import("../src/markdown/index.mjs");
+  const svg = await result.toSvg({ embedFont: false });
+  const inline = await result.toSvg({ interactive: true, embedFont: false });
+  for (const markup of [svg, sanitizeSvg(svg), inline, sanitizeHookPreview(inline)]) {
+    assert.ok(markup.includes(title));
+    assert.doesNotMatch(markup, /<script|\u0000|\uD800/u);
+  }
+});
+
 test("mcp: tool arguments cannot name files or switch on includes", async () => {
   const { createServer } = await import("../src/mcp/index.mjs");
   const server = createServer({ executor: "inline" });

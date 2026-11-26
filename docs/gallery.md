@@ -510,6 +510,9 @@ Rel(api, mail, "Sends e-mails", "SMTP")
 @hook .infrastructure click BackgroundColor #bae6fd
 @hook .infrastructure click LineColor #0369a1
 @hook .infrastructure click FontColor #0c4a6e
+@tooltip alias:web "Customers start checkout here."
+@tooltip alias:checkout "Checkout coordinates orders and payments."
+@tooltip alias:orders "Tracks orders after checkout."
 
 title Interactive services
 component "Storefront" as web
