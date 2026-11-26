@@ -7,6 +7,7 @@
 import { layoutText } from "../../layout/measure.mjs";
 import { shape as shapeDef } from "../../draw/shapes.mjs";
 import { roleStyle } from "../../draw/theme.mjs";
+import { explicitSkinText } from "../../syntax/skin.mjs";
 
 /** @typedef {import("./parse.mjs").SequenceModel} SequenceModel */
 /** @typedef {import("./parse.mjs").Participant} Participant */
@@ -14,7 +15,7 @@ import { roleStyle } from "../../draw/theme.mjs";
 
 /**
  * @typedef {(
- *  | { type: "head", p: Participant, x: number, y: number, w: number, h: number, text: RichLayout, icon: [number, number] | null, foot: boolean }
+ *  | { type: "head", p: Participant, x: number, y: number, w: number, h: number, text: RichLayout, textColor: string | undefined, icon: [number, number] | null, foot: boolean }
  *  | { type: "lifeline", x: number, y1: number, y2: number, gaps: [number, number][], destroyed: boolean }
  *  | { type: "activation", x: number, y1: number, y2: number, color: string | null }
  *  | { type: "message", points: [number, number][], text: RichLayout | null, textX: number, textY: number, arrow: import("./parse.mjs").MessageArrow, self: boolean, plate?: boolean }
@@ -23,7 +24,7 @@ import { roleStyle } from "../../draw/theme.mjs";
  *  | { type: "delay", x1: number, x2: number, y: number, text: RichLayout | null }
  *  | { type: "group", x: number, y: number, w: number, h: number, kind: string, text: RichLayout | null, tag: RichLayout, elses: { y: number, text: RichLayout | null }[], color: string | null }
  *  | { type: "ref", x: number, y: number, w: number, h: number, text: RichLayout }
- *  | { type: "box", x: number, y: number, w: number, h: number, text: RichLayout | null, color: string | null }
+ *  | { type: "box", x: number, y: number, w: number, h: number, text: RichLayout | null, color: string | null, textColor: string | null }
  *  | { type: "destroy", x: number, y: number }
  * )} SeqItem
  */
@@ -48,13 +49,33 @@ export const DESTROY_HALF = 9;
  */
 export function layoutSequence(model, ctx) {
   const theme = ctx.theme;
-  const fs = roleStyle(theme, "participant").fontSize;
+  const participantFs = roleStyle(theme, "participant").fontSize;
+  const participantText = explicitSkinText(theme, "participant");
+  const boxText = explicitSkinText(theme, "participantBox");
   const msgFs = roleStyle(theme, "message").fontSize * 0.875;
+  const boxFs = boxText?.fontSize ?? theme.roles.participantBox?.fontSize ?? msgFs;
   const parts = [...model.participants.values()].sort((a, b) => a.order - b.order);
   const index = new Map(parts.map((p, i) => [p.id, i]));
+  /** @type {Map<string, import("./parse.mjs").ParticipantBox>} */
+  const boxOf = new Map();
+  const boxes = model.boxes.flatMap((box) => {
+    const memberIndices = [];
+    for (const id of box.members) {
+      const i = index.get(id);
+      if (i === undefined) continue;
+      memberIndices.push(i);
+      boxOf.set(id, box);
+    }
+    if (!memberIndices.length) return [];
+    const text = box.text ? layoutText(box.text, { fontSize: boxFs, bold: true }) : null;
+    return [{ box, text, a: Math.min(...memberIndices), b: Math.max(...memberIndices) }];
+  });
 
   // ── participant heads ────────────────────────────────────────────────
   const heads = parts.map((p) => {
+    const box = boxOf.get(p.id);
+    const fs = participantText?.fontSize ?? (box ? boxText?.fontSize : undefined) ?? participantFs;
+    const textColor = participantText?.text ?? (box ? (box.textColor ?? boxText?.text) : undefined);
     const stereo = p.stereotypes.length
       ? `<size:${Math.round(fs * 0.75)}>${p.stereotypes.map((s) => `«${s}»`).join(" ")}</size>\n`
       : "";
@@ -62,20 +83,27 @@ export function layoutSequence(model, ctx) {
     const icon = ICON_KINDS.has(p.kind) ? /** @type {[number, number]} */ (iconSize(p.kind)) : null;
     const w = icon ? Math.max(icon[0], text.width) + 8 : Math.max(60, text.width + 28);
     const h = icon ? icon[1] + text.height + 6 : text.height + 18;
-    return { p, text, icon, w, h };
+    return { p, text, textColor, icon, w, h };
   });
   const headH = Math.max(40, ...heads.map((h) => h.h));
 
   // ── horizontal constraints ───────────────────────────────────────────
   const n = parts.length;
+  const trackWidths = heads.map((h) => h.w);
+  for (const { a, b, text } of boxes) {
+    if (a === b && text) trackWidths[a] = Math.max(trackWidths[a], text.width);
+  }
   const gaps = Array.from(
     { length: Math.max(0, n - 1) },
-    (_, i) => heads[i].w / 2 + heads[i + 1].w / 2 + MIN_GAP,
+    (_, i) => trackWidths[i] / 2 + trackWidths[i + 1] / 2 + MIN_GAP,
   );
   let leftMargin = 20;
   let rightMargin = 20;
   /** @type {[number, number, number][]} */
   const constraints = [];
+  for (const { a, b, text } of boxes) {
+    if (a < b && text) constraints.push([a, b, text.width - (trackWidths[a] + trackWidths[b]) / 2]);
+  }
   /** @param {string} id */
   const idx = (id) => index.get(id) ?? 0;
   for (const e of model.events) {
@@ -128,20 +156,22 @@ export function layoutSequence(model, ctx) {
   }
   /** @type {number[]} */
   const cx = [];
-  let x = leftMargin + (heads[0]?.w ?? 0) / 2;
+  let x = leftMargin + (trackWidths[0] ?? 0) / 2;
   for (let i = 0; i < n; i++) {
     cx.push(x);
     x += gaps[i] ?? 0;
   }
   const minX = 0;
-  const maxX = (cx[n - 1] ?? 0) + (heads[n - 1]?.w ?? 0) / 2 + rightMargin;
+  const maxX = (cx[n - 1] ?? 0) + (trackWidths[n - 1] ?? 0) / 2 + rightMargin;
   /** @param {string} id */
   const center = (id) => cx[idx(id)];
 
   // ── vertical pass ────────────────────────────────────────────────────
   /** @type {SeqItem[]} */
   const items = [];
-  const top = model.boxes.length ? 30 : 0;
+  const top = model.boxes.length
+    ? Math.max(30, ...boxes.map(({ text }) => (text?.height ?? 0) + 12))
+    : 0;
   let y = top + headH + 24;
   /** @type {Map<string, { y: number, color: string | null }[]>} */
   const active = new Map(parts.map((p) => [p.id, []]));
@@ -475,6 +505,7 @@ export function layoutSequence(model, ctx) {
       w: h.w,
       h: h.h,
       text: h.text,
+      textColor: h.textColor,
       icon: h.icon,
       foot: false,
     });
@@ -498,6 +529,7 @@ export function layoutSequence(model, ctx) {
         w: h.w,
         h: h.h,
         text: h.text,
+        textColor: h.textColor,
         icon: h.icon,
         foot: true,
       });
@@ -505,22 +537,18 @@ export function layoutSequence(model, ctx) {
   });
   markCrossedLabels(items);
   const bottom = model.hideFootbox ? footY : footY + headH;
-  for (const box of model.boxes) {
-    const members = box.members.filter((m) => index.has(m));
-    if (!members.length) continue;
-    const is = members.map(idx);
-    const a = Math.min(...is);
-    const b = Math.max(...is);
-    const x1 = cx[a] - heads[a].w / 2 - 12;
-    const x2 = cx[b] + heads[b].w / 2 + 12;
+  for (const { box, text, a, b } of boxes) {
+    const x1 = cx[a] - trackWidths[a] / 2 - 12;
+    const x2 = cx[b] + trackWidths[b] / 2 + 12;
     items.unshift({
       type: "box",
       x: x1,
       y: 0,
       w: x2 - x1,
       h: bottom + 10,
-      text: box.text ? layoutText(box.text, { fontSize: msgFs, bold: true }) : null,
+      text,
       color: box.color,
+      textColor: box.textColor ?? boxText?.text ?? null,
     });
   }
   return { items };

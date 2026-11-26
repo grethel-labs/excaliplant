@@ -53,7 +53,7 @@ import { LimitError } from "../../core/errors.mjs";
  * @property {import("../../syntax/commons.mjs").DiagramMeta} meta
  * @property {Map<string, Participant>} participants
  * @property {SeqEvent[]} events
- * @property {{ text: string, color: string | null, members: string[] }[]} boxes
+ * @property {ParticipantBox[]} boxes
  * @property {boolean} hideFootbox
  * @property {"left" | "center" | "right"} messageAlign
  */
@@ -82,11 +82,19 @@ const GROUP_KINDS = new Set([
 ]);
 
 /**
+ * @typedef {object} ParticipantBox
+ * @property {string} text
+ * @property {string | null} color
+ * @property {string | null} textColor
+ * @property {string[]} members
+ */
+
+/**
  * @typedef {object} SeqContext
  * @property {SequenceModel} model
  * @property {import("../../core/registry.mjs").ModuleContext} module
  * @property {{ on: boolean, value: number, step: number, format: string }} autonumber
- * @property {{ text: string, color: string | null, members: string[] } | null} box
+ * @property {ParticipantBox | null} box
  * @property {string[][]} activations Stack of callers for `return`.
  * @property {number} order
  * @property {boolean} autoactivate `autoactivate on`: calls activate, dashed replies deactivate.
@@ -279,7 +287,13 @@ const RULES = [
     const m = /^box\b\s*(.*)$/i.exec(line);
     if (!m) return false;
     const col = takeColor(m[1]);
-    ctx.box = { text: label(col.rest), color: parseColorSpec(col.color).fill ?? null, members: [] };
+    const colors = parseColorSpec(col.color);
+    ctx.box = {
+      text: label(col.rest),
+      color: colors.fill ?? null,
+      textColor: colors.text ?? null,
+      members: [],
+    };
     ctx.model.boxes.push(ctx.box);
     return true;
   },

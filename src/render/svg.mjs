@@ -13,13 +13,22 @@ import { excalifontFaceCss } from "./font.mjs";
 import { ASCENDER, DESCENDER, UNITS_PER_EM } from "../layout/font_metrics.mjs";
 
 const generator = /** @type {any} */ (rough).generator();
+const hookToken = /^[A-Za-z_][A-Za-z0-9_-]{0,63}$/;
+
+/** @param {unknown} value */
+function isHookToken(value) {
+  return typeof value === "string" && hookToken.test(value) && value === value.trim();
+}
 
 /**
  * @typedef {object} SvgOptions
  * @property {number} [padding] Whitespace around the drawing (default 24).
  * @property {string} [background] Background colour (default: document background).
  * @property {boolean} [embedFont] Inline Excalifont as a data URL (default true).
+ * @property {boolean} [interactive] Include hook markers and visual states for an inline SVG host (default false).
  */
+
+/** @typedef {{ name: string, id: string | null, classes: string[], hover: any, click: any }} HookVariants */
 
 /**
  * Escape text content for XML.
@@ -59,7 +68,15 @@ const num = (n) => (Number.isFinite(n) ? Math.round(n * 100) / 100 : 0);
 export function excalidrawToSvg(doc, options = {}) {
   const padding = Math.max(0, Math.min(1000, options.padding ?? 24));
   const elements = (doc.elements ?? []).filter((e) => !e.isDeleted);
-  const b = bounds(elements);
+  /** @type {Map<any, HookVariants> | null} */
+  const hooks = options.interactive === true ? new Map() : null;
+  if (hooks) {
+    for (const el of elements) {
+      const hook = readHook(el);
+      if (hook) hooks.set(el, hook);
+    }
+  }
+  const b = bounds(elements, hooks);
   const w = num(b.w + padding * 2);
   const h = num(b.h + padding * 2);
   const bg = color(options.background ?? doc.appState?.viewBackgroundColor, "#ffffff");
@@ -73,15 +90,16 @@ export function excalidrawToSvg(doc, options = {}) {
   );
   if (bg !== "transparent") out.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="${bg}"/>`);
   out.push(`<g transform="translate(${num(padding - b.x)} ${num(padding - b.y)})">`);
-  for (const el of elements) out.push(renderElement(el, bg));
+  for (const el of elements) out.push(renderElement(el, bg, hooks?.get(el)));
   out.push("</g></svg>");
   return out.join("");
 }
 
 /**
  * @param {any[]} elements
+ * @param {Map<any, HookVariants> | null} hooks
  */
-function bounds(elements) {
+function bounds(elements, hooks) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -93,6 +111,8 @@ function bounds(elements) {
           [e.x, e.y],
           [e.x + e.width, e.y + e.height],
         ];
+    const hook = hooks?.get(e);
+    if (hook && e.type === "text") extendTextBounds(pts, e, hook);
     for (const [x, y] of pts) {
       minX = Math.min(minX, x);
       minY = Math.min(minY, y);
@@ -106,38 +126,158 @@ function bounds(elements) {
 }
 
 /**
- * @param {any} el
- * @param {string} bg
+ * Reserve space for larger labels around the existing alignment anchor.
+ * @param {number[][]} points
+ * @param {any} el Text element.
+ * @param {HookVariants} hook
  */
-function renderElement(el, bg) {
-  let body = "";
+function extendTextBounds(points, el, hook) {
+  const fontSize = Math.max(hook.hover.fontSize, hook.click.fontSize);
+  const scale = fontSize / el.fontSize;
+  if (!Number.isFinite(scale) || scale <= 1) return;
+  const align = el.textAlign === "center" ? 0.5 : el.textAlign === "right" ? 1 : 0;
+  const width = el.width * scale;
+  const height = el.height * scale;
+  const x = el.x + (el.width - width) * align;
+  const italic = el.customData?.italic === true;
+  const shift = italic ? fontSize * (el.lineHeight ?? 1.25) * 0.15 : 0;
+  const skew = italic ? height * Math.tan(Math.PI / 18) : 0;
+  points.push([x + Math.min(0, shift - skew), el.y], [x + width + shift, el.y + height]);
+}
+
+/** @param {any} el @returns {HookVariants | null} */
+function readHook(el) {
+  const hook = el.customData?.excaliplantHook;
+  if (
+    typeof hook?.name !== "string" ||
+    !(isHookToken(hook.name) || /^@line:[0-9]{1,15}:[0-9]{1,15}$/.test(hook.name)) ||
+    hook.name !== hook.name.trim() ||
+    typeof el.id !== "string" ||
+    !el.id ||
+    el.id.length > 256 ||
+    /[\u0000-\u001f\uD800-\uDFFF\uFFFE\uFFFF]/u.test(el.id)
+  ) {
+    return null;
+  }
+  const id = isHookToken(hook.id) ? hook.id : null;
+  const classes = Array.isArray(hook.classes)
+    ? [...new Set(hook.classes.slice(0, 32).filter(isHookToken))]
+    : [];
+  if (!id && classes.length === 0) return null;
+  return {
+    name: hook.name,
+    id,
+    classes,
+    hover: styleHookElement(el, hook.hover),
+    click: styleHookElement(el, hook.click),
+  };
+}
+
+/** @param {any} el @param {string} bg @param {HookVariants | undefined} hook */
+function renderElement(el, bg, hook) {
+  const body = renderBody(el, bg);
+  const opacity = el.opacity < 100 ? ` opacity="${num(el.opacity / 100)}"` : "";
+  const link = typeof el.link === "string" && /^(https?:|mailto:)/i.test(el.link) ? el.link : null;
+  if (!hook) return body ? wrapLink(`<g${opacity}>${body}</g>`, link) : "";
+  const geometry = hookHitRegion(el, bg);
+  if (!geometry && !body) return "";
+  let variants = `<g data-excaliplant-variant="base">${body}</g>`;
+  for (const state of ["hover", "click"]) {
+    const styled = hook[state];
+    if (styled !== el)
+      variants += `<g data-excaliplant-variant="${state}" display="none">${renderBody(styled, bg)}</g>`;
+  }
+  const visuals = `<g${opacity} pointer-events="none">${variants}</g>`;
+  const hit = `<g aria-hidden="true" opacity="0" pointer-events="painted">${geometry}</g>`;
+  const hookId = hook.id ? ` data-excaliplant-hook-id="${escapeXml(hook.id)}"` : "";
+  const hookClasses = hook.classes.length
+    ? ` data-excaliplant-hook-classes="${escapeXml(hook.classes.join(" "))}"`
+    : "";
+  return `<g data-excaliplant-hook="${escapeXml(hook.name)}"${hookId}${hookClasses} data-excaliplant-element-id="${escapeXml(el.id)}">${wrapLink(visuals + hit, link)}</g>`;
+}
+
+/** @param {string} body @param {string | null} link */
+function wrapLink(body, link) {
+  return link ? `<a xlink:href="${escapeXml(link)}" href="${escapeXml(link)}">${body}</a>` : body;
+}
+
+/**
+ * Validate the variant independently from the PlantUML parser. The SVG
+ * renderer also accepts imported Excalidraw documents.
+ * @param {any} el
+ * @param {unknown} style
+ */
+function styleHookElement(el, style) {
+  if (typeof style !== "object" || style === null) return el;
+  /** @param {string} key */
+  const own = (key) => (Object.hasOwn(style, key) ? style[key] : undefined);
+  /** @param {string} key @param {number} min @param {number} max @param {number} fallback */
+  const bounded = (key, min, max, fallback) => {
+    const v = own(key);
+    return Number.isFinite(v) && v >= min && v <= max ? v : fallback;
+  };
+  if (el.type === "text") {
+    const strokeColor = color(own("text"), el.strokeColor);
+    const fontSize = bounded("fontSize", 6, 72, el.fontSize);
+    return strokeColor === el.strokeColor && fontSize === el.fontSize
+      ? el
+      : { ...el, strokeColor, fontSize };
+  }
+
+  const strokeColor = color(own("stroke"), el.strokeColor);
+  const backgroundColor = color(own("fill"), el.backgroundColor);
+  const strokeWidth = bounded("strokeWidth", 0.5, 12, el.strokeWidth);
+  const dash = own("strokeStyle");
+  const strokeStyle =
+    dash === "solid" || dash === "dashed" || dash === "dotted" ? dash : el.strokeStyle;
+  const rounded = el.type === "rectangle" ? own("rounded") : undefined;
+  const roundness =
+    rounded === true ? (el.roundness ?? { type: 3 }) : rounded === false ? null : el.roundness;
+  return strokeColor === el.strokeColor &&
+    backgroundColor === el.backgroundColor &&
+    strokeWidth === el.strokeWidth &&
+    strokeStyle === el.strokeStyle &&
+    roundness === el.roundness
+    ? el
+    : { ...el, strokeColor, backgroundColor, strokeWidth, strokeStyle, roundness };
+}
+
+/** @param {any} el @param {string} bg */
+function hookHitRegion(el, bg) {
+  if (el.type === "text")
+    return `<rect x="${num(el.x)}" y="${num(el.y)}" width="${num(el.width)}" height="${num(el.height)}" fill="#000000"/>`;
+
+  return renderBody(
+    {
+      ...el,
+      roughness: 0,
+      strokeColor: "#000000",
+      backgroundColor: "#000000",
+      strokeWidth: el.points ? Math.max(10, el.strokeWidth) : el.strokeWidth,
+      strokeStyle: "solid",
+    },
+    bg,
+  );
+}
+
+/** @param {any} el @param {string} bg */
+function renderBody(el, bg) {
   switch (el.type) {
     case "rectangle":
-      body = shape(el, "rect");
-      break;
+      return shape(el, "rect");
     case "ellipse":
-      body = shape(el, "ellipse");
-      break;
+      return shape(el, "ellipse");
     case "diamond":
-      body = shape(el, "diamond");
-      break;
+      return shape(el, "diamond");
     case "line":
-      body = linear(el, bg, false);
-      break;
+      return linear(el, bg, false);
     case "arrow":
-      body = linear(el, bg, true);
-      break;
+      return linear(el, bg, true);
     case "text":
-      body = text(el);
-      break;
+      return text(el);
     default:
       return "";
   }
-  if (!body) return "";
-  const opacity = el.opacity < 100 ? ` opacity="${num(el.opacity / 100)}"` : "";
-  const link = typeof el.link === "string" && /^(https?:|mailto:)/i.test(el.link) ? el.link : null;
-  const g = `<g${opacity}>${body}</g>`;
-  return link ? `<a xlink:href="${escapeXml(link)}" href="${escapeXml(link)}">${g}</a>` : g;
 }
 
 /**

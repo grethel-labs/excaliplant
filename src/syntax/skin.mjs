@@ -51,6 +51,7 @@ const ELEMENT_ROLES = new Map(
     sequencedivider: ["divider"],
     sequencereference: ["reference"],
     state: ["state"],
+    compositestate: ["compositeState"],
     activity: ["action"],
     action: ["action"],
     activitydiamond: ["decision"],
@@ -97,8 +98,8 @@ const PROPERTIES = new Map(
     backgroundcolor: "fill",
     bordercolor: "stroke",
     linecolor: "stroke",
-    color: "stroke",
     fontcolor: "text",
+    color: "stroke",
     fontsize: "fontSize",
     borderthickness: "strokeWidth",
     linethickness: "strokeWidth",
@@ -108,6 +109,20 @@ const PROPERTIES = new Map(
     roundcorner: "rounded",
   }),
 );
+
+/** @typedef {Pick<import("../draw/theme.mjs").RoleStyle, "text" | "fontSize">} TextStyle */
+/** @type {WeakMap<import("../draw/theme.mjs").Theme, Map<string, TextStyle>>} */
+const explicitText = new WeakMap();
+
+/**
+ * Text properties explicitly assigned to this role by the diagram.
+ * @param {import("../draw/theme.mjs").Theme} theme
+ * @param {string} role
+ * @returns {TextStyle | undefined}
+ */
+export function explicitSkinText(theme, role) {
+  return explicitText.get(theme)?.get(role);
+}
 
 /**
  * @param {string} key
@@ -143,11 +158,27 @@ function convert(prop, raw) {
 }
 
 /**
+ * Resolve one supported PlantUML style declaration to a safe role-style value.
+ * @param {string} property
+ * @param {string} raw
+ * @returns {import("../draw/theme.mjs").RoleStyle | null}
+ */
+export function parseStyleProperty(property, raw) {
+  const key = PROPERTIES.get(property.toLowerCase());
+  if (!key) return null;
+  const value = convert(key, raw);
+  return value === null ? null : { [key]: value };
+}
+
+/**
  * Apply skin values to a theme in place.
  * @param {import("../draw/theme.mjs").Theme} theme
  * @param {Map<string, string>} skin
  */
 export function applySkin(theme, skin) {
+  /** @type {Map<string, TextStyle>} */
+  const text = new Map();
+  explicitText.set(theme, text);
   for (const [key, raw] of skin) {
     if (
       key === "backgroundcolor" ||
@@ -212,13 +243,14 @@ export function applySkin(theme, skin) {
     const value = convert(prop, raw);
     if (value === null || value === undefined) continue;
     const element = parts.element.replace(/[^a-z]/g, "");
-    const targets =
-      element === "element" || element === "default" || element === ""
-        ? ALL_NODE_ROLES
-        : (ELEMENT_ROLES.get(element) ?? []);
+    const global = element === "element" || element === "default" || element === "";
+    const targets = global ? ALL_NODE_ROLES : (ELEMENT_ROLES.get(element) ?? []);
     for (const role of targets) {
       const r = theme.roles[role];
       if (r) /** @type {any} */ (r)[prop] = value;
+      if (!global && (prop === "text" || prop === "fontSize")) {
+        text.set(role, { ...text.get(role), [prop]: value });
+      }
     }
   }
 }

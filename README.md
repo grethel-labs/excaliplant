@@ -236,7 +236,62 @@ reference backdrop. Text pairs require 4.5:1 and graphic pairs require 3:1.
 | `DiagramRegistry`, `defineDiagram`        | Register your own diagram modules                                 |
 | `THEMES`, `THEME_NAMES`, `DEFAULT_LIMITS` | Built-in themes and resource limits                               |
 
-`RenderResult` has `kind`, `name`, `excalidraw`, `diagnostics`, `pages`, `model`, `toJSON()`, `toSvg({ padding, background, embedFont })` and `toPng({ width, scale, background })`.
+`RenderResult` has `kind`, `name`, `excalidraw`, `diagnostics`, `pages`, `model`, `toJSON()`, `toSvg({ padding, background, embedFont, interactive })` and `toPng({ width, scale, background })`.
+
+### Interactive element hooks
+
+Put excaliplant `@hook` directives at the start of the diagram or `newpage` page,
+before the diagram body. Use a unique `#id`, one or more reusable `.classes`, or
+both. The `alias:` selector binds a graph node or sequence participant by its
+PlantUML alias. An `element:<id>` selector targets any drawing element in any
+diagram kind. Get that ID from `result.excalidraw.elements` using the same seed,
+diagram block, page and drawing order. Quote aliases that contain spaces. In raw
+diagram formats such as Ditaa and JSON, put a binding before its style lines.
+
+```plantuml
+@startuml
+@hook #openOrders alias:orders .service .navigation
+@hook alias:payments .service
+@hook .service hover FontColor navy
+@hook #openOrders click BackgroundColor gold
+@hook #openOrders click LineThickness 3
+component "Orders" as orders
+component "Payments" as payments
+orders --> payments
+@enduml
+```
+
+Each style line takes a property supported by excaliplant's `<style>` syntax,
+including `BackgroundColor`, `LineColor`, `LineThickness`, `LineStyle`,
+`RoundCorner`, `FontColor` and `FontSize`. Both states start from the diagram
+and the `roles.hook-hover.*` and `roles.hook-click.*` theme defaults. Classes
+override defaults in the order on the binding line, and ID styles take priority
+over class styles. A click toggles selection, which takes visual precedence over
+hover. The existing diagram layout stays in place.
+
+Render the SVG with `toSvg({ interactive: true })` and insert it inline into the
+host page. Then use the browser entry point to enable and listen for interactions.
+
+```js
+import { bindHooks, onHook } from "@grethel-labs/excaliplant/hooks";
+
+const stop = bindHooks(svg);
+const stopOrders = onHook(svg, "#openOrders", ({ detail }) => {
+  if (detail.type === "click" && detail.active) showOrders(detail.elementId);
+});
+const stopServices = onHook(svg, ".service", ({ detail }) => {
+  if (detail.type === "hover") reportServiceHover(detail);
+});
+// Call stopOrders(), stopServices() and stop() when unmounting this SVG.
+```
+
+The bubbling `excaliplant:hook` event reports hover enter and leave or click
+selection and deselection. Enter and Space also activate a focused hook.
+`detail.id` is the optional hook ID, `detail.classes` lists the hook's classes,
+and `detail.elementId` identifies the scene primitive that received the event.
+Each targeted Excalidraw element includes the hook metadata and resolved styles
+in `customData.excaliplantHook` for hosts that embed their own viewer. SVG image
+embedding and PNG provide a static preview.
 
 <details>
 <summary><b>Render options</b></summary>

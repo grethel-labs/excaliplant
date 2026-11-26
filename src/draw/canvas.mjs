@@ -4,7 +4,7 @@
  * @module draw/canvas
  */
 
-import { themeColor } from "./theme.mjs";
+import { THEMES, themeColor } from "./theme.mjs";
 import { seededRandom, idFactory } from "../core/hash.mjs";
 import { LimitError } from "../core/errors.mjs";
 import { layoutText, LINE_HEIGHT } from "../layout/measure.mjs";
@@ -55,11 +55,12 @@ export const NATIVE_HEADS = new Set([
  */
 
 /** @typedef {[number, number]} Point */
+/** @typedef {import("../syntax/hooks.mjs").Hook} Hook */
 
 /** @public */
 export class Canvas {
   /**
-   * @param {{ seed: number, theme: import("./theme.mjs").Theme, maxElements?: number }} options
+   * @param {{ seed: number, theme: import("./theme.mjs").Theme, maxElements?: number, hooks?: Hook[] }} options
    */
   constructor(options) {
     this.theme = options.theme;
@@ -72,6 +73,11 @@ export class Canvas {
     this.groupStack = [];
     /** @type {Map<string, any>} */
     this.byId = new Map();
+    /** @type {Map<string, any[]>} */
+    this.hookAliases = new Map();
+    for (const hook of options.hooks ?? []) {
+      if (hook.selector === "alias") this.hookAliases.set(hook.target, []);
+    }
   }
 
   /** @returns {number} */
@@ -92,6 +98,52 @@ export class Canvas {
     } finally {
       this.groupStack.pop();
     }
+  }
+
+  /**
+   * Associate a logical diagram element with the primitives it draws.
+   * @template T
+   * @param {string} alias
+   * @param {() => T} draw
+   * @returns {T}
+   */
+  withHookAlias(alias, draw) {
+    const parts = this.hookAliases.get(alias);
+    if (!parts) return draw();
+    const start = this.elements.length;
+    const result = draw();
+    for (let i = start; i < this.elements.length; i++) parts.push(this.elements[i]);
+    return result;
+  }
+
+  /**
+   * Attach validated interaction styles to the scene after drawing.
+   * @param {Hook} hook
+   * @returns {string | null} A diagnostic when the binding cannot be applied.
+   */
+  applyHook(hook) {
+    const element = hook.selector === "element" ? this.byId.get(hook.target) : null;
+    const parts =
+      hook.selector === "alias" ? this.hookAliases.get(hook.target) : element ? [element] : [];
+    if (!parts?.length) return `Unknown hook target "${hook.selector}:${hook.target}"`;
+    if (parts.some((part) => part.customData?.excaliplantHook)) {
+      return `Hook "${hook.name}" overlaps another hook on "${hook.selector}:${hook.target}"`;
+    }
+    const defaults = (/** @type {string} */ role) => ({
+      ...THEMES.sketch.roles[role],
+      ...this.theme.roles[role],
+    });
+    const data = {
+      name: hook.name,
+      ...(hook.id && { id: hook.id }),
+      ...(hook.classes.length && { classes: hook.classes }),
+      hover: { ...defaults("hookHover"), ...hook.hover },
+      click: { ...defaults("hookClick"), ...hook.click },
+    };
+    for (const part of parts) {
+      part.customData = { ...part.customData, excaliplantHook: data };
+    }
+    return null;
   }
 
   /**

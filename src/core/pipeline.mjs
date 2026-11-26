@@ -13,6 +13,7 @@ import { Canvas } from "../draw/canvas.mjs";
 import { decorate } from "../draw/frame.mjs";
 import { createTheme, mapPlantUmlTheme } from "../draw/theme.mjs";
 import { applySkin } from "../syntax/skin.mjs";
+import { extractHooks, reportHookError } from "../syntax/hooks.mjs";
 import { createDocument, validateDocument } from "../render/excalidraw.mjs";
 
 /**
@@ -87,7 +88,11 @@ export function parseBlock(block, registry, options = {}) {
       throw new LimitError(`Line longer than ${limits.maxLineLength} characters`, { line: l.line });
   }
   const pages = raw ? [lines] : splitPages(lines);
-  const page = pages[Math.min(Math.max(0, options.page ?? 0), pages.length - 1)];
+  const { lines: page, hooks } = extractHooks(
+    pages[Math.min(Math.max(0, options.page ?? 0), pages.length - 1)],
+    diagnostics,
+    { raw },
+  );
   const module = options.kind ? registry.get(options.kind) : registry.resolve(block.type, page);
   if (!module)
     throw new ParseError(`Unknown diagram kind ${options.kind ?? block.type}`, {
@@ -107,7 +112,7 @@ export function parseBlock(block, registry, options = {}) {
   };
   const model = module.parse(page, ctx);
   applySkin(theme, model.meta.skin);
-  return { module, model, ctx, pages: pages.length };
+  return { module, model, ctx, hooks, pages: pages.length };
 }
 
 /**
@@ -119,14 +124,18 @@ export function parseBlock(block, registry, options = {}) {
  * @returns {Promise<BlockOutput>}
  */
 export async function renderBlock(block, registry, options = {}, index = 0) {
-  const { module, model, ctx, pages } = parseBlock(block, registry, options);
+  const { module, model, ctx, hooks, pages } = parseBlock(block, registry, options);
   const laid = await module.layout(model, ctx);
   const seed = stableHash32(
     `${options.seed ?? "excaliplant"}|${module.kind}|${index}|${options.page ?? 0}`,
   );
-  const canvas = new Canvas({ seed, theme: ctx.theme, maxElements: ctx.limits.maxElements });
+  const canvas = new Canvas({ seed, theme: ctx.theme, maxElements: ctx.limits.maxElements, hooks });
   module.draw(laid, canvas, ctx);
   decorate(canvas, model.meta);
+  for (const hook of hooks) {
+    const error = canvas.applyHook(hook);
+    if (error) reportHookError(ctx.diagnostics, hook.line, error);
+  }
   const b = canvas.bounds();
   canvas.translate(-b.x, -b.y);
   const document = validateDocument(
