@@ -44,6 +44,95 @@ test("renderAll renders every block and render selects by name or index", async 
   await assert.rejects(render(src, { block: "nope" }), /No diagram named/);
 });
 
+const CLASS_SHELF = `@startuml
+class A
+class B
+class C
+class D
+class E
+class F
+@enduml`;
+
+async function svgRatio(result) {
+  const svg = await result.toSvg({ embedFont: false });
+  const bounds = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+  assert.ok(bounds, "SVG should have a viewBox");
+  const [, width, height] = bounds;
+  return Number(width) / Number(height);
+}
+
+const ratioError = (actual, target) => Math.abs(Math.log(actual) - Math.log(target));
+
+test("an aspect ratio reflows disconnected graph components in SVG and PNG", async () => {
+  const normal = await render(CLASS_SHELF);
+  const normalRatio = await svgRatio(normal);
+  const wide = await render(CLASS_SHELF, { aspectRatio: 16 / 9 });
+  const tall = await render(CLASS_SHELF, { aspectRatio: 9 / 16 });
+  assert.ok(ratioError(await svgRatio(wide), 16 / 9) < ratioError(normalRatio, 16 / 9));
+  assert.ok(ratioError(await svgRatio(tall), 9 / 16) < ratioError(normalRatio, 9 / 16));
+  const boxSizes = ({ excalidraw }) =>
+    excalidraw.elements.filter((e) => e.type === "rectangle").map((e) => [e.width, e.height]);
+  assert.deepEqual(boxSizes(wide), boxSizes(normal));
+  assert.deepEqual(boxSizes(tall), boxSizes(normal));
+
+  const png = await wide.toPng({ width: 320 });
+  assert.equal(png.readUInt32BE(16), 320);
+  assert.ok(png.readUInt32BE(20) < 320);
+
+  const [first, second] = await renderAll(`${CLASS_SHELF}\n${CLASS_SHELF}`, {
+    aspectRatio: 9 / 16,
+  });
+  assert.deepEqual(first.excalidraw, tall.excalidraw);
+  assert.equal(await svgRatio(second), await svgRatio(tall));
+  assert.deepEqual(await renderPlantUml(CLASS_SHELF, { aspectRatio: 16 / 9 }), wide.excalidraw);
+  assert.deepEqual((await render(CLASS_SHELF)).excalidraw, normal.excalidraw);
+});
+
+test("a connected class graph can wrap while keeping its arrow bindings and labels", async () => {
+  const names = Array.from({ length: 8 }, (_, index) => `C${index}`);
+  const labels = names.slice(1).map((_, index) => `link ${index}`);
+  const declarations = names.map((name) => `class ${name}`);
+  const links = labels.map((label, index) => `${names[index]} --> ${names[index + 1]} : ${label}`);
+  const source = [
+    "@startuml",
+    "top to bottom direction",
+    ...declarations,
+    ...links,
+    "@enduml",
+  ].join("\n");
+  const aspectRatio = 16 / 9;
+  const normal = await render(source);
+  const wide = await render(source, { aspectRatio });
+  assert.ok(
+    ratioError(await svgRatio(wide), aspectRatio) < ratioError(await svgRatio(normal), aspectRatio),
+  );
+  assert.equal(wide.model.direction, "TB");
+  const arrows = wide.excalidraw.elements.filter((e) => e.type === "arrow");
+  assert.equal(arrows.length, links.length);
+  for (const arrow of arrows) {
+    assert.ok(arrow.startBinding?.elementId && arrow.endBinding?.elementId);
+  }
+  const texts = wide.excalidraw.elements.filter((e) => e.type === "text").map((e) => e.text);
+  for (const label of labels) assert.ok(texts.includes(label), label);
+  assert.deepEqual(
+    (await render(source, { aspectRatio, layoutCache: false })).excalidraw,
+    wide.excalidraw,
+  );
+  assert.deepEqual((await render(source)).excalidraw, normal.excalidraw);
+});
+
+test("aspectRatio requires a positive finite number and leaves rigid layouts usable", async () => {
+  for (const aspectRatio of [0, -1, NaN, Infinity, "16:9", null]) {
+    await assert.rejects(render(SEQ, { aspectRatio }), RangeError);
+  }
+  const normal = await render(SEQ);
+  assert.deepEqual((await render(SEQ, { aspectRatio: 1 })).excalidraw, normal.excalidraw);
+  for (const aspectRatio of [Number.MIN_VALUE, Number.MAX_VALUE]) {
+    const actual = await svgRatio(await render(CLASS_SHELF, { aspectRatio }));
+    assert.ok(Number.isFinite(actual) && actual > 0);
+  }
+});
+
 test("newpage documents expose pages", async () => {
   const src = "@startuml\nA -> B\nnewpage\nB -> C\n@enduml";
   const first = await render(src);

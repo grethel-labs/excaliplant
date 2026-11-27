@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,6 +41,76 @@ test("--all writes numbered files", () => {
   writeFileSync(input, "@startuml\nA -> B\n@enduml\n@startuml\nC -> D\n@enduml");
   assert.equal(run([input, "--all", "-o", path.join(dir, "out-{n}.svg")]).status, 0);
   assert.match(readFileSync(path.join(dir, "out-2.svg"), "utf8"), /<svg/);
+});
+
+test("--aspect-ratio reflows graph layouts in single, all-block, and project rendering", (t) => {
+  const source =
+    "@startuml\ncomponent A\ncomponent B\ncomponent C\ncomponent D\ncomponent E\ncomponent F\n@enduml";
+  /** @param {string} svg */
+  const ratio = (svg) => {
+    const match = /^<svg [^>]*\bviewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+    assert.ok(match, "SVG should have a viewBox");
+    return Number(match[1]) / Number(match[2]);
+  };
+  const wide = run(["-f", "svg", "--aspect-ratio", "16:9"], source);
+  const tall = run(["-f", "svg", "--aspect-ratio", "0.5625"], source);
+  assert.equal(wide.status, 0, wide.stderr);
+  assert.equal(tall.status, 0, tall.stderr);
+  assert.ok(ratio(wide.stdout) > 1);
+  assert.ok(ratio(tall.stdout) < 1);
+
+  const dir = mkdtempSync(path.join(tmpdir(), "excaliplant-ratio-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const input = path.join(dir, "multi.puml");
+  writeFileSync(input, `${source}\n${source}\n`);
+  const all = run([input, "--all", "--aspect-ratio", "16:9", "-o", path.join(dir, "all-{n}.svg")]);
+  assert.equal(all.status, 0, all.stderr);
+  for (const n of [1, 2])
+    assert.equal(ratio(readFileSync(path.join(dir, `all-${n}.svg`), "utf8")), ratio(wide.stdout));
+
+  const project = run([
+    "--project",
+    dir,
+    "--all",
+    "--aspect-ratio",
+    "9:16",
+    "-o",
+    path.join(dir, "project-{n}.svg"),
+  ]);
+  assert.equal(project.status, 0, project.stderr);
+  for (const n of [1, 2])
+    assert.equal(
+      ratio(readFileSync(path.join(dir, `project-${n}.svg`), "utf8")),
+      ratio(tall.stdout),
+    );
+});
+
+test("--aspect-ratio rejects malformed or unrepresentable ratios", () => {
+  for (const value of [
+    "",
+    "wide",
+    "16:9:1",
+    ":9",
+    "16:0",
+    "-1",
+    "Infinity",
+    "0x10",
+    "1e309",
+    "1e-400",
+    "1e300:1e-300",
+    "1e-300:1e300",
+  ]) {
+    const result = run(["--aspect-ratio", value]);
+    assert.equal(result.status, 1, value);
+    assert.match(
+      result.stderr,
+      /--aspect-ratio requires a positive finite width-to-height ratio/,
+      value,
+    );
+  }
+  const missing = run(["--aspect-ratio"]);
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /Missing value for --aspect-ratio/);
 });
 
 test("--include-dir allows includes only below the directory", () => {

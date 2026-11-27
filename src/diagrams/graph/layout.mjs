@@ -11,6 +11,8 @@ import { roleStyle } from "../../draw/theme.mjs";
 import { explicitSkinText } from "../../syntax/skin.mjs";
 import { tidyRoutes } from "./route.mjs";
 import { runElk } from "./elk_runner.mjs";
+import { planComponents } from "./components.mjs";
+import { usableWrapping, wrappingInput } from "./wrapping.mjs";
 
 /** @typedef {import("../../model/graph.mjs").GraphModel} GraphModel */
 /** @typedef {import("../../model/graph.mjs").GraphNode} GraphNode */
@@ -288,7 +290,7 @@ function classGeometry(node, fs, stereo, hide) {
  * @param {GraphModel} model
  * @param {import("../../draw/theme.mjs").Theme} theme
  * @param {GraphLayoutOptions} [options]
- * @param {{ layoutCache?: boolean }} [runtime] Per-render settings; `layoutCache: false` skips the layout cache.
+ * @param {{ layoutCache?: boolean, aspectRatio?: number }} [runtime] Per-render layout settings.
  * @returns {Promise<GraphModel>}
  */
 export async function layoutGraph(model, theme, options = {}, runtime = {}) {
@@ -512,8 +514,31 @@ export async function layoutGraph(model, theme, options = {}, runtime = {}) {
     edges,
   };
 
-  const result = await runElk(graph, { cache: runtime.layoutCache });
+  const wrappedInput = wrappingInput(graph, runtime.aspectRatio);
+  const cacheOptions = { cache: runtime.layoutCache };
+  const regular = await runElk(graph, cacheOptions);
+  applyElkLayout(model, regular);
+  let packing = planComponents(model, runtime.aspectRatio);
+  if (wrappedInput) {
+    // ELK can fail to wrap a graph it can lay out with the regular options.
+    const wrapped = await runElk(wrappedInput, cacheOptions).catch(() => null);
+    if (wrapped && usableWrapping(wrapped, regular)) {
+      applyElkLayout(model, wrapped);
+      const alternative = planComponents(model, runtime.aspectRatio);
+      if (alternative.distance < packing.distance) packing = alternative;
+      else applyElkLayout(model, regular);
+    }
+  }
+  packing.apply();
+  return model;
+}
 
+/**
+ * Write ELK positions and routes into the sized model in absolute coordinates.
+ * @param {GraphModel} model
+ * @param {any} result
+ */
+function applyElkLayout(model, result) {
   /** @type {Map<string, { x: number, y: number }>} */
   const abs = new Map([["__root", { x: 0, y: 0 }]]);
   /** @param {any} n @param {number} ox @param {number} oy */
@@ -566,123 +591,4 @@ export async function layoutGraph(model, theme, options = {}, runtime = {}) {
   };
   nested(result);
   tidyRoutes(model);
-  packComponents(model);
-  return model;
-}
-
-/**
- * ELK lays disconnected components out in a single row when hierarchy
- * handling is enabled. Re-pack wide results into shelves so many unrelated
- * elements form a readable grid instead of one long strip.
- * @param {GraphModel} model
- */
-function packComponents(model) {
-  const roots = [...model.nodes.values()].filter((n) => !n.parent && !n.removed);
-  /** @type {Map<GraphNode, GraphNode>} */
-  const top = new Map();
-  for (const n of model.nodes.values()) {
-    let r = n;
-    while (r.parent) r = r.parent;
-    top.set(n, r);
-  }
-  /** @type {Map<GraphNode, GraphNode>} */
-  const uf = new Map(roots.map((r) => [r, r]));
-  /** @param {GraphNode} n @returns {GraphNode} */
-  const find = (n) => {
-    let r = n;
-    while (uf.get(r) !== r) r = /** @type {GraphNode} */ (uf.get(r));
-    uf.set(n, r);
-    return r;
-  };
-  for (const e of model.edges) {
-    const a = model.nodes.get(e.from);
-    const b = model.nodes.get(e.to);
-    if (!a || !b) continue;
-    const ra = find(/** @type {GraphNode} */ (top.get(a)));
-    const rb = find(/** @type {GraphNode} */ (top.get(b)));
-    if (ra !== rb) uf.set(ra, rb);
-  }
-  /** @type {Map<GraphNode, { nodes: GraphNode[], edges: import("../../model/graph.mjs").GraphEdge[], x1: number, y1: number, x2: number, y2: number }>} */
-  const comps = new Map();
-  for (const n of model.nodes.values()) {
-    if (n.removed) continue;
-    const key = find(/** @type {GraphNode} */ (top.get(n)));
-    const c = comps.get(key) ?? {
-      nodes: [],
-      edges: [],
-      x1: Infinity,
-      y1: Infinity,
-      x2: -Infinity,
-      y2: -Infinity,
-    };
-    c.nodes.push(n);
-    c.x1 = Math.min(c.x1, n.x);
-    c.y1 = Math.min(c.y1, n.y);
-    c.x2 = Math.max(c.x2, n.x + n.width);
-    c.y2 = Math.max(c.y2, n.y + n.height);
-    comps.set(key, c);
-  }
-  for (const e of model.edges) {
-    const a = model.nodes.get(e.from);
-    if (!a) continue;
-    const c = comps.get(find(/** @type {GraphNode} */ (top.get(a))));
-    if (!c) continue;
-    c.edges.push(e);
-    for (const [x, y] of e.points) {
-      c.x1 = Math.min(c.x1, x);
-      c.y1 = Math.min(c.y1, y);
-      c.x2 = Math.max(c.x2, x);
-      c.y2 = Math.max(c.y2, y);
-    }
-    for (const b of [e.labelBox, e.fromLabelBox, e.toLabelBox]) {
-      if (!b) continue;
-      c.x1 = Math.min(c.x1, b.x);
-      c.y1 = Math.min(c.y1, b.y);
-      c.x2 = Math.max(c.x2, b.x + b.width);
-      c.y2 = Math.max(c.y2, b.y + b.height);
-    }
-  }
-  const list = [...comps.values()]
-    .filter((c) => Number.isFinite(c.x1))
-    .sort((a, b) => a.x1 - b.x1 || a.y1 - b.y1);
-  const width = Math.max(0, ...list.map((c) => c.x2)) - Math.min(0, ...list.map((c) => c.x1));
-  const height = Math.max(0, ...list.map((c) => c.y2)) - Math.min(0, ...list.map((c) => c.y1));
-  if (list.length < 4 || width < height * 2.5) {
-    model.width = width;
-    model.height = height;
-    return;
-  }
-  const gap = 50;
-  const area = list.reduce((s, c) => s + (c.x2 - c.x1 + gap) * (c.y2 - c.y1 + gap), 0);
-  const target = Math.max(Math.max(...list.map((c) => c.x2 - c.x1)), Math.sqrt(area * 1.6));
-  let x = 0;
-  let y = 0;
-  let row = 0;
-  for (const c of list) {
-    const w = c.x2 - c.x1;
-    const h = c.y2 - c.y1;
-    if (x > 0 && x + w > target) {
-      x = 0;
-      y += row + gap;
-      row = 0;
-    }
-    const dx = x - c.x1;
-    const dy = y - c.y1;
-    for (const n of c.nodes) {
-      n.x += dx;
-      n.y += dy;
-    }
-    for (const e of c.edges) {
-      e.points = e.points.map(([px, py]) => [px + dx, py + dy]);
-      for (const b of [e.labelBox, e.fromLabelBox, e.toLabelBox]) {
-        if (!b) continue;
-        b.x += dx;
-        b.y += dy;
-      }
-    }
-    x += w + gap;
-    row = Math.max(row, h);
-  }
-  model.width = target;
-  model.height = y + row;
 }
