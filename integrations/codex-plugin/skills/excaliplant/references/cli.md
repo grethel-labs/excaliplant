@@ -29,6 +29,7 @@ Options:
       --clean               Clean strokes instead of the hand-drawn look
       --width <px>          PNG width in pixels (16–16000)
       --scale <n>           PNG scale relative to the SVG size (default 2)
+      --aspect-ratio <w:h|n> Target width-to-height ratio for graph layouts (e.g. 16:9)
       --background <color>  Background colour for SVG/PNG
       --seed <value>        Seed for stroke wobble and element ids
       --page <n>            Page of a newpage document (0-based)
