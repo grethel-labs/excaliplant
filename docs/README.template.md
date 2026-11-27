@@ -14,7 +14,7 @@
 
 <p align="center">
   <b><a href="{{siteUrl}}#play">▶ Try it live — write PlantUML in your browser</a></b><br />
-  <sub>Live preview, every render option, all {{exampleCount}} examples open and editable, share by link, export SVG, PNG or Excalidraw.</sub>
+  <sub>Live preview, all {{exampleCount}} examples open and editable, share by link, export SVG, PNG or Excalidraw.</sub>
 </p>
 
 <p align="center">
@@ -153,12 +153,31 @@ reference backdrop. Text pairs require 4.5:1 and graphic pairs require 3:1.
 | `parse(source, options?)`                 | Parse without layout → `{ kind, model, diagnostics }`             |
 | `detectKind(source)`                      | Detected diagram kind                                             |
 | `listDiagramTypes()`                      | Supported kinds and their start keywords                          |
-| `renderPlantUml(source)`                  | 0.x-compatible: `await` → Excalidraw JSON, `.toSvg()`, `.toPng()` |
+| `renderPlantUml(source, options?)`        | 0.x-compatible: `await` → Excalidraw JSON, `.toSvg()`, `.toPng()` |
 | `preprocessText(source, options?)`        | Run only the preprocessor                                         |
 | `DiagramRegistry`, `defineDiagram`        | Register your own diagram modules                                 |
 | `THEMES`, `THEME_NAMES`, `DEFAULT_LIMITS` | Built-in themes and resource limits                               |
 
 `RenderResult` has `kind`, `name`, `excalidraw`, `diagnostics`, `pages`, `model`, `toJSON()`, `toSvg({ padding, background, embedFont, interactive })` and `toPng({ width, scale, background })`.
+
+### Target aspect ratio
+
+Pass `aspectRatio` as a positive finite width-to-height ratio to `render()`,
+`renderAll()` or `renderPlantUml()`. The CLI accepts a ratio such as `16:9` or
+a positive number.
+
+```js
+const result = await render(source, { aspectRatio: 16 / 9 });
+```
+
+```sh
+npx excaliplant diagram.puml -o diagram.svg --aspect-ratio 16:9
+```
+
+Graph-based diagrams can reflow toward the target while keeping their layout
+direction and the size of shapes and text. The fit depends on the graph's
+structure. Specialized layouts such as sequence diagrams follow their usual
+geometry. Export dimensions include titles and margins.
 
 ### Interactive element hooks
 
@@ -260,6 +279,7 @@ or see the [element tooltip specification](docs/tooltips.md).
 | `roughness`      | theme default    | Shape roughness from `0` (clean) to `2` (very sketchy)                    |
 | `edgeRoughness`  | theme default    | Connector roughness from `0` (clean) to `2` (very sketchy)                |
 | `seed`           | `"excaliplant"`  | Seed for ids and stroke wobble                                            |
+| `aspectRatio`    | —                | Target width-to-height ratio for graph layouts                            |
 | `block`          | `0`              | Block index or `@startuml name`                                           |
 | `page`           | `0`              | Page of a `newpage` document                                              |
 | `strict`         | `false`          | Throw on unrecognised lines instead of warning                            |
@@ -290,6 +310,7 @@ excaliplant [input.puml] [-o output] [options]
       --clean               Clean strokes instead of the hand-drawn look
       --width <px>          PNG width (16–16000)
       --scale <n>           PNG scale relative to the SVG size (default 2)
+      --aspect-ratio <w:h|n> Target width-to-height ratio for graph layouts
       --background <color>  Background colour for SVG/PNG
       --seed <value>        Seed for stroke wobble and element ids
       --page <n>            Page of a newpage document

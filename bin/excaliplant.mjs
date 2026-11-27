@@ -36,6 +36,7 @@ Options:
       --clean               Clean strokes instead of the hand-drawn look
       --width <px>          PNG width in pixels (16–16000)
       --scale <n>           PNG scale relative to the SVG size (default 2)
+      --aspect-ratio <w:h|n> Target width-to-height ratio for graph layouts (e.g. 16:9)
       --background <color>  Background colour for SVG/PNG
       --seed <value>        Seed for stroke wobble and element ids
       --page <n>            Page of a newpage document (0-based)
@@ -52,6 +53,21 @@ Options:
 `;
 
 const MAX_INPUT_CEILING = 200 * 1024 * 1024;
+
+/** @param {string} value */
+function parseAspectRatio(value) {
+  const decimal = /^\+?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
+  const parts = value.split(":");
+  if (parts.length <= 2 && parts.every((part) => decimal.test(part.trim()))) {
+    const [width, height = 1] = parts.map(Number);
+    const ratio = width / height;
+    if ([width, height, ratio].every((number) => Number.isFinite(number) && number > 0))
+      return ratio;
+  }
+  throw new Error(
+    "--aspect-ratio requires a positive finite width-to-height ratio (e.g. 16:9 or 1.5)",
+  );
+}
 
 /**
  * @param {string[]} argv
@@ -89,6 +105,9 @@ function parseArgs(argv) {
         break;
       case "--scale":
         opts.scale = Number(next());
+        break;
+      case "--aspect-ratio":
+        opts.aspectRatio = parseAspectRatio(next());
         break;
       case "--background":
         opts.background = next();
@@ -298,6 +317,7 @@ async function main() {
     themeColors: readThemeEnvironment(process.env),
     sketch: opts.sketch,
     seed: opts.seed,
+    aspectRatio: opts.aspectRatio,
     page: opts.page,
     strict: opts.strict,
     defines: opts.defines,

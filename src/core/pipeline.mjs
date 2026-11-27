@@ -34,6 +34,7 @@ import { createDocument, validateDocument } from "../render/excalidraw.mjs";
  * @property {Date | null} [date] Date returned by `%date()`.
  * @property {string} [filename] Value of `%filename()`.
  * @property {string} [kind] Force a diagram module instead of auto-detection.
+ * @property {number} [aspectRatio] Positive finite width-to-height target for diagrams that can reflow.
  * @property {boolean} [layoutCache] Set to `false` to bypass the graph layout cache (default: on). The cache never changes the output; it only skips repeated ELK runs for identical graphs.
  */
 
@@ -135,8 +136,13 @@ export function parseBlock(block, registry, options = {}) {
  * @returns {Promise<BlockOutput>}
  */
 export async function renderBlock(block, registry, options = {}, index = 0) {
+  const { aspectRatio } = options;
+  if (aspectRatio !== undefined && (!Number.isFinite(aspectRatio) || aspectRatio <= 0)) {
+    throw new RangeError("aspectRatio must be a positive finite number");
+  }
   const { module, model, ctx, hooks, tooltips, pages } = parseBlock(block, registry, options);
-  const laid = await module.layout(model, ctx);
+  const layoutContext = aspectRatio === undefined ? ctx : { ...ctx, aspectRatio };
+  const laid = await module.layout(model, layoutContext);
   const seed = stableHash32(
     `${options.seed ?? "excaliplant"}|${module.kind}|${index}|${options.page ?? 0}`,
   );
@@ -147,7 +153,7 @@ export async function renderBlock(block, registry, options = {}, index = 0) {
     hooks,
     tooltips,
   });
-  module.draw(laid, canvas, ctx);
+  module.draw(laid, canvas, layoutContext);
   decorate(canvas, model.meta);
   if (hooks.length) {
     canvas.applyHooks(hooks, (line, message) => reportHookError(ctx.diagnostics, line, message));

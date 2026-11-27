@@ -76,6 +76,34 @@ c --> A : [retry]
   assert.equal(choice.layoutOptions["elk.portConstraints"], "FIXED_SIDE");
 });
 
+test("a failed optional wrap keeps the regular layout", async () => {
+  const source = `@startuml
+class A
+class B
+class C
+A --> B : first
+B --> C : second
+@enduml`;
+  const normal = await render(source, { layoutCache: false });
+  const proto = /** @type {any} */ (ELK).prototype;
+  const original = proto.layout;
+  let wrapAttempts = 0;
+  proto.layout = function (graph, options) {
+    if (graph.layoutOptions["elk.layered.wrapping.strategy"]) {
+      wrapAttempts++;
+      throw new Error("Cannot route the wrapped graph");
+    }
+    return original.call(this, graph, options);
+  };
+  try {
+    const hinted = await render(source, { aspectRatio: 16 / 9, layoutCache: false });
+    assert.equal(wrapAttempts, 1);
+    assert.deepEqual(hinted.excalidraw, normal.excalidraw);
+  } finally {
+    proto.layout = original;
+  }
+});
+
 test("the experiment corpus is deterministic and renders through ELK", async () => {
   const a = randomSources(8);
   const b = randomSources(8);
